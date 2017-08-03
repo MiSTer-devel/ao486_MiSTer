@@ -3,7 +3,7 @@
 Basically it's 486 compatible core, but speed is not great.
 Still it's a great emulator for very old DOS games/apps. 
 
-## differences from original ao486
+## Differences from original ao486
 * master clock is 90MHz instead of 30MHz
 * BIOS, floppy and HDD images are located in separate files for easy use. No special utility required.
 * Uses standard MiSTer OSD, can choose floppy(hot swap) and HDD(after reset).
@@ -15,7 +15,7 @@ Still it's a great emulator for very old DOS games/apps.
 
 * make sure you use the latest MiSTer binary.
 * copy ao486.rbf to root of SD card.
-* Create ao486 directory and copy boot0.rom, boot1.rom there.
+* Create ao486 directory and copy [boot0.rom](https://github.com/MiSTer-devel/ao486_MiSTer/blob/master/releases/bios/boot0.rom?raw=true), [boot1.rom](https://github.com/MiSTer-devel/ao486_MiSTer/blob/master/releases/bios/boot1.rom?raw=true) there.
 * For floppy: copy desired 1.44MB floppy raw image with extension **img** to ao486 directory.
 * For HDD: create an empty file of desired size with extension **vhd** in ao486 directory.
 * boot ao486 and in OSD choose desired floppy, hdd and boot order. 
