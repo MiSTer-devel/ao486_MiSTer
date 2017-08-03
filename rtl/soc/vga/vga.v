@@ -28,13 +28,6 @@ module vga(
     input               clk_26,
     input               rst_n,
     
-    //avalon slave for system overlay
-    input       [7:0]   sys_address,
-    input               sys_read,
-    output      [31:0]  sys_readdata,
-    input               sys_write,
-    input       [31:0]  sys_writedata,
-    
     //avalon slave vga io
     input       [3:0]   io_b_address,
     input               io_b_read,
@@ -68,7 +61,6 @@ module vga(
     output              vga_blank_n,
     output              vga_horiz_sync,
     output              vga_vert_sync,
-    
     output      [7:0]   vga_r,
     output      [7:0]   vga_g,
     output      [7:0]   vga_b
@@ -76,7 +68,6 @@ module vga(
 
 //------------------------------------------------------------------------------
 
-//not needed sys_read_valid
 
 reg io_b_read_last;
 always @(posedge clk_26 or negedge rst_n) begin if(rst_n == 1'b0) io_b_read_last <= 1'b0; else if(io_b_read_last) io_b_read_last <= 1'b0; else io_b_read_last <= io_b_read; end 
@@ -1327,76 +1318,6 @@ assign vgaprep_overscan =
 
 //------------------------------------------------------------------------------
 
-wire [8:0] sys_readdata_from_ram;
-
-assign sys_readdata = { 23'd0, sys_readdata_from_ram };
-
-reg sys_enabled;
-always @(posedge clk_26 or negedge rst_n) begin
-    if(rst_n == 1'b0)                               sys_enabled <= 1'b0;
-    else if(sys_write && sys_writedata[15] == 1'b1) sys_enabled <= sys_writedata[14];
-end
-
-wire [8:0] sys_character;
-wire [7:0] sys_line;
-
-reg [6:0] sys_horiz_cnt;
-always @(posedge clk_26 or negedge rst_n) begin
-    if(rst_n == 1'b0)                                   sys_horiz_cnt <= 7'd0;
-    else if(sys_horiz_cnt == 7'd0 && horiz_cnt == 8'd1) sys_horiz_cnt <= 7'd1;
-    else if(sys_horiz_cnt > 7'd0)                       sys_horiz_cnt <= sys_horiz_cnt + 7'd1;
-end
-
-wire [6:0] sys_horiz_cnt_plus_4 = sys_horiz_cnt + 7'd2;
-
-
-simple_bidir_ram #(
-    .widthad    (8),
-    .width      (9)
-)
-vga_system_ram (
-    .clk        (clk_26),
-
-    .address_a  (sys_address),
-    .wren_a     (sys_write && sys_writedata[15:9] == 7'd0),
-    .data_a     (sys_writedata[8:0]),
-    .q_a        (sys_readdata_from_ram),
-
-    .address_b  ({ ((vert_cnt >= 10'd256)? 4'd0 : vert_cnt[7:4]), sys_horiz_cnt_plus_4[6:3] }),
-    .q_b        (sys_character)
-);
-
-reg sys_inverted;
-always @(posedge clk_26 or negedge rst_n) begin
-    if(rst_n == 1'b0)   sys_inverted <= 1'b0;
-    else                sys_inverted <= sys_character[8];
-end
-
-simple_single_rom #(
-    .widthad    (11),
-    .width      (8),
-    .datafile   ("./../soc/vga/vga_font.bin")
-)
-vga_font_rom_inst (
-    .clk        (clk_26),
-    .addr       ({ sys_character[6:0], vert_cnt[3:0] }),
-    .q          (sys_line)
-);
-
-wire sys_pixel =
-    (sys_horiz_cnt[2:0] == 3'd0)? sys_line[0] :
-    (sys_horiz_cnt[2:0] == 3'd1)? sys_line[1] :
-    (sys_horiz_cnt[2:0] == 3'd2)? sys_line[2] :
-    (sys_horiz_cnt[2:0] == 3'd3)? sys_line[3] :
-    (sys_horiz_cnt[2:0] == 3'd4)? sys_line[4] :
-    (sys_horiz_cnt[2:0] == 3'd5)? sys_line[5] :
-    (sys_horiz_cnt[2:0] == 3'd6)? sys_line[6] :
-                                  sys_line[7];
-    
-wire [7:0] sys_pixel_color = (sys_pixel ^ sys_inverted)? 8'd255 : 8'd30;
-
-//------------------------------------------------------------------------------
-
 assign host_io_vertical_retrace = vgaprep_vert_sync;
 assign host_io_not_displaying   = vgaprep_blank;
 
@@ -1418,17 +1339,14 @@ reg [7:0] vgareg_g;
 reg [7:0] vgareg_b;
 always @(posedge clk_26 or negedge rst_n) begin
     if(rst_n == 1'b0)                                                                           vgareg_r <= 8'b0;
-    else if(sys_enabled && (horiz_cnt == 8'd1 || sys_horiz_cnt > 7'd0) && vert_cnt < 10'd256)   vgareg_r <= sys_pixel_color;
     else                                                                                        vgareg_r <= { dac_color[17:12], dac_color[17:16] };
 end
 always @(posedge clk_26 or negedge rst_n) begin
     if(rst_n == 1'b0)                                                                           vgareg_g <= 8'b0;
-    else if(sys_enabled && (horiz_cnt == 8'd1 || sys_horiz_cnt > 7'd0) && vert_cnt < 10'd256)   vgareg_g <= sys_pixel_color;
     else                                                                                        vgareg_g <= { dac_color[11:6], dac_color[11:10] };
 end
 always @(posedge clk_26 or negedge rst_n) begin
     if(rst_n == 1'b0)                                                                           vgareg_b <= 8'b0;
-    else if(sys_enabled && (horiz_cnt == 8'd1 || sys_horiz_cnt > 7'd0) && vert_cnt < 10'd256)   vgareg_b <= sys_pixel_color;
     else                                                                                        vgareg_b <= { dac_color[5:0], dac_color[5:4] };
 end
 
@@ -1441,12 +1359,6 @@ assign vga_vert_sync  = vgareg1_vert_sync;
 assign vga_r = vgareg_r;
 assign vga_g = vgareg_g;
 assign vga_b = vgareg_b;
-
-//------------------------------------------------------------------------------
-
-// synthesis translate_off
-wire _unused_ok = &{ 1'b0, sys_read, sys_writedata[31:16], host_address_reduced_last[16:2], memory_txt_address_base[12:0], sys_character[7], sys_horiz_cnt_plus_4[2:0], 1'b0 };
-// synthesis translate_on
 
 //------------------------------------------------------------------------------
 

@@ -430,6 +430,14 @@
          type = "String";
       }
    }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element vga
    {
       datum _sortIndex
@@ -1033,11 +1041,6 @@
  <connection kind="avalon" version="17.0" start="mm_bridge.m0" end="hdd.sd_slave">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0000" />
-  <parameter name="defaultConnection" value="false" />
- </connection>
- <connection kind="avalon" version="17.0" start="mm_bridge.m0" end="vga.sys">
-  <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0xa000" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection

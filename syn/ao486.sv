@@ -74,8 +74,8 @@ assign SDRAM_DQ  ='Z;
 
 assign AUDIO_S   = 0;
 
-assign LED_USER  = ioctl_wait;
-assign LED_DISK  = 0;
+assign LED_USER  = ~device & ioctl_wait;
+assign LED_DISK  = {1'b1, device & ioctl_wait};
 assign LED_POWER = 0;
 
 assign CE_PIXEL  = 1;
@@ -98,7 +98,7 @@ localparam CONF_STR = {
 	"OX2,Boot order,FDD/HDD,HDD/FDD;",
 	"T0,Reset and apply HDD;",
 	"-;",
-	"V,v0.51.",`BUILD_DATE
+	"V,v0.52.",`BUILD_DATE
 };
 
 
@@ -178,6 +178,8 @@ assign      DDRAM_CLK = clk_sys;
 wire        ps2_reset_n;
 wire        speaker_ena, speaker_out;
 
+wire        device;
+
 system u0
 (
 	.clk_clk              (CLK_50M),
@@ -237,6 +239,7 @@ system u0
 	
 	.disk_op_read         (dma_req[0]),
 	.disk_op_write        (dma_req[1]),
+	.disk_op_device       (device),
 	.disk_result_ok       (dma_status[0]),
 	.disk_result_error    (dma_status[1])
 );

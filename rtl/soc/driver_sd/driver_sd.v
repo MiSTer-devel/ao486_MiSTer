@@ -19,12 +19,15 @@ module driver_sd
 
     output reg        op_read,
     output reg        op_write,
+    output            op_device,
     input             result_ok,
     input             result_error
 );
 
 reg  [31:0]  sd_address;
 reg  [31:0]  avalon_address_base;
+
+assign op_device = !avalon_address_base;
 
 always @(*) begin
 	case(avs_address)
