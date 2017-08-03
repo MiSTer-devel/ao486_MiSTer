@@ -1,0 +1,1097 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<system name="$${FILENAME}">
+ <component
+   name="$${FILENAME}"
+   displayName="$${FILENAME}"
+   version="1.0"
+   description=""
+   tags=""
+   categories="System" />
+ <parameter name="bonusData"><![CDATA[bonusData 
+{
+   element Controller
+   {
+      datum _sortIndex
+      {
+         value = "7";
+         type = "int";
+      }
+   }
+   element Frame_Buffer
+   {
+      datum _sortIndex
+      {
+         value = "5";
+         type = "int";
+      }
+   }
+   element HPS
+   {
+      datum _sortIndex
+      {
+         value = "1";
+         type = "int";
+      }
+   }
+   element Mixer
+   {
+      datum _sortIndex
+      {
+         value = "4";
+         type = "int";
+      }
+   }
+   element Reset_Source
+   {
+      datum _sortIndex
+      {
+         value = "0";
+         type = "int";
+      }
+   }
+   element Scaler
+   {
+      datum _sortIndex
+      {
+         value = "3";
+         type = "int";
+      }
+   }
+   element Video_Input
+   {
+      datum _sortIndex
+      {
+         value = "2";
+         type = "int";
+      }
+   }
+   element Video_Output
+   {
+      datum _sortIndex
+      {
+         value = "6";
+         type = "int";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+}
+]]></parameter>
+ <parameter name="clockCrossingAdapter" value="HANDSHAKE" />
+ <parameter name="device" value="5CSEBA6U23I7" />
+ <parameter name="deviceFamily" value="Cyclone V" />
+ <parameter name="deviceSpeedGrade" value="7" />
+ <parameter name="fabricMode" value="QSYS" />
+ <parameter name="generateLegacySim" value="false" />
+ <parameter name="generationId" value="0" />
+ <parameter name="globalResetBus" value="false" />
+ <parameter name="hdlLanguage" value="VERILOG" />
+ <parameter name="hideFromIPCatalog" value="false" />
+ <parameter name="lockedInterfaceDefinition" value="" />
+ <parameter name="maxAdditionalLatency" value="1" />
+ <parameter name="projectName" value="" />
+ <parameter name="sopcBorderPoints" value="false" />
+ <parameter name="systemHash" value="0" />
+ <parameter name="testBenchDutName" value="" />
+ <parameter name="timeStamp" value="0" />
+ <parameter name="useTestBenchNamingPattern" value="false" />
+ <instanceScript></instanceScript>
+ <interface name="ctl" internal="Controller.control" type="conduit" dir="end" />
+ <interface name="finish" internal="Reset_Source.reset_cold_req" />
+ <interface
+   name="hdmi"
+   internal="Video_Output.clocked_video"
+   type="conduit"
+   dir="end" />
+ <interface
+   name="in"
+   internal="Video_Input.clocked_video"
+   type="conduit"
+   dir="end" />
+ <interface name="ram1" internal="HPS.f2h_sdram1_data" type="avalon" dir="end" />
+ <interface name="ram2" internal="HPS.f2h_sdram2_data" type="avalon" dir="end" />
+ <interface name="ramclk1" internal="HPS.f2h_sdram1_clock" type="clock" dir="end" />
+ <interface name="ramclk2" internal="HPS.f2h_sdram2_clock" type="clock" dir="end" />
+ <interface
+   name="reset"
+   internal="Reset_Source.reset_ctl"
+   type="conduit"
+   dir="end" />
+ <module name="Controller" kind="avalon_combiner" version="1.0" enabled="1" />
+ <module name="Frame_Buffer" kind="alt_vip_cl_vfb" version="17.0" enabled="1">
+  <parameter name="AUTO_DEVICE" value="5CSEBA6U23I7" />
+  <parameter name="AUTO_DEVICE_SPEEDGRADE" value="7" />
+  <parameter name="BITS_PER_SYMBOL" value="8" />
+  <parameter name="BURST_ALIGNMENT" value="1" />
+  <parameter name="CLOCKS_ARE_SEPARATE" value="1" />
+  <parameter name="COLOR_PLANES_ARE_IN_PARALLEL" value="1" />
+  <parameter name="CONTROLLED_DROP_REPEAT" value="0" />
+  <parameter name="DROP_FRAMES" value="1" />
+  <parameter name="DROP_INVALID_FIELDS" value="1" />
+  <parameter name="DROP_REPEAT_USER" value="0" />
+  <parameter name="FAMILY" value="Cyclone V" />
+  <parameter name="INTERLACED_SUPPORT" value="0" />
+  <parameter name="IS_FRAME_READER" value="0" />
+  <parameter name="IS_FRAME_WRITER" value="0" />
+  <parameter name="IS_SYNC_MASTER" value="0" />
+  <parameter name="IS_SYNC_SLAVE" value="0" />
+  <parameter name="MAX_HEIGHT" value="1080" />
+  <parameter name="MAX_SYMBOLS_PER_PACKET" value="10" />
+  <parameter name="MAX_WIDTH" value="1920" />
+  <parameter name="MEM_BASE_ADDR" value="536870912" />
+  <parameter name="MEM_BUFFER_OFFSET" value="16777216" />
+  <parameter name="MEM_PORT_WIDTH" value="128" />
+  <parameter name="MULTI_FRAME_DELAY" value="1" />
+  <parameter name="NUMBER_OF_COLOR_PLANES" value="3" />
+  <parameter name="PIXELS_IN_PARALLEL" value="1" />
+  <parameter name="READER_RUNTIME_CONTROL" value="0" />
+  <parameter name="READY_LATENCY" value="1" />
+  <parameter name="READ_BURST_TARGET" value="32" />
+  <parameter name="READ_FIFO_DEPTH" value="512" />
+  <parameter name="REPEAT_FRAMES" value="1" />
+  <parameter name="TEST_INIT" value="0" />
+  <parameter name="USER_PACKETS_MAX_STORAGE" value="1" />
+  <parameter name="USE_BUFFER_OFFSET" value="0" />
+  <parameter name="WRITER_RUNTIME_CONTROL" value="0" />
+  <parameter name="WRITE_BURST_TARGET" value="32" />
+  <parameter name="WRITE_FIFO_DEPTH" value="512" />
+ </module>
+ <module name="HPS" kind="altera_hps_lite" version="16.1" enabled="1">
+  <parameter name="AUTO_DEVICE_SPEEDGRADE" value="7" />
+  <parameter name="BONDING_OUT_ENABLED" value="false" />
+  <parameter name="BOOTFROMFPGA_Enable" value="false" />
+  <parameter name="BSEL" value="1" />
+  <parameter name="BSEL_EN" value="false" />
+  <parameter name="CAN0_Mode" value="N/A" />
+  <parameter name="CAN0_PinMuxing" value="Unused" />
+  <parameter name="CAN1_Mode" value="N/A" />
+  <parameter name="CAN1_PinMuxing" value="Unused" />
+  <parameter name="CSEL" value="0" />
+  <parameter name="CSEL_EN" value="false" />
+  <parameter name="CTI_Enable" value="false" />
+  <parameter name="DEBUGAPB_Enable" value="false" />
+  <parameter name="DMA_Enable">No,No,No,No,No,No,No,No</parameter>
+  <parameter name="EMAC0_Mode" value="N/A" />
+  <parameter name="EMAC0_PTP" value="false" />
+  <parameter name="EMAC0_PinMuxing" value="Unused" />
+  <parameter name="EMAC1_Mode" value="N/A" />
+  <parameter name="EMAC1_PTP" value="false" />
+  <parameter name="EMAC1_PinMuxing" value="Unused" />
+  <parameter name="F2H_AXI_CLOCK_FREQ" value="100" />
+  <parameter name="F2H_SDRAM0_CLOCK_FREQ" value="100000000" />
+  <parameter name="F2H_SDRAM1_CLOCK_FREQ" value="0" />
+  <parameter name="F2H_SDRAM2_CLOCK_FREQ" value="0" />
+  <parameter name="F2H_SDRAM3_CLOCK_FREQ" value="100" />
+  <parameter name="F2H_SDRAM4_CLOCK_FREQ" value="100" />
+  <parameter name="F2H_SDRAM5_CLOCK_FREQ" value="100" />
+  <parameter name="F2SCLK_COLDRST_Enable" value="true" />
+  <parameter name="F2SCLK_DBGRST_Enable" value="false" />
+  <parameter name="F2SCLK_PERIPHCLK_Enable" value="false" />
+  <parameter name="F2SCLK_PERIPHCLK_FREQ" value="0" />
+  <parameter name="F2SCLK_SDRAMCLK_Enable" value="false" />
+  <parameter name="F2SCLK_SDRAMCLK_FREQ" value="0" />
+  <parameter name="F2SCLK_WARMRST_Enable" value="true" />
+  <parameter name="F2SDRAM_Type">Avalon-MM Bidirectional,Avalon-MM Bidirectional,Avalon-MM Bidirectional</parameter>
+  <parameter name="F2SDRAM_Width" value="128,64,64" />
+  <parameter name="F2SINTERRUPT_Enable" value="false" />
+  <parameter name="F2S_Width" value="0" />
+  <parameter name="FPGA_PERIPHERAL_INPUT_CLOCK_FREQ_EMAC0_RX_CLK_IN" value="100" />
+  <parameter name="FPGA_PERIPHERAL_INPUT_CLOCK_FREQ_EMAC0_TX_CLK_IN" value="100" />
+  <parameter name="FPGA_PERIPHERAL_INPUT_CLOCK_FREQ_EMAC1_RX_CLK_IN" value="100" />
+  <parameter name="FPGA_PERIPHERAL_INPUT_CLOCK_FREQ_EMAC1_TX_CLK_IN" value="100" />
+  <parameter
+     name="FPGA_PERIPHERAL_INPUT_CLOCK_FREQ_EMAC_PTP_REF_CLOCK"
+     value="100" />
+  <parameter name="FPGA_PERIPHERAL_INPUT_CLOCK_FREQ_I2C0_SCL_IN" value="100" />
+  <parameter name="FPGA_PERIPHERAL_INPUT_CLOCK_FREQ_I2C1_SCL_IN" value="100" />
+  <parameter name="FPGA_PERIPHERAL_INPUT_CLOCK_FREQ_I2C2_SCL_IN" value="100" />
+  <parameter name="FPGA_PERIPHERAL_INPUT_CLOCK_FREQ_I2C3_SCL_IN" value="100" />
+  <parameter name="FPGA_PERIPHERAL_INPUT_CLOCK_FREQ_SPIS0_SCLK_IN" value="100" />
+  <parameter name="FPGA_PERIPHERAL_INPUT_CLOCK_FREQ_SPIS1_SCLK_IN" value="100" />
+  <parameter name="FPGA_PERIPHERAL_INPUT_CLOCK_FREQ_USB0_CLK_IN" value="100" />
+  <parameter name="FPGA_PERIPHERAL_INPUT_CLOCK_FREQ_USB1_CLK_IN" value="100" />
+  <parameter name="FPGA_PERIPHERAL_OUTPUT_CLOCK_FREQ_EMAC0_GTX_CLK" value="125" />
+  <parameter name="FPGA_PERIPHERAL_OUTPUT_CLOCK_FREQ_EMAC0_MD_CLK" value="2.5" />
+  <parameter name="FPGA_PERIPHERAL_OUTPUT_CLOCK_FREQ_EMAC1_GTX_CLK" value="125" />
+  <parameter name="FPGA_PERIPHERAL_OUTPUT_CLOCK_FREQ_EMAC1_MD_CLK" value="2.5" />
+  <parameter name="FPGA_PERIPHERAL_OUTPUT_CLOCK_FREQ_I2C0_CLK" value="100" />
+  <parameter name="FPGA_PERIPHERAL_OUTPUT_CLOCK_FREQ_I2C1_CLK" value="100" />
+  <parameter name="FPGA_PERIPHERAL_OUTPUT_CLOCK_FREQ_I2C2_CLK" value="100" />
+  <parameter name="FPGA_PERIPHERAL_OUTPUT_CLOCK_FREQ_I2C3_CLK" value="100" />
+  <parameter name="FPGA_PERIPHERAL_OUTPUT_CLOCK_FREQ_QSPI_SCLK_OUT" value="100" />
+  <parameter name="FPGA_PERIPHERAL_OUTPUT_CLOCK_FREQ_SDIO_CCLK" value="100" />
+  <parameter name="FPGA_PERIPHERAL_OUTPUT_CLOCK_FREQ_SPIM0_SCLK_OUT" value="100" />
+  <parameter name="FPGA_PERIPHERAL_OUTPUT_CLOCK_FREQ_SPIM1_SCLK_OUT" value="100" />
+  <parameter name="GPIO_Enable">No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No</parameter>
+  <parameter name="GP_Enable" value="false" />
+  <parameter name="H2F_AXI_CLOCK_FREQ" value="100" />
+  <parameter name="H2F_CTI_CLOCK_FREQ" value="100" />
+  <parameter name="H2F_DEBUG_APB_CLOCK_FREQ" value="100" />
+  <parameter name="H2F_LW_AXI_CLOCK_FREQ" value="100" />
+  <parameter name="H2F_TPIU_CLOCK_IN_FREQ" value="100" />
+  <parameter name="HLGPI_Enable" value="false" />
+  <parameter name="I2C0_Mode" value="N/A" />
+  <parameter name="I2C0_PinMuxing" value="Unused" />
+  <parameter name="I2C1_Mode" value="N/A" />
+  <parameter name="I2C1_PinMuxing" value="Unused" />
+  <parameter name="I2C2_Mode" value="N/A" />
+  <parameter name="I2C2_PinMuxing" value="Unused" />
+  <parameter name="I2C3_Mode" value="N/A" />
+  <parameter name="I2C3_PinMuxing" value="Unused" />
+  <parameter name="LOANIO_Enable">No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No</parameter>
+  <parameter name="LWH2F_Enable" value="false" />
+  <parameter name="MPU_EVENTS_Enable" value="false" />
+  <parameter name="NAND_Mode" value="N/A" />
+  <parameter name="NAND_PinMuxing" value="Unused" />
+  <parameter name="QSPI_Mode" value="N/A" />
+  <parameter name="QSPI_PinMuxing" value="Unused" />
+  <parameter name="S2FCLK_COLDRST_Enable" value="false" />
+  <parameter name="S2FCLK_PENDINGRST_Enable" value="false" />
+  <parameter name="S2FCLK_USER0CLK_Enable" value="true" />
+  <parameter name="S2FCLK_USER1CLK_Enable" value="false" />
+  <parameter name="S2FCLK_USER1CLK_FREQ" value="100.0" />
+  <parameter name="S2FCLK_USER2CLK" value="5" />
+  <parameter name="S2FCLK_USER2CLK_Enable" value="false" />
+  <parameter name="S2FCLK_USER2CLK_FREQ" value="100.0" />
+  <parameter name="S2FINTERRUPT_CAN_Enable" value="false" />
+  <parameter name="S2FINTERRUPT_CLOCKPERIPHERAL_Enable" value="false" />
+  <parameter name="S2FINTERRUPT_CTI_Enable" value="false" />
+  <parameter name="S2FINTERRUPT_DMA_Enable" value="false" />
+  <parameter name="S2FINTERRUPT_EMAC_Enable" value="false" />
+  <parameter name="S2FINTERRUPT_FPGAMANAGER_Enable" value="false" />
+  <parameter name="S2FINTERRUPT_GPIO_Enable" value="false" />
+  <parameter name="S2FINTERRUPT_I2CEMAC_Enable" value="false" />
+  <parameter name="S2FINTERRUPT_I2CPERIPHERAL_Enable" value="false" />
+  <parameter name="S2FINTERRUPT_L4TIMER_Enable" value="false" />
+  <parameter name="S2FINTERRUPT_NAND_Enable" value="false" />
+  <parameter name="S2FINTERRUPT_OSCTIMER_Enable" value="false" />
+  <parameter name="S2FINTERRUPT_QSPI_Enable" value="false" />
+  <parameter name="S2FINTERRUPT_SDMMC_Enable" value="false" />
+  <parameter name="S2FINTERRUPT_SPIMASTER_Enable" value="false" />
+  <parameter name="S2FINTERRUPT_SPISLAVE_Enable" value="false" />
+  <parameter name="S2FINTERRUPT_UART_Enable" value="false" />
+  <parameter name="S2FINTERRUPT_USB_Enable" value="false" />
+  <parameter name="S2FINTERRUPT_WATCHDOG_Enable" value="false" />
+  <parameter name="S2F_Width" value="0" />
+  <parameter name="SDIO_Mode" value="N/A" />
+  <parameter name="SDIO_PinMuxing" value="Unused" />
+  <parameter name="SPIM0_Mode" value="N/A" />
+  <parameter name="SPIM0_PinMuxing" value="Unused" />
+  <parameter name="SPIM1_Mode" value="N/A" />
+  <parameter name="SPIM1_PinMuxing" value="Unused" />
+  <parameter name="SPIS0_Mode" value="N/A" />
+  <parameter name="SPIS0_PinMuxing" value="Unused" />
+  <parameter name="SPIS1_Mode" value="N/A" />
+  <parameter name="SPIS1_PinMuxing" value="Unused" />
+  <parameter name="STM_Enable" value="false" />
+  <parameter name="SYS_INFO_DEVICE_FAMILY" value="Cyclone V" />
+  <parameter name="TEST_Enable" value="false" />
+  <parameter name="TPIUFPGA_Enable" value="false" />
+  <parameter name="TPIUFPGA_alt" value="false" />
+  <parameter name="TRACE_Mode" value="N/A" />
+  <parameter name="TRACE_PinMuxing" value="Unused" />
+  <parameter name="UART0_Mode" value="N/A" />
+  <parameter name="UART0_PinMuxing" value="Unused" />
+  <parameter name="UART1_Mode" value="N/A" />
+  <parameter name="UART1_PinMuxing" value="Unused" />
+  <parameter name="USB0_Mode" value="N/A" />
+  <parameter name="USB0_PinMuxing" value="Unused" />
+  <parameter name="USB1_Mode" value="N/A" />
+  <parameter name="USB1_PinMuxing" value="Unused" />
+  <parameter name="can0_clk_div" value="1" />
+  <parameter name="can1_clk_div" value="1" />
+  <parameter name="configure_advanced_parameters" value="false" />
+  <parameter name="customize_device_pll_info" value="false" />
+  <parameter name="dbctrl_stayosc1" value="true" />
+  <parameter name="dbg_at_clk_div" value="0" />
+  <parameter name="dbg_clk_div" value="1" />
+  <parameter name="dbg_trace_clk_div" value="0" />
+  <parameter name="desired_can0_clk_mhz" value="100.0" />
+  <parameter name="desired_can1_clk_mhz" value="100.0" />
+  <parameter name="desired_cfg_clk_mhz" value="100.0" />
+  <parameter name="desired_emac0_clk_mhz" value="250.0" />
+  <parameter name="desired_emac1_clk_mhz" value="250.0" />
+  <parameter name="desired_gpio_db_clk_hz" value="32000" />
+  <parameter name="desired_l4_mp_clk_mhz" value="100.0" />
+  <parameter name="desired_l4_sp_clk_mhz" value="100.0" />
+  <parameter name="desired_mpu_clk_mhz" value="800.0" />
+  <parameter name="desired_nand_clk_mhz" value="12.5" />
+  <parameter name="desired_qspi_clk_mhz" value="400.0" />
+  <parameter name="desired_sdmmc_clk_mhz" value="200.0" />
+  <parameter name="desired_spi_m_clk_mhz" value="200.0" />
+  <parameter name="desired_usb_mp_clk_mhz" value="200.0" />
+  <parameter name="device_name" value="5CSEBA6U23I7" />
+  <parameter name="device_pll_info_manual">{320000000 1600000000} {320000000 1000000000} {800000000 400000000 400000000}</parameter>
+  <parameter name="eosc1_clk_mhz" value="25.0" />
+  <parameter name="eosc2_clk_mhz" value="25.0" />
+  <parameter name="gpio_db_clk_div" value="6249" />
+  <parameter name="l3_mp_clk_div" value="1" />
+  <parameter name="l3_sp_clk_div" value="1" />
+  <parameter name="l4_mp_clk_div" value="1" />
+  <parameter name="l4_mp_clk_source" value="1" />
+  <parameter name="l4_sp_clk_div" value="1" />
+  <parameter name="l4_sp_clk_source" value="1" />
+  <parameter name="main_pll_c3" value="3" />
+  <parameter name="main_pll_c4" value="3" />
+  <parameter name="main_pll_c5" value="15" />
+  <parameter name="main_pll_m" value="63" />
+  <parameter name="main_pll_n" value="0" />
+  <parameter name="nand_clk_source" value="2" />
+  <parameter name="periph_pll_c0" value="3" />
+  <parameter name="periph_pll_c1" value="3" />
+  <parameter name="periph_pll_c2" value="1" />
+  <parameter name="periph_pll_c3" value="19" />
+  <parameter name="periph_pll_c4" value="4" />
+  <parameter name="periph_pll_c5" value="9" />
+  <parameter name="periph_pll_m" value="79" />
+  <parameter name="periph_pll_n" value="1" />
+  <parameter name="periph_pll_source" value="0" />
+  <parameter name="qspi_clk_source" value="1" />
+  <parameter name="quartus_ini_hps_emif_pll" value="false" />
+  <parameter
+     name="quartus_ini_hps_ip_enable_all_peripheral_fpga_interfaces"
+     value="false" />
+  <parameter name="quartus_ini_hps_ip_enable_bsel_csel" value="false" />
+  <parameter
+     name="quartus_ini_hps_ip_enable_emac0_peripheral_fpga_interface"
+     value="false" />
+  <parameter
+     name="quartus_ini_hps_ip_enable_low_speed_serial_fpga_interfaces"
+     value="false" />
+  <parameter name="quartus_ini_hps_ip_enable_test_interface" value="false" />
+  <parameter name="quartus_ini_hps_ip_f2sdram_bonding_out" value="false" />
+  <parameter name="quartus_ini_hps_ip_fast_f2sdram_sim_model" value="false" />
+  <parameter name="quartus_ini_hps_ip_suppress_sdram_synth" value="false" />
+  <parameter name="sdmmc_clk_source" value="2" />
+  <parameter name="show_advanced_parameters" value="false" />
+  <parameter name="show_debug_info_as_warning_msg" value="false" />
+  <parameter name="show_warning_as_error_msg" value="false" />
+  <parameter name="spi_m_clk_div" value="0" />
+  <parameter name="usb_mp_clk_div" value="0" />
+  <parameter name="use_default_mpu_clk" value="true" />
+ </module>
+ <module name="Mixer" kind="alt_vip_cl_mixer" version="17.0" enabled="1">
+  <parameter name="ALPHA_ENABLE" value="0" />
+  <parameter name="ALPHA_STREAMS_ENABLE" value="0" />
+  <parameter name="AUTO_DEVICE" value="5CSEBA6U23I7" />
+  <parameter name="AUTO_DEVICE_SPEEDGRADE" value="7" />
+  <parameter name="BITS_PER_SYMBOL" value="8" />
+  <parameter name="COLOR_PLANES_ARE_IN_PARALLEL" value="1" />
+  <parameter name="COLOR_SPACE" value="RGB" />
+  <parameter name="FAMILY" value="Cyclone V" />
+  <parameter name="IS_422" value="1" />
+  <parameter name="LAYER_POSITION_ENABLE" value="0" />
+  <parameter name="MAX_HEIGHT" value="1080" />
+  <parameter name="MAX_WIDTH" value="1920" />
+  <parameter name="NO_OF_INPUTS" value="1" />
+  <parameter name="NUMBER_OF_COLOR_PLANES" value="2" />
+  <parameter name="PATTERN" value="uniform" />
+  <parameter name="PIPELINE_READY" value="0" />
+  <parameter name="PIXELS_IN_PARALLEL" value="1" />
+  <parameter name="UNIFORM_VALUE_BCR" value="0" />
+  <parameter name="UNIFORM_VALUE_GCB" value="0" />
+  <parameter name="UNIFORM_VALUE_RY" value="0" />
+  <parameter name="USER_PACKET_FIFO_DEPTH" value="0" />
+  <parameter name="USER_PACKET_SUPPORT" value="DISCARD" />
+ </module>
+ <module name="Reset_Source" kind="reset_source" version="1.0" enabled="1" />
+ <module name="Scaler" kind="alt_vip_cl_scl" version="17.0" enabled="1">
+  <parameter name="ALGORITHM_NAME" value="BICUBIC" />
+  <parameter name="ALWAYS_DOWNSCALE" value="0" />
+  <parameter name="ARE_IDENTICAL" value="0" />
+  <parameter name="AUTO_DEVICE" value="5CSEBA6U23I7" />
+  <parameter name="AUTO_DEVICE_SPEEDGRADE" value="7" />
+  <parameter name="BITS_PER_SYMBOL" value="8" />
+  <parameter name="DEFAULT_EDGE_THRESH" value="7" />
+  <parameter name="DEFAULT_LOWER_BLUR" value="0" />
+  <parameter name="DEFAULT_UPPER_BLUR" value="0" />
+  <parameter name="ENABLE_FIR" value="0" />
+  <parameter name="EXTRA_PIPELINING" value="0" />
+  <parameter name="FAMILY" value="Cyclone V" />
+  <parameter name="H_BANKS" value="1" />
+  <parameter name="H_COEFF_FILE"><![CDATA[<enter file name (including full path)>]]></parameter>
+  <parameter name="H_FRACTION_BITS" value="7" />
+  <parameter name="H_FUNCTION" value="LANCZOS_3" />
+  <parameter name="H_INTEGER_BITS" value="1" />
+  <parameter name="H_PHASES" value="16" />
+  <parameter name="H_SIGNED" value="1" />
+  <parameter name="H_SYMMETRIC" value="0" />
+  <parameter name="H_TAPS" value="4" />
+  <parameter name="IS_420" value="0" />
+  <parameter name="IS_422" value="0" />
+  <parameter name="LIMITED_READBACK" value="0" />
+  <parameter name="LOAD_AT_RUNTIME" value="0" />
+  <parameter name="MAX_IN_HEIGHT" value="1080" />
+  <parameter name="MAX_IN_WIDTH" value="1920" />
+  <parameter name="MAX_OUT_HEIGHT" value="1080" />
+  <parameter name="MAX_OUT_WIDTH" value="1920" />
+  <parameter name="NO_BLANKING" value="0" />
+  <parameter name="PIXELS_IN_PARALLEL" value="1" />
+  <parameter name="PRESERVE_BITS" value="0" />
+  <parameter name="RUNTIME_CONTROL" value="1" />
+  <parameter name="SYMBOLS_IN_PAR" value="3" />
+  <parameter name="SYMBOLS_IN_SEQ" value="1" />
+  <parameter name="USER_PACKET_FIFO_DEPTH" value="0" />
+  <parameter name="USER_PACKET_SUPPORT" value="PASSTHROUGH" />
+  <parameter name="V_BANKS" value="1" />
+  <parameter name="V_COEFF_FILE"><![CDATA[<enter file name (including full path)>]]></parameter>
+  <parameter name="V_FRACTION_BITS" value="7" />
+  <parameter name="V_FUNCTION" value="LANCZOS_3" />
+  <parameter name="V_INTEGER_BITS" value="1" />
+  <parameter name="V_PHASES" value="16" />
+  <parameter name="V_SIGNED" value="1" />
+  <parameter name="V_SYMMETRIC" value="0" />
+  <parameter name="V_TAPS" value="4" />
+ </module>
+ <module name="Video_Input" kind="alt_vip_cl_cvi" version="17.0" enabled="1">
+  <parameter name="ACCEPT_COLOURS_IN_SEQ" value="0" />
+  <parameter name="ANC_DEPTH" value="1" />
+  <parameter name="AUTO_DEVICE" value="5CSEBA6U23I7" />
+  <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone V" />
+  <parameter name="AUTO_DEVICE_SPEEDGRADE" value="7" />
+  <parameter name="BPS" value="8" />
+  <parameter name="CLOCKS_ARE_SAME" value="0" />
+  <parameter name="COLOUR_PLANES_ARE_IN_PARALLEL" value="1" />
+  <parameter name="EXTRACT_TOTAL_RESOLUTION" value="1" />
+  <parameter name="FIFO_DEPTH" value="2048" />
+  <parameter name="GENERATE_ANC" value="0" />
+  <parameter name="GENERATE_VID_F" value="0" />
+  <parameter name="H_ACTIVE_PIXELS_F0" value="1920" />
+  <parameter name="INTERLACED" value="0" />
+  <parameter name="MATCH_CTRLDATA_PKT_CLIP_BASIC" value="0" />
+  <parameter name="MATCH_CTRLDATA_PKT_PAD_ADV" value="0" />
+  <parameter name="NO_OF_CHANNELS" value="1" />
+  <parameter name="NUMBER_OF_COLOUR_PLANES" value="3" />
+  <parameter name="OVERFLOW_HANDLING" value="0" />
+  <parameter name="PIXELS_IN_PARALLEL" value="1" />
+  <parameter name="STD_WIDTH" value="1" />
+  <parameter name="SYNC_TO" value="2" />
+  <parameter name="USE_CONTROL" value="0" />
+  <parameter name="USE_EMBEDDED_SYNCS" value="0" />
+  <parameter name="USE_HDMI_DEPRICATION" value="0" />
+  <parameter name="USE_STD" value="0" />
+  <parameter name="V_ACTIVE_LINES_F0" value="1080" />
+  <parameter name="V_ACTIVE_LINES_F1" value="480" />
+ </module>
+ <module name="Video_Output" kind="alt_vip_cl_cvo" version="17.0" enabled="1">
+  <parameter name="ACCEPT_COLOURS_IN_SEQ" value="0" />
+  <parameter name="ANC_LINE" value="0" />
+  <parameter name="AP_LINE" value="0" />
+  <parameter name="AUTO_DEVICE" value="5CSEBA6U23I7" />
+  <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone V" />
+  <parameter name="AUTO_DEVICE_SPEEDGRADE" value="7" />
+  <parameter name="BPS" value="8" />
+  <parameter name="CLOCKS_ARE_SAME" value="0" />
+  <parameter name="COLOUR_PLANES_ARE_IN_PARALLEL" value="1" />
+  <parameter name="CONTEXT_WIDTH" value="8" />
+  <parameter name="DST_WIDTH" value="8" />
+  <parameter name="FIELD0_ANC_LINE" value="0" />
+  <parameter name="FIELD0_V_BACK_PORCH" value="0" />
+  <parameter name="FIELD0_V_BLANK" value="0" />
+  <parameter name="FIELD0_V_FRONT_PORCH" value="0" />
+  <parameter name="FIELD0_V_RISING_EDGE" value="0" />
+  <parameter name="FIELD0_V_SYNC_LENGTH" value="0" />
+  <parameter name="FIFO_DEPTH" value="2000" />
+  <parameter name="F_FALLING_EDGE" value="0" />
+  <parameter name="F_RISING_EDGE" value="0" />
+  <parameter name="GENERATE_SYNC" value="0" />
+  <parameter name="H_ACTIVE_PIXELS" value="1280" />
+  <parameter name="H_BACK_PORCH" value="220" />
+  <parameter name="H_BLANK" value="0" />
+  <parameter name="H_FRONT_PORCH" value="110" />
+  <parameter name="H_SYNC_LENGTH" value="40" />
+  <parameter name="INTERLACED" value="0" />
+  <parameter name="LOW_LATENCY" value="0" />
+  <parameter name="NO_OF_CHANNELS" value="1" />
+  <parameter name="NO_OF_MODES" value="1" />
+  <parameter name="NUMBER_OF_COLOUR_PLANES" value="3" />
+  <parameter name="PIXELS_IN_PARALLEL" value="1" />
+  <parameter name="SRC_WIDTH" value="8" />
+  <parameter name="STD_WIDTH" value="1" />
+  <parameter name="TASK_WIDTH" value="8" />
+  <parameter name="THRESHOLD" value="1999" />
+  <parameter name="USE_CONTROL" value="1" />
+  <parameter name="USE_EMBEDDED_SYNCS" value="0" />
+  <parameter name="V_ACTIVE_LINES" value="720" />
+  <parameter name="V_BACK_PORCH" value="20" />
+  <parameter name="V_BLANK" value="0" />
+  <parameter name="V_FRONT_PORCH" value="5" />
+  <parameter name="V_SYNC_LENGTH" value="5" />
+ </module>
+ <connection
+   kind="avalon"
+   version="17.0"
+   start="Controller.ctl_mixer"
+   end="Mixer.control">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="17.0"
+   start="Controller.ctl_scaler"
+   end="Scaler.control">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="17.0"
+   start="Controller.ctl_video"
+   end="Video_Output.control">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="17.0"
+   start="Frame_Buffer.mem_master_rd"
+   end="HPS.f2h_sdram0_data">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="17.0"
+   start="Frame_Buffer.mem_master_wr"
+   end="HPS.f2h_sdram0_data">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon_streaming"
+   version="17.0"
+   start="Frame_Buffer.dout"
+   end="Video_Output.din" />
+ <connection
+   kind="avalon_streaming"
+   version="17.0"
+   start="Mixer.dout"
+   end="Frame_Buffer.din" />
+ <connection
+   kind="avalon_streaming"
+   version="17.0"
+   start="Scaler.dout"
+   end="Mixer.din0" />
+ <connection
+   kind="avalon_streaming"
+   version="17.0"
+   start="Video_Input.dout_0"
+   end="Scaler.din" />
+ <connection
+   kind="clock"
+   version="17.0"
+   start="HPS.h2f_user0_clock"
+   end="Reset_Source.clock" />
+ <connection
+   kind="clock"
+   version="17.0"
+   start="HPS.h2f_user0_clock"
+   end="Controller.clock" />
+ <connection
+   kind="clock"
+   version="17.0"
+   start="HPS.h2f_user0_clock"
+   end="HPS.f2h_sdram0_clock" />
+ <connection
+   kind="clock"
+   version="17.0"
+   start="HPS.h2f_user0_clock"
+   end="Video_Input.main_clock" />
+ <connection
+   kind="clock"
+   version="17.0"
+   start="HPS.h2f_user0_clock"
+   end="Scaler.main_clock" />
+ <connection
+   kind="clock"
+   version="17.0"
+   start="HPS.h2f_user0_clock"
+   end="Mixer.main_clock" />
+ <connection
+   kind="clock"
+   version="17.0"
+   start="HPS.h2f_user0_clock"
+   end="Video_Output.main_clock" />
+ <connection
+   kind="clock"
+   version="17.0"
+   start="HPS.h2f_user0_clock"
+   end="Frame_Buffer.main_clock" />
+ <connection
+   kind="clock"
+   version="17.0"
+   start="HPS.h2f_user0_clock"
+   end="Frame_Buffer.mem_clock" />
+ <connection
+   kind="reset"
+   version="17.0"
+   start="HPS.h2f_reset"
+   end="Reset_Source.reset_hps" />
+ <connection
+   kind="reset"
+   version="17.0"
+   start="Reset_Source.reset_cold"
+   end="HPS.f2h_cold_reset_req" />
+ <connection
+   kind="reset"
+   version="17.0"
+   start="Reset_Source.reset_sys"
+   end="Video_Input.main_reset" />
+ <connection
+   kind="reset"
+   version="17.0"
+   start="Reset_Source.reset_sys"
+   end="Scaler.main_reset" />
+ <connection
+   kind="reset"
+   version="17.0"
+   start="Reset_Source.reset_sys"
+   end="Mixer.main_reset" />
+ <connection
+   kind="reset"
+   version="17.0"
+   start="Reset_Source.reset_sys"
+   end="Frame_Buffer.main_reset" />
+ <connection
+   kind="reset"
+   version="17.0"
+   start="Reset_Source.reset_sys"
+   end="Video_Output.main_reset" />
+ <connection
+   kind="reset"
+   version="17.0"
+   start="Reset_Source.reset_sys"
+   end="Frame_Buffer.mem_reset" />
+ <connection
+   kind="reset"
+   version="17.0"
+   start="Reset_Source.reset_sys"
+   end="Controller.reset" />
+ <connection
+   kind="reset"
+   version="17.0"
+   start="Reset_Source.reset_warm"
+   end="HPS.f2h_warm_reset_req" />
+ <interconnectRequirement for="$system" name="qsys_mm.clockCrossingAdapter" value="HANDSHAKE" />
+ <interconnectRequirement for="$system" name="qsys_mm.maxAdditionalLatency" value="1" />
+</system>

@@ -1,0 +1,8 @@
+#
+# please keep this file read-only!
+# Quartus changes this file everytime revision is switched, 
+# and it will be marked as changed with every commit.
+#
+
+PROJECT_REVISION = "ao486"
+PROJECT_REVISION = "ao486-lite"

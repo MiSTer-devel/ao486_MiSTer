@@ -1,0 +1,2 @@
+set_global_assignment -name SYSTEMVERILOG_FILE sys/sysmem.sv
+set_global_assignment -name VERILOG_FILE sys/ip/reset_source.v 
