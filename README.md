@@ -4,7 +4,7 @@ Basically it's 486 compatible core, but speed is not great.
 Still it's a great emulator for very old DOS games/apps. 
 
 ## Differences from original ao486
-* master clock is 90MHz instead of 30MHz
+* Master clock is 90MHz instead of 30MHz in original ao486. (Translates to ~2 times better performance in benchmarks)
 * BIOS, floppy and HDD images are located in separate files for easy use. No special utility required.
 * Uses standard MiSTer OSD, can choose floppy(hot swap) and HDD(after reset).
 * SoundBlaster is not implemented due to limited FPGA resources. It's planed to implement a DSP/Wave playback part later.
@@ -13,17 +13,17 @@ Still it's a great emulator for very old DOS games/apps.
 
 ## How to install
 
-* make sure you use the latest MiSTer binary.
-* copy ao486.rbf to root of SD card.
-* Create ao486 directory and copy [boot0.rom](https://github.com/MiSTer-devel/ao486_MiSTer/blob/master/releases/bios/boot0.rom?raw=true), [boot1.rom](https://github.com/MiSTer-devel/ao486_MiSTer/blob/master/releases/bios/boot1.rom?raw=true) there.
+* Make sure you use the latest MiSTer binary (from [releases](https://github.com/MiSTer-devel/Main_MiSTer/tree/master/releases) folder)
+* Copy ao486.rbf to root of SD card
+* Create /ao486 directory on SD card and copy [boot0.rom](https://github.com/MiSTer-devel/ao486_MiSTer/blob/master/releases/bios/boot0.rom?raw=true), [boot1.rom](https://github.com/MiSTer-devel/ao486_MiSTer/blob/master/releases/bios/boot1.rom?raw=true) there.
 * For floppy: copy desired 1.44MB floppy raw image with extension **img** to ao486 directory.
-* For HDD: create an empty file of desired size with extension **vhd** in ao486 directory.
-* boot ao486 and in OSD choose desired floppy, hdd and boot order. 
-* Save settings and press "Reset and apply HDD".
+* For HDD: create an empty file of desired size with extension **vhd** in ao486 directory (or prepare .vhd file separately with any tool supporting .vhd or hard disk .img files and copy to /ao486 folder)
+* Boot ao486 and in OSD choose desired floppy, hdd and boot order
+* Save settings and press "Reset and apply HDD"
 
 
 HDD image is a raw image with MBR. It can be opened in Windows/Linux by many applications,
-so it's possible to prepare a HDD in windows/linux.
+so it's possible to prepare a HDD in windows/linux (in most cases you need to work with .img files, then just rename it to .vhd extension)
 
 
 ---------------------------------------------------------------------------
