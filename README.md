@@ -1,3 +1,35 @@
+# ao486 port for MiSTer by Sorgelig.
+
+Basically it's 486 compatible core, but speed is not great.
+Still it's a great emulator for very old DOS games/apps. 
+
+## differences from original ao486
+* master clock is 90MHz instead of 30MHz
+* BIOS, floppy and HDD images are located in separate files for easy use. No special utility required.
+* Uses standard MiSTer OSD, can choose floppy(hot swap) and HDD(after reset).
+* SoundBlaster is not implemented due to limited FPGA resources. It's planed to implement a DSP/Wave playback part later.
+* HDMI video and audio. Note: original ao486 output non-standard VGA video frequencies and have bad centering.
+
+
+## How to install
+
+* make sure you use the latest MiSTer binary.
+* copy ao486.rbf to root of SD card.
+* Create ao486 directory and copy boot0.rom, boot1.rom there.
+* For floppy: copy desired 1.44MB floppy raw image with extension **img** to ao486 directory.
+* For HDD: create an empty file of desired size with extension **vhd** in ao486 directory.
+* boot ao486 and in OSD choose desired floppy, hdd and boot order. 
+* Save settings and press "Reset and apply HDD".
+
+
+HDD image is a raw image with MBR. It can be opened in Windows/Linux by many applications,
+so it's possible to prepare a HDD in windows/linux.
+
+
+---------------------------------------------------------------------------
+# Original ao486 ReadMe. 
+Keep in mind: not everything is correct for current port.
+
 ### Description
 
 The ao486 is an x86 compatible Verilog core implementing all features of a 486 SX.
