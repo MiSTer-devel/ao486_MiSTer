@@ -448,7 +448,7 @@
    }
 }
 ]]></parameter>
- <parameter name="clockCrossingAdapter" value="AUTO" />
+ <parameter name="clockCrossingAdapter" value="HANDSHAKE" />
  <parameter name="device" value="5CSEBA6U23I7" />
  <parameter name="deviceFamily" value="Cyclone V" />
  <parameter name="deviceSpeedGrade" value="7" />
@@ -459,7 +459,7 @@
  <parameter name="hdlLanguage" value="VERILOG" />
  <parameter name="hideFromIPCatalog" value="false" />
  <parameter name="lockedInterfaceDefinition" value="" />
- <parameter name="maxAdditionalLatency" value="2" />
+ <parameter name="maxAdditionalLatency" value="0" />
  <parameter name="projectName" value="ao486.qpf" />
  <parameter name="sopcBorderPoints" value="false" />
  <parameter name="systemHash" value="0" />
@@ -1264,6 +1264,6 @@
    version="17.0"
    start="reset_sys.reset_out"
    end="ps2.reset_sink" />
- <interconnectRequirement for="$system" name="qsys_mm.clockCrossingAdapter" value="AUTO" />
- <interconnectRequirement for="$system" name="qsys_mm.maxAdditionalLatency" value="2" />
+ <interconnectRequirement for="$system" name="qsys_mm.clockCrossingAdapter" value="HANDSHAKE" />
+ <interconnectRequirement for="$system" name="qsys_mm.maxAdditionalLatency" value="0" />
 </system>

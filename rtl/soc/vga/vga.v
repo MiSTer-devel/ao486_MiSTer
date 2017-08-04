@@ -38,7 +38,7 @@ module vga(
     //avalon slave vga io
     input       [3:0]   io_c_address,
     input               io_c_read,
-    output      [7:0]   io_c_readdata,
+    output reg  [7:0]   io_c_readdata,
     input               io_c_write,
     input       [7:0]   io_c_writedata,
     
@@ -52,7 +52,7 @@ module vga(
     //avalon slave vga memory
     input       [16:0]  mem_address,
     input               mem_read,
-    output      [7:0]   mem_readdata,
+    output reg  [7:0]   mem_readdata,
     input               mem_write,
     input       [7:0]   mem_writedata,
     
@@ -148,13 +148,17 @@ always @(posedge clk_26 or negedge rst_n) begin if(rst_n == 1'b0) seq_not_impl_s
 
 //------------------------------------------------------------------------------
 
-wire [7:0] host_io_read_seq =
-    (seq_io_index == 3'd0)?     { 6'd0, seq_sync_reset_n, seq_async_reset_n } :
-    (seq_io_index == 3'd1)?     { 2'd0, seq_screen_disable, seq_not_impl_shift_load_4, seq_dotclock_divided, seq_not_impl_shift_load_2, 1'b0, seq_8dot_char } :
-    (seq_io_index == 3'd2)?     { 4'd0, seq_map_write_enable } :
-    (seq_io_index == 3'd3)?     { 2'd0, seq_char_map_a[2], seq_char_map_b[2], seq_char_map_a[1:0], seq_char_map_b[1:0] } :
-    (seq_io_index == 3'd4)?     { 4'd0, seq_access_chain4, seq_access_odd_even_disabled, seq_access_256kb, 1'b0 } :
-                                8'h00;
+reg [7:0] host_io_read_seq;
+always @(*) begin
+	case(seq_io_index)
+			0: host_io_read_seq = { 6'd0, seq_sync_reset_n, seq_async_reset_n };
+			1: host_io_read_seq = { 2'd0, seq_screen_disable, seq_not_impl_shift_load_4, seq_dotclock_divided, seq_not_impl_shift_load_2, 1'b0, seq_8dot_char };
+			2: host_io_read_seq = { 4'd0, seq_map_write_enable };
+			3: host_io_read_seq = { 2'd0, seq_char_map_a[2], seq_char_map_b[2], seq_char_map_a[1:0], seq_char_map_b[1:0] };
+			4: host_io_read_seq = { 4'd0, seq_access_chain4, seq_access_odd_even_disabled, seq_access_256kb, 1'b0 };
+	default: host_io_read_seq = 0;
+	endcase;
+end
 
 //------------------------------------------------------------------------------ crtc io
 
@@ -307,34 +311,39 @@ always @(posedge clk_26 or negedge rst_n) begin if(rst_n == 1'b0) crtc_address_b
 
 //------------------------------------------------------------------------------
 
-wire [7:0] host_io_read_crtc =
-    (crtc_io_index == 5'h00)?       crtc_horizontal_total :
-    (crtc_io_index == 5'h01)?       crtc_horizontal_display_size :
-    (crtc_io_index == 5'h02)?       crtc_horizontal_blanking_start :
-    (crtc_io_index == 5'h03)?       { 1'b1, crtc_not_impl_display_enable_skew, crtc_horizontal_blanking_end[4:0] } :
-    (crtc_io_index == 5'h04)?       crtc_horizontal_retrace_start :
-    (crtc_io_index == 5'h05)?       { crtc_horizontal_blanking_end[5], crtc_horizontal_retrace_skew, crtc_horizontal_retrace_end } :
-    (crtc_io_index == 5'h06)?       crtc_vertical_total[7:0] :
-    (crtc_io_index == 5'h07)?       { crtc_vertical_retrace_start[9], crtc_vertical_display_size[9], crtc_vertical_total[9], crtc_line_compare[8], crtc_vertical_blanking_start[8],
-                                      crtc_vertical_retrace_start[8], crtc_vertical_display_size[8], crtc_vertical_total[8] } :
-    (crtc_io_index == 5'h08)?       { 1'b0, crtc_address_byte_panning, crtc_row_preset } :
-    (crtc_io_index == 5'h09)?       { crtc_vertical_doublescan, crtc_line_compare[9], crtc_vertical_blanking_start[9], crtc_row_max } :
-    (crtc_io_index == 5'h0A)?       { 2'b0, crtc_cursor_off, crtc_cursor_row_start } :
-    (crtc_io_index == 5'h0B)?       { 1'b0, crtc_cursor_skew, crtc_cursor_row_end } :
-    (crtc_io_index == 5'h0C)?       crtc_address_start[15:8] :
-    (crtc_io_index == 5'h0D)?       crtc_address_start[7:0] :
-    (crtc_io_index == 5'h0E)?       crtc_address_cursor[15:8] :
-    (crtc_io_index == 5'h0F)?       crtc_address_cursor[7:0] :
-    (crtc_io_index == 5'h10)?       crtc_vertical_retrace_start[7:0] :
-    (crtc_io_index == 5'h11)?       { crtc_protect, crtc_not_impl_5_refresh_cycles, crtc_not_impl_enable_vert_int, crtc_not_impl_clear_vert_int, crtc_vertical_retrace_end } :
-    (crtc_io_index == 5'h12)?       crtc_vertical_display_size[7:0] :
-    (crtc_io_index == 5'h13)?       crtc_address_offset :
-    (crtc_io_index == 5'h14)?       { 1'b0, crtc_address_doubleword, crtc_not_impl_address_clk_div_4, crtc_row_underline } :
-    (crtc_io_index == 5'h15)?       crtc_vertical_blanking_start[7:0] :
-    (crtc_io_index == 5'h16)?       crtc_vertical_blanking_end :
-    (crtc_io_index == 5'h17)?       { crtc_enable_sync, crtc_address_byte, crtc_address_bit0, 1'b0, crtc_not_impl_address_clk_div_2, crtc_not_impl_scan_line_clk_div_2, crtc_address_bit14, crtc_address_bit13 } :
-    (crtc_io_index == 5'h18)?       crtc_line_compare[7:0] :
-                                    8'h00;
+reg  [7:0] host_io_read_crtc;
+always @(*) begin
+	case(crtc_io_index)
+		'h00: host_io_read_crtc = crtc_horizontal_total;
+		'h01: host_io_read_crtc = crtc_horizontal_display_size;
+		'h02: host_io_read_crtc = crtc_horizontal_blanking_start;
+		'h03: host_io_read_crtc = { 1'b1, crtc_not_impl_display_enable_skew, crtc_horizontal_blanking_end[4:0] };
+		'h04: host_io_read_crtc = crtc_horizontal_retrace_start;
+		'h05: host_io_read_crtc = { crtc_horizontal_blanking_end[5], crtc_horizontal_retrace_skew, crtc_horizontal_retrace_end };
+		'h06: host_io_read_crtc = crtc_vertical_total[7:0];
+		'h07: host_io_read_crtc = { crtc_vertical_retrace_start[9], crtc_vertical_display_size[9], crtc_vertical_total[9], crtc_line_compare[8], crtc_vertical_blanking_start[8],
+											 crtc_vertical_retrace_start[8], crtc_vertical_display_size[8], crtc_vertical_total[8] };
+		'h08: host_io_read_crtc = { 1'b0, crtc_address_byte_panning, crtc_row_preset };
+		'h09: host_io_read_crtc = { crtc_vertical_doublescan, crtc_line_compare[9], crtc_vertical_blanking_start[9], crtc_row_max };
+		'h0A: host_io_read_crtc = { 2'b0, crtc_cursor_off, crtc_cursor_row_start };
+		'h0B: host_io_read_crtc = { 1'b0, crtc_cursor_skew, crtc_cursor_row_end };
+		'h0C: host_io_read_crtc = crtc_address_start[15:8];
+		'h0D: host_io_read_crtc = crtc_address_start[7:0];
+		'h0E: host_io_read_crtc = crtc_address_cursor[15:8];
+		'h0F: host_io_read_crtc = crtc_address_cursor[7:0];
+		'h10: host_io_read_crtc = crtc_vertical_retrace_start[7:0];
+		'h11: host_io_read_crtc = { crtc_protect, crtc_not_impl_5_refresh_cycles, crtc_not_impl_enable_vert_int, crtc_not_impl_clear_vert_int, crtc_vertical_retrace_end };
+		'h12: host_io_read_crtc = crtc_vertical_display_size[7:0];
+		'h13: host_io_read_crtc = crtc_address_offset;
+		'h14: host_io_read_crtc = { 1'b0, crtc_address_doubleword, crtc_not_impl_address_clk_div_4, crtc_row_underline };
+		'h15: host_io_read_crtc = crtc_vertical_blanking_start[7:0];
+		'h16: host_io_read_crtc = crtc_vertical_blanking_end;
+		'h17: host_io_read_crtc = { crtc_enable_sync, crtc_address_byte, crtc_address_bit0, 1'b0, crtc_not_impl_address_clk_div_2, crtc_not_impl_scan_line_clk_div_2, crtc_address_bit14, crtc_address_bit13 };
+		'h18: host_io_read_crtc = crtc_line_compare[7:0];
+   default: host_io_read_crtc = 0;
+	
+	endcase
+end
 
 //------------------------------------------------------------------------------ graphic io                                    
                                     
@@ -386,17 +395,22 @@ always @(posedge clk_26 or negedge rst_n) begin if(rst_n == 1'b0) graph_write_ma
 
 //------------------------------------------------------------------------------
 
-wire [7:0] host_io_read_graph =
-    (graph_io_index == 4'd0)?       { 4'b0, graph_write_set_map } :
-    (graph_io_index == 4'd1)?       { 4'b0, graph_write_enable_map } :
-    (graph_io_index == 4'd2)?       { 4'b0, graph_color_compare_map } :
-    (graph_io_index == 4'd3)?       { 3'b0, graph_write_function, graph_write_rotate } :
-    (graph_io_index == 4'd4)?       { 6'd0, graph_read_map_select } :
-    (graph_io_index == 4'd5)?       { 1'b0, graph_shift_mode, graph_not_impl_host_odd_even, graph_read_mode, 1'b0, graph_write_mode } :
-    (graph_io_index == 4'd6)?       { 4'd0, graph_system_memory, graph_not_impl_chain_odd_even, graph_not_impl_graphic_mode } :
-    (graph_io_index == 4'd7)?       { 4'd0, graph_color_compare_dont_care } :
-    (graph_io_index == 4'd8)?       graph_write_mask :
-                                    8'h00;
+reg [7:0] host_io_read_graph;
+
+always @(*) begin
+	case(graph_io_index)
+			0: host_io_read_graph = { 4'b0, graph_write_set_map };
+			1: host_io_read_graph = { 4'b0, graph_write_enable_map };
+			2: host_io_read_graph = { 4'b0, graph_color_compare_map };
+			3: host_io_read_graph = { 3'b0, graph_write_function, graph_write_rotate };
+			4: host_io_read_graph = { 6'd0, graph_read_map_select };
+			5: host_io_read_graph = { 1'b0, graph_shift_mode, graph_not_impl_host_odd_even, graph_read_mode, 1'b0, graph_write_mode };
+			6: host_io_read_graph = { 4'd0, graph_system_memory, graph_not_impl_chain_odd_even, graph_not_impl_graphic_mode };
+			7: host_io_read_graph = { 4'd0, graph_color_compare_dont_care };
+			8: host_io_read_graph = graph_write_mask;
+	default: host_io_read_graph = 0;
+	endcase
+end
 
 //------------------------------------------------------------------------------ attribute io
 
@@ -570,43 +584,76 @@ end
 wire host_io_vertical_retrace;
 wire host_io_not_displaying;
 
-wire [7:0]  host_io_read_wire =
-    (host_io_ignored)?                                  8'hFF :
-    (io_c_read_valid && io_c_address == 4'hC)?          { general_vsync, general_hsync, general_not_impl_odd_even_page, 1'b0, general_not_impl_clock_select, general_enable_ram, general_io_space } : //misc output reg
-    (io_c_read_valid && io_c_address == 4'h2)?          { 3'b0, 1'b1, 4'b0 } : //input status 0
-    ((io_b_read_valid && io_b_address == 4'hA) || (io_d_read_valid && io_d_address == 4'hA))?
-                                                        { 4'b0, host_io_vertical_retrace, 2'b0, host_io_not_displaying } : //input status 1
-    (io_c_read_valid && io_c_address == 4'h0 && attrib_flip_flop)? 
-                                                        8'h00 : //attrib index in write mode
-    (io_c_read_valid && io_c_address == 4'h0)?          { 2'b0, attrib_video_enable, attrib_io_index } : //attrib in address mode
-    (io_c_read_valid && io_c_address == 4'h1)?          host_io_read_attrib : //attrib read
-    (io_c_read_valid && io_c_address == 4'h4)?          { 5'd0, seq_io_index } : //seq index
-    (io_c_read_valid && io_c_address == 4'h5)?          host_io_read_seq : //seq data
-    (io_c_read_valid && io_c_address == 4'h6)?          dac_mask : //pel mask
-    (io_c_read_valid && io_c_address == 4'h7)?          { 6'd0, dac_is_read? 2'b11 : 2'b00 } : //dac state
-    (io_c_read_valid && io_c_address == 4'h8)?          dac_write_index :
-    (io_c_read_valid && io_c_address == 4'hE)?          { 4'd0, graph_io_index } :
-    (io_c_read_valid && io_c_address == 4'hF)?          host_io_read_graph :
-    (io_d_read_valid && io_d_address == 4'h4)?          { 3'b0, crtc_io_index } :
-    ((io_b_read_valid && io_b_address == 4'h5) || (io_d_read_valid && io_d_address == 4'h5))? 
-                                                        host_io_read_crtc :
-    (io_b_read_valid || io_d_read_valid)?               8'hFF :
-                                                        8'h00; // 6'h1A (Feature Control Register)
+reg [7:0] host_io_read_wire;
+always @(*) begin
+	casex({
+			 (host_io_ignored),
+			 (io_c_read_valid && io_c_address == 4'hC),
+			 (io_c_read_valid && io_c_address == 4'h2),
+			 ((io_b_read_valid && io_b_address == 4'hA) || (io_d_read_valid && io_d_address == 4'hA)),
+			 (io_c_read_valid && io_c_address == 4'h0 && attrib_flip_flop),
+			 (io_c_read_valid && io_c_address == 4'h0),
+			 (io_c_read_valid && io_c_address == 4'h1),
+			 (io_c_read_valid && io_c_address == 4'h4),
+			 (io_c_read_valid && io_c_address == 4'h5),
+			 (io_c_read_valid && io_c_address == 4'h6),
+			 (io_c_read_valid && io_c_address == 4'h7),
+			 (io_c_read_valid && io_c_address == 4'h8),
+			 (io_c_read_valid && io_c_address == 4'hE),
+			 (io_c_read_valid && io_c_address == 4'hF),
+			 (io_d_read_valid && io_d_address == 4'h4),
+			 ((io_b_read_valid && io_b_address == 4'h5) || (io_d_read_valid && io_d_address == 4'h5)),
+			 (io_b_read_valid || io_d_read_valid)
+			 })
+
+		17'b1XXXXXXXXXXXXXXXX: host_io_read_wire = 8'hFF;
+		17'b01XXXXXXXXXXXXXXX: host_io_read_wire = { general_vsync, general_hsync, general_not_impl_odd_even_page, 1'b0, general_not_impl_clock_select, general_enable_ram, general_io_space }; //misc output reg
+		17'b001XXXXXXXXXXXXXX: host_io_read_wire = { 3'b0, 1'b1, 4'b0 }; //input status 0
+		17'b0001XXXXXXXXXXXXX: host_io_read_wire = { 4'b0, host_io_vertical_retrace, 2'b0, host_io_not_displaying }; //input status 1
+		17'b00001XXXXXXXXXXXX: host_io_read_wire = 8'h00; //attrib index in write mode
+		17'b000001XXXXXXXXXXX: host_io_read_wire = { 2'b0, attrib_video_enable, attrib_io_index }; //attrib in address mode
+		17'b0000001XXXXXXXXXX: host_io_read_wire = host_io_read_attrib; //attrib read
+		17'b00000001XXXXXXXXX: host_io_read_wire = { 5'd0, seq_io_index }; //seq index
+		17'b000000001XXXXXXXX: host_io_read_wire = host_io_read_seq; //seq data
+		17'b0000000001XXXXXXX: host_io_read_wire = dac_mask; //pel mask
+		17'b00000000001XXXXXX: host_io_read_wire = { 6'd0, dac_is_read? 2'b11 : 2'b00 }; //dac state
+		17'b000000000001XXXXX: host_io_read_wire = dac_write_index;
+		17'b0000000000001XXXX: host_io_read_wire = { 4'd0, graph_io_index };
+		17'b00000000000001XXX: host_io_read_wire = host_io_read_graph;
+		17'b000000000000001XX: host_io_read_wire = { 3'b0, crtc_io_index };
+		17'b0000000000000001X: host_io_read_wire = host_io_read_crtc;
+		17'b00000000000000001: host_io_read_wire = 8'hFF;
+		17'b00000000000000000: host_io_read_wire = 8'h00; // 6'h1A (Feature Control Register)
+		
+	endcase
+end
 
 reg [7:0] host_io_read_reg;
-always @(posedge clk_26 or negedge rst_n) begin if(rst_n == 1'b0) host_io_read_reg <= 8'd0; else host_io_read_reg <= host_io_read_wire; end
+always @(posedge clk_26 or negedge rst_n) begin
+	if(rst_n == 1'b0) host_io_read_reg <= 8'd0;
+	else              host_io_read_reg <= host_io_read_wire;
+end
 
 wire [5:0]  host_palette_q;
 wire [17:0] dac_read_q;
 
-assign io_c_readdata =
-    (host_io_read_address_last == 4'h1 && attrib_io_index <= 5'hF)?     { 2'b0, host_palette_q } :
-    (host_io_read_address_last == 4'h9 && ~(dac_is_read))?              8'h3F :              
-    (host_io_read_address_last == 4'h9 && dac_cnt == 2'd1)?             { 2'b0, dac_read_q[17:12] } :
-    (host_io_read_address_last == 4'h9 && dac_cnt == 2'd2)?             { 2'b0, dac_read_q[11:6] } :
-    (host_io_read_address_last == 4'h9 && dac_cnt == 2'd0)?             { 2'b0, dac_read_q[5:0] } :
-                                                                        host_io_read_reg;
-                                                                        
+always @(*) begin
+	casex({
+			 (host_io_read_address_last == 4'h1 && attrib_io_index <= 5'hF),
+			 (host_io_read_address_last == 4'h9 && ~(dac_is_read)),
+			 (host_io_read_address_last == 4'h9 && dac_cnt == 2'd1),
+			 (host_io_read_address_last == 4'h9 && dac_cnt == 2'd2),
+			 (host_io_read_address_last == 4'h9 && dac_cnt == 2'd0),
+			})
+		5'b1XXXX: io_c_readdata = { 2'b0, host_palette_q };
+		5'b01XXX: io_c_readdata = 8'h3F;
+		5'b001XX: io_c_readdata = { 2'b0, dac_read_q[17:12] };
+		5'b0001X: io_c_readdata = { 2'b0, dac_read_q[11:6] };
+		5'b00001: io_c_readdata = { 2'b0, dac_read_q[5:0] };
+		5'b00000: io_c_readdata = host_io_read_reg;
+	endcase
+end
+
 assign io_b_readdata = host_io_read_reg;
 assign io_d_readdata = host_io_read_reg;
 
@@ -680,50 +727,79 @@ wire [7:0] host_read_mode_1 = {
     (graph_color_compare_dont_care[2]? ~(host_ram2_q[0] ^ graph_color_compare_map[2]) : 1'b1) & (graph_color_compare_dont_care[3]? ~(host_ram3_q[0] ^ graph_color_compare_map[3]) : 1'b1)
 };
 
-assign mem_readdata =
-    (host_read_out_of_bounds)?                                                                              8'hFF :
-    (seq_access_chain4 && host_address_reduced_last[1:0] == 2'b00)?                                         host_ram0_q :
-    (seq_access_chain4 && host_address_reduced_last[1:0] == 2'b01)?                                         host_ram1_q :
-    (seq_access_chain4 && host_address_reduced_last[1:0] == 2'b10)?                                         host_ram2_q :
-    (seq_access_chain4 && host_address_reduced_last[1:0] == 2'b11)?                                         host_ram3_q :
-    (graph_read_mode == 1'b0 && ~(seq_access_odd_even_disabled) && host_address_reduced_last[0] == 1'b0)?   host_ram0_q :
-    (graph_read_mode == 1'b0 && ~(seq_access_odd_even_disabled) && host_address_reduced_last[0] == 1'b1)?   host_ram1_q :
-    (graph_read_mode == 1'b0 && graph_read_map_select == 2'd0)?                                             host_ram0_q :
-    (graph_read_mode == 1'b0 && graph_read_map_select == 2'd1)?                                             host_ram1_q :
-    (graph_read_mode == 1'b0 && graph_read_map_select == 2'd2)?                                             host_ram2_q :
-    (graph_read_mode == 1'b0 && graph_read_map_select == 2'd3)?                                             host_ram3_q :
-                                                                                                            host_read_mode_1;
+always @(*) begin
+	casex(
+		{(host_read_out_of_bounds),
+       (seq_access_chain4 && host_address_reduced_last[1:0] == 2'b00),
+       (seq_access_chain4 && host_address_reduced_last[1:0] == 2'b01),
+       (seq_access_chain4 && host_address_reduced_last[1:0] == 2'b10),
+       (seq_access_chain4 && host_address_reduced_last[1:0] == 2'b11),
+       (graph_read_mode == 1'b0 && ~(seq_access_odd_even_disabled) && host_address_reduced_last[0] == 1'b0),
+       (graph_read_mode == 1'b0 && ~(seq_access_odd_even_disabled) && host_address_reduced_last[0] == 1'b1),
+       (graph_read_mode == 1'b0 && graph_read_map_select == 2'd0),
+       (graph_read_mode == 1'b0 && graph_read_map_select == 2'd1),
+       (graph_read_mode == 1'b0 && graph_read_map_select == 2'd2),
+       (graph_read_mode == 1'b0 && graph_read_map_select == 2'd3)})
+		 
+		 11'b1XXXXXXXXXX: mem_readdata = 8'hFF;
+		 11'b01XXXXXXXXX: mem_readdata = host_ram0_q;
+		 11'b001XXXXXXXX: mem_readdata = host_ram1_q;
+		 11'b0001XXXXXXX: mem_readdata = host_ram2_q;
+		 11'b00001XXXXXX: mem_readdata = host_ram3_q;
+		 11'b000001XXXXX: mem_readdata = host_ram0_q;
+		 11'b0000001XXXX: mem_readdata = host_ram1_q;
+		 11'b00000001XXX: mem_readdata = host_ram0_q;
+		 11'b000000001XX: mem_readdata = host_ram1_q;
+		 11'b0000000001X: mem_readdata = host_ram2_q;
+		 11'b00000000001: mem_readdata = host_ram3_q;
+		 11'b00000000000: mem_readdata = host_read_mode_1;
+	endcase
+end
 
-always @(posedge clk_26 or negedge rst_n) begin if(rst_n == 1'b0) host_ram0_reg <= 8'd0; else if(host_read_last) host_ram0_reg <= host_ram0_q; end
-always @(posedge clk_26 or negedge rst_n) begin if(rst_n == 1'b0) host_ram1_reg <= 8'd0; else if(host_read_last) host_ram1_reg <= host_ram1_q; end
-always @(posedge clk_26 or negedge rst_n) begin if(rst_n == 1'b0) host_ram2_reg <= 8'd0; else if(host_read_last) host_ram2_reg <= host_ram2_q; end
-always @(posedge clk_26 or negedge rst_n) begin if(rst_n == 1'b0) host_ram3_reg <= 8'd0; else if(host_read_last) host_ram3_reg <= host_ram3_q; end
+always @(posedge clk_26 or negedge rst_n) begin
+	if(rst_n == 1'b0) begin
+		{ host_ram0_reg, host_ram1_reg, host_ram2_reg, host_ram3_reg } <= 0;
+	end
+	else
+	if(host_read_last) begin
+		{ host_ram0_reg, host_ram1_reg, host_ram2_reg, host_ram3_reg } <= { host_ram0_q, host_ram1_q, host_ram2_q, host_ram3_q };
+	end
+end
 
 
 //------------------------------------------------------------------------------ mem write
 
 wire host_write = mem_write && ~(host_memory_out_of_bounds);
 
-wire [7:0] host_writedata_rotate =
-    (graph_write_rotate == 3'd0)?     mem_writedata[7:0] :
-    (graph_write_rotate == 3'd1)?   { mem_writedata[0],   mem_writedata[7:1] } :
-    (graph_write_rotate == 3'd2)?   { mem_writedata[1:0], mem_writedata[7:2] } :
-    (graph_write_rotate == 3'd3)?   { mem_writedata[2:0], mem_writedata[7:3] } :
-    (graph_write_rotate == 3'd4)?   { mem_writedata[3:0], mem_writedata[7:4] } :
-    (graph_write_rotate == 3'd5)?   { mem_writedata[4:0], mem_writedata[7:5] } :
-    (graph_write_rotate == 3'd6)?   { mem_writedata[5:0], mem_writedata[7:6] } :
-                                    { mem_writedata[6:0], mem_writedata[7] };
-    
+reg  [7:0] host_writedata_rotate;
+always @(*) begin
+	case(graph_write_rotate)
+		0: host_writedata_rotate =   mem_writedata[7:0];
+		1: host_writedata_rotate = { mem_writedata[0],   mem_writedata[7:1] };
+		2: host_writedata_rotate = { mem_writedata[1:0], mem_writedata[7:2] };
+		3: host_writedata_rotate = { mem_writedata[2:0], mem_writedata[7:3] };
+		4: host_writedata_rotate = { mem_writedata[3:0], mem_writedata[7:4] };
+		5: host_writedata_rotate = { mem_writedata[4:0], mem_writedata[7:5] };
+		6: host_writedata_rotate = { mem_writedata[5:0], mem_writedata[7:6] };
+		7: host_writedata_rotate = { mem_writedata[6:0], mem_writedata[7]   };
+	endcase
+end
+
+
 wire [7:0] host_write_set_0 = (graph_write_mode == 2'd2)? {8{mem_writedata[0]}} : graph_write_enable_map[0]?  {8{graph_write_set_map[0]}} : host_writedata_rotate;
 wire [7:0] host_write_set_1 = (graph_write_mode == 2'd2)? {8{mem_writedata[1]}} : graph_write_enable_map[1]?  {8{graph_write_set_map[1]}} : host_writedata_rotate;
 wire [7:0] host_write_set_2 = (graph_write_mode == 2'd2)? {8{mem_writedata[2]}} : graph_write_enable_map[2]?  {8{graph_write_set_map[2]}} : host_writedata_rotate;
 wire [7:0] host_write_set_3 = (graph_write_mode == 2'd2)? {8{mem_writedata[3]}} : graph_write_enable_map[3]?  {8{graph_write_set_map[3]}} : host_writedata_rotate;
 
-wire [31:0] host_write_function =
-    (graph_write_function == 2'd1)? { host_write_set_3, host_write_set_2, host_write_set_1, host_write_set_0 } & { host_ram3_reg, host_ram2_reg, host_ram1_reg, host_ram0_reg } :
-    (graph_write_function == 2'd2)? { host_write_set_3, host_write_set_2, host_write_set_1, host_write_set_0 } | { host_ram3_reg, host_ram2_reg, host_ram1_reg, host_ram0_reg } :
-    (graph_write_function == 2'd3)? { host_write_set_3, host_write_set_2, host_write_set_1, host_write_set_0 } ^ { host_ram3_reg, host_ram2_reg, host_ram1_reg, host_ram0_reg } :
-                                    { host_write_set_3, host_write_set_2, host_write_set_1, host_write_set_0 };
+reg [31:0] host_write_function;
+always @(*) begin
+	case(graph_write_function)
+		0: host_write_function = { host_write_set_3, host_write_set_2, host_write_set_1, host_write_set_0 };
+		1: host_write_function = { host_write_set_3, host_write_set_2, host_write_set_1, host_write_set_0 } & { host_ram3_reg, host_ram2_reg, host_ram1_reg, host_ram0_reg };
+		2: host_write_function = { host_write_set_3, host_write_set_2, host_write_set_1, host_write_set_0 } | { host_ram3_reg, host_ram2_reg, host_ram1_reg, host_ram0_reg };
+		3: host_write_function = { host_write_set_3, host_write_set_2, host_write_set_1, host_write_set_0 } ^ { host_ram3_reg, host_ram2_reg, host_ram1_reg, host_ram0_reg };
+	endcase
+end
 
 wire [7:0] host_write_mask_0 = (graph_write_mask & host_write_function[7:0])   | (~(graph_write_mask) & host_ram0_reg);
 wire [7:0] host_write_mask_1 = (graph_write_mask & host_write_function[15:8])  | (~(graph_write_mask) & host_ram1_reg);
@@ -736,19 +812,18 @@ wire [7:0] host_write_mode_3_ram1 = (host_write_mode_3_mask & {8{graph_write_set
 wire [7:0] host_write_mode_3_ram2 = (host_write_mode_3_mask & {8{graph_write_set_map[2]}})   | (~(host_write_mode_3_mask) & host_ram2_reg);
 wire [7:0] host_write_mode_3_ram3 = (host_write_mode_3_mask & {8{graph_write_set_map[3]}})   | (~(host_write_mode_3_mask) & host_ram3_reg);
 
-wire [31:0] host_writedata =
-    (graph_write_mode == 2'd0 || graph_write_mode == 2'd2)?     { host_write_mask_3, host_write_mask_2, host_write_mask_1, host_write_mask_0 } :
-    (graph_write_mode == 2'd1)?                                 { host_ram3_reg, host_ram2_reg, host_ram1_reg, host_ram0_reg } :
-                                                                { host_write_mode_3_ram3, host_write_mode_3_ram2, host_write_mode_3_ram1, host_write_mode_3_ram0 };
-    
-wire [3:0] host_write_enable_for_chain4 =
-    (host_address_reduced[1:0] == 2'd0)?    4'b0001 :
-    (host_address_reduced[1:0] == 2'd1)?    4'b0010 :
-    (host_address_reduced[1:0] == 2'd2)?    4'b0100 :
-                                            4'b1000;
-wire [3:0] host_write_enable_for_odd_even =
-    (host_address_reduced[0] == 1'd0)?      4'b0101 :
-                                            4'b1010;
+reg [31:0] host_writedata;
+always @(*) begin
+	case(graph_write_mode)
+		0: host_writedata = { host_write_mask_3,      host_write_mask_2,      host_write_mask_1,      host_write_mask_0 };
+		1: host_writedata = { host_ram3_reg,          host_ram2_reg,          host_ram1_reg,          host_ram0_reg };
+		2: host_writedata = { host_write_mask_3,      host_write_mask_2,      host_write_mask_1,      host_write_mask_0 };
+		3: host_writedata = { host_write_mode_3_ram3, host_write_mode_3_ram2, host_write_mode_3_ram1, host_write_mode_3_ram0 };
+	endcase
+end
+
+wire [3:0] host_write_enable_for_chain4   = (4'b0001 << host_address_reduced[1:0]);
+wire [3:0] host_write_enable_for_odd_even = (4'b0101 << host_address_reduced[0]);
                                             
 wire [3:0] host_write_enable = 
     {4{host_write}} & seq_map_write_enable & (
