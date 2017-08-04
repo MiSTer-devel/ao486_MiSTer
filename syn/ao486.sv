@@ -87,7 +87,8 @@ assign AUDIO_L   = {16{speaker_ena & speaker_out}};
 
 
 `include "build_id.v"
-localparam CONF_STR = {
+localparam CONF_STR =
+{
 	"AO486;;",
 	"-;",
 	"S0,IMG,Mount Floppy;",
@@ -97,6 +98,8 @@ localparam CONF_STR = {
 	"-;",
 	"OX2,Boot order,FDD/HDD,HDD/FDD;",
 	"T0,Reset and apply HDD;",
+	"-;",
+	"-;",
 	"-;",
 	"V,v0.55.",`BUILD_DATE
 };
@@ -258,7 +261,7 @@ always @(posedge clk_sys) begin
 	old_rst1 <= status[0];
 	old_rst2 <= old_rst1;
 
-	cpu_rst1 <= buttons[1] | ~ps2_reset_n;
+	cpu_rst1 <= buttons[1] | status[0] | ~ps2_reset_n;
 
 	rst_q <= rst_q << 1;
 	if(~old_rst2 & old_rst1) begin
