@@ -26,13 +26,13 @@
 
 module simple_bidir_ram
 (
-    input                clk,
-    
+    input                clk_a,
     input  [widthad-1:0] address_a,
     input                wren_a,
     input    [width-1:0] data_a,
     output   [width-1:0] q_a,
     
+    input                clk_b,
     input  [widthad-1:0] address_b,
     output   [width-1:0] q_b
 );
@@ -44,9 +44,12 @@ reg [width-1:0] mem [(2**widthad)-1:0];
 reg [widthad-1:0] addr_a;
 reg [widthad-1:0] addr_b;
 
-always @(posedge clk) begin
+always @(posedge clk_a) begin
     if(wren_a) mem[address_a] <= data_a;
     addr_a <= address_a;
+end
+
+always @(posedge clk_b) begin
     addr_b <= address_b;
 end
 

@@ -438,6 +438,22 @@
          type = "String";
       }
    }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element vga
    {
       datum _sortIndex
@@ -1075,16 +1091,13 @@
    version="17.0"
    start="pll_0.outclk0"
    end="address_span_extender.clock" />
+ <connection kind="clock" version="17.0" start="pll_0.outclk0" end="vga.clock_sys" />
  <connection
    kind="clock"
    version="17.0"
    start="pll_0.outclk0"
    end="sys_clk_out.in_clk" />
- <connection
-   kind="clock"
-   version="17.0"
-   start="pll_0.outclk1"
-   end="vga.clock_sink" />
+ <connection kind="clock" version="17.0" start="pll_0.outclk1" end="vga.clock_vga" />
  <connection
    kind="conduit"
    version="17.0"
