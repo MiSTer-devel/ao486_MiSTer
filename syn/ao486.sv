@@ -74,16 +74,19 @@ assign SDRAM_DQ  ='Z;
 
 assign AUDIO_S   = 0;
 
-assign LED_USER  = ~device & ioctl_wait;
-assign LED_DISK  = {1'b1, device & ioctl_wait};
-assign LED_POWER = 0;
-
 assign CE_PIXEL  = 1;
 assign VIDEO_ARX = status[1] ? 8'd16 : 8'd4;
 assign VIDEO_ARY = status[1] ? 8'd9  : 8'd3;
 
 assign AUDIO_R   = AUDIO_L;
 assign AUDIO_L   = {16{speaker_ena & speaker_out}};
+
+
+assign LED_DISK[1] = 1;
+assign LED_POWER   = 0;
+
+led hdd_led(clk_sys,  device & ioctl_wait, LED_DISK[0]);
+led fdd_led(clk_sys, ~device & ioctl_wait, LED_USER);
 
 
 `include "build_id.v"
@@ -311,6 +314,26 @@ always @(posedge clk_sys) begin
 	end
 	
 	if(~old_reset && RESET) {state,ioctl_wait} <= 0;
+end
+
+endmodule
+
+module led
+(
+	input      clk,
+	input      in,
+	output reg out
+);
+
+integer counter = 0;
+always @(posedge clk) begin
+	if(!counter) out = 0;
+	else begin
+		counter <= counter - 1'b1;
+		out <= 1;
+	end
+	
+	if(in) counter <= 4500000;
 end
 
 endmodule
