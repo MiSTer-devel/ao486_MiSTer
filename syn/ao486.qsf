@@ -338,7 +338,7 @@ set_global_assignment -name SMART_RECOMPILE ON
 set_global_assignment -name SYNTHESIS_EFFORT AUTO
 set_global_assignment -name ECO_REGENERATE_REPORT OFF
 set_global_assignment -name OPTIMIZATION_MODE "HIGH PERFORMANCE EFFORT"
-set_global_assignment -name FITTER_EFFORT "STANDARD FIT"
+set_global_assignment -name FITTER_EFFORT "AUTO FIT"
 set_global_assignment -name OPTIMIZATION_TECHNIQUE SPEED
 set_global_assignment -name ECO_OPTIMIZE_TIMING ON
 set_global_assignment -name ALM_REGISTER_PACKING_EFFORT LOW

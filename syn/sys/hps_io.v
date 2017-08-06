@@ -30,7 +30,7 @@
 
 // WIDE=1 for 16 bit file I/O
 // VDNUM 1-4
-module hps_io #(parameter STRLEN=0, PS2DIV=3000, WIDE=0, VDNUM=1, PS2WE=0)
+module hps_io #(parameter STRLEN=0, PS2DIV=4000, WIDE=0, VDNUM=1, PS2WE=0)
 (
 	input             clk_sys,
 	inout      [37:0] HPS_BUS,
@@ -462,7 +462,7 @@ endmodule
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module ps2_device #(parameter PS2_FIFO_BITS=4)
+module ps2_device #(parameter PS2_FIFO_BITS=5)
 (
 	input        clk_sys,
 
@@ -498,6 +498,7 @@ always@(posedge clk_sys) begin
 	reg parity;
 	reg r_inc;
 	reg old_clk;
+	reg [1:0] timeout;
 
 	reg [3:0] rx_cnt;
 
@@ -547,26 +548,25 @@ always@(posedge clk_sys) begin
 			endcase
 		end else begin
 
-			r_inc <= 0;
-
-			if(r_inc) rptr <= rptr + 1'd1;
-
 			// transmitter is idle?
 			if(tx_state == 0) begin
 				// data in fifo present?
 				if(c2 && c1 && d1 && wptr != rptr) begin
-					// load tx register from fifo
-					tx_byte <= fifo[rptr];
-					r_inc <= 1;
 
-					// reset parity
-					parity <= 1;
+					timeout <= timeout - 1'd1;
+					if(!timeout) begin
+						tx_byte <= fifo[rptr];
+						rptr <= rptr + 1'd1;
 
-					// start transmitter
-					tx_state <= 1;
+						// reset parity
+						parity <= 1;
 
-					// put start bit on data line
-					ps2_dat_out <= 0;			// start bit is 0
+						// start transmitter
+						tx_state <= 1;
+
+						// put start bit on data line
+						ps2_dat_out <= 0;			// start bit is 0
+					end
 				end
 			end else begin
 
@@ -590,8 +590,7 @@ always@(posedge clk_sys) begin
 			end
 		end
 	end
-	
-	
+
 	if(~old_clk & ps2_clk) ps2_clk_out <= 1;
 	if(old_clk & ~ps2_clk) ps2_clk_out <= ((tx_state == 0) && (rx_state<2));
 
