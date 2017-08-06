@@ -166,7 +166,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 //------------------------------------------------------------------------------ speaker
-
+/*
 reg [15:0] speaker_value;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                               speaker_value <= 16'd0;
@@ -174,16 +174,21 @@ always @(posedge clk or negedge rst_n) begin
     else if(speaker_enable && speaker_out == 1'b1)  speaker_value <= 16'd49152;
     else                                            speaker_value <= 16'd0;
 end
-
+*/
 //------------------------------------------------------------------------------
 
 reg [15:0] sample_dsp;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                   sample_dsp <= 16'd0;
     else if(sample_from_dsp_disabled)   sample_dsp <= 16'd0;
-    else if(sample_from_dsp_do)         sample_dsp <= { sample_from_dsp_value, 8'd0 } - 16'd32768; //unsigned to signed
+    else if(sample_from_dsp_do)         sample_dsp <= {sample_from_dsp_value, sample_from_dsp_value};  //{ sample_from_dsp_value, 8'd0 } - 16'd32768; //unsigned to signed
 end
 
+assign new_sample = 0;
+assign sample = sample_dsp;
+
+
+/*
 reg [15:0] sample_opl2;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)           sample_opl2 <= 16'd0;
@@ -234,5 +239,5 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 //------------------------------------------------------------------------------
-
+*/
 endmodule

@@ -225,8 +225,8 @@ set_interface_property conduit_speaker PORT_NAME_MAP ""
 set_interface_property conduit_speaker CMSIS_SVD_VARIABLES ""
 set_interface_property conduit_speaker SVD_ADDRESS_GROUP ""
 
-add_interface_port conduit_speaker speaker_enable speaker_enable Input 1
-add_interface_port conduit_speaker speaker_out speaker_out Input 1
+add_interface_port conduit_speaker speaker_enable enable Input 1
+add_interface_port conduit_speaker speaker_out out Input 1
 
 
 # 

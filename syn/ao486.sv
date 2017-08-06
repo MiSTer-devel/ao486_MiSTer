@@ -79,7 +79,7 @@ assign VIDEO_ARX = status[1] ? 8'd16 : 8'd4;
 assign VIDEO_ARY = status[1] ? 8'd9  : 8'd3;
 
 assign AUDIO_R   = AUDIO_L;
-assign AUDIO_L   = {16{speaker_ena & speaker_out}};
+assign AUDIO_L   = {1'b0, dsp_out[15:1]} + {1'b0, {15{speaker_ena & speaker_out}}};
 
 
 assign LED_DISK[1] = 1;
@@ -104,7 +104,7 @@ localparam CONF_STR =
 	"-;",
 	"-;",
 	"-;",
-	"V,v0.55.",`BUILD_DATE
+	"V,v0.60.",`BUILD_DATE
 };
 
 
@@ -182,7 +182,9 @@ assign      DDRAM_ADDR = dram_addr[31:3];
 assign      DDRAM_CLK = clk_sys;
 
 wire        ps2_reset_n;
+
 wire        speaker_ena, speaker_out;
+wire [15:0] dsp_out;
 
 wire        device;
 
@@ -202,7 +204,7 @@ system u0
 	.vga_b                (VGA_B),
 
 	.sound_new_sample     (),
-	//.sound_sample         (AUDIO_L),
+	.sound_sample         (dsp_out),
 	.speaker_enable       (speaker_ena),
 	.speaker_out          (speaker_out),
 	
