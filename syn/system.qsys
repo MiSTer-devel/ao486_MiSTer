@@ -702,7 +702,7 @@
   <parameter name="gui_fractional_cout" value="32" />
   <parameter name="gui_mif_generate" value="false" />
   <parameter name="gui_multiply_factor" value="1" />
-  <parameter name="gui_number_of_clocks" value="2" />
+  <parameter name="gui_number_of_clocks" value="3" />
   <parameter name="gui_operation_mode" value="direct" />
   <parameter name="gui_output_clock_frequency0" value="90.0" />
   <parameter name="gui_output_clock_frequency1" value="26.0" />
@@ -714,7 +714,7 @@
   <parameter name="gui_output_clock_frequency15" value="100.0" />
   <parameter name="gui_output_clock_frequency16" value="100.0" />
   <parameter name="gui_output_clock_frequency17" value="100.0" />
-  <parameter name="gui_output_clock_frequency2" value="26.0" />
+  <parameter name="gui_output_clock_frequency2" value="12.717391" />
   <parameter name="gui_output_clock_frequency3" value="100.0" />
   <parameter name="gui_output_clock_frequency4" value="100.0" />
   <parameter name="gui_output_clock_frequency5" value="100.0" />
@@ -1098,6 +1098,11 @@
    start="pll_0.outclk0"
    end="sys_clk_out.in_clk" />
  <connection kind="clock" version="17.0" start="pll_0.outclk1" end="vga.clock_vga" />
+ <connection
+   kind="clock"
+   version="17.0"
+   start="pll_0.outclk2"
+   end="sound.clock_opl" />
  <connection
    kind="conduit"
    version="17.0"

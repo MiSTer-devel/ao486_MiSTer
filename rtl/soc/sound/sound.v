@@ -26,27 +26,25 @@
 
 module sound(
     input               clk,
+    input               clk_opl,
     input               rst_n,
     
     output              irq,
     
-    //speaker input
-    input               speaker_enable,
-    input               speaker_out,
-    
     //io slave 220h-22Fh
     input       [3:0]   io_address,
     input               io_read,
-    output reg  [7:0]   io_readdata,
+    output      [7:0]   io_readdata,
     input               io_write,
     input       [7:0]   io_writedata,
     
-    //fm music io slave 388h-389h
-    input               fm_address,
+    //fm music io slave 388h-38Bh
+    input       [1:0]   fm_address,
     input               fm_read,
     output      [7:0]   fm_readdata,
     input               fm_write,
     input       [7:0]   fm_writedata,
+	input               fm_mode,
 
     //dma
     output              dma_soundblaster_req,
@@ -55,10 +53,10 @@ module sound(
     input       [7:0]   dma_soundblaster_readdata,
     output      [7:0]   dma_soundblaster_writedata,
     
-	//sound output
-	output              new_sample,
-	output     [15:0]   sample,
-    
+    //sound output
+    output     [15:0]   sample_l,
+    output     [15:0]   sample_r,
+
     //mgmt slave
     /*
     0-255.[15:0]: cycles in period
@@ -114,36 +112,40 @@ sound_dsp sound_dsp_inst(
     .mgmt_writedata             (mgmt_writedata)                //input [31:0]
 );
 
-//------------------------------------------------------------------------------ opl2
+//------------------------------------------------------------------------------ opl
 
-wire [7:0] sb_readdata_from_opl2;
+wire [7:0] sb_readdata_from_opl;
 
-wire        sample_from_opl2;
-wire [15:0] sample_from_opl2_value;
+wire        sample_from_opl;
+wire [15:0] sample_from_opl_l;
+wire [15:0] sample_from_opl_r;
 
-sound_opl2 sound_opl2_inst(
+opl sound_opl
+(
     .clk                        (clk),
+    .clk_opl                    (clk_opl),
     .rst_n                      (rst_n),
     
     //sb slave 220h-22Fh
     .sb_address                 (io_address),               //input [3:0]
     .sb_read                    (io_read),                  //input
-    .sb_readdata_from_opl2      (sb_readdata_from_opl2),    //output [7:0]
+    .sb_readdata                (sb_readdata_from_opl),     //output [7:0]
     .sb_write                   (io_write),                 //input
     .sb_writedata               (io_writedata),             //input [7:0]
     
     
-    //fm music io slave 388h-389h
+    //fm music io slave 388h-38Bh
     .fm_address                 (fm_address),               //input
     .fm_read                    (fm_read),                  //input
     .fm_readdata                (fm_readdata),              //output [7:0]
     .fm_write                   (fm_write),                 //input
     .fm_writedata               (fm_writedata),             //input [7:0]
-    
+    .fm_mode                    (fm_mode),
+
     //sample
-    .sample_from_opl2           (sample_from_opl2),         //output
-    .sample_from_opl2_value     (sample_from_opl2_value),   //output [15:0]
-    
+    .sample_l                   (sample_from_opl_l),        //output [15:0]
+    .sample_r                   (sample_from_opl_r),        //output [15:0]
+
     //mgmt slave
     /*
     256.[12:0]:  cycles in 80us
@@ -156,88 +158,18 @@ sound_opl2 sound_opl2_inst(
 
 //------------------------------------------------------------------------------ io_readdata
 
-wire [7:0] io_readdata_next =
-    (io_address == 4'h8 || io_address == 4'h9)?     sb_readdata_from_opl2 :
-                                                    io_readdata_from_dsp;
-    
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)   io_readdata <= 8'd0;
-    else                io_readdata <= io_readdata_next;
-end
+assign io_readdata = (io_address == 8 || io_address == 9) ? sb_readdata_from_opl : io_readdata_from_dsp;
 
-//------------------------------------------------------------------------------ speaker
-/*
-reg [15:0] speaker_value;
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                               speaker_value <= 16'd0;
-    else if(speaker_enable && speaker_out == 1'b0)  speaker_value <= 16'd16384;
-    else if(speaker_enable && speaker_out == 1'b1)  speaker_value <= 16'd49152;
-    else                                            speaker_value <= 16'd0;
-end
-*/
 //------------------------------------------------------------------------------
 
 reg [15:0] sample_dsp;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                   sample_dsp <= 16'd0;
-    else if(sample_from_dsp_disabled)   sample_dsp <= 16'd0;
-    else if(sample_from_dsp_do)         sample_dsp <= {sample_from_dsp_value, sample_from_dsp_value};  //{ sample_from_dsp_value, 8'd0 } - 16'd32768; //unsigned to signed
+    if(rst_n == 0)                      sample_dsp <= 0;
+    else if(sample_from_dsp_disabled)   sample_dsp <= 0;
+    else if(sample_from_dsp_do)         sample_dsp <= {~sample_from_dsp_value[7], sample_from_dsp_value[6:0], sample_from_dsp_value};  //unsigned to signed
 end
 
-assign new_sample = 0;
-assign sample = sample_dsp;
+assign sample_l = {sample_dsp[15], sample_dsp[15:1]} + {sample_from_opl_l[15], sample_from_opl_l[15:1]};
+assign sample_r = {sample_dsp[15], sample_dsp[15:1]} + {sample_from_opl_r[15], sample_from_opl_r[15:1]};
 
-
-/*
-reg [15:0] sample_opl2;
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)           sample_opl2 <= 16'd0;
-    else if(sample_from_opl2)   sample_opl2 <= sample_from_opl2_value; //already signed
-end
-
-wire [15:0] sample_sum_1 = sample_dsp + sample_opl2;
-
-wire [15:0] sample_next_1 = (sample_dsp[15] == 1'b0 && sample_opl2[15] == 1'b0 && sample_sum_1[15] == 1'b1)?   16'd32767 :
-                            (sample_dsp[15] == 1'b1 && sample_opl2[15] == 1'b1 && sample_sum_1[15] == 1'b0)?   16'd32768 :
-                                                                                                               sample_sum_1[15:0];
-reg [15:0] sample_sum_1_reg;
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)               sample_sum_1_reg <= 16'd0;
-    else if(state == STATE_LOAD_1)  sample_sum_1_reg <= sample_next_1;
-end
-
-wire [15:0] sample_sum_2 = sample_sum_1_reg + speaker_value;
-
-wire [15:0] sample_next_2 = (sample_sum_1_reg[15] == 1'b0 && speaker_value[15] == 1'b0 && sample_sum_2[15] == 1'b1)?    16'd32767 :
-                            (sample_sum_1_reg[15] == 1'b1 && speaker_value[15] == 1'b1 && sample_sum_2[15] == 1'b0)?    16'd32768 :
-                                                                                                                        sample_sum_2[15:0];
-
-//------------------------------------------------------------------------------
-
-localparam [1:0] STATE_IDLE   = 2'd0;
-localparam [1:0] STATE_LOAD_1 = 2'd1;
-localparam [1:0] STATE_LOAD_2 = 2'd2;
-localparam [1:0] STATE_WRITE  = 2'd3;
-
-reg [1:0] state;
-
-reg [15:0] sample_sum_2_reg;
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)               sample_sum_2_reg <= 16'd0;
-    else if(state == STATE_LOAD_2)  sample_sum_2_reg <= sample_next_2;
-end
-
-assign sample      = sample_sum_2_reg; //signed
-assign new_sample  = state == STATE_WRITE;
-
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                   state <= STATE_IDLE;
-    else if(state == STATE_IDLE && sample_from_opl2)    state <= STATE_LOAD_1;
-    else if(state == STATE_LOAD_1)                      state <= STATE_LOAD_2;
-    else if(state == STATE_LOAD_2)                      state <= STATE_WRITE;
-    else if(state == STATE_WRITE)                       state <= STATE_IDLE;
-end
-
-//------------------------------------------------------------------------------
-*/
 endmodule

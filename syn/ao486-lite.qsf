@@ -339,12 +339,11 @@ set_global_assignment -name SAVE_DISK_SPACE OFF
 set_global_assignment -name SMART_RECOMPILE ON
 set_global_assignment -name SYNTHESIS_EFFORT AUTO
 set_global_assignment -name ECO_REGENERATE_REPORT OFF
-set_global_assignment -name OPTIMIZATION_MODE "HIGH PERFORMANCE EFFORT"
+set_global_assignment -name OPTIMIZATION_MODE BALANCED
 set_global_assignment -name FITTER_EFFORT "STANDARD FIT"
 set_global_assignment -name OPTIMIZATION_TECHNIQUE SPEED
 set_global_assignment -name ECO_OPTIMIZE_TIMING ON
-set_global_assignment -name ALM_REGISTER_PACKING_EFFORT LOW
-set_global_assignment -name ALLOW_SYNCH_CTRL_USAGE OFF
+set_global_assignment -name ALM_REGISTER_PACKING_EFFORT MEDIUM
 set_global_assignment -name SEARCH_PATH ./../rtl/ao486
 set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:sys/build_id.tcl"
 set_global_assignment -name CDF_FILE jtag_lite.cdf
@@ -356,6 +355,25 @@ set_global_assignment -name VERILOG_FILE ../rtl/common/simple_rom.v
 set_global_assignment -name VERILOG_FILE ../rtl/common/simple_ram.v
 set_global_assignment -name VERILOG_FILE ../rtl/common/simple_mult.v
 set_global_assignment -name VERILOG_FILE ../rtl/common/simple_fifo.v
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/opl3_pkg.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/opl.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/opl3.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/vibrato.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/tremolo.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/register_file.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/phase_generator.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/opl3_log_sine_lut.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/opl3_exp_lut.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/operator.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/ksl_add_rom.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/envelope_generator.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/env_rate_counter.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/edge_detector.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/control_operators.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/channels.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/calc_rhythm_phase.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/calc_phase_inc.sv
 set_global_assignment -name QIP_FILE system/synthesis/system.qip
 set_global_assignment -name SYSTEMVERILOG_FILE ao486.sv
+set_global_assignment -name OPTIMIZE_POWER_DURING_FITTING OFF
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

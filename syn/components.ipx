@@ -161,16 +161,4 @@
   <tag2 key="COMPONENT_EDITABLE" value="true" />
   <tag2 key="COMPONENT_HIDE_FROM_SOPC" value="true" />
  </component>
- <component
-   name="sb16_avalon_wrapper"
-   file="./../rtl/soc/sb16/sb16_avalon_wrapper_hw.tcl"
-   displayName="sb16_avalon_wrapper"
-   version="1.0"
-   description=""
-   tags="AUTHORSHIP= /// CONNECTION_TYPES=avalon,clock,conduit,reset /// INTERNAL_COMPONENT=false"
-   categories="ao486"
-   factory="TclModuleFactory">
-  <tag2 key="COMPONENT_EDITABLE" value="true" />
-  <tag2 key="COMPONENT_HIDE_FROM_SOPC" value="true" />
- </component>
 </library>

@@ -72,14 +72,13 @@ module emu
 assign {SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 6'b111111;
 assign SDRAM_DQ  ='Z;
 
-assign AUDIO_S   = 0;
-
 assign CE_PIXEL  = 1;
 assign VIDEO_ARX = status[1] ? 8'd16 : 8'd4;
 assign VIDEO_ARY = status[1] ? 8'd9  : 8'd3;
 
-assign AUDIO_R   = AUDIO_L;
-assign AUDIO_L   = {1'b0, dsp_out[15:1]} + {1'b0, {15{speaker_ena & speaker_out}}};
+assign AUDIO_S   = 1;
+assign AUDIO_L   = {sb_out_l[15], sb_out_l[15:1]} + {1'b0, {15{speaker_ena & speaker_out}}};
+assign AUDIO_R   = {sb_out_r[15], sb_out_r[15:1]} + {1'b0, {15{speaker_ena & speaker_out}}};
 
 
 assign LED_DISK[1] = 1;
@@ -96,15 +95,16 @@ localparam CONF_STR =
 	"-;",
 	"S0,IMG,Mount Floppy;",
 	"S2,VHD,Mount HDD;",
+	"OX2,Boot order,FDD/HDD,HDD/FDD;",
 	"-;",
 	"O1,Aspect ratio,4:3,16:9;",
+	"O3,FM mode,OPL2,OPL3;",
 	"-;",
-	"OX2,Boot order,FDD/HDD,HDD/FDD;",
 	"T0,Reset and apply HDD;",
 	"-;",
 	"-;",
 	"-;",
-	"V,v0.60.",`BUILD_DATE
+	"V,v0.85.",`BUILD_DATE
 };
 
 
@@ -184,7 +184,7 @@ assign      DDRAM_CLK = clk_sys;
 wire        ps2_reset_n;
 
 wire        speaker_ena, speaker_out;
-wire [15:0] dsp_out;
+wire [15:0] sb_out_l, sb_out_r;
 
 wire        device;
 
@@ -203,11 +203,13 @@ system u0
 	.vga_g                (VGA_G),
 	.vga_b                (VGA_B),
 
-	.sound_new_sample     (),
-	.sound_sample         (dsp_out),
+	.sound_sample_l       (sb_out_l),
+	.sound_sample_r       (sb_out_r),
+	.sound_fm_mode        (status[3]),
+
 	.speaker_enable       (speaker_ena),
 	.speaker_out          (speaker_out),
-	
+
 
 	.ps2_misc_a20_enable  (),
 	.ps2_misc_reset_n     (ps2_reset_n),
