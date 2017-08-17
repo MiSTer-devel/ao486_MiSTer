@@ -7,7 +7,7 @@ Still it's a great emulator for very old DOS games/apps.
 * Master clock is 90MHz instead of 30MHz in original ao486.
 * BIOS, floppy and HDD images are located in separate files for easy use. No special utility required.
 * Uses standard MiSTer OSD, can choose floppy(hot swap) and HDD(after reset).
-* SoundBlaster 2.0: Wave/DSP only. FM(OPL2) has been removed due to lack of LE.
+* SoundBlaster 2.0 with better OPL2/3 implementation (OPL2/3 code is based on [opl3_fpga](https://github.com/gtaylormb/opl3_fpga))
 * HDMI video and audio. Note: original ao486 output non-standard VGA video frequencies and have bad centering.
 
 
@@ -30,6 +30,9 @@ so it's possible to prepare a HDD in windows/linux (in most cases you need to wo
 * IRQ: 5
 * DMA: 1
 * type SoundBlaster 2.0
+
+### Note:
+* With new MiSTer binaries you need to press **WIN+F12** to access **OSD on ao486 core**. F12 alone acts as generic F12 PC key.
 
 ---------------------------------------------------------------------------
 # Original ao486 ReadMe. 
