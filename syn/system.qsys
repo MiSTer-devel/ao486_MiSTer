@@ -13,7 +13,7 @@
    {
       datum _sortIndex
       {
-         value = "9";
+         value = "8";
          type = "int";
       }
    }
@@ -37,7 +37,7 @@
    {
       datum _sortIndex
       {
-         value = "17";
+         value = "18";
          type = "int";
       }
    }
@@ -49,31 +49,7 @@
          type = "String";
       }
    }
-   element floppy
-   {
-      datum _sortIndex
-      {
-         value = "16";
-         type = "int";
-      }
-   }
-   element floppy.io
-   {
-      datum _lockedAddress
-      {
-         value = "1";
-         type = "boolean";
-      }
-   }
-   element floppy.sd_slave
-   {
-      datum _lockedAddress
-      {
-         value = "1";
-         type = "boolean";
-      }
-   }
-   element hdd
+   element floppy0
    {
       datum _sortIndex
       {
@@ -81,7 +57,7 @@
          type = "int";
       }
    }
-   element hdd.io
+   element floppy0.io
    {
       datum _lockedAddress
       {
@@ -89,7 +65,7 @@
          type = "boolean";
       }
    }
-   element hdd.sd_slave
+   element floppy0.sd_slave
    {
       datum _lockedAddress
       {
@@ -97,24 +73,75 @@
          type = "boolean";
       }
    }
-   element jtag_uart
+   element hdd0
    {
       datum _sortIndex
       {
-         value = "5";
+         value = "14";
          type = "int";
       }
    }
-   element jtag_uart.avalon_jtag_slave
+   element hdd0.io
    {
       datum _lockedAddress
       {
          value = "1";
          type = "boolean";
       }
+   }
+   element hdd0.sd_slave
+   {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
+   }
+   element hdd1
+   {
+      datum _sortIndex
+      {
+         value = "16";
+         type = "int";
+      }
+   }
+   element hdd1.io
+   {
       datum baseAddress
       {
-         value = "34952";
+         value = "368";
+         type = "String";
+      }
+   }
+   element hdd1.mgmt
+   {
+      datum baseAddress
+      {
+         value = "38976";
+         type = "String";
+      }
+   }
+   element hdd1.sd_slave
+   {
+      datum baseAddress
+      {
+         value = "4096";
+         type = "String";
+      }
+   }
+   element hddext_0x370
+   {
+      datum _sortIndex
+      {
+         value = "17";
+         type = "int";
+      }
+   }
+   element hddext_0x370.io
+   {
+      datum baseAddress
+      {
+         value = "880";
          type = "String";
       }
    }
@@ -122,7 +149,7 @@
    {
       datum _sortIndex
       {
-         value = "18";
+         value = "19";
          type = "int";
       }
    }
@@ -130,7 +157,7 @@
    {
       datum _sortIndex
       {
-         value = "6";
+         value = "5";
          type = "int";
       }
    }
@@ -159,7 +186,7 @@
    {
       datum _sortIndex
       {
-         value = "7";
+         value = "6";
          type = "int";
       }
    }
@@ -206,7 +233,7 @@
    {
       datum _sortIndex
       {
-         value = "14";
+         value = "13";
          type = "int";
       }
    }
@@ -230,7 +257,7 @@
    {
       datum _sortIndex
       {
-         value = "13";
+         value = "12";
          type = "int";
       }
    }
@@ -254,7 +281,7 @@
    {
       datum _sortIndex
       {
-         value = "11";
+         value = "10";
          type = "int";
       }
    }
@@ -346,7 +373,7 @@
    {
       datum _sortIndex
       {
-         value = "12";
+         value = "11";
          type = "int";
       }
    }
@@ -362,7 +389,7 @@
    {
       datum _sortIndex
       {
-         value = "10";
+         value = "9";
          type = "int";
       }
    }
@@ -454,11 +481,19 @@
          type = "String";
       }
    }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element vga
    {
       datum _sortIndex
       {
-         value = "8";
+         value = "7";
          type = "int";
       }
    }
@@ -540,27 +575,16 @@
  </module>
  <module name="ao486" kind="ao486" version="1.0" enabled="1" />
  <module name="driver_sd" kind="driver_sd" version="2.0" enabled="1" />
- <module name="floppy" kind="floppy" version="1.0" enabled="1" />
- <module name="hdd" kind="hdd" version="1.0" enabled="1" />
- <module
-   name="jtag_uart"
-   kind="altera_avalon_jtag_uart"
-   version="17.0"
-   enabled="1">
-  <parameter name="allowMultipleConnections" value="false" />
-  <parameter name="avalonSpec" value="2.0" />
-  <parameter name="clkFreq" value="90000000" />
-  <parameter name="hubInstanceID" value="0" />
-  <parameter name="readBufferDepth" value="256" />
-  <parameter name="readIRQThreshold" value="8" />
-  <parameter name="simInputCharacterStream" value="" />
-  <parameter name="simInteractiveOptions">NO_INTERACTIVE_WINDOWS</parameter>
-  <parameter name="useRegistersForReadBuffer" value="false" />
-  <parameter name="useRegistersForWriteBuffer" value="false" />
-  <parameter name="useRelativePathForSimFile" value="false" />
-  <parameter name="writeBufferDepth" value="256" />
-  <parameter name="writeIRQThreshold" value="8" />
+ <module name="floppy0" kind="floppy" version="1.0" enabled="1">
+  <parameter name="BufAddress" value="2048" />
  </module>
+ <module name="hdd0" kind="hdd" version="1.0" enabled="1">
+  <parameter name="BufAddress" value="0" />
+ </module>
+ <module name="hdd1" kind="hdd" version="1.0" enabled="1">
+  <parameter name="BufAddress" value="4096" />
+ </module>
+ <module name="hddext_0x370" kind="hddext" version="1.0" enabled="1" />
  <module
    name="mm_bridge"
    kind="altera_avalon_mm_bridge"
@@ -582,7 +606,7 @@
  <module name="pc_bus" kind="pc_bus" version="1.0" enabled="1" />
  <module name="pc_dma" kind="pc_dma" version="1.0" enabled="1" />
  <module name="pic" kind="pic" version="1.0" enabled="1">
-  <parameter name="AUTO_INTERRUPT_RECEIVER_INTERRUPTS_USED" value="20835" />
+  <parameter name="AUTO_INTERRUPT_RECEIVER_INTERRUPTS_USED" value="53603" />
  </module>
  <module name="pit" kind="pit" version="1.0" enabled="1" />
  <module name="pll_0" kind="altera_pll" version="17.0" enabled="1">
@@ -842,15 +866,6 @@
   <parameter name="NUM_CLOCK_OUTPUTS" value="1" />
  </module>
  <module name="vga" kind="vga" version="1.0" enabled="1" />
- <connection
-   kind="avalon"
-   version="17.0"
-   start="ao486.avalon_io"
-   end="jtag_uart.avalon_jtag_slave">
-  <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x8888" />
-  <parameter name="defaultConnection" value="false" />
- </connection>
  <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="sound.fm">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0388" />
@@ -871,12 +886,12 @@
   <parameter name="baseAddress" value="0x0040" />
   <parameter name="defaultConnection" value="false" />
  </connection>
- <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="hdd.io">
+ <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="hdd0.io">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x01f0" />
   <parameter name="defaultConnection" value="false" />
  </connection>
- <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="floppy.io">
+ <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="floppy0.io">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x03f0" />
   <parameter name="defaultConnection" value="false" />
@@ -884,6 +899,20 @@
  <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="ps2.io">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0060" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="hdd1.io">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0170" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="17.0"
+   start="ao486.avalon_io"
+   end="hddext_0x370.io">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0370" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="vga.io_b">
@@ -946,7 +975,7 @@
  <connection
    kind="avalon"
    version="17.0"
-   start="floppy.avalon_master"
+   start="floppy0.avalon_master"
    end="driver_sd.avalon_slave_0">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0a00" />
@@ -955,7 +984,16 @@
  <connection
    kind="avalon"
    version="17.0"
-   start="hdd.avalon_master"
+   start="hdd0.avalon_master"
+   end="driver_sd.avalon_slave_0">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0a00" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="17.0"
+   start="hdd1.avalon_master"
    end="driver_sd.avalon_slave_0">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0a00" />
@@ -1001,15 +1039,6 @@
    kind="avalon"
    version="17.0"
    start="mm_bridge.m0"
-   end="jtag_uart.avalon_jtag_slave">
-  <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x8888" />
-  <parameter name="defaultConnection" value="false" />
- </connection>
- <connection
-   kind="avalon"
-   version="17.0"
-   start="mm_bridge.m0"
    end="driver_sd.avalon_slave_0">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0a00" />
@@ -1020,12 +1049,12 @@
   <parameter name="baseAddress" value="0x88a0" />
   <parameter name="defaultConnection" value="false" />
  </connection>
- <connection kind="avalon" version="17.0" start="mm_bridge.m0" end="floppy.mgmt">
+ <connection kind="avalon" version="17.0" start="mm_bridge.m0" end="floppy0.mgmt">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x8800" />
   <parameter name="defaultConnection" value="false" />
  </connection>
- <connection kind="avalon" version="17.0" start="mm_bridge.m0" end="hdd.mgmt">
+ <connection kind="avalon" version="17.0" start="mm_bridge.m0" end="hdd0.mgmt">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x8840" />
   <parameter name="defaultConnection" value="false" />
@@ -1045,18 +1074,28 @@
   <parameter name="baseAddress" value="0x8880" />
   <parameter name="defaultConnection" value="false" />
  </connection>
+ <connection kind="avalon" version="17.0" start="mm_bridge.m0" end="hdd1.mgmt">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x9840" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
  <connection
    kind="avalon"
    version="17.0"
    start="mm_bridge.m0"
-   end="floppy.sd_slave">
+   end="floppy0.sd_slave">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0800" />
   <parameter name="defaultConnection" value="false" />
  </connection>
- <connection kind="avalon" version="17.0" start="mm_bridge.m0" end="hdd.sd_slave">
+ <connection kind="avalon" version="17.0" start="mm_bridge.m0" end="hdd0.sd_slave">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection kind="avalon" version="17.0" start="mm_bridge.m0" end="hdd1.sd_slave">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x1000" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
@@ -1068,7 +1107,6 @@
   <parameter name="baseAddress" value="0x08000000" />
   <parameter name="defaultConnection" value="false" />
  </connection>
- <connection kind="clock" version="17.0" start="pll_0.outclk0" end="jtag_uart.clk" />
  <connection kind="clock" version="17.0" start="pll_0.outclk0" end="mm_bridge.clk" />
  <connection kind="clock" version="17.0" start="pll_0.outclk0" end="reset_sys.clk" />
  <connection kind="clock" version="17.0" start="pll_0.outclk0" end="pic.clock" />
@@ -1078,8 +1116,8 @@
    version="17.0"
    start="pll_0.outclk0"
    end="driver_sd.clock" />
- <connection kind="clock" version="17.0" start="pll_0.outclk0" end="floppy.clock" />
- <connection kind="clock" version="17.0" start="pll_0.outclk0" end="hdd.clock" />
+ <connection kind="clock" version="17.0" start="pll_0.outclk0" end="floppy0.clock" />
+ <connection kind="clock" version="17.0" start="pll_0.outclk0" end="hdd0.clock" />
  <connection kind="clock" version="17.0" start="pll_0.outclk0" end="pc_bus.clock" />
  <connection kind="clock" version="17.0" start="pll_0.outclk0" end="pc_dma.clock" />
  <connection kind="clock" version="17.0" start="pll_0.outclk0" end="pit.clock" />
@@ -1091,6 +1129,12 @@
    version="17.0"
    start="pll_0.outclk0"
    end="address_span_extender.clock" />
+ <connection kind="clock" version="17.0" start="pll_0.outclk0" end="hdd1.clock" />
+ <connection
+   kind="clock"
+   version="17.0"
+   start="pll_0.outclk0"
+   end="hddext_0x370.clock" />
  <connection kind="clock" version="17.0" start="pll_0.outclk0" end="vga.clock_sys" />
  <connection
    kind="clock"
@@ -1107,7 +1151,7 @@
    kind="conduit"
    version="17.0"
    start="pc_dma.conduit_dma_floppy"
-   end="floppy.conduit_dma_floppy">
+   end="floppy0.conduit_dma_floppy">
   <parameter name="endPort" value="" />
   <parameter name="endPortLSB" value="0" />
   <parameter name="startPort" value="" />
@@ -1128,8 +1172,19 @@
  <connection
    kind="conduit"
    version="17.0"
-   start="hdd.conduit_ide_3f6"
-   end="floppy.conduit_ide_3f6">
+   start="hdd0.conduit_ide_3f6"
+   end="floppy0.conduit_ide_3f6">
+  <parameter name="endPort" value="" />
+  <parameter name="endPortLSB" value="0" />
+  <parameter name="startPort" value="" />
+  <parameter name="startPortLSB" value="0" />
+  <parameter name="width" value="0" />
+ </connection>
+ <connection
+   kind="conduit"
+   version="17.0"
+   start="hdd1.conduit_ide_3f6"
+   end="hddext_0x370.conduit_ide_3f6">
   <parameter name="endPort" value="" />
   <parameter name="endPortLSB" value="0" />
   <parameter name="startPort" value="" />
@@ -1183,15 +1238,22 @@
    kind="interrupt"
    version="17.0"
    start="pic.interrupt_receiver"
-   end="hdd.interrupt_sender">
+   end="hdd0.interrupt_sender">
   <parameter name="irqNumber" value="14" />
  </connection>
  <connection
    kind="interrupt"
    version="17.0"
    start="pic.interrupt_receiver"
-   end="floppy.interrupt_sender">
+   end="floppy0.interrupt_sender">
   <parameter name="irqNumber" value="6" />
+ </connection>
+ <connection
+   kind="interrupt"
+   version="17.0"
+   start="pic.interrupt_receiver"
+   end="hdd1.interrupt_sender">
+  <parameter name="irqNumber" value="15" />
  </connection>
  <connection
    kind="interrupt"
@@ -1212,11 +1274,6 @@
    version="17.0"
    start="reset_cpu.out_reset"
    end="ao486.reset_sink" />
- <connection
-   kind="reset"
-   version="17.0"
-   start="reset_sys.reset_out"
-   end="jtag_uart.reset" />
  <connection
    kind="reset"
    version="17.0"
@@ -1256,12 +1313,12 @@
    kind="reset"
    version="17.0"
    start="reset_sys.reset_out"
-   end="hdd.reset_sink" />
+   end="hdd0.reset_sink" />
  <connection
    kind="reset"
    version="17.0"
    start="reset_sys.reset_out"
-   end="floppy.reset_sink" />
+   end="floppy0.reset_sink" />
  <connection
    kind="reset"
    version="17.0"
@@ -1282,6 +1339,16 @@
    version="17.0"
    start="reset_sys.reset_out"
    end="ps2.reset_sink" />
+ <connection
+   kind="reset"
+   version="17.0"
+   start="reset_sys.reset_out"
+   end="hdd1.reset_sink" />
+ <connection
+   kind="reset"
+   version="17.0"
+   start="reset_sys.reset_out"
+   end="hddext_0x370.reset_sink" />
  <interconnectRequirement for="$system" name="qsys_mm.clockCrossingAdapter" value="HANDSHAKE" />
  <interconnectRequirement for="$system" name="qsys_mm.maxAdditionalLatency" value="0" />
 </system>

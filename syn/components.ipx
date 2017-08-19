@@ -42,6 +42,18 @@
   <tag2 key="COMPONENT_HIDE_FROM_SOPC" value="true" />
  </component>
  <component
+   name="hddext"
+   file="./../rtl/soc/hdd/hddext_hw.tcl"
+   displayName="hddext"
+   version="1.0"
+   description=""
+   tags="AUTHORSHIP= /// CONNECTION_TYPES=avalon,clock,conduit,interrupt,reset /// INTERNAL_COMPONENT=false"
+   categories="ao486"
+   factory="TclModuleFactory">
+  <tag2 key="COMPONENT_EDITABLE" value="true" />
+  <tag2 key="COMPONENT_HIDE_FROM_SOPC" value="true" />
+ </component>
+ <component
    name="pc_bus"
    file="./../rtl/soc/pc_bus/pc_bus_hw.tcl"
    displayName="pc_bus"

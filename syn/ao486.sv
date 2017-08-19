@@ -94,17 +94,20 @@ localparam CONF_STR =
 	"AO486;;",
 	"-;",
 	"S0,IMG,Mount Floppy;",
-	"S2,VHD,Mount HDD;",
-	"OX2,Boot order,FDD/HDD,HDD/FDD;",
+	"-;",
+	"S2,VHD,Mount Primary HDD;",
+	"S3,VHD,Mount Secondary HDD;",
 	"-;",
 	"O1,Aspect ratio,4:3,16:9;",
 	"O3,FM mode,OPL2,OPL3;",
 	"-;",
+	"OX2,Boot order,FDD/HDD,HDD/FDD;",
 	"T0,Reset and apply HDD;",
 	"-;",
 	"-;",
 	"-;",
-	"V,v0.85.",`BUILD_DATE
+	"-;",
+	"V,v0.86.",`BUILD_DATE
 };
 
 

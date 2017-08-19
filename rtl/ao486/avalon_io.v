@@ -87,14 +87,15 @@ wire address_out_of_bounds =
     (avalon_io_address >= 16'h0074 && avalon_io_address < 16'h0080) ||
     (avalon_io_address == 16'h00A0 && avalon_io_byteenable[1:0] == 2'b00) ||
     (avalon_io_address >= 16'h00A4 && avalon_io_address < 16'h00C0) ||
-    (avalon_io_address >= 16'h00E0 && avalon_io_address < 16'h01F0) ||
+    (avalon_io_address >= 16'h00E0 && avalon_io_address < 16'h0170) ||
+    (avalon_io_address >= 16'h0178 && avalon_io_address < 16'h01F0) ||
     (avalon_io_address >= 16'h01F8 && avalon_io_address < 16'h0220) ||
-    (avalon_io_address >= 16'h0230 && avalon_io_address < 16'h0388) ||
+    (avalon_io_address >= 16'h0230 && avalon_io_address < 16'h0370) ||
+    (avalon_io_address >= 16'h0378 && avalon_io_address < 16'h0388) ||
     (avalon_io_address >= 16'h038C && avalon_io_address < 16'h03B0) ||
     (avalon_io_address >= 16'h03E0 && avalon_io_address < 16'h03F0) ||
-    (avalon_io_address >= 16'h03F8 && avalon_io_address < 16'h8888) ||
-    (avalon_io_address >= 16'h8890);
-    
+    (avalon_io_address >= 16'h03F8 );
+
 wire [31:0] avalon_io_readdata_final =
     (address_out_of_bounds)?            32'hFFFFFFFF :
     (avalon_io_address == 16'h0020)?    { 16'hFFFF, avalon_io_readdata[15:0] } :

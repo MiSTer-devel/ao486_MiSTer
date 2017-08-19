@@ -236,11 +236,11 @@ set_interface_property conduit_dma_floppy PORT_NAME_MAP ""
 set_interface_property conduit_dma_floppy CMSIS_SVD_VARIABLES ""
 set_interface_property conduit_dma_floppy SVD_ADDRESS_GROUP ""
 
-add_interface_port conduit_dma_floppy dma_floppy_req export Input 1
-add_interface_port conduit_dma_floppy dma_floppy_ack export Output 1
-add_interface_port conduit_dma_floppy dma_floppy_terminal export Output 1
-add_interface_port conduit_dma_floppy dma_floppy_readdata export Output 8
-add_interface_port conduit_dma_floppy dma_floppy_writedata export Input 8
+add_interface_port conduit_dma_floppy dma_floppy_req dma_floppy_req Input 1
+add_interface_port conduit_dma_floppy dma_floppy_ack dma_floppy_ack Output 1
+add_interface_port conduit_dma_floppy dma_floppy_terminal dma_floppy_terminal Output 1
+add_interface_port conduit_dma_floppy dma_floppy_readdata dma_floppy_readdata Output 8
+add_interface_port conduit_dma_floppy dma_floppy_writedata dma_floppy_writedata Input 8
 
 
 # 

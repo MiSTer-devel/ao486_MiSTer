@@ -24,7 +24,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-module hdd(
+module hdd #(
+	parameter BufAddress
+)(
     input               clk,
     input               rst_n,
     
@@ -75,10 +77,6 @@ module hdd(
     input               mgmt_write,
     input       [31:0]  mgmt_writedata
 );
-
-//------------------------------------------------------------------------------
-
-`define SD_AVALON_BASE_ADDRESS_FOR_HDD 32'h00000000
 
 //------------------------------------------------------------------------------
 
@@ -824,8 +822,8 @@ assign sd_master_read = state == S_SD_MUTEX && sd_mutex_wait == 4'd9 && ~(sd_rea
 assign sd_master_write = state == S_SD_AVALON_BASE || state == S_SD_ADDRESS || state == S_SD_BLOCK_COUNT || state == S_SD_CONTROL;
 
 assign sd_master_writedata =
-    (state == S_SD_AVALON_BASE)?                        `SD_AVALON_BASE_ADDRESS_FOR_HDD :
-    (state == S_SD_ADDRESS)?                            sd_sector :
+    (state == S_SD_AVALON_BASE)?                        BufAddress                      :
+    (state == S_SD_ADDRESS)?                            sd_sector                       :
     (state == S_SD_BLOCK_COUNT)?                        { 27'd0, logical_sector_count } :
     (state == S_SD_CONTROL && cmd_read_in_progress)?    32'd2 : //CONTROL_READ
     (state == S_SD_CONTROL && cmd_write_in_progress)?   32'd3 : //CONTROL_WRITE

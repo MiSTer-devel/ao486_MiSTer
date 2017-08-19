@@ -45,6 +45,14 @@ add_fileset_file hdd.v VERILOG PATH hdd.v TOP_LEVEL_FILE
 # 
 # parameters
 # 
+add_parameter BufAddress STD_LOGIC_VECTOR 0 ""
+set_parameter_property BufAddress DISPLAY_NAME "Buffer Address"
+set_parameter_property BufAddress DESCRIPTION ""
+set_parameter_property BufAddress HDL_PARAMETER true
+set_parameter_property BufAddress DEFAULT_VALUE 0
+set_parameter_property BufAddress WIDTH 32
+set_parameter_property BufAddress TYPE STD_LOGIC_VECTOR
+set_parameter_property BufAddress UNITS None
 
 
 # 
@@ -251,8 +259,8 @@ set_interface_property conduit_ide_3f6 PORT_NAME_MAP ""
 set_interface_property conduit_ide_3f6 CMSIS_SVD_VARIABLES ""
 set_interface_property conduit_ide_3f6 SVD_ADDRESS_GROUP ""
 
-add_interface_port conduit_ide_3f6 ide_3f6_read export Input 1
-add_interface_port conduit_ide_3f6 ide_3f6_readdata export Output 8
-add_interface_port conduit_ide_3f6 ide_3f6_write export Input 1
-add_interface_port conduit_ide_3f6 ide_3f6_writedata export Input 8
+add_interface_port conduit_ide_3f6 ide_3f6_read ide_3f6_read Input 1
+add_interface_port conduit_ide_3f6 ide_3f6_readdata ide_3f6_readdata Output 8
+add_interface_port conduit_ide_3f6 ide_3f6_write ide_3f6_write Input 1
+add_interface_port conduit_ide_3f6 ide_3f6_writedata ide_3f6_writedata Input 8
 
