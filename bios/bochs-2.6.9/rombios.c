@@ -2825,8 +2825,8 @@ void ata_detect( )
 
       switch (type) {
         case ATA_TYPE_ATA:
-		  if(sizeinmb)
-		  {
+          if(sizeinmb)
+          {
              printf("ata%d %s: ",channel,slave?" slave":"master");
              i=0;
              while(c=read_byte_SS(model+i++))
@@ -2835,7 +2835,7 @@ void ata_detect( )
                printf(" ATA-%d Hard-Disk (%4u MBytes)\n", version, (Bit16u)sizeinmb);
              else
                printf(" ATA-%d Hard-Disk (%4u GBytes)\n", version, (Bit16u)(sizeinmb>>10));
-		  }
+          }
           break;
         case ATA_TYPE_ATAPI:
           printf("ata%d %s: ",channel,slave?" slave":"master");
@@ -6459,7 +6459,7 @@ int13_harddisk(EHAX, DS, ES, DI, SI, BP, ELDX, BX, DX, CX, AX, IP, CS, FLAGS)
   Bit16u EHAX, DS, ES, DI, SI, BP, ELDX, BX, DX, CX, AX, IP, CS, FLAGS;
 {
   Bit8u    drive, num_sectors, sector, head, status, mod;
-  Bit8u    drive_map, tmp_map;
+  Bit8u    drive_map;
   Bit8u    n_drives;
   Bit16u   cyl_mod, ax;
   Bit16u   max_cylinder, cylinder, total_sectors;
@@ -6481,25 +6481,24 @@ int13_harddisk(EHAX, DS, ES, DI, SI, BP, ELDX, BX, DX, CX, AX, IP, CS, FLAGS)
 
   /* at this point, DL is >= 0x80 to be passed from the floppy int13h
      handler code */
-  /* check how many disks first (cmos reg 0x12), return an error if
-     drive not present */
-  drive_map = inb_cmos(0x12);
-  drive_map = (((drive_map & 0xf0)==0) ? 0 : 1) |
-              (((drive_map & 0x0f)==0) ? 0 : 4);
-  
-  n_drives = 0;
-  tmp_map = 1;
-  while(tmp_map)
-  {
-     if(drive_map & tmp_map) n_drives++;
-	 tmp_map <<= 1;
-  }
+  error = 0;
+  drive = GET_ELDL();
+  if(drive<0x80 || drive>=(0x80+BX_MAX_ATA_DEVICES)) error = 1;
 
-  if (!(drive_map & (1<<(GET_ELDL()&0x7f)))) { /* allow 0, 1, or 2 disks */
+  drive &= 0x7F;
+  if(!error && read_byte_DS(&EbdaData->ata.devices[drive].type) != ATA_TYPE_ATA) error = 1;
+
+  if (error) { /* allow 0, 1, or 2 disks */
     SET_AH(0x01);
     SET_DISK_RET_STATUS(0x01);
     SET_CF(); /* error occurred */
     return;
+  }
+  
+  n_drives = 0;
+  for(drive = 0; drive < BX_MAX_ATA_DEVICES; drive++)
+  {
+     if(read_byte_DS(&EbdaData->ata.devices[drive].type) == ATA_TYPE_ATA) n_drives++;
   }
 
   switch (GET_AH()) {
@@ -6995,35 +6994,20 @@ get_hd_geometry(drive, hd_cylinders, hd_heads, hd_sectors)
   Bit8u hd_type;
   Bit16u cylinders;
   Bit8u iobase;
+  Bit8u device;
+  
+  *hd_cylinders = 0;
+  *hd_heads     = 0;
+  *hd_sectors   = 0;
+  
+  if(drive<0x80 || drive>=(0x80+BX_MAX_ATA_DEVICES)) return;
+  
+  device = drive-0x80;
+  if(read_byte_DS(&EbdaData->ata.devices[device].type) != ATA_TYPE_ATA) return;
 
-  if (drive == 0x80) {
-    hd_type = inb_cmos(0x12) & 0xf0;
-    if (hd_type != 0xf0)
-      BX_INFO(panic_msg_reg12h,0);
-    hd_type = inb_cmos(0x19); // HD0: extended type
-    if (hd_type != 47)
-      BX_INFO(panic_msg_reg19h,0,0x19);
-    iobase = 0x1b;
-  } else {
-    hd_type = inb_cmos(0x12) & 0x0f;
-    if (hd_type != 0x0f)
-      BX_INFO(panic_msg_reg12h,1);
-    hd_type = inb_cmos(0x1a); // HD1: extended type
-    if (hd_type != 47)
-      BX_INFO(panic_msg_reg19h,0,0x1a);
-    iobase = 0x24;
-  }
-
-  // cylinders
-  LOBYTE(cylinders) = inb_cmos(iobase);
-  HIBYTE(cylinders) = inb_cmos(iobase+1);
-  write_word_SS(hd_cylinders, cylinders);
-
-  // heads
-  write_byte_SS(hd_heads, inb_cmos(iobase+2));
-
-  // sectors per track
-  write_byte_SS(hd_sectors, inb_cmos(iobase+8));
+  *hd_cylinders = read_word_DS(&EbdaData->ata.devices[device].pchs.cylinders);
+  *hd_heads     = read_word_DS(&EbdaData->ata.devices[device].pchs.heads);
+  *hd_sectors   = read_word_DS(&EbdaData->ata.devices[device].pchs.spt);
 }
 
 #endif //else BX_USE_ATADRV
