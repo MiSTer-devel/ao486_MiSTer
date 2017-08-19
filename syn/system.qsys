@@ -489,6 +489,22 @@
          type = "String";
       }
    }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element vga
    {
       datum _sortIndex
@@ -1147,6 +1163,17 @@
    version="17.0"
    start="pll_0.outclk2"
    end="sound.clock_opl" />
+ <connection
+   kind="conduit"
+   version="17.0"
+   start="ps2.conduit_a20"
+   end="ao486.conduit_a20">
+  <parameter name="endPort" value="" />
+  <parameter name="endPortLSB" value="0" />
+  <parameter name="startPort" value="" />
+  <parameter name="startPortLSB" value="0" />
+  <parameter name="width" value="0" />
+ </connection>
  <connection
    kind="conduit"
    version="17.0"

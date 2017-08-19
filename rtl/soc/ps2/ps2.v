@@ -55,6 +55,8 @@ module ps2(
     output reg              output_a20_enable,
     output reg              output_reset_n,
     
+    output                  a20_enable,
+
     //ps2 keyboard
     input                   ps2_kbclk,
     input                   ps2_kbdat,
@@ -114,6 +116,8 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 //------------------------------------------------------------------------------ output
+
+assign a20_enable = output_a20_enable;
 
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                                   output_a20_enable <= 1'b1;

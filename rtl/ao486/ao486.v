@@ -30,6 +30,8 @@ module ao486 (
     input               clk,
     input               rst_n,
     
+	input               a20_enable,
+
     //--------------------------------------------------------------------------
     input               interrupt_do,
     input   [7:0]       interrupt_vector,
@@ -149,6 +151,9 @@ wire        exc_pf_read;
 wire        exc_pf_write;
 wire        exc_pf_code;
 wire        exc_pf_check;
+
+wire [31:0] avm_address_pre;
+assign      avm_address = {avm_address_pre[31:21], avm_address_pre[20] & a20_enable, avm_address_pre[19:0]};
 
 exception exception_inst(
     .clk                (clk),
@@ -546,7 +551,7 @@ memory memory_inst(
     .wr_reset                      (wr_reset),                      //input
     
     // avalon master
-    .avm_address                   (avm_address),                   //output [31:0]
+    .avm_address                   (avm_address_pre),                   //output [31:0]
     .avm_writedata                 (avm_writedata),                 //output [31:0]
     .avm_byteenable                (avm_byteenable),                //output [3:0]
     .avm_burstcount                (avm_burstcount),                //output [2:0]
