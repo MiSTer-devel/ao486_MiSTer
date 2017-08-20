@@ -2828,13 +2828,15 @@ void ata_detect( )
           if(sizeinmb)
           {
              printf("ata%d %s: ",channel,slave?" slave":"master");
+             if (sizeinmb < (1UL<<16))
+               printf("ATA-%d HDD (%4u MB) ", version, (Bit16u)sizeinmb);
+             else
+               printf("ATA-%d HDD (%4u GB) ", version, (Bit16u)(sizeinmb>>10));
+
              i=0;
              while(c=read_byte_SS(model+i++))
                printf("%c",c);
-             if (sizeinmb < (1UL<<16))
-               printf(" ATA-%d Hard-Disk (%4u MBytes)\n", version, (Bit16u)sizeinmb);
-             else
-               printf(" ATA-%d Hard-Disk (%4u GBytes)\n", version, (Bit16u)(sizeinmb>>10));
+             printf("\n");
           }
           break;
         case ATA_TYPE_ATAPI:
