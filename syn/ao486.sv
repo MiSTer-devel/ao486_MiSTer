@@ -103,8 +103,8 @@ localparam CONF_STR =
 	"-;",
 	"OX2,Boot order,FDD/HDD,HDD/FDD;",
 	"T0,Reset and apply HDD;",
-	"-;",
-	"V,v0.86.",`BUILD_DATE
+	"V,v0.86.",`BUILD_DATE,
+	";+,...;"
 };
 
 

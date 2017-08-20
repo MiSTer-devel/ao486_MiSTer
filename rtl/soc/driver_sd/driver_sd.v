@@ -27,7 +27,7 @@ module driver_sd
 reg  [31:0]  sd_address;
 reg  [31:0]  avalon_address_base;
 
-assign op_device = !avalon_address_base;
+assign op_device = !avalon_address_base[11];
 
 always @(*) begin
 	case(avs_address)
