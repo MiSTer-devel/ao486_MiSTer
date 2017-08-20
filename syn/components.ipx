@@ -150,18 +150,6 @@
   <tag2 key="COMPONENT_HIDE_FROM_SOPC" value="true" />
  </component>
  <component
-   name="driver_sound"
-   file="./../rtl/soc/driver_sound/driver_sound_hw.tcl"
-   displayName="driver_sound"
-   version="1.0"
-   description=""
-   tags="AUTHORSHIP= /// CONNECTION_TYPES=avalon,clock,conduit,reset /// INTERNAL_COMPONENT=false"
-   categories="ao486"
-   factory="TclModuleFactory">
-  <tag2 key="COMPONENT_EDITABLE" value="true" />
-  <tag2 key="COMPONENT_HIDE_FROM_SOPC" value="true" />
- </component>
- <component
    name="vga"
    file="./../rtl/soc/vga/vga_hw.tcl"
    displayName="vga"
