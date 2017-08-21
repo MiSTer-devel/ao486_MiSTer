@@ -57,6 +57,9 @@ module vga
     output reg  [7:0]   mem_readdata,
     input               mem_write,
     input       [7:0]   mem_writedata,
+	 
+	 //interrupt (IRQ2)
+    output              irq,
 
     //vga
     output              vga_clock,
@@ -120,33 +123,31 @@ reg seq_not_impl_shift_load_4;
 
 //------------------------------------------------------------------------------
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) seq_async_reset_n <= 1'b1; else if(seq_io_write && seq_io_index == 3'd0) seq_async_reset_n <= io_writedata[0]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) seq_sync_reset_n  <= 1'b1; else if(seq_io_write && seq_io_index == 3'd0) seq_sync_reset_n  <= io_writedata[1]; end
+always @(posedge clk_sys) begin if(seq_io_write && seq_io_index == 3'd0) seq_async_reset_n <= io_writedata[0]; end
+always @(posedge clk_sys) begin if(seq_io_write && seq_io_index == 3'd0) seq_sync_reset_n  <= io_writedata[1]; end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) seq_8dot_char        <= 1'b1; else if(seq_io_write && seq_io_index == 3'd1) seq_8dot_char        <= io_writedata[0]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) seq_dotclock_divided <= 1'b0; else if(seq_io_write && seq_io_index == 3'd1) seq_dotclock_divided <= io_writedata[3]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) seq_screen_disable   <= 1'b0; else if(seq_io_write && seq_io_index == 3'd1) seq_screen_disable   <= io_writedata[5]; end
+always @(posedge clk_sys) begin if(seq_io_write && seq_io_index == 3'd1) seq_8dot_char        <= io_writedata[0]; end
+always @(posedge clk_sys) begin if(seq_io_write && seq_io_index == 3'd1) seq_dotclock_divided <= io_writedata[3]; end
+always @(posedge clk_sys) begin if(seq_io_write && seq_io_index == 3'd1) seq_screen_disable   <= io_writedata[5]; end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) seq_map_write_enable <= 4'hF; else if(seq_io_write && seq_io_index == 3'd2) seq_map_write_enable <= io_writedata[3:0]; end
+always @(posedge clk_sys) begin if(seq_io_write && seq_io_index == 3'd2) seq_map_write_enable <= io_writedata[3:0]; end
 
-always @(posedge clk_sys or negedge rst_n) begin
-    if(rst_n == 1'b0)                               seq_char_map_a <= 3'd0;
-    else if(seq_io_write && seq_io_index == 3'd3)   seq_char_map_a <= { io_writedata[5], io_writedata[3:2] };
+always @(posedge clk_sys) begin
+    if(seq_io_write && seq_io_index == 3'd3)   seq_char_map_a <= { io_writedata[5], io_writedata[3:2] };
     else if(seq_sync_reset_n || seq_async_reset_n)  seq_char_map_a <= 3'd0;
 end
 
-always @(posedge clk_sys or negedge rst_n) begin
-    if(rst_n == 1'b0)                               seq_char_map_b <= 3'd0;
-    else if(seq_io_write && seq_io_index == 3'd3)   seq_char_map_b <= { io_writedata[4], io_writedata[1:0] };
+always @(posedge clk_sys) begin
+    if(seq_io_write && seq_io_index == 3'd3)   seq_char_map_b <= { io_writedata[4], io_writedata[1:0] };
     else if(seq_sync_reset_n || seq_async_reset_n)  seq_char_map_b <= 3'd0;
 end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) seq_access_256kb             <= 1'b1; else if(seq_io_write && seq_io_index == 3'd4) seq_access_256kb             <= io_writedata[1]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) seq_access_odd_even_disabled <= 1'b1; else if(seq_io_write && seq_io_index == 3'd4) seq_access_odd_even_disabled <= io_writedata[2]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) seq_access_chain4            <= 1'b1; else if(seq_io_write && seq_io_index == 3'd4) seq_access_chain4            <= io_writedata[3]; end
+always @(posedge clk_sys) begin if(seq_io_write && seq_io_index == 3'd4) seq_access_256kb             <= io_writedata[1]; end
+always @(posedge clk_sys) begin if(seq_io_write && seq_io_index == 3'd4) seq_access_odd_even_disabled <= io_writedata[2]; end
+always @(posedge clk_sys) begin if(seq_io_write && seq_io_index == 3'd4) seq_access_chain4            <= io_writedata[3]; end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) seq_not_impl_shift_load_2 <= 1'b0; else if(seq_io_write && seq_io_index == 3'd1) seq_not_impl_shift_load_2 <= io_writedata[2]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) seq_not_impl_shift_load_4 <= 1'b0; else if(seq_io_write && seq_io_index == 3'd1) seq_not_impl_shift_load_4 <= io_writedata[4]; end
+always @(posedge clk_sys) begin if(seq_io_write && seq_io_index == 3'd1) seq_not_impl_shift_load_2 <= io_writedata[2]; end
+always @(posedge clk_sys) begin if(seq_io_write && seq_io_index == 3'd1) seq_not_impl_shift_load_4 <= io_writedata[4]; end
 
 //------------------------------------------------------------------------------
 
@@ -208,108 +209,122 @@ reg         crtc_protect;
 
 //not implemented crtc regs:
 reg [1:0]   crtc_not_impl_display_enable_skew;
-reg         crtc_not_impl_clear_vert_int;
-reg         crtc_not_impl_enable_vert_int;
 reg         crtc_not_impl_5_refresh_cycles;
 reg         crtc_not_impl_scan_line_clk_div_2;
 reg         crtc_not_impl_address_clk_div_2;
 reg         crtc_not_impl_address_clk_div_4;
 
+
+//------------------------------------------------------------------------------ interrupt
+reg         crtc_clear_vert_int;
+reg         crtc_enable_vert_int;
+
+reg         interrupt = 0;
+always @(posedge clk_sys or negedge rst_n) begin
+	reg old_r1, old_r2;
+	if(rst_n == 1'b0) interrupt <=0;
+	else begin
+		old_r1 <= dot_memory_load_vertical_retrace_start;
+		old_r2 <= old_r1;
+		if(~crtc_enable_vert_int) begin
+			if(~old_r2 & old_r1) interrupt <=1;
+			if(~crtc_clear_vert_int) interrupt <=0;
+		end
+		else begin
+			interrupt <=0;
+		end
+	end
+end
+
+assign irq = interrupt;
+
 //------------------------------------------------------------------------------
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_horizontal_total          <= 8'd95; else if(crtc_io_write && crtc_io_index == 5'h00) crtc_horizontal_total          <= io_writedata[7:0]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_horizontal_display_size   <= 8'd79; else if(crtc_io_write && crtc_io_index == 5'h01) crtc_horizontal_display_size   <= io_writedata[7:0]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_horizontal_blanking_start <= 8'd80; else if(crtc_io_write && crtc_io_index == 5'h02) crtc_horizontal_blanking_start <= io_writedata[7:0]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h00) crtc_horizontal_total          <= io_writedata[7:0]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h01) crtc_horizontal_display_size   <= io_writedata[7:0]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h02) crtc_horizontal_blanking_start <= io_writedata[7:0]; end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_not_impl_display_enable_skew <= 2'd0; else if(crtc_io_write && crtc_io_index == 5'h03) crtc_not_impl_display_enable_skew <= io_writedata[6:5]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h03) crtc_not_impl_display_enable_skew <= io_writedata[6:5]; end
 
-always @(posedge clk_sys or negedge rst_n) begin
-    if(rst_n == 1'b0)                                   crtc_horizontal_blanking_end <= 6'd34;
-    else if(crtc_io_write && crtc_io_index == 5'h03)    crtc_horizontal_blanking_end <= { crtc_horizontal_blanking_end[5], io_writedata[4:0] };
+always @(posedge clk_sys) begin
+    if(crtc_io_write && crtc_io_index == 5'h03)    crtc_horizontal_blanking_end <= { crtc_horizontal_blanking_end[5], io_writedata[4:0] };
     else if(crtc_io_write && crtc_io_index == 5'h05)    crtc_horizontal_blanking_end <= { io_writedata[7], crtc_horizontal_blanking_end[4:0] };
 end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_horizontal_retrace_start <= 8'd84; else if(crtc_io_write && crtc_io_index == 5'h04) crtc_horizontal_retrace_start <= io_writedata[7:0]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h04) crtc_horizontal_retrace_start <= io_writedata[7:0]; end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_horizontal_retrace_skew <= 2'd0; else if(crtc_io_write && crtc_io_index == 5'h05) crtc_horizontal_retrace_skew <= io_writedata[6:5]; end        
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_horizontal_retrace_end  <= 5'd0; else if(crtc_io_write && crtc_io_index == 5'h05) crtc_horizontal_retrace_end  <= io_writedata[4:0]; end         
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h05) crtc_horizontal_retrace_skew <= io_writedata[6:5]; end        
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h05) crtc_horizontal_retrace_end  <= io_writedata[4:0]; end         
         
-always @(posedge clk_sys or negedge rst_n) begin
-    if(rst_n == 1'b0)                                   crtc_vertical_total <= 10'd447;
-    else if(crtc_io_write && crtc_io_index == 5'h06)    crtc_vertical_total <= { crtc_vertical_total[9:8], io_writedata[7:0] };
+always @(posedge clk_sys) begin
+    if(crtc_io_write && crtc_io_index == 5'h06)    crtc_vertical_total <= { crtc_vertical_total[9:8], io_writedata[7:0] };
     else if(crtc_io_write && crtc_io_index == 5'h07)    crtc_vertical_total <= { io_writedata[5], io_writedata[0], crtc_vertical_total[7:0] };
 end        
         
-always @(posedge clk_sys or negedge rst_n) begin
-    if(rst_n == 1'b0)                                   crtc_vertical_retrace_start <= 10'd412;
-    else if(crtc_io_write && crtc_io_index == 5'h10)    crtc_vertical_retrace_start <= { crtc_vertical_retrace_start[9:8], io_writedata[7:0] };
+always @(posedge clk_sys) begin
+    if(crtc_io_write && crtc_io_index == 5'h10)    crtc_vertical_retrace_start <= { crtc_vertical_retrace_start[9:8], io_writedata[7:0] };
     else if(crtc_io_write && crtc_io_index == 5'h07)    crtc_vertical_retrace_start <= { io_writedata[7], io_writedata[2], crtc_vertical_retrace_start[7:0] };
 end
 
-always @(posedge clk_sys or negedge rst_n) begin
-    if(rst_n == 1'b0)                                   crtc_vertical_display_size <= 10'd399;
-    else if(crtc_io_write && crtc_io_index == 5'h12)    crtc_vertical_display_size <= { crtc_vertical_display_size[9:8], io_writedata[7:0] };
+always @(posedge clk_sys) begin
+    if(crtc_io_write && crtc_io_index == 5'h12)    crtc_vertical_display_size <= { crtc_vertical_display_size[9:8], io_writedata[7:0] };
     else if(crtc_io_write && crtc_io_index == 5'h07)    crtc_vertical_display_size <= { io_writedata[6], io_writedata[1], crtc_vertical_display_size[7:0] };
 end
 
-always @(posedge clk_sys or negedge rst_n) begin
-    if(rst_n == 1'b0)                                           crtc_line_compare <= 10'd1023;
-    else if(crtc_io_write_compare && crtc_io_index == 5'h18)    crtc_line_compare <= { crtc_line_compare[9:8], io_writedata[7:0] };
+always @(posedge clk_sys) begin
+    if(crtc_io_write_compare && crtc_io_index == 5'h18)    crtc_line_compare <= { crtc_line_compare[9:8], io_writedata[7:0] };
     else if(crtc_io_write_compare && crtc_io_index == 5'h07)    crtc_line_compare <= { crtc_line_compare[9], io_writedata[4], crtc_line_compare[7:0] };
     else if(crtc_io_write_compare && crtc_io_index == 5'h09)    crtc_line_compare <= { io_writedata[6], crtc_line_compare[8:0] };
 end
 
-always @(posedge clk_sys or negedge rst_n) begin
-    if(rst_n == 1'b0)                                   crtc_vertical_blanking_start <= 10'd406;
-    else if(crtc_io_write && crtc_io_index == 5'h15)    crtc_vertical_blanking_start <= { crtc_vertical_blanking_start[9:8], io_writedata[7:0] };
+always @(posedge clk_sys) begin
+    if(crtc_io_write && crtc_io_index == 5'h15)    crtc_vertical_blanking_start <= { crtc_vertical_blanking_start[9:8], io_writedata[7:0] };
     else if(crtc_io_write && crtc_io_index == 5'h07)    crtc_vertical_blanking_start <= { crtc_vertical_blanking_start[9], io_writedata[3], crtc_vertical_blanking_start[7:0] };
     else if(crtc_io_write && crtc_io_index == 5'h09)    crtc_vertical_blanking_start <= { io_writedata[5], crtc_vertical_blanking_start[8:0] };
 end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_address_byte_panning <= 2'd0; else if(crtc_io_write && crtc_io_index == 5'h08) crtc_address_byte_panning <= io_writedata[6:5]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_row_preset           <= 5'd0; else if(crtc_io_write && crtc_io_index == 5'h08) crtc_row_preset           <= io_writedata[4:0]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h08) crtc_address_byte_panning <= io_writedata[6:5]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h08) crtc_row_preset           <= io_writedata[4:0]; end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_vertical_doublescan  <= 1'd0; else if(crtc_io_write && crtc_io_index == 5'h09) crtc_vertical_doublescan  <= io_writedata[7]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_row_max              <= 5'd1; else if(crtc_io_write && crtc_io_index == 5'h09) crtc_row_max              <= io_writedata[4:0]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h09) crtc_vertical_doublescan  <= io_writedata[7]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h09) crtc_row_max              <= io_writedata[4:0]; end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_cursor_off           <= 1'd0; else if(crtc_io_write && crtc_io_index == 5'h0A) crtc_cursor_off           <= io_writedata[5]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_cursor_row_start     <= 5'd0; else if(crtc_io_write && crtc_io_index == 5'h0A) crtc_cursor_row_start     <= io_writedata[4:0]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_cursor_skew          <= 2'd0; else if(crtc_io_write && crtc_io_index == 5'h0B) crtc_cursor_skew          <= io_writedata[6:5]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_cursor_row_end       <= 5'd0; else if(crtc_io_write && crtc_io_index == 5'h0B) crtc_cursor_row_end       <= io_writedata[4:0]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h0A) crtc_cursor_off           <= io_writedata[5]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h0A) crtc_cursor_row_start     <= io_writedata[4:0]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h0B) crtc_cursor_skew          <= io_writedata[6:5]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h0B) crtc_cursor_row_end       <= io_writedata[4:0]; end
 
-always @(posedge clk_sys or negedge rst_n) begin
-    if(rst_n == 1'b0)                                   crtc_address_start <= 16'd0;
-    else if(crtc_io_write && crtc_io_index == 5'h0C)    crtc_address_start <= { io_writedata[7:0], crtc_address_start[7:0] };
+always @(posedge clk_sys) begin
+    if(crtc_io_write && crtc_io_index == 5'h0C)    crtc_address_start <= { io_writedata[7:0], crtc_address_start[7:0] };
     else if(crtc_io_write && crtc_io_index == 5'h0D)    crtc_address_start <= { crtc_address_start[15:8], io_writedata[7:0] };
 end
 
-always @(posedge clk_sys or negedge rst_n) begin
-    if(rst_n == 1'b0)                                   crtc_address_cursor <= 16'd0;
-    else if(crtc_io_write && crtc_io_index == 5'h0E)    crtc_address_cursor <= { io_writedata[7:0], crtc_address_cursor[7:0] };
+always @(posedge clk_sys) begin
+    if(crtc_io_write && crtc_io_index == 5'h0E)    crtc_address_cursor <= { io_writedata[7:0], crtc_address_cursor[7:0] };
     else if(crtc_io_write && crtc_io_index == 5'h0F)    crtc_address_cursor <= { crtc_address_cursor[15:8], io_writedata[7:0] };
 end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_protect                   <= 1'd1;  else if(crtc_io_write && crtc_io_index == 5'h11) crtc_protect                   <= io_writedata[7]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_not_impl_5_refresh_cycles <= 1'd0;  else if(crtc_io_write && crtc_io_index == 5'h11) crtc_not_impl_5_refresh_cycles <= io_writedata[6]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_not_impl_enable_vert_int  <= 1'd0;  else if(crtc_io_write && crtc_io_index == 5'h11) crtc_not_impl_enable_vert_int  <= io_writedata[5]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_not_impl_clear_vert_int   <= 1'd0;  else if(crtc_io_write && crtc_io_index == 5'h11) crtc_not_impl_clear_vert_int   <= io_writedata[4]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_vertical_retrace_end      <= 4'd14; else if(crtc_io_write && crtc_io_index == 5'h11) crtc_vertical_retrace_end      <= io_writedata[3:0]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h11) crtc_protect                   <= io_writedata[7]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h11) crtc_not_impl_5_refresh_cycles <= io_writedata[6]; end
+always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_enable_vert_int <=1; else if(crtc_io_write && crtc_io_index == 5'h11) crtc_enable_vert_int  <= io_writedata[5]; end
+always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_clear_vert_int  <=1; else if(crtc_io_write && crtc_io_index == 5'h11) crtc_clear_vert_int   <= io_writedata[4]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h11) crtc_vertical_retrace_end      <= io_writedata[3:0]; end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_address_offset            <= 8'd40; else if(crtc_io_write && crtc_io_index == 5'h13) crtc_address_offset            <= io_writedata[7:0]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h13) crtc_address_offset            <= io_writedata[7:0]; end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_address_doubleword         <= 1'b1; else if(crtc_io_write && crtc_io_index == 5'h14) crtc_address_doubleword        <= io_writedata[6]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_not_impl_address_clk_div_4 <= 1'b0; else if(crtc_io_write && crtc_io_index == 5'h14) crtc_not_impl_address_clk_div_4<= io_writedata[5]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_row_underline              <= 5'd0; else if(crtc_io_write && crtc_io_index == 5'h14) crtc_row_underline             <= io_writedata[4:0]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h14) crtc_address_doubleword        <= io_writedata[6]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h14) crtc_not_impl_address_clk_div_4<= io_writedata[5]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h14) crtc_row_underline             <= io_writedata[4:0]; end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_vertical_blanking_end <= 8'd185; else if(crtc_io_write && crtc_io_index == 5'h16) crtc_vertical_blanking_end <= io_writedata[7:0]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h16) crtc_vertical_blanking_end <= io_writedata[7:0]; end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_enable_sync                  <= 1'd1;  else if(crtc_io_write && crtc_io_index == 5'h17) crtc_enable_sync                  <= io_writedata[7]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_address_byte                 <= 1'd0;  else if(crtc_io_write && crtc_io_index == 5'h17) crtc_address_byte                 <= io_writedata[6]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_address_bit0                 <= 1'd1;  else if(crtc_io_write && crtc_io_index == 5'h17) crtc_address_bit0                 <= io_writedata[5]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_not_impl_address_clk_div_2   <= 1'd0;  else if(crtc_io_write && crtc_io_index == 5'h17) crtc_not_impl_address_clk_div_2   <= io_writedata[3]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_not_impl_scan_line_clk_div_2 <= 1'd0;  else if(crtc_io_write && crtc_io_index == 5'h17) crtc_not_impl_scan_line_clk_div_2 <= io_writedata[2]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_address_bit14                <= 1'd1;  else if(crtc_io_write && crtc_io_index == 5'h17) crtc_address_bit14                <= io_writedata[1]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) crtc_address_bit13                <= 1'd1;  else if(crtc_io_write && crtc_io_index == 5'h17) crtc_address_bit13                <= io_writedata[0]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h17) crtc_enable_sync                  <= io_writedata[7]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h17) crtc_address_byte                 <= io_writedata[6]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h17) crtc_address_bit0                 <= io_writedata[5]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h17) crtc_not_impl_address_clk_div_2   <= io_writedata[3]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h17) crtc_not_impl_scan_line_clk_div_2 <= io_writedata[2]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h17) crtc_address_bit14                <= io_writedata[1]; end
+always @(posedge clk_sys) begin if(crtc_io_write && crtc_io_index == 5'h17) crtc_address_bit13                <= io_writedata[0]; end
 
 //------------------------------------------------------------------------------
 
@@ -334,7 +349,7 @@ always @(*) begin
 		'h0E: host_io_read_crtc = crtc_address_cursor[15:8];
 		'h0F: host_io_read_crtc = crtc_address_cursor[7:0];
 		'h10: host_io_read_crtc = crtc_vertical_retrace_start[7:0];
-		'h11: host_io_read_crtc = { crtc_protect, crtc_not_impl_5_refresh_cycles, crtc_not_impl_enable_vert_int, crtc_not_impl_clear_vert_int, crtc_vertical_retrace_end };
+		'h11: host_io_read_crtc = { crtc_protect, crtc_not_impl_5_refresh_cycles, crtc_enable_vert_int, crtc_clear_vert_int, crtc_vertical_retrace_end };
 		'h12: host_io_read_crtc = crtc_vertical_display_size[7:0];
 		'h13: host_io_read_crtc = crtc_address_offset;
 		'h14: host_io_read_crtc = { 1'b0, crtc_address_doubleword, crtc_not_impl_address_clk_div_4, crtc_row_underline };
@@ -373,27 +388,27 @@ reg       graph_not_impl_graphic_mode;
 
 //------------------------------------------------------------------------------
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) graph_write_set_map     <= 4'd0; else if(graph_io_write && graph_io_index == 4'd0) graph_write_set_map     <= io_writedata[3:0]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) graph_write_enable_map  <= 4'd0; else if(graph_io_write && graph_io_index == 4'd1) graph_write_enable_map  <= io_writedata[3:0]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) graph_color_compare_map <= 4'd0; else if(graph_io_write && graph_io_index == 4'd2) graph_color_compare_map <= io_writedata[3:0]; end
+always @(posedge clk_sys) begin if(graph_io_write && graph_io_index == 4'd0) graph_write_set_map     <= io_writedata[3:0]; end
+always @(posedge clk_sys) begin if(graph_io_write && graph_io_index == 4'd1) graph_write_enable_map  <= io_writedata[3:0]; end
+always @(posedge clk_sys) begin if(graph_io_write && graph_io_index == 4'd2) graph_color_compare_map <= io_writedata[3:0]; end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) graph_write_function <= 2'd0; else if(graph_io_write && graph_io_index == 4'd3) graph_write_function <= io_writedata[4:3]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) graph_write_rotate   <= 3'd0; else if(graph_io_write && graph_io_index == 4'd3) graph_write_rotate   <= io_writedata[2:0]; end
+always @(posedge clk_sys) begin if(graph_io_write && graph_io_index == 4'd3) graph_write_function <= io_writedata[4:3]; end
+always @(posedge clk_sys) begin if(graph_io_write && graph_io_index == 4'd3) graph_write_rotate   <= io_writedata[2:0]; end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) graph_read_map_select<= 2'd0; else if(graph_io_write && graph_io_index == 4'd4) graph_read_map_select <= io_writedata[1:0]; end
+always @(posedge clk_sys) begin if(graph_io_write && graph_io_index == 4'd4) graph_read_map_select <= io_writedata[1:0]; end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) graph_shift_mode             <= 2'd2; else if(graph_io_write && graph_io_index == 4'd5) graph_shift_mode             <= io_writedata[6:5]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) graph_not_impl_host_odd_even <= 1'd0; else if(graph_io_write && graph_io_index == 4'd5) graph_not_impl_host_odd_even <= io_writedata[4]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) graph_read_mode              <= 1'd0; else if(graph_io_write && graph_io_index == 4'd5) graph_read_mode              <= io_writedata[3]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) graph_write_mode             <= 2'd0; else if(graph_io_write && graph_io_index == 4'd5) graph_write_mode             <= io_writedata[1:0]; end
+always @(posedge clk_sys) begin if(graph_io_write && graph_io_index == 4'd5) graph_shift_mode             <= io_writedata[6:5]; end
+always @(posedge clk_sys) begin if(graph_io_write && graph_io_index == 4'd5) graph_not_impl_host_odd_even <= io_writedata[4]; end
+always @(posedge clk_sys) begin if(graph_io_write && graph_io_index == 4'd5) graph_read_mode              <= io_writedata[3]; end
+always @(posedge clk_sys) begin if(graph_io_write && graph_io_index == 4'd5) graph_write_mode             <= io_writedata[1:0]; end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) graph_system_memory           <= 2'd1; else if(graph_io_write && graph_io_index == 4'd6) graph_system_memory           <= io_writedata[3:2]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) graph_not_impl_chain_odd_even <= 1'd0; else if(graph_io_write && graph_io_index == 4'd6) graph_not_impl_chain_odd_even <= io_writedata[1]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) graph_not_impl_graphic_mode   <= 1'd1; else if(graph_io_write && graph_io_index == 4'd6) graph_not_impl_graphic_mode   <= io_writedata[0]; end
+always @(posedge clk_sys) begin if(graph_io_write && graph_io_index == 4'd6) graph_system_memory           <= io_writedata[3:2]; end
+always @(posedge clk_sys) begin if(graph_io_write && graph_io_index == 4'd6) graph_not_impl_chain_odd_even <= io_writedata[1]; end
+always @(posedge clk_sys) begin if(graph_io_write && graph_io_index == 4'd6) graph_not_impl_graphic_mode   <= io_writedata[0]; end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) graph_color_compare_dont_care <= 4'hF; else if(graph_io_write && graph_io_index == 4'd7) graph_color_compare_dont_care <= io_writedata[3:0]; end
+always @(posedge clk_sys) begin if(graph_io_write && graph_io_index == 4'd7) graph_color_compare_dont_care <= io_writedata[3:0]; end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) graph_write_mask <= 8'hFF; else if(graph_io_write && graph_io_index == 4'd8) graph_write_mask <= io_writedata[7:0]; end
+always @(posedge clk_sys) begin if(graph_io_write && graph_io_index == 4'd8) graph_write_mask <= io_writedata[7:0]; end
 
 //------------------------------------------------------------------------------
 
@@ -441,22 +456,22 @@ reg attrib_not_impl_mono_emulation;
 
 //------------------------------------------------------------------------------
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) attrib_color_bit5_4_enable         <= 1'd0; else if(attrib_io_write && attrib_io_index == 5'h10) attrib_color_bit5_4_enable         <= io_writedata[7]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) attrib_color_8bit_enable           <= 1'd1; else if(attrib_io_write && attrib_io_index == 5'h10) attrib_color_8bit_enable           <= io_writedata[6]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) attrib_panning_after_compare_match <= 1'd0; else if(attrib_io_write && attrib_io_index == 5'h10) attrib_panning_after_compare_match <= io_writedata[5]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) attrib_blinking                    <= 1'd0; else if(attrib_io_write && attrib_io_index == 5'h10) attrib_blinking                    <= io_writedata[3]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) attrib_9bit_same_as_8bit           <= 1'd0; else if(attrib_io_write && attrib_io_index == 5'h10) attrib_9bit_same_as_8bit           <= io_writedata[2]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) attrib_not_impl_mono_emulation     <= 1'd0; else if(attrib_io_write && attrib_io_index == 5'h10) attrib_not_impl_mono_emulation     <= io_writedata[1]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) attrib_graphic_mode                <= 1'd1; else if(attrib_io_write && attrib_io_index == 5'h10) attrib_graphic_mode                <= io_writedata[0]; end
+always @(posedge clk_sys) begin if(attrib_io_write && attrib_io_index == 5'h10) attrib_color_bit5_4_enable         <= io_writedata[7]; end
+always @(posedge clk_sys) begin if(attrib_io_write && attrib_io_index == 5'h10) attrib_color_8bit_enable           <= io_writedata[6]; end
+always @(posedge clk_sys) begin if(attrib_io_write && attrib_io_index == 5'h10) attrib_panning_after_compare_match <= io_writedata[5]; end
+always @(posedge clk_sys) begin if(attrib_io_write && attrib_io_index == 5'h10) attrib_blinking                    <= io_writedata[3]; end
+always @(posedge clk_sys) begin if(attrib_io_write && attrib_io_index == 5'h10) attrib_9bit_same_as_8bit           <= io_writedata[2]; end
+always @(posedge clk_sys) begin if(attrib_io_write && attrib_io_index == 5'h10) attrib_not_impl_mono_emulation     <= io_writedata[1]; end
+always @(posedge clk_sys) begin if(attrib_io_write && attrib_io_index == 5'h10) attrib_graphic_mode                <= io_writedata[0]; end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) attrib_color_overscan <= 8'd0;        else if(attrib_io_write && attrib_io_index == 5'h11) attrib_color_overscan <= io_writedata[7:0]; end
+always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) attrib_color_overscan <= 8'd0; else if(attrib_io_write && attrib_io_index == 5'h11) attrib_color_overscan <= io_writedata[7:0]; end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) attrib_mask <= 4'hF;                  else if(attrib_io_write && attrib_io_index == 5'h12) attrib_mask <= io_writedata[3:0]; end
+always @(posedge clk_sys) begin if(attrib_io_write && attrib_io_index == 5'h12) attrib_mask <= io_writedata[3:0]; end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) attrib_panning_value <= 4'd0;         else if(attrib_io_write && attrib_io_index == 5'h13) attrib_panning_value <= io_writedata[3:0]; end
+always @(posedge clk_sys) begin if(attrib_io_write && attrib_io_index == 5'h13) attrib_panning_value <= io_writedata[3:0]; end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) attrib_color_bit7_6_value <= 2'd0;    else if(attrib_io_write && attrib_io_index == 5'h14) attrib_color_bit7_6_value <= io_writedata[3:2]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) attrib_color_bit5_4_value <= 2'd0;    else if(attrib_io_write && attrib_io_index == 5'h14) attrib_color_bit5_4_value <= io_writedata[1:0]; end
+always @(posedge clk_sys) begin if(attrib_io_write && attrib_io_index == 5'h14) attrib_color_bit7_6_value <= io_writedata[3:2]; end
+always @(posedge clk_sys) begin if(attrib_io_write && attrib_io_index == 5'h14) attrib_color_bit5_4_value <= io_writedata[1:0]; end
 
 //------------------------------------------------------------------------------
 
@@ -483,15 +498,15 @@ reg       general_not_impl_odd_even_page;
 
 //------------------------------------------------------------------------------
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) general_vsync <= 1'd0;                    else if(general_io_write_misc) general_vsync <= io_writedata[7]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) general_hsync <= 1'd1;                    else if(general_io_write_misc) general_hsync <= io_writedata[6]; end
+always @(posedge clk_sys) begin if(general_io_write_misc) general_vsync <= io_writedata[7]; end
+always @(posedge clk_sys) begin if(general_io_write_misc) general_hsync <= io_writedata[6]; end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) general_not_impl_odd_even_page <= 1'd1;   else if(general_io_write_misc) general_not_impl_odd_even_page <= io_writedata[5]; end
+always @(posedge clk_sys) begin if(general_io_write_misc) general_not_impl_odd_even_page <= io_writedata[5]; end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) general_not_impl_clock_select <= 2'd0;    else if(general_io_write_misc) general_not_impl_clock_select <= io_writedata[3:2]; end
+always @(posedge clk_sys) begin if(general_io_write_misc) general_not_impl_clock_select <= io_writedata[3:2]; end
 
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) general_enable_ram <= 1'd1;               else if(general_io_write_misc) general_enable_ram <= io_writedata[1]; end
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) general_io_space   <= 1'd1;               else if(general_io_write_misc) general_io_space   <= io_writedata[0]; end
+always @(posedge clk_sys) begin if(general_io_write_misc) general_enable_ram <= io_writedata[1]; end
+always @(posedge clk_sys) begin if(general_io_write_misc) general_io_space   <= io_writedata[0]; end
 
 //------------------------------------------------------------------------------ io
 
@@ -527,7 +542,15 @@ wire        graph_io_write = io_c_write && io_c_address == 4'hF;
 reg [4:0]   attrib_io_index;
 reg         attrib_video_enable;
 reg         attrib_flip_flop;
-always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) attrib_video_enable <= 1'd1; else if(io_c_write && io_c_address == 4'h0 && ~(attrib_flip_flop)) attrib_video_enable <= io_c_writedata[5]; end
+reg         output_enable;
+always @(posedge clk_sys or negedge rst_n) begin
+	if(rst_n == 1'b0) {output_enable, attrib_video_enable} <= 0;
+	else if(io_c_write && io_c_address == 4'h0 && ~(attrib_flip_flop)) begin
+		attrib_video_enable <= io_c_writedata[5];
+		if(io_c_writedata[5]) output_enable <= 1;
+	end
+end
+
 always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) attrib_io_index     <= 5'd0; else if(io_c_write && io_c_address == 4'h0 && ~(attrib_flip_flop)) attrib_io_index     <= io_c_writedata[4:0]; end
 
 always @(posedge clk_sys or negedge rst_n) begin
@@ -610,7 +633,7 @@ always @(*) begin
 
 		17'b1XXXXXXXXXXXXXXXX: host_io_read_wire = 8'hFF;
 		17'b01XXXXXXXXXXXXXXX: host_io_read_wire = { general_vsync, general_hsync, general_not_impl_odd_even_page, 1'b0, general_not_impl_clock_select, general_enable_ram, general_io_space }; //misc output reg
-		17'b001XXXXXXXXXXXXXX: host_io_read_wire = { 3'b0, 1'b1, 4'b0 }; //input status 0
+		17'b001XXXXXXXXXXXXXX: host_io_read_wire = { interrupt, 2'b0, 1'b1, 4'b0 }; //input status 0
 		17'b0001XXXXXXXXXXXXX: host_io_read_wire = { 4'b0, host_io_vertical_retrace, 2'b0, host_io_not_displaying }; //input status 1
 		17'b00001XXXXXXXXXXXX: host_io_read_wire = 8'h00; //attrib index in write mode
 		17'b000001XXXXXXXXXXX: host_io_read_wire = { 2'b0, attrib_video_enable, attrib_io_index }; //attrib in address mode
@@ -844,63 +867,54 @@ wire dot_memory_load_vertical_retrace_start;
 wire memory_address_load = dot_memory_load_first_in_frame || dot_memory_load_first_in_line_matched || dot_memory_load_first_in_line;
 
 reg [15:0] memory_start_line;
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)               memory_start_line <= 16'd0;
-    else if(memory_address_load)    memory_start_line <= memory_address;
+always @(posedge clk_vga) begin
+    if(memory_address_load)    memory_start_line <= memory_address;
 end
 
 reg [15:0] memory_address_reg;
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)                               memory_address_reg <= 16'd0;
-    else if(memory_address_load || dot_memory_load) memory_address_reg <= memory_address;
+always @(posedge clk_vga) begin
+    if(memory_address_load || dot_memory_load) memory_address_reg <= memory_address;
 end
 
 reg [4:0] memory_row_scan_reg;
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)               memory_row_scan_reg <= 5'd0;
-    else if(memory_address_load)    memory_row_scan_reg <= memory_row_scan;
+always @(posedge clk_vga) begin
+    if(memory_address_load)    memory_row_scan_reg <= memory_row_scan;
 end
 
 reg memory_row_scan_double;
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                                                               memory_row_scan_double <= 1'b0;
-    else if(crtc_vertical_doublescan && (dot_memory_load_first_in_frame || dot_memory_load_first_in_line_matched))  memory_row_scan_double <= 1'b1;
+always @(posedge clk_vga) begin
+    if(crtc_vertical_doublescan && (dot_memory_load_first_in_frame || dot_memory_load_first_in_line_matched))  memory_row_scan_double <= 1'b1;
     else if(crtc_vertical_doublescan && dot_memory_load_first_in_line)                                              memory_row_scan_double <= ~memory_row_scan_double;
     else if(~(crtc_vertical_doublescan) || dot_memory_load_vertical_retrace_start)                                  memory_row_scan_double <= 1'b0;
 end
 
 //do not change charmap in the middle of a character row scan
 reg [2:0] memory_char_map_a;
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                                                                                               memory_char_map_a <= 3'd0;
-    else if(dot_memory_load_first_in_frame || dot_memory_load_first_in_line_matched || (dot_memory_load_first_in_line && memory_row_scan == 5'd0))  memory_char_map_a <= seq_char_map_a;
+always @(posedge clk_vga) begin
+    if(dot_memory_load_first_in_frame || dot_memory_load_first_in_line_matched || (dot_memory_load_first_in_line && memory_row_scan == 5'd0))  memory_char_map_a <= seq_char_map_a;
 end
 
 reg [2:0] memory_char_map_b;
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                                                                                               memory_char_map_b <= 3'd0;
-    else if(dot_memory_load_first_in_frame || dot_memory_load_first_in_line_matched || (dot_memory_load_first_in_line && memory_row_scan == 5'd0))  memory_char_map_b <= seq_char_map_b;
+always @(posedge clk_vga) begin
+    if(dot_memory_load_first_in_frame || dot_memory_load_first_in_line_matched || (dot_memory_load_first_in_line && memory_row_scan == 5'd0))  memory_char_map_b <= seq_char_map_b;
 end
 
 
 reg [3:0] memory_panning_reg;
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                                       memory_panning_reg <= 4'd0;
-    else if(dot_memory_load_first_in_line_matched && attrib_panning_after_compare_match)    memory_panning_reg <= 4'd0;
+always @(posedge clk_vga) begin
+    if(dot_memory_load_first_in_line_matched && attrib_panning_after_compare_match)    memory_panning_reg <= 4'd0;
     else if(dot_memory_load_first_in_frame)                                                 memory_panning_reg <= attrib_panning_value;
 end
 
 reg memory_load_step_a;
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)           memory_load_step_a <= 1'b0;
-    else if(dot_memory_load)    memory_load_step_a <= 1'b1;
+always @(posedge clk_vga) begin
+    if(dot_memory_load)    memory_load_step_a <= 1'b1;
     else                        memory_load_step_a <= 1'b0;
 end
 
 reg memory_load_step_b;
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)           memory_load_step_b <= 1'b0;
-    else if(memory_load_step_a) memory_load_step_b <= 1'b1;
+always @(posedge clk_vga) begin
+    if(memory_load_step_a) memory_load_step_b <= 1'b1;
     else                        memory_load_step_b <= 1'b0;
 end
 
@@ -936,9 +950,8 @@ wire [15:0] memory_address_step_2 = {
 };
 
 reg [15:0] memory_address_reg_final;
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)           memory_address_reg_final <= 16'd0;
-    else if(dot_memory_load)    memory_address_reg_final <= memory_address;
+always @(posedge clk_vga) begin
+    if(dot_memory_load)    memory_address_reg_final <= memory_address;
 end
 
 wire [2:0] memory_txt_index = plane_ram1_q[3]? memory_char_map_a : memory_char_map_b;
@@ -1034,17 +1047,16 @@ reg [7:0] plane_ram1;
 reg [7:0] plane_ram2;
 reg [7:0] plane_ram3;
 
-always @(posedge clk_vga or negedge rst_n) begin if(rst_n == 1'b0) plane_ram0 <= 8'd0; else if(memory_load_step_a) plane_ram0 <= plane_ram0_q; end
-always @(posedge clk_vga or negedge rst_n) begin if(rst_n == 1'b0) plane_ram1 <= 8'd0; else if(memory_load_step_a) plane_ram1 <= plane_ram1_q; end
-always @(posedge clk_vga or negedge rst_n) begin if(rst_n == 1'b0) plane_ram2 <= 8'd0; else if(memory_load_step_a) plane_ram2 <= plane_ram2_q; end
-always @(posedge clk_vga or negedge rst_n) begin if(rst_n == 1'b0) plane_ram3 <= 8'd0; else if(memory_load_step_a) plane_ram3 <= plane_ram3_q; end
+always @(posedge clk_vga) begin if(memory_load_step_a) plane_ram0 <= plane_ram0_q; end
+always @(posedge clk_vga) begin if(memory_load_step_a) plane_ram1 <= plane_ram1_q; end
+always @(posedge clk_vga) begin if(memory_load_step_a) plane_ram2 <= plane_ram2_q; end
+always @(posedge clk_vga) begin if(memory_load_step_a) plane_ram3 <= plane_ram3_q; end
 
 //------------------------------------------------------------------------------
 
 reg [5:0] plane_shift_cnt;
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)                   plane_shift_cnt <= 6'd0;
-    else if(memory_load_step_b)         plane_shift_cnt <= 6'd1;
+always @(posedge clk_vga) begin
+    if(memory_load_step_b)         plane_shift_cnt <= 6'd1;
     else if(plane_shift_cnt == 6'd34)   plane_shift_cnt <= 6'd0;
     else if(plane_shift_cnt != 6'd0)    plane_shift_cnt <= plane_shift_cnt + 6'd1;
 end
@@ -1085,27 +1097,23 @@ wire [7:0] plane_shift_value3 =
     (graph_shift_mode == 2'b01)?    { plane_ram2[7],plane_ram2[5],plane_ram2[3],plane_ram2[1], plane_ram3[7],plane_ram3[5],plane_ram3[3],plane_ram3[1] } :
                                     { plane_ram0[7],plane_ram0[3],plane_ram1[7],plane_ram1[3], plane_ram2[7],plane_ram2[3],plane_ram3[7],plane_ram3[3] };
                                     
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)           plane_shift0 <= 8'd0;
-    else if(memory_load_step_b) plane_shift0 <= plane_shift_value0;
+always @(posedge clk_vga) begin
+    if(memory_load_step_b) plane_shift0 <= plane_shift_value0;
     else if(plane_shift_enable) plane_shift0 <= { plane_shift0[6:0], 1'b0 };
 end
 
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)           plane_shift1 <= 8'd0;
-    else if(memory_load_step_b) plane_shift1 <= plane_shift_value1;
+always @(posedge clk_vga) begin
+    if(memory_load_step_b) plane_shift1 <= plane_shift_value1;
     else if(plane_shift_enable) plane_shift1 <= { plane_shift1[6:0], 1'b0 };
 end
 
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)           plane_shift2 <= 8'd0;
-    else if(memory_load_step_b) plane_shift2 <= plane_shift_value2;
+always @(posedge clk_vga) begin
+    if(memory_load_step_b) plane_shift2 <= plane_shift_value2;
     else if(plane_shift_enable) plane_shift2 <= { plane_shift2[6:0], 1'b0 };
 end
 
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)           plane_shift3 <= 8'd0;
-    else if(memory_load_step_b) plane_shift3 <= plane_shift_value3;
+always @(posedge clk_vga) begin
+    if(memory_load_step_b) plane_shift3 <= plane_shift_value3;
     else if(plane_shift_enable) plane_shift3 <= { plane_shift3[6:0], 1'b0 };
 end
 
@@ -1134,22 +1142,19 @@ wire [7:0] plane_txt_shift_value =
     (txt_cursor_enable)?        8'hFF :
                                 plane_ram2_q;
 
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)           plane_txt_shift <= 8'd0;
-    else if(memory_load_step_b) plane_txt_shift <= plane_txt_shift_value;
+always @(posedge clk_vga) begin
+    if(memory_load_step_b) plane_txt_shift <= plane_txt_shift_value;
     else if(plane_shift_enable) plane_txt_shift <= { plane_txt_shift[6:0], 1'b0 };
 end
 
 reg [3:0] txt_foreground;
 reg [3:0] txt_background;
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)           txt_foreground <= 4'd0;
-    else if(memory_load_step_b) txt_foreground <= plane_ram1[3:0];
+always @(posedge clk_vga) begin
+    if(memory_load_step_b) txt_foreground <= plane_ram1[3:0];
 end
 
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)           txt_background <= 4'd0;
-    else if(memory_load_step_b) txt_background <= (attrib_blinking)? { 1'b0, plane_ram1[6:4] } : plane_ram1[7:4];
+always @(posedge clk_vga) begin
+    if(memory_load_step_b) txt_background <= (attrib_blinking)? { 1'b0, plane_ram1[6:4] } : plane_ram1[7:4];
 end
 
 wire txt_line_graphic_char = plane_ram0 >= 8'hB0 && plane_ram0 <= 8'hDF;
@@ -1165,21 +1170,18 @@ wire [3:0] pel_input =
                             txt_background;
 
 reg [3:0] pel_input_last;
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)           pel_input_last <= 4'd0;
-    else if(plane_shift_enable) pel_input_last <= pel_input;
+always @(posedge clk_vga) begin
+    if(plane_shift_enable) pel_input_last <= pel_input;
 end
 
 reg pel_line_graphic_char;
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)           pel_line_graphic_char <= 1'b0;
-    else if(plane_shift_enable) pel_line_graphic_char <= txt_line_graphic_char;
+always @(posedge clk_vga) begin
+    if(plane_shift_enable) pel_line_graphic_char <= txt_line_graphic_char;
 end
 
 reg [3:0] pel_background;
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)           pel_background <= 4'd0;
-    else if(plane_shift_enable) pel_background <= txt_background;
+always @(posedge clk_vga) begin
+    if(plane_shift_enable) pel_background <= txt_background;
 end
 
 //------------------------------------------------------------------------------
@@ -1193,9 +1195,8 @@ wire [3:0] pel_after_blink =
                                                                     pel_after_enable;
 
 reg [35:0] pel_shift_reg;
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)           pel_shift_reg <= 36'd0;
-    else if(plane_shift_enable) pel_shift_reg <= { pel_after_blink, pel_shift_reg[35:4] };
+always @(posedge clk_vga) begin
+    if(plane_shift_enable) pel_shift_reg <= { pel_after_blink, pel_shift_reg[35:4] };
 end
 
 wire [7:0] pel_after_panning =
@@ -1210,19 +1211,17 @@ wire [7:0] pel_after_panning =
                                       pel_shift_reg[7:0];
 
 reg plane_shift_enable_last;
-always @(posedge clk_vga or negedge rst_n) begin if(rst_n == 1'b0) plane_shift_enable_last <= 1'b0; else plane_shift_enable_last <= plane_shift_enable; end
+always @(posedge clk_vga) begin plane_shift_enable_last <= plane_shift_enable; end
                                       
 reg pel_color_8bit_cnt;
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)                                               pel_color_8bit_cnt <= 1'b0;
-    else if(plane_shift_enable && plane_shift_enable_last == 1'b0)  pel_color_8bit_cnt <= 1'b1;
+always @(posedge clk_vga) begin
+    if(plane_shift_enable && plane_shift_enable_last == 1'b0)  pel_color_8bit_cnt <= 1'b1;
     else                                                            pel_color_8bit_cnt <= ~pel_color_8bit_cnt;
 end
 
 reg [7:0] pel_color_8bit_buffer;
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)                   pel_color_8bit_buffer <= 8'd0;
-    else if(pel_color_8bit_cnt == 1'b0) pel_color_8bit_buffer <= pel_after_panning;
+always @(posedge clk_vga) begin
+    if(pel_color_8bit_cnt == 1'b0) pel_color_8bit_buffer <= pel_after_panning;
 end
 //------------------------------------------------------------------------------
 
@@ -1291,28 +1290,24 @@ reg [7:0] horiz_cnt;
 reg [9:0] vert_cnt;
 
 reg dot_cnt_div;
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)   dot_cnt_div <= 1'b0;
-    else                dot_cnt_div <= ~(dot_cnt_div);
+always @(posedge clk_vga) begin
+    dot_cnt_div <= ~(dot_cnt_div);
 end
 
 wire dot_cnt_enable = ~(seq_dotclock_divided) || dot_cnt_div;
 
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)                               dot_cnt <= 4'd0;
-    else if(dot_cnt_enable && character_last_dot)   dot_cnt <= 4'd0;
+always @(posedge clk_vga) begin
+    if(dot_cnt_enable && character_last_dot)   dot_cnt <= 4'd0;
     else if(dot_cnt_enable)                         dot_cnt <= dot_cnt + 4'd1;
 end
 
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)           horiz_cnt <= 8'd0;
-    else if(line_last_dot)      horiz_cnt <= 8'd0;
+always @(posedge clk_vga) begin
+    if(line_last_dot)      horiz_cnt <= 8'd0;
     else if(character_last_dot) horiz_cnt <= horiz_cnt + 8'd1;
 end
 
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)           vert_cnt <= 10'd0;
-    else if(screen_last_dot)    vert_cnt <= 10'd0;
+always @(posedge clk_vga) begin
+    if(screen_last_dot)    vert_cnt <= 10'd0;
     else if(line_last_dot)      vert_cnt <= vert_cnt + 10'd1;
 end
 
@@ -1339,15 +1334,13 @@ assign dot_memory_load_vertical_retrace_start = vert_cnt == crtc_vertical_retrac
 //------------------------------------------------------------------------------
 
 reg host_io_vertical_retrace_last;
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)   host_io_vertical_retrace_last <= 1'b0;
-    else                host_io_vertical_retrace_last <= host_io_vertical_retrace;
+always @(posedge clk_vga) begin
+    host_io_vertical_retrace_last <= host_io_vertical_retrace;
 end
 
 reg [5:0] blink_cnt;
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)           blink_cnt <= 6'd0;
-    else if(host_io_vertical_retrace_last == 1'b1 && host_io_vertical_retrace == 1'b0) blink_cnt <= blink_cnt + 6'd1;
+always @(posedge clk_vga) begin
+    if(host_io_vertical_retrace_last == 1'b1 && host_io_vertical_retrace == 1'b0) blink_cnt <= blink_cnt + 6'd1;
 end
 
 assign blink_txt_value    = blink_cnt[5];
@@ -1356,16 +1349,14 @@ assign blink_cursor_value = blink_cnt[4];
 //------------------------------------------------------------------------------
 
 reg vgaprep_horiz_blank;
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                                                       vgaprep_horiz_blank <= 1'b0;
-    else if(horiz_cnt == crtc_horizontal_blanking_start)                                                    vgaprep_horiz_blank <= 1'b1;
+always @(posedge clk_vga) begin
+    if(horiz_cnt == crtc_horizontal_blanking_start)                                                    vgaprep_horiz_blank <= 1'b1;
     else if(horiz_cnt > crtc_horizontal_blanking_start && horiz_cnt[5:0] == crtc_horizontal_blanking_end)   vgaprep_horiz_blank <= 1'b0;
 end
 
 reg vgaprep_vert_blank;
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                                               vgaprep_vert_blank <= 1'b0;
-    else if(vert_cnt == crtc_vertical_blanking_start)                                               vgaprep_vert_blank <= 1'b1;
+always @(posedge clk_vga) begin
+    if(vert_cnt == crtc_vertical_blanking_start)                                               vgaprep_vert_blank <= 1'b1;
     else if(vert_cnt > crtc_vertical_blanking_start && vert_cnt[7:0] == crtc_vertical_blanking_end) vgaprep_vert_blank <= 1'b0;
 end
 
@@ -1401,32 +1392,25 @@ assign host_io_vertical_retrace = vgaprep_vert_sync;
 assign host_io_not_displaying   = vgaprep_blank;
 
 reg vgareg_blank_n;
-always @(posedge clk_vga or negedge rst_n) begin if(rst_n == 1'b0) vgareg_blank_n <= 1'b0; else vgareg_blank_n <= ~(vgaprep_blank); end
+always @(posedge clk_vga) begin vgareg_blank_n <= ~(vgaprep_blank); end
 
 reg vgareg0_horiz_sync;
 reg vgareg1_horiz_sync;
-always @(posedge clk_vga or negedge rst_n) begin if(rst_n == 1'b0) vgareg0_horiz_sync <= 1'b0; else vgareg0_horiz_sync <= (vgaprep_horiz_sync && crtc_enable_sync)? ~(general_hsync) : general_hsync; end
-always @(posedge clk_vga or negedge rst_n) begin if(rst_n == 1'b0) vgareg1_horiz_sync <= 1'b0; else vgareg1_horiz_sync <= vgareg0_horiz_sync; end
+always @(posedge clk_vga) begin vgareg0_horiz_sync <= (vgaprep_horiz_sync && crtc_enable_sync)? ~(general_hsync) : general_hsync; end
+always @(posedge clk_vga) begin vgareg1_horiz_sync <= vgareg0_horiz_sync; end
 
 reg vgareg0_vert_sync;
 reg vgareg1_vert_sync;
-always @(posedge clk_vga or negedge rst_n) begin if(rst_n == 1'b0) vgareg0_vert_sync <= 1'b0; else vgareg0_vert_sync <= (vgaprep_vert_sync && crtc_enable_sync)? ~(general_vsync) : general_vsync; end
-always @(posedge clk_vga or negedge rst_n) begin if(rst_n == 1'b0) vgareg1_vert_sync <= 1'b0; else vgareg1_vert_sync <= vgareg0_vert_sync; end
+always @(posedge clk_vga) begin vgareg0_vert_sync <= (vgaprep_vert_sync && crtc_enable_sync)? ~(general_vsync) : general_vsync; end
+always @(posedge clk_vga) begin vgareg1_vert_sync <= vgareg0_vert_sync; end
 
 reg [7:0] vgareg_r;
 reg [7:0] vgareg_g;
 reg [7:0] vgareg_b;
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                                           vgareg_r <= 8'b0;
-    else                                                                                        vgareg_r <= { dac_color[17:12], dac_color[17:16] };
-end
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                                           vgareg_g <= 8'b0;
-    else                                                                                        vgareg_g <= { dac_color[11:6], dac_color[11:10] };
-end
-always @(posedge clk_vga or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                                           vgareg_b <= 8'b0;
-    else                                                                                        vgareg_b <= { dac_color[5:0], dac_color[5:4] };
+always @(posedge clk_vga) begin
+    vgareg_r <= output_enable ? { dac_color[17:12], dac_color[17:16] } : 8'd0;
+    vgareg_g <= output_enable ? { dac_color[11:6],  dac_color[11:10] } : 8'd0;
+    vgareg_b <= output_enable ? { dac_color[5:0],   dac_color[5:4]   } : 8'd0;
 end
 
 assign vga_clock  = clk_vga;

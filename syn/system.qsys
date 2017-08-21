@@ -505,6 +505,14 @@
          type = "String";
       }
    }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element vga
    {
       datum _sortIndex
@@ -622,7 +630,7 @@
  <module name="pc_bus" kind="pc_bus" version="1.0" enabled="1" />
  <module name="pc_dma" kind="pc_dma" version="1.0" enabled="1" />
  <module name="pic" kind="pic" version="1.0" enabled="1">
-  <parameter name="AUTO_INTERRUPT_RECEIVER_INTERRUPTS_USED" value="53603" />
+  <parameter name="AUTO_INTERRUPT_RECEIVER_INTERRUPTS_USED" value="53607" />
  </module>
  <module name="pit" kind="pit" version="1.0" enabled="1" />
  <module name="pll_0" kind="altera_pll" version="17.0" enabled="1">
@@ -1281,6 +1289,13 @@
    start="pic.interrupt_receiver"
    end="hdd1.interrupt_sender">
   <parameter name="irqNumber" value="15" />
+ </connection>
+ <connection
+   kind="interrupt"
+   version="17.0"
+   start="pic.interrupt_receiver"
+   end="vga.interrupt_sender">
+  <parameter name="irqNumber" value="2" />
  </connection>
  <connection
    kind="interrupt"
