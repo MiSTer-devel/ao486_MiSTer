@@ -4995,15 +4995,16 @@ inhibit_mouse_int_and_events()
   Bit8u command_byte, prev_command_byte;
 
   // Turn off IRQ generation and aux data line
-  if ( inb(PORT_PS2_STATUS) & 0x02 )
-    BX_PANIC(panic_msg_keyb_buffer_full,"inhibmouse");
+  if ( inb(PORT_PS2_STATUS) & 0x02 ) delay_ticks(2);
+  if ( inb(PORT_PS2_STATUS) & 0x02 ) BX_PANIC(panic_msg_keyb_buffer_full,"inhibmouse1");
   outb(PORT_PS2_STATUS, 0x20); // get command byte
   while ( (inb(PORT_PS2_STATUS) & 0x01) != 0x01 );
   prev_command_byte = inb(PORT_PS2_DATA);
   command_byte = prev_command_byte;
   //while ( (inb(PORT_PS2_STATUS) & 0x02) );
+  if ( inb(PORT_PS2_STATUS) & 0x02 ) delay_ticks(2);
   if ( inb(PORT_PS2_STATUS) & 0x02 )
-    BX_PANIC(panic_msg_keyb_buffer_full,"inhibmouse");
+    BX_PANIC(panic_msg_keyb_buffer_full,"inhibmouse2");
   command_byte &= 0xfd; // turn off IRQ 12 generation
   command_byte |= 0x20; // disable mouse serial clock line
   outb(PORT_PS2_STATUS, 0x60); // write command byte
@@ -5017,12 +5018,14 @@ enable_mouse_int_and_events()
   Bit8u command_byte;
 
   // Turn on IRQ generation and aux data line
+  if ( inb(PORT_PS2_STATUS) & 0x02 ) delay_ticks(2);
   if ( inb(PORT_PS2_STATUS) & 0x02 )
     BX_PANIC(panic_msg_keyb_buffer_full,"enabmouse");
   outb(PORT_PS2_STATUS, 0x20); // get command byte
   while ( (inb(PORT_PS2_STATUS) & 0x01) != 0x01 );
   command_byte = inb(PORT_PS2_DATA);
   //while ( (inb(PORT_PS2_STATUS) & 0x02) );
+  if ( inb(PORT_PS2_STATUS) & 0x02 ) delay_ticks(2);
   if ( inb(PORT_PS2_STATUS) & 0x02 )
     BX_PANIC(panic_msg_keyb_buffer_full,"enabmouse");
   command_byte |= 0x02; // turn on IRQ 12 generation
@@ -5038,6 +5041,7 @@ send_to_mouse_ctrl(sendbyte)
   Bit8u response;
 
   // wait for chance to write to ctrl
+  if ( inb(PORT_PS2_STATUS) & 0x02 ) delay_ticks(2);
   if ( inb(PORT_PS2_STATUS) & 0x02 )
     BX_PANIC(panic_msg_keyb_buffer_full,"sendmouse");
   outb(PORT_PS2_STATUS, 0xD4);
@@ -5064,6 +5068,7 @@ get_mouse_data(data)
 set_kbd_command_byte(command_byte)
   Bit8u command_byte;
 {
+  if ( inb(PORT_PS2_STATUS) & 0x02 ) delay_ticks(2);
   if ( inb(PORT_PS2_STATUS) & 0x02 )
     BX_PANIC(panic_msg_keyb_buffer_full,"setkbdcomm");
   outb(PORT_PS2_STATUS, 0xD4);
