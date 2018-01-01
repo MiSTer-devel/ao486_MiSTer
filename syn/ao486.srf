@@ -27,6 +27,15 @@
 { "" "" "" "Inferred dual-clock RAM node \"emu:emu\|system:u0\|vga:vga\|simple_bidir_ram:plane_ram_inst2\|mem_rtl_0\" from synchronous design logic.  The read-during-write behavior of a dual-clock RAM is undefined and may not match the behavior of the original design." {  } {  } 0 276027 "" 0 0 "Design Software" 0 -1 0 ""}
 { "" "" "" "Inferred dual-clock RAM node \"emu:emu\|system:u0\|vga:vga\|simple_bidir_ram:plane_ram_inst1\|mem_rtl_0\" from synchronous design logic.  The read-during-write behavior of a dual-clock RAM is undefined and may not match the behavior of the original design." {  } {  } 0 276027 "" 0 0 "Design Software" 0 -1 0 ""}
 { "" "" "" "Inferred dual-clock RAM node \"emu:emu\|system:u0\|vga:vga\|simple_bidir_ram:plane_ram_inst0\|mem_rtl_0\" from synchronous design logic.  The read-during-write behavior of a dual-clock RAM is undefined and may not match the behavior of the original design." {  } {  } 0 276027 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "Vip.vip: Module dependency loop involving: \"HPS\" (altera_hps_lite 17.0)" {  } {  } 0 12251 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "Vip.Mixer: The MixerII register map changed in ACDS v16.0. Please refer to the VIP User Guide for details." {  } {  } 0 12251 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "Vip.Reset_Source.reset_sys: Associated reset sinks not declared" {  } {  } 0 12251 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "Vip.Reset_Source.reset_warm: Associated reset sinks not declared" {  } {  } 0 12251 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "Vip.Reset_Source.reset_cold: Associated reset sinks not declared" {  } {  } 0 12251 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "Vip.Video_Output.control: Interrupt sender control.av_mm_control_interrupt is not connected to an interrupt receiver" {  } {  } 0 12251 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "Vip.Video_Output: Interrupt sender Video_Output.status_update_irq is not connected to an interrupt receiver" {  } {  } 0 12251 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "Vip.: You have exported the interface HPS.f2h_sdram1_data but not its associated reset interface.  Export the driver(s) of HPS.h2f_reset" {  } {  } 0 12251 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "Vip.: You have exported the interface HPS.f2h_sdram2_data but not its associated reset interface.  Export the driver(s) of HPS.h2f_reset" {  } {  } 0 12251 "" 0 0 "Design Software" 0 -1 0 ""}
 { "" "" "" "*" {  } {  } 0 169085 "" 0 0 "Design Software" 0 -1 0 ""}
 { "" "" "" "*" {  } {  } 0 174073 "" 0 0 "Design Software" 0 -1 0 ""}
 { "" "" "" "*" {  } {  } 0 332174 "" 0 0 "Design Software" 0 -1 0 ""}

@@ -30,10 +30,10 @@
 
 // WIDE=1 for 16 bit file I/O
 // VDNUM 1-4
-module hps_io #(parameter STRLEN=0, PS2DIV=4000, WIDE=0, VDNUM=1, PS2WE=0)
+module hps_io #(parameter STRLEN=0, PS2DIV=2000, WIDE=0, VDNUM=1, PS2WE=0)
 (
 	input             clk_sys,
-	inout      [37:0] HPS_BUS,
+	inout      [43:0] HPS_BUS,
 
 	// parameter STRLEN and the actual length of conf_str have to match
 	input [(8*STRLEN)-1:0] conf_str,
@@ -140,6 +140,87 @@ wire [15:0] sd_cmd =
 	sd_wr[0],
 	sd_rd[0]
 };
+
+///////////////// calc video parameters //////////////////
+
+wire clk_100 = HPS_BUS[43];
+wire clk_vid = HPS_BUS[42];
+wire ce_pix  = HPS_BUS[41];
+wire de      = HPS_BUS[40];
+wire hs      = HPS_BUS[39];
+wire vs      = HPS_BUS[38];
+
+reg [31:0] vid_hcnt = 0;
+reg [31:0] vid_vcnt = 0;
+reg  [7:0] vid_nres = 0;
+integer hcnt;
+
+always @(posedge clk_vid) begin
+	integer vcnt;
+	reg old_vs= 0, old_de = 0;
+	reg calch = 0;
+
+	if(ce_pix) begin
+		old_vs <= vs;
+		old_de <= de;
+
+		if(~vs & ~old_de & de) vcnt <= vcnt + 1;
+		if(calch & de) hcnt <= hcnt + 1;
+		if(old_de & ~de) calch <= 0;
+
+		if(old_vs & ~vs) begin
+			if(hcnt && vcnt) begin
+				if(vid_hcnt != hcnt || vid_vcnt != vcnt) vid_nres <= vid_nres + 1'd1;
+				vid_hcnt <= hcnt;
+				vid_vcnt <= vcnt;
+			end
+			vcnt <= 0;
+			hcnt <= 0;
+			calch <= 1;
+		end
+	end
+end
+
+reg [31:0] vid_htime = 0;
+reg [31:0] vid_vtime = 0;
+reg [31:0] vid_pix = 0;
+
+always @(posedge clk_100) begin
+	integer vtime, htime, hcnt;
+	reg old_vs, old_hs, old_vs2, old_hs2, old_de, old_de2;
+	reg calch = 0;
+
+	old_vs <= vs;
+	old_hs <= hs;
+
+	old_vs2 <= old_vs;
+	old_hs2 <= old_hs;
+
+	vtime <= vtime + 1'd1;
+	htime <= htime + 1'd1;
+
+	if(~old_vs2 & old_vs) begin
+		vid_pix <= hcnt;
+		vid_vtime <= vtime;
+		vtime <= 0;
+		hcnt <= 0;
+	end
+
+	if(old_vs2 & ~old_vs) calch <= 1;
+
+	if(~old_hs2 & old_hs) begin
+		vid_htime <= htime;
+		htime <= 0;
+	end
+
+	old_de   <= de;
+	old_de2  <= old_de;
+
+	if(calch & old_de) hcnt <= hcnt + 1;
+	if(old_de2 & ~old_de) calch <= 0;
+end
+
+/////////////////////////////////////////////////////////
 
 always@(posedge clk_sys) begin
 	reg [15:0] cmd;
@@ -277,6 +358,23 @@ always@(posedge clk_sys) begin
 								io_dout <= mouse_data_host;
 								mouse_rd <= 1;
 							end
+						end
+
+					//Video res.
+					'h23: begin
+								case(byte_cnt)
+									1: io_dout <= vid_nres;
+									2: io_dout <= vid_hcnt[15:0];
+									3: io_dout <= vid_hcnt[31:16];
+									4: io_dout <= vid_vcnt[15:0];
+									5: io_dout <= vid_vcnt[31:16];
+									6: io_dout <= vid_htime[15:0];
+									7: io_dout <= vid_htime[31:16];
+									8: io_dout <= vid_vtime[15:0];
+									9: io_dout <= vid_vtime[31:16];
+								  10: io_dout <= vid_pix[15:0];
+								  11: io_dout <= vid_pix[31:16];
+								endcase
 						end
 
 					'h61: begin

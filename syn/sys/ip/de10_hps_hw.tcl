@@ -22,7 +22,7 @@ package require -exact altera_terp 1.0
 package require quartus::advanced_wysiwyg
 
 set_module_property NAME altera_hps_lite
-set_module_property VERSION 16.1
+set_module_property VERSION 17.0
 set_module_property AUTHOR "Altera Corporation/Sorgelig"                
 set_module_property SUPPORTED_DEVICE_FAMILIES {CYCLONEV ARRIAV}
 

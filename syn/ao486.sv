@@ -9,7 +9,7 @@ module emu
 	input         RESET,
 
 	//Must be passed to hps_io module
-	inout  [37:0] HPS_BUS,
+	inout  [43:0] HPS_BUS,
 
 	//Base video clock. Usually equals to CLK_SYS.
 	output        CLK_VIDEO,
@@ -31,7 +31,7 @@ module emu
 
 	output        LED_USER,  // 1 - ON, 0 - OFF.
 
-	// b[1]: 0 - LED status is system status ORed with b[0]
+	// b[1]: 0 - LED status is system status OR'd with b[0]
 	//       1 - LED status is controled solely by b[0]
 	// hint: supply 2'b00 to let the system control the LED.
 	output  [1:0] LED_POWER,
@@ -41,6 +41,12 @@ module emu
 	output [15:0] AUDIO_R,
 	output        AUDIO_S, // 1 - signed audio samples, 0 - unsigned
 	input         TAPE_IN,
+
+	// SD-SPI
+	output        SD_SCK,
+	output        SD_MOSI,
+	input         SD_MISO,
+	output        SD_CS,
 
 	//High latency DDR3 RAM interface
 	//Use for non-critical time purposes
@@ -71,6 +77,7 @@ module emu
 
 assign {SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 6'b111111;
 assign SDRAM_DQ  ='Z;
+assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 
 assign CE_PIXEL  = 1;
 assign VIDEO_ARX = status[1] ? 8'd16 : 8'd4;
@@ -134,7 +141,7 @@ wire  [1:0] dma_status;
 wire  [1:0] dma_req;
 
 
-hps_io #(.STRLEN(($size(CONF_STR))>>3), .WIDE(1), .PS2WE(1)) hps_io
+hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000), .WIDE(1), .PS2WE(1)) hps_io
 (
 	.clk_sys(clk_sys),
 	.conf_str(CONF_STR),

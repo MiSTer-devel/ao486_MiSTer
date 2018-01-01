@@ -53,6 +53,8 @@ module sys_top
 	output [23:0] HDMI_TX_D,
 	output        HDMI_TX_HS,
 	output        HDMI_TX_VS,
+	
+	input         HDMI_TX_INT,
 
 	//////////// SDR ///////////
 	output [12:0] SDRAM_A,
@@ -75,12 +77,21 @@ module sys_top
 	input         BTN_OSD,
 	input         BTN_RESET,
 
+	//////////// SDIO ///////////
+	inout   [3:0] SDIO_DAT,
+	inout         SDIO_CMD,
+	output        SDIO_CLK,
+	input         SDIO_CD,
+
 	////////// MB KEY ///////////
 	input   [1:0] KEY,
 
 	////////// MB LED ///////////
 	output  [7:0] LED
 );
+
+
+assign SDIO_DAT[2:1] = 2'bZZ;
 
 
 //////////////////////////  LEDs  ///////////////////////////////////////
@@ -172,18 +183,26 @@ cyclonev_hps_interface_mpu_general_purpose h2f_gp
 
 reg [15:0] cfg;
 
-reg  cfg_ready = 0;
-wire audio_96k = cfg[6];
-wire ypbpr_en  = cfg[5];
-wire csync     = cfg[3];
+reg        cfg_got   = 0;
+//wire [2:0] hdmi_res  = cfg[10:8];
+wire       dvi_mode  = cfg[7];
+wire       audio_96k = cfg[6];
+wire       ypbpr_en  = cfg[5];
+wire       csync     = cfg[3];
 `ifndef LITE
 wire vga_scaler= cfg[2];
 `endif
+
+reg        cfg_custom   = 0;
+reg        cfg_custom_t = 0;
+reg  [5:0] cfg_custom_p1;
+reg [31:0] cfg_custom_p2;
 
 always@(posedge clk_sys) begin
 	reg  [7:0] cmd;
 	reg        has_cmd;
 	reg        old_strobe;
+	reg  [7:0] cnt = 0;
 
 	old_strobe <= io_strobe;
 
@@ -193,15 +212,46 @@ always@(posedge clk_sys) begin
 		if(!has_cmd) begin
 			has_cmd <= 1;
 			cmd <= io_din[7:0];
+			cnt <= 0;
 		end
 		else
 		if(cmd == 1) begin
 			cfg <= io_din;
-			cfg_ready <= 1;
+			cfg_got <= 1;
+		end
+		else
+		if(cmd == 'h20) begin
+			cnt <= cnt + 1'd1;
+			if(cnt<8) begin
+				case(cnt)
+					0: WIDTH  = io_din[11:0];
+					1: HFP    = io_din[11:0];
+					2: HS     = io_din[11:0];
+					3: HBP    = io_din[11:0];
+					4: HEIGHT = io_din[11:0];
+					5: VFP    = io_din[11:0];
+					6: VS     = io_din[11:0];
+					7: VBP    = io_din[11:0];
+				endcase
+				if(!cnt) begin
+					cfg_custom_p1 <= 0;
+					cfg_custom_p2 <= 0;
+					cfg_custom_t <= ~cfg_custom_t;
+				end
+			end
+			else begin
+				cfg_custom <= 1;
+				if(cnt[1:0]==0) cfg_custom_p1 <= io_din[5:0];
+				if(cnt[1:0]==1) cfg_custom_p2[15:0]  <= io_din;
+				if(cnt[1:0]==2) begin
+					cfg_custom_p2[31:16] <= io_din;
+					cfg_custom_t <= ~cfg_custom_t;
+					cnt[1:0] <= 0;
+				end
+			end
 		end
 	end
 end
-
 
 ///////////////////////////  RESET  ///////////////////////////////////
 
@@ -223,6 +273,8 @@ always @(posedge FPGA_CLK2_50) begin
 	resetd2 <= resetd;
 end
 
+// 100MHz
+wire clk_ctl;
 
 ///////////////////////// VIP version  ///////////////////////////////
 
@@ -232,7 +284,7 @@ wire reset;
 vip vip
 (
 	//Reset/Clock
-	.reset_reset_req(reset_req),
+	.reset_reset_req(reset_req | ~cfg_ready),
 	.reset_reset(reset),
 
 	//DE10-nano has no reset signal on GPIO, so core has to emulate cold reset button.
@@ -244,7 +296,7 @@ vip vip
 	.ctl_write(ctl_write),
 	.ctl_writedata(ctl_writedata),
 	.ctl_waitrequest(ctl_waitrequest),
-	.ctl_clock(ctl_clk),
+	.ctl_clock(clk_ctl),
 	.ctl_reset(ctl_reset),
 
 	//64-bit DDR3 RAM access
@@ -298,16 +350,24 @@ wire        ctl_write;
 wire [31:0] ctl_writedata;
 wire        ctl_waitrequest;
 wire        ctl_reset;
-wire        ctl_clk;
 wire  [7:0] ARX, ARY;
 
 vip_config vip_config
 (
-	.clk(ctl_clk),
+	.clk(clk_ctl),
 	.reset(ctl_reset),
 
 	.ARX(ARX),
 	.ARY(ARY),
+
+	.WIDTH(WIDTH),
+	.HFP(HFP),
+	.HBP(HBP),
+	.HS(HS),
+	.HEIGHT(HEIGHT),
+	.VFP(VFP),
+	.VBP(VBP),
+	.VS(VS),
 
 	.address(ctl_address),
 	.write(ctl_write),
@@ -321,45 +381,22 @@ vip_config vip_config
 
 `ifdef LITE
 
-wire        INTERLACED = 0;
-wire [11:0] V_TOTAL_0 = 750;
-wire [11:0] V_FP_0 = 5;
-wire [11:0] V_BP_0 = 20;
-wire [11:0] V_SYNC_0 = 5;
-wire [11:0] V_TOTAL_1 = 0;
-wire [11:0] V_FP_1 = 0;
-wire [11:0] V_BP_1 = 0;
-wire [11:0] V_SYNC_1 = 0;
-wire [11:0] H_TOTAL = 1650;
-wire [11:0] H_FP = 110;
-wire [11:0] H_BP = 220;
-wire [11:0] H_SYNC = 40;
-wire [11:0] HV_OFFSET_0 = 0;
-wire [11:0] HV_OFFSET_1 = 0;
-
 wire [11:0] x;
-wire [12:0] y;
+wire [11:0] y;
 
 sync_vg #(.X_BITS(12), .Y_BITS(12)) sync_vg
 (
 	.clk(HDMI_TX_CLK),
 	.reset(reset),
-	.interlaced(INTERLACED),
-	.clk_out(), // inverted output clock - unconnected
-	.v_total_0(V_TOTAL_0),
-	.v_fp_0(V_FP_0),
-	.v_bp_0(V_BP_0),
-	.v_sync_0(V_SYNC_0),
-	.v_total_1(V_TOTAL_1),
-	.v_fp_1(V_FP_1),
-	.v_bp_1(V_BP_1),
-	.v_sync_1(V_SYNC_1),
-	.h_total(H_TOTAL),
-	.h_fp(H_FP),
-	.h_bp(H_BP),
-	.h_sync(H_SYNC),
-	.hv_offset_0(HV_OFFSET_0),
-	.hv_offset_1(HV_OFFSET_1),
+	.v_total(HEIGHT+VFP+VBP+VS),
+	.v_fp(VFP),
+	.v_bp(VBP),
+	.v_sync(VS),
+	.h_total(WIDTH+HFP+HBP+HS),
+	.h_fp(HFP),
+	.h_bp(HBP),
+	.h_sync(HS),
+	.hv_offset(0),
 	.vde_out(vde),
 	.hde_out(hde),
 	.vs_out(vs_hdmi),
@@ -367,45 +404,12 @@ sync_vg #(.X_BITS(12), .Y_BITS(12)) sync_vg
 	.h_count_out(),
 	.x_out(x),
 	.y_out(y),
-	.hs_out(hs_hdmi),
-	.field_out(field)
+	.hs_out(hs_hdmi)
 );
 
 wire vde, hde;
 wire vs_hdmi;
 wire hs_hdmi;
-wire field;
-
-pattern_vg
-#(
-	.B(8), // Bits per channel
-	.X_BITS(12),
-	.Y_BITS(12),
-	.FRACTIONAL_BITS(12) // Number of fractional bits for ramp pattern
-)
-pattern_vg
-(
-	.reset(reset),
-	.clk_in(HDMI_TX_CLK),
-	.x(x),
-	.y(y[11:0]),
-	.vn_in(vs_hdmi),
-	.hn_in(hs_hdmi),
-	.dn_in(vde & hde),
-	.r_in(0),
-	.g_in(0),
-	.b_in(0),
-	.vn_out(HDMI_TX_VS),
-	.hn_out(HDMI_TX_HS),
-	.den_out(HDMI_TX_DE),
-	.r_out(hdmi_data[23:16]),
-	.g_out(hdmi_data[15:8]),
-	.b_out(hdmi_data[7:0]),
-	.total_active_pix(H_TOTAL - (H_FP + H_BP + H_SYNC)),
-	.total_active_lines(INTERLACED ? (V_TOTAL_0 - (V_FP_0 + V_BP_0 + V_SYNC_0)) + (V_TOTAL_1 - (V_FP_1 + V_BP_1 + V_SYNC_1)) : (V_TOTAL_0 - (V_FP_0 + V_BP_0 + V_SYNC_0))), // originally: 13'd480
-	.pattern(4),
-	.ramp_step(20'h0333)
-);
 
 wire reset;
 sysmem_lite sysmem
@@ -413,6 +417,7 @@ sysmem_lite sysmem
 	//Reset/Clock
 	.reset_reset_req(reset_req),
 	.reset_reset(reset),
+	.ctl_clock(clk_ctl),
 
 	//DE10-nano has no reset signal on GPIO, so core has to emulate cold reset button.
 	.reset_cold_req(~btn_reset),
@@ -442,7 +447,67 @@ sysmem_lite sysmem
 	.ram2_read(0),
 	.ram2_writedata(0),
 	.ram2_byteenable(0),
-	.ram2_write(0)
+	.ram2_write(0),
+
+	// HDMI frame buffer
+	.vbuf_clk(clk_ctl),
+	.vbuf_address(vbuf_address),
+	.vbuf_burstcount(vbuf_burstcount),
+	.vbuf_waitrequest(vbuf_waitrequest),
+	.vbuf_writedata(vbuf_writedata),
+	.vbuf_byteenable(vbuf_byteenable),
+	.vbuf_write(vbuf_write),
+	.vbuf_readdata(vbuf_readdata),
+	.vbuf_readdatavalid(vbuf_readdatavalid),
+	.vbuf_read(vbuf_read)
+);
+
+wire  [27:0] vbuf_address;
+wire   [7:0] vbuf_burstcount;
+wire         vbuf_waitrequest;
+wire [127:0] vbuf_readdata;
+wire         vbuf_readdatavalid;
+wire         vbuf_read;
+wire [127:0] vbuf_writedata;
+wire  [15:0] vbuf_byteenable;
+wire         vbuf_write;
+
+assign HDMI_TX_VS = vs_hdmi;
+assign HDMI_TX_HS = hs_hdmi;
+
+hdmi_lite hdmi_lite
+(
+	.reset(reset),
+
+	.clk_video(clk_vid),
+	.ce_pixel(ce_pix),
+	.video_vs(vs),
+	.video_de(de),
+	.video_d({r_out,g_out,b_out}),
+
+	.clk_hdmi(HDMI_TX_CLK),
+	.hdmi_hde(hde),
+	.hdmi_vde(vde),
+	.hdmi_d(hdmi_data),
+	.hdmi_de(HDMI_TX_DE),
+
+	.screen_w(WIDTH),
+	.screen_h(HEIGHT),
+	.quadbuf(1),
+	.scale_x(0),
+	.scale_y(0),
+	.scale_auto(1),
+
+	.clk_vbuf(clk_ctl),
+	.vbuf_address(vbuf_address),
+	.vbuf_burstcount(vbuf_burstcount),
+	.vbuf_waitrequest(vbuf_waitrequest),
+	.vbuf_writedata(vbuf_writedata),
+	.vbuf_byteenable(vbuf_byteenable),
+	.vbuf_write(vbuf_write),
+	.vbuf_readdata(vbuf_readdata),
+	.vbuf_readdatavalid(vbuf_readdatavalid),
+	.vbuf_read(vbuf_read)
 );
 
 `endif
@@ -453,20 +518,93 @@ sysmem_lite sysmem
 pll_hdmi pll_hdmi
 (
 	.refclk(FPGA_CLK1_50),
-	.rst(reset),
+	.rst(reset_req),
+	.reconfig_to_pll(reconfig_to_pll),
+	.reconfig_from_pll(reconfig_from_pll),
 	.outclk_0(HDMI_TX_CLK)
 );
+
+//1280x720@60 PCLK=74.25MHz CEA
+reg  [11:0] WIDTH  = 1280;
+reg  [11:0] HFP    = 110;
+reg  [11:0] HS     = 40;
+reg  [11:0] HBP    = 220;
+reg  [11:0] HEIGHT = 720;
+reg  [11:0] VFP    = 5;
+reg  [11:0] VS     = 5;
+reg  [11:0] VBP    = 20;
+
+wire [63:0] reconfig_to_pll;
+wire [63:0] reconfig_from_pll;
+wire        cfg_waitrequest;
+reg         cfg_write;
+reg   [5:0] cfg_address;
+reg  [31:0] cfg_data;
+
+pll_hdmi_cfg pll_hdmi_cfg
+(
+	.mgmt_clk(FPGA_CLK1_50),
+	.mgmt_reset(reset_req),
+	.mgmt_waitrequest(cfg_waitrequest),
+	.mgmt_read(0),
+	.mgmt_readdata(),
+	.mgmt_write(cfg_write),
+	.mgmt_address(cfg_address),
+	.mgmt_writedata(cfg_data),
+	.reconfig_to_pll(reconfig_to_pll),
+	.reconfig_from_pll(reconfig_from_pll)
+);
+
+reg cfg_ready = 0;
+
+always @(posedge FPGA_CLK1_50) begin
+	reg [1:0] stage = 0;
+	reg gotd = 0, gotd2 = 0;
+	reg custd = 0, custd2 = 0;
+	reg old_wait = 0;
+
+	gotd  <= cfg_got;
+	gotd2 <= gotd;
+	
+	cfg_write <= 0;
+	if(~gotd2 & gotd) begin
+		stage <= stage + 1'd1;
+		if(~cfg_custom) begin
+			stage <= 3;
+			cfg_ready <= 1;
+		end
+	end
+	
+	custd <= cfg_custom_t;
+	custd2 <= custd;
+	if(custd2 != custd & ~gotd) begin
+		cfg_address <= cfg_custom_p1;
+		cfg_data <= cfg_custom_p2;
+		cfg_write <= 1;
+	end
+
+	if(stage == 1) begin
+		cfg_address <= 2;
+		cfg_data <= 0;
+		cfg_write <= 1;
+		stage <= stage + 1'd1;
+	end
+
+	old_wait <= cfg_waitrequest;
+	if(old_wait & ~cfg_waitrequest & gotd) cfg_ready <= 1;
+end
+
 
 hdmi_config hdmi_config
 (
 	.iCLK(FPGA_CLK1_50),
-	.iRST_N(cfg_ready),
+	.iRST_N(cfg_ready & ~HDMI_TX_INT),
+
 	.I2C_SCL(HDMI_I2C_SCL),
 	.I2C_SDA(HDMI_I2C_SDA),
 
-	.audio_48k(~audio_96k),
-	.iRES(4), // 720p
-	.iAR(1)   // Aspect Ratio
+	.dvi_mode(dvi_mode),
+	.audio_96k(audio_96k)
 );
 
 wire [23:0] hdmi_data;
@@ -602,11 +740,15 @@ wire        led_user;
 wire  [1:0] led_power;
 wire  [1:0] led_disk;
 
+wire vs_emu, hs_emu;
+sync_fix sync_v(FPGA_CLK3_50, vs_emu, vs);
+sync_fix sync_h(FPGA_CLK3_50, hs_emu, hs);
+
 emu emu
 (
 	.CLK_50M(FPGA_CLK3_50),
 	.RESET(reset),
-	.HPS_BUS({io_wait, clk_sys, io_fpga, io_uio, io_strobe, io_wide, io_din, io_dout}),
+	.HPS_BUS({clk_ctl, clk_vid, ce_pix, de, hs, vs, io_wait, clk_sys, io_fpga, io_uio, io_strobe, io_wide, io_din, io_dout}),
 
 	.CLK_VIDEO(clk_vid),
 	.CE_PIXEL(ce_pix),
@@ -614,8 +756,8 @@ emu emu
 	.VGA_R(r_out),
 	.VGA_G(g_out),
 	.VGA_B(b_out),
-	.VGA_HS(hs),
-	.VGA_VS(vs),
+	.VGA_HS(hs_emu),
+	.VGA_VS(vs_emu),
 	.VGA_DE(de),
 
 	.LED_USER(led_user),
@@ -631,6 +773,18 @@ emu emu
 	.AUDIO_R(audio_r),
 	.AUDIO_S(audio_s),
 	.TAPE_IN(0),
+
+	// SCK  -> CLK
+	// MOSI -> CMD
+	// MISO <- DAT0
+	//    Z -> DAT1
+	//    Z -> DAT2
+	// CS   -> DAT3
+
+	.SD_SCK(SDIO_CLK),
+	.SD_MOSI(SDIO_CMD),
+	.SD_MISO(SDIO_DAT[0]),
+	.SD_CS(SDIO_DAT[3]),
 
 	.DDRAM_CLK(ram_clk),
 	.DDRAM_ADDR(ram_address),
@@ -655,5 +809,34 @@ emu emu
 	.SDRAM_CLK(SDRAM_CLK),
 	.SDRAM_CKE(SDRAM_CKE)
 );
+
+endmodule
+
+module sync_fix
+(
+	input clk,
+	
+	input sync_in,
+	output sync_out
+);
+
+assign sync_out = sync_in ^ pol;
+
+reg pol;
+always @(posedge clk) begin
+	integer pos = 0, neg = 0, cnt = 0;
+	reg s1,s2;
+
+	s1 <= sync_in;
+	s2 <= s1;
+
+	if(~s2 & s1) neg <= cnt;
+	if(s2 & ~s1) pos <= cnt;
+
+	cnt <= cnt + 1;
+	if(s2 != s1) cnt <= 0;
+
+	pol <= pos > neg;
+end
 
 endmodule

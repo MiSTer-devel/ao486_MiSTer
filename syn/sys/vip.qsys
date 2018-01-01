@@ -21,7 +21,7 @@
    {
       datum _sortIndex
       {
-         value = "5";
+         value = "3";
          type = "int";
       }
    }
@@ -37,7 +37,7 @@
    {
       datum _sortIndex
       {
-         value = "4";
+         value = "5";
          type = "int";
       }
    }
@@ -53,7 +53,7 @@
    {
       datum _sortIndex
       {
-         value = "3";
+         value = "4";
          type = "int";
       }
    }
@@ -531,7 +531,7 @@
    internal="Reset_Source.reset_ctl"
    type="conduit"
    dir="end" />
- <module name="Controller" kind="avalon_combiner" version="1.0" enabled="1" />
+ <module name="Controller" kind="avalon_combiner" version="17.0" enabled="1" />
  <module name="Frame_Buffer" kind="alt_vip_cl_vfb" version="17.0" enabled="1">
   <parameter name="AUTO_DEVICE" value="5CSEBA6U23I7" />
   <parameter name="AUTO_DEVICE_SPEEDGRADE" value="7" />
@@ -570,7 +570,7 @@
   <parameter name="WRITE_BURST_TARGET" value="32" />
   <parameter name="WRITE_FIFO_DEPTH" value="512" />
  </module>
- <module name="HPS" kind="altera_hps_lite" version="16.1" enabled="1">
+ <module name="HPS" kind="altera_hps_lite" version="17.0" enabled="1">
   <parameter name="AUTO_DEVICE_SPEEDGRADE" value="7" />
   <parameter name="BONDING_OUT_ENABLED" value="false" />
   <parameter name="BOOTFROMFPGA_Enable" value="false" />
@@ -808,7 +808,7 @@
   <parameter name="USER_PACKET_FIFO_DEPTH" value="0" />
   <parameter name="USER_PACKET_SUPPORT" value="DISCARD" />
  </module>
- <module name="Reset_Source" kind="reset_source" version="1.0" enabled="1" />
+ <module name="Reset_Source" kind="reset_source" version="17.0" enabled="1" />
  <module name="Scaler" kind="alt_vip_cl_scl" version="17.0" enabled="1">
   <parameter name="ALGORITHM_NAME" value="BICUBIC" />
   <parameter name="ALWAYS_DOWNSCALE" value="0" />
@@ -981,12 +981,12 @@
    kind="avalon_streaming"
    version="17.0"
    start="Frame_Buffer.dout"
-   end="Video_Output.din" />
+   end="Scaler.din" />
  <connection
    kind="avalon_streaming"
    version="17.0"
    start="Mixer.dout"
-   end="Frame_Buffer.din" />
+   end="Video_Output.din" />
  <connection
    kind="avalon_streaming"
    version="17.0"
@@ -996,7 +996,7 @@
    kind="avalon_streaming"
    version="17.0"
    start="Video_Input.dout_0"
-   end="Scaler.din" />
+   end="Frame_Buffer.din" />
  <connection
    kind="clock"
    version="17.0"
