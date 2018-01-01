@@ -224,14 +224,14 @@ always@(posedge clk_sys) begin
 			cnt <= cnt + 1'd1;
 			if(cnt<8) begin
 				case(cnt)
-					0: WIDTH  = io_din[11:0];
-					1: HFP    = io_din[11:0];
-					2: HS     = io_din[11:0];
-					3: HBP    = io_din[11:0];
-					4: HEIGHT = io_din[11:0];
-					5: VFP    = io_din[11:0];
-					6: VS     = io_din[11:0];
-					7: VBP    = io_din[11:0];
+					0: WIDTH  <= io_din[11:0];
+					1: HFP    <= io_din[11:0];
+					2: HS     <= io_din[11:0];
+					3: HBP    <= io_din[11:0];
+					4: HEIGHT <= io_din[11:0];
+					5: VFP    <= io_din[11:0];
+					6: VS     <= io_din[11:0];
+					7: VBP    <= io_din[11:0];
 				endcase
 				if(!cnt) begin
 					cfg_custom_p1 <= 0;
@@ -410,6 +410,40 @@ sync_vg #(.X_BITS(12), .Y_BITS(12)) sync_vg
 wire vde, hde;
 wire vs_hdmi;
 wire hs_hdmi;
+
+/*
+
+pattern_vg
+#(
+	.B(8), // Bits per channel
+	.X_BITS(12),
+	.Y_BITS(12),
+	.FRACTIONAL_BITS(12) // Number of fractional bits for ramp pattern
+)
+pattern_vg
+(
+	.reset(reset),
+	.clk_in(HDMI_TX_CLK),
+	.x(x),
+	.y(y),
+	.vn_in(vs_hdmi),
+	.hn_in(hs_hdmi),
+	.dn_in(vde & hde),
+	.r_in(0),
+	.g_in(0),
+	.b_in(0),
+	.vn_out(HDMI_TX_VS),
+	.hn_out(HDMI_TX_HS),
+	.den_out(HDMI_TX_DE),
+	.r_out(hdmi_data[23:16]),
+	.g_out(hdmi_data[15:8]),
+	.b_out(hdmi_data[7:0]),
+	.total_active_pix(WIDTH),
+	.total_active_lines(HEIGHT),
+	.pattern(4),
+	.ramp_step(20'h0333)
+);
+*/
 
 wire reset;
 sysmem_lite sysmem
@@ -716,11 +750,39 @@ spdif toslink
 	.spdif_o(AUDIO_SPDIF)
 );
 
+reg [15:0] audio_l; 
+reg [15:0] audio_r;
+
+always @(*) begin
+	case({audio_s,audio_mix})
+		'b000: audio_l = audio_ls;
+		'b001: audio_l = audio_ls - (audio_ls >> 3) + (audio_rs >> 3);
+		'b010: audio_l = audio_ls - (audio_ls >> 2) + (audio_rs >> 2);
+		'b011: audio_l = (audio_ls >> 1) + (audio_rs >> 1);
+		'b100: audio_l = audio_ls;
+		'b101: audio_l = audio_ls - (audio_ls >>> 3) + (audio_rs >>> 3);
+		'b110: audio_l = audio_ls - (audio_ls >>> 2) + (audio_rs >>> 2);
+		'b111: audio_l = (audio_ls >>> 1) + (audio_rs >>> 1);
+	endcase
+
+	case({audio_s,audio_mix})
+		'b000: audio_r = audio_rs;
+		'b001: audio_r = audio_rs - (audio_rs >> 3) + (audio_ls >> 3);
+		'b010: audio_r = audio_rs - (audio_rs >> 2) + (audio_ls >> 2);
+		'b011: audio_r = (audio_rs >> 1) + (audio_ls >> 1);
+		'b100: audio_r = audio_rs;
+		'b101: audio_r = audio_rs - (audio_rs >>> 3) + (audio_ls >>> 3);
+		'b110: audio_r = audio_rs - (audio_rs >>> 2) + (audio_ls >>> 2);
+		'b111: audio_r = (audio_rs >>> 1) + (audio_ls >>> 1);
+	endcase
+end
+
 
 ///////////////////  User module connection ////////////////////////////
 
-wire [15:0] audio_l, audio_r;
+wire signed [15:0] audio_ls, audio_rs;
 wire        audio_s;
+wire  [1:0] audio_mix;
 wire  [7:0] r_out, g_out, b_out;
 wire        vs, hs, de;
 wire        clk_sys, clk_vid, ce_pix;
@@ -769,9 +831,10 @@ emu emu
 	.VIDEO_ARY(ARY),
 `endif
 
-	.AUDIO_L(audio_l),
-	.AUDIO_R(audio_r),
+	.AUDIO_L(audio_ls),
+	.AUDIO_R(audio_rs),
 	.AUDIO_S(audio_s),
+	.AUDIO_MIX(audio_mix),
 	.TAPE_IN(0),
 
 	// SCK  -> CLK

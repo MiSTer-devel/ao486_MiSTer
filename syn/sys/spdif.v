@@ -62,6 +62,40 @@ module spdif
     output       sample_req_o
 );
 
+reg lpf_ce;
+always @(negedge clk_i) begin
+	reg [3:0] div;
+
+	div <= div + 1'd1;
+	if(div == 13) div <= 0;
+
+	lpf_ce <= !div;
+end
+
+wire [15:0] al, ar;
+
+lpf48k #(15) lpf_l
+(
+   .RESET(rst_i),
+   .CLK(clk_i),
+   .CE(lpf_ce),
+	.ENABLE(1),
+
+   .IDATA(audio_l),
+   .ODATA(al)
+);
+
+lpf48k #(15) lpf_r
+(
+   .RESET(rst_i),
+   .CLK(clk_i),
+   .CE(lpf_ce),
+	.ENABLE(1),
+
+   .IDATA(audio_r),
+   .ODATA(ar)
+);
+
 reg         bit_clk_q;
 
 // Clock pulse generator
@@ -104,7 +138,7 @@ end
 // Core SPDIF
 //-----------------------------------------------------------------
 
-wire [31:0] sample_i = {audio_r, audio_l};
+wire [31:0] sample_i = {ar, al};
 
 spdif_core
 u_core

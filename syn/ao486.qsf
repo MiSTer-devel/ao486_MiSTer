@@ -56,7 +56,7 @@ set_global_assignment -name ALM_REGISTER_PACKING_EFFORT HIGH
 set_global_assignment -name REMOVE_REDUNDANT_LOGIC_CELLS ON
 set_global_assignment -name OPTIMIZE_POWER_DURING_SYNTHESIS OFF
 set_global_assignment -name PRE_MAPPING_RESYNTHESIS ON
-set_global_assignment -name SEED 2
+set_global_assignment -name SEED 3
 
 #============================================================
 # ADC
