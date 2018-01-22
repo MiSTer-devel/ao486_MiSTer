@@ -1,5 +1,5 @@
 
-module I2C_Controller
+module i2c
 (
 	input        CLK,
 

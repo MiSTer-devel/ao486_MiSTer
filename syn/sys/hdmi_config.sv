@@ -20,7 +20,7 @@ wire       mI2C_ACK;
 reg [15:0] LUT_DATA;
 reg  [7:0] LUT_INDEX = 0;
 
-I2C_Controller #(50_000_000, 400_000) i2c_av
+i2c #(50_000_000, 20_000) i2c_av
 (
 	.CLK(iCLK),
 
@@ -66,8 +66,8 @@ end
 
 wire [15:0] init_data[58] = 
 '{
-	16'h4110,					// Power Down control
 	16'h9803,					// ADI required Write.
+	16'h4110,					// Power Down control
 	16'h9A70,					// ADI required Write.
 	16'h9C30,					// ADI required Write.
 	{8'h9D, 8'b0110_0001},	// [7:4] must be b0110!.

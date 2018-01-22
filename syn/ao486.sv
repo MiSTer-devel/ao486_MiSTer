@@ -134,7 +134,7 @@ localparam CONF_STR =
 	"OX2,Boot order,FDD/HDD,HDD/FDD;",
 	"T0,Reset and apply HDD;",
 	"V,v1.00.",`BUILD_DATE,
-	";+,.;"
+	";+,..;"
 };
 
 
@@ -218,6 +218,13 @@ wire [15:0] sb_out_l, sb_out_r;
 
 wire        device;
 
+wire        de;
+reg  [15:0] ded;
+always @(posedge CLK_VIDEO) ded <= (ded<<1) | de;
+
+// ugly fix of right black border.
+assign VGA_DE = de & ded[15];
+
 system u0
 (
 	.clk_clk              (CLK_50M),
@@ -226,7 +233,7 @@ system u0
 	.pll_reset_reset      (0),
 
 	.vga_clock            (CLK_VIDEO),
-	.vga_blank_n          (VGA_DE),
+	.vga_blank_n          (de),
 	.vga_hsync            (VGA_HS),
 	.vga_vsync            (VGA_VS),
 	.vga_r                (VGA_R),
