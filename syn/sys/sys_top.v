@@ -196,7 +196,6 @@ wire       csync     = cfg[3];
 wire vga_scaler= cfg[2];
 `endif
 
-reg        cfg_custom   = 0;
 reg        cfg_custom_t = 0;
 reg  [5:0] cfg_custom_p1;
 reg [31:0] cfg_custom_p2;
@@ -224,6 +223,7 @@ always@(posedge clk_sys) begin
 		end
 		else
 		if(cmd == 'h20) begin
+			cfg_got <= 0;
 			cnt <= cnt + 1'd1;
 			if(cnt<8) begin
 				case(cnt)
@@ -243,7 +243,6 @@ always@(posedge clk_sys) begin
 				end
 			end
 			else begin
-				cfg_custom <= 1;
 				if(cnt[1:0]==0) cfg_custom_p1 <= io_din[5:0];
 				if(cnt[1:0]==1) cfg_custom_p2[15:0]  <= io_din;
 				if(cnt[1:0]==2) begin
@@ -599,7 +598,6 @@ pll_hdmi_cfg pll_hdmi_cfg
 reg cfg_ready = 0;
 
 always @(posedge FPGA_CLK1_50) begin
-	reg [1:0] stage = 0;
 	reg gotd = 0, gotd2 = 0;
 	reg custd = 0, custd2 = 0;
 	reg old_wait = 0;
@@ -608,13 +606,6 @@ always @(posedge FPGA_CLK1_50) begin
 	gotd2 <= gotd;
 	
 	cfg_write <= 0;
-	if(~gotd2 & gotd) begin
-		stage <= stage + 1'd1;
-		if(~cfg_custom) begin
-			stage <= 3;
-			cfg_ready <= 1;
-		end
-	end
 	
 	custd <= cfg_custom_t;
 	custd2 <= custd;
@@ -624,17 +615,16 @@ always @(posedge FPGA_CLK1_50) begin
 		cfg_write <= 1;
 	end
 
-	if(stage == 1) begin
+	if(~gotd2 & gotd) begin
 		cfg_address <= 2;
 		cfg_data <= 0;
 		cfg_write <= 1;
-		stage <= stage + 1'd1;
 	end
 
 	old_wait <= cfg_waitrequest;
 	if(old_wait & ~cfg_waitrequest & gotd) cfg_ready <= 1;
+	if(~gotd) cfg_ready <= 0;
 end
-
 
 hdmi_config hdmi_config
 (
