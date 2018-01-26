@@ -13,7 +13,7 @@
    {
       datum _sortIndex
       {
-         value = "7";
+         value = "8";
          type = "int";
       }
    }
@@ -21,7 +21,7 @@
    {
       datum _sortIndex
       {
-         value = "3";
+         value = "4";
          type = "int";
       }
    }
@@ -29,7 +29,7 @@
    {
       datum _sortIndex
       {
-         value = "1";
+         value = "2";
          type = "int";
       }
    }
@@ -37,7 +37,7 @@
    {
       datum _sortIndex
       {
-         value = "5";
+         value = "6";
          type = "int";
       }
    }
@@ -45,7 +45,7 @@
    {
       datum _sortIndex
       {
-         value = "0";
+         value = "1";
          type = "int";
       }
    }
@@ -53,7 +53,15 @@
    {
       datum _sortIndex
       {
-         value = "4";
+         value = "5";
+         type = "int";
+      }
+   }
+   element VClock
+   {
+      datum _sortIndex
+      {
+         value = "0";
          type = "int";
       }
    }
@@ -61,7 +69,7 @@
    {
       datum _sortIndex
       {
-         value = "2";
+         value = "3";
          type = "int";
       }
    }
@@ -69,7 +77,7 @@
    {
       datum _sortIndex
       {
-         value = "6";
+         value = "7";
          type = "int";
       }
    }
@@ -510,6 +518,7 @@
  <parameter name="timeStamp" value="0" />
  <parameter name="useTestBenchNamingPattern" value="false" />
  <instanceScript></instanceScript>
+ <interface name="clk100" internal="HPS.h2f_user0_clock" type="clock" dir="start" />
  <interface name="ctl" internal="Controller.control" type="conduit" dir="end" />
  <interface name="finish" internal="Reset_Source.reset_cold_req" />
  <interface
@@ -531,6 +540,7 @@
    internal="Reset_Source.reset_ctl"
    type="conduit"
    dir="end" />
+ <interface name="vclk" internal="VClock.in_clk" type="clock" dir="end" />
  <module name="Controller" kind="avalon_combiner" version="17.0" enabled="1" />
  <module name="Frame_Buffer" kind="alt_vip_cl_vfb" version="17.0" enabled="1">
   <parameter name="AUTO_DEVICE" value="5CSEBA6U23I7" />
@@ -592,7 +602,7 @@
   <parameter name="EMAC1_PTP" value="false" />
   <parameter name="EMAC1_PinMuxing" value="Unused" />
   <parameter name="F2H_AXI_CLOCK_FREQ" value="100" />
-  <parameter name="F2H_SDRAM0_CLOCK_FREQ" value="100000000" />
+  <parameter name="F2H_SDRAM0_CLOCK_FREQ" value="0" />
   <parameter name="F2H_SDRAM1_CLOCK_FREQ" value="0" />
   <parameter name="F2H_SDRAM2_CLOCK_FREQ" value="0" />
   <parameter name="F2H_SDRAM3_CLOCK_FREQ" value="100" />
@@ -857,6 +867,11 @@
   <parameter name="V_SYMMETRIC" value="0" />
   <parameter name="V_TAPS" value="4" />
  </module>
+ <module name="VClock" kind="altera_clock_bridge" version="17.0" enabled="1">
+  <parameter name="DERIVED_CLOCK_RATE" value="0" />
+  <parameter name="EXPLICIT_CLOCK_RATE" value="0" />
+  <parameter name="NUM_CLOCK_OUTPUTS" value="1" />
+ </module>
  <module name="Video_Input" kind="alt_vip_cl_cvi" version="17.0" enabled="1">
   <parameter name="ACCEPT_COLOURS_IN_SEQ" value="0" />
   <parameter name="ANC_DEPTH" value="1" />
@@ -1000,47 +1015,47 @@
  <connection
    kind="clock"
    version="17.0"
-   start="HPS.h2f_user0_clock"
+   start="VClock.out_clk"
    end="Reset_Source.clock" />
  <connection
    kind="clock"
    version="17.0"
-   start="HPS.h2f_user0_clock"
+   start="VClock.out_clk"
    end="Controller.clock" />
  <connection
    kind="clock"
    version="17.0"
-   start="HPS.h2f_user0_clock"
+   start="VClock.out_clk"
    end="HPS.f2h_sdram0_clock" />
  <connection
    kind="clock"
    version="17.0"
-   start="HPS.h2f_user0_clock"
+   start="VClock.out_clk"
    end="Video_Input.main_clock" />
  <connection
    kind="clock"
    version="17.0"
-   start="HPS.h2f_user0_clock"
-   end="Scaler.main_clock" />
- <connection
-   kind="clock"
-   version="17.0"
-   start="HPS.h2f_user0_clock"
-   end="Mixer.main_clock" />
- <connection
-   kind="clock"
-   version="17.0"
-   start="HPS.h2f_user0_clock"
-   end="Video_Output.main_clock" />
- <connection
-   kind="clock"
-   version="17.0"
-   start="HPS.h2f_user0_clock"
+   start="VClock.out_clk"
    end="Frame_Buffer.main_clock" />
  <connection
    kind="clock"
    version="17.0"
-   start="HPS.h2f_user0_clock"
+   start="VClock.out_clk"
+   end="Scaler.main_clock" />
+ <connection
+   kind="clock"
+   version="17.0"
+   start="VClock.out_clk"
+   end="Mixer.main_clock" />
+ <connection
+   kind="clock"
+   version="17.0"
+   start="VClock.out_clk"
+   end="Video_Output.main_clock" />
+ <connection
+   kind="clock"
+   version="17.0"
+   start="VClock.out_clk"
    end="Frame_Buffer.mem_clock" />
  <connection
    kind="reset"
