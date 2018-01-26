@@ -1,5 +1,5 @@
 //
-// hps_io.v
+// hps_io.v (ao486 only!)
 //
 // mist_io-like module for the Terasic DE10 board
 //
@@ -22,15 +22,12 @@
 ///////////////////////////////////////////////////////////////////////
 
 //
-// Use buffer to access SD card. It's time-critical part.
 //
 // for synchronous projects default value for PS2DIV is fine for any frequency of system clock.
 // clk_ps2 = CLK_SYS/(PS2DIV*2)
 //
 
-// WIDE=1 for 16 bit file I/O
-// VDNUM 1-4
-module hps_io #(parameter STRLEN=0, PS2DIV=2000, WIDE=0, VDNUM=1, PS2WE=0)
+module hps_io #(parameter STRLEN=0, PS2DIV=2000)
 (
 	input             clk_sys,
 	inout      [43:0] HPS_BUS,
@@ -40,42 +37,11 @@ module hps_io #(parameter STRLEN=0, PS2DIV=2000, WIDE=0, VDNUM=1, PS2WE=0)
 
 	output reg [15:0] joystick_0,
 	output reg [15:0] joystick_1,
-	output reg [15:0] joystick_analog_0,
-	output reg [15:0] joystick_analog_1,
 
 	output      [1:0] buttons,
-	output            forced_scandoubler,
 
 	output reg [31:0] status,
 
-	// SD config
-	output reg [VD:0] img_mounted,  // signaling that new image has been mounted
-	output reg        img_readonly, // mounted as read only. valid only for active bit in img_mounted
-	output reg [63:0] img_size,     // size of image in bytes. valid only for active bit in img_mounted
-
-	// SD block level access
-	input      [31:0] sd_lba,
-	input      [VD:0] sd_rd,       // only single sd_rd can be active at any given time
-	input      [VD:0] sd_wr,       // only single sd_wr can be active at any given time
-	output reg        sd_ack,
-	
-	// do not use in new projects.
-	// CID and CSD are fake except CSD image size field.
-	input             sd_conf,
-	output reg        sd_ack_conf,
-
-	// SD byte level access. Signals for 2-PORT altsyncram.
-	output reg [AW:0] sd_buff_addr,
-	output reg [DW:0] sd_buff_dout,
-	input      [DW:0] sd_buff_din,
-	output reg        sd_buff_wr,
-
-	// ARM -> FPGA download
-	output reg        ioctl_download = 0, // signal indicating an active download
-	output reg  [7:0] ioctl_index,        // menu index used to upload the file
-	output reg        ioctl_wr,
-	output reg [24:0] ioctl_addr,         // in WIDE mode address will be incremented by 2
-	output reg [DW:0] ioctl_dout,
 	input             ioctl_wait,
 	
 	input      [31:0] dma_din,
@@ -101,14 +67,10 @@ module hps_io #(parameter STRLEN=0, PS2DIV=2000, WIDE=0, VDNUM=1, PS2WE=0)
 	input             ps2_mouse_data_in
 );
 
-localparam DW = (WIDE) ? 15 : 7;
-localparam AW = (WIDE) ?  7 : 8;
-localparam VD = VDNUM-1;
-
 wire        io_wait  = ioctl_wait;
 wire        io_enable= |HPS_BUS[35:34];
 wire        io_strobe= HPS_BUS[33];
-wire        io_wide  = (WIDE) ? 1'b1 : 1'b0;
+wire        io_wide  = 1;
 wire [15:0] io_din   = HPS_BUS[31:16];
 reg  [15:0] io_dout;
 
@@ -121,25 +83,9 @@ reg [7:0] cfg;
 assign buttons = cfg[1:0];
 //cfg[2] - vga_scaler handled in sys_top
 //cfg[3] - csync handled in sys_top
-assign forced_scandoubler = cfg[4];
+//assign forced_scandoubler = cfg[4];
 //cfg[5] - ypbpr handled in sys_top
 
-// command byte read by the io controller
-wire [15:0] sd_cmd = 
-{
-	2'b00,
-	(VDNUM>=4) ? sd_wr[3] : 1'b0,
-	(VDNUM>=3) ? sd_wr[2] : 1'b0,
-	(VDNUM>=2) ? sd_wr[1] : 1'b0,
-
-	(VDNUM>=4) ? sd_rd[3] : 1'b0,
-	(VDNUM>=3) ? sd_rd[2] : 1'b0,
-	(VDNUM>=2) ? sd_rd[1] : 1'b0,
-	
-	4'h5, sd_conf, 1'b1,
-	sd_wr[0],
-	sd_rd[0]
-};
 
 ///////////////// calc video parameters //////////////////
 
@@ -231,10 +177,6 @@ always@(posedge clk_sys) begin
 	reg        old_wait;
 	reg        pending;
 
-	sd_buff_wr <= b_wr[0];
-	if(b_wr[2] && (~&sd_buff_addr)) sd_buff_addr <= sd_buff_addr + 1'b1;
-	b_wr <= (b_wr<<1);
-
 	{kbd_rd,kbd_we,mouse_rd,mouse_we} <= 0;
 	
 	{dma_rd, dma_wr} <= 0;
@@ -244,8 +186,6 @@ always@(posedge clk_sys) begin
 
 	if(~io_enable) begin
 		byte_cnt <= 0;
-		sd_ack <= 0;
-		sd_ack_conf <= 0;
 		io_dout <= 0;
 		dma_hilo <= 0;
 		old_wait <= 0;
@@ -258,16 +198,7 @@ always@(posedge clk_sys) begin
 
 			if(byte_cnt == 0) begin
 				cmd <= io_din;
-
-				case(io_din)
-					'h19: sd_ack_conf <= 1;
-					'h17,
-					'h18: sd_ack <= 1;
-				endcase
-
 				dma_hilo <= 0;
-				sd_buff_addr <= 0;
-				img_mounted <= 0;
 			end else begin
 
 				case(cmd)
@@ -295,57 +226,14 @@ always@(posedge clk_sys) begin
 						end
 
 					// reading sd card status
-					'h16: begin
-							case(byte_cnt)
-								1: io_dout <= sd_cmd;
-								2: io_dout <= sd_lba[15:0];
-								3: io_dout <= sd_lba[31:16];
-							endcase
-						end
-
-					// send SD config IO -> FPGA
-					// flag that download begins
-					// sd card knows data is config if sd_dout_strobe is asserted
-					// with sd_ack still being inactive (low)
-					'h19,
-					// send sector IO -> FPGA
-					// flag that download begins
-					'h17: begin
-							sd_buff_dout <= io_din[DW:0];
-							b_wr <= 1;
-						end
-
-					// reading sd card write data
-					'h18: begin
-							if(~&sd_buff_addr) sd_buff_addr <= sd_buff_addr + 1'b1;
-							io_dout <= sd_buff_din;
-						end
-
-					// joystick analog
-					'h1a: begin
-							// first byte is joystick index
-							if(byte_cnt == 1) stick_idx <= io_din[2:0];
-							if(byte_cnt == 2) begin
-								if(stick_idx == 0) joystick_analog_0 <= io_din;
-								if(stick_idx == 1) joystick_analog_1 <= io_din;
-							end
-						end
-
-					// notify image selection
-					'h1c: begin
-							img_mounted  <= io_din[VD:0] ? io_din[VD:0] : 1'b1;
-							img_readonly <= io_din[7];
-						end
-
-					// send image info
-					'h1d: if(byte_cnt<5) img_size[{byte_cnt-1'b1, 4'b0000} +:16] <= io_din;
+					'h16: io_dout <= 0;
 
 					// status, 32bit version
 					'h1e: if(byte_cnt==1) status[15:0] <= io_din;
 								else if(byte_cnt==2) status[31:16] <= io_din;
 
 					// reading keyboard LED status
-					'h1f: io_dout <= {|PS2WE, 2'b01, ps2_kbd_led_status[2], ps2_kbd_led_use[2], ps2_kbd_led_status[1], ps2_kbd_led_use[1], ps2_kbd_led_status[0], ps2_kbd_led_use[0]};
+					'h1f: io_dout <= 16'h0100;
 
 					// reading ps2 keyboard/mouse control
 					'h21: begin
@@ -470,8 +358,8 @@ ps2_device keyboard
 	.ps2_clk_out(ps2_kbd_clk_out),
 	.ps2_dat_out(ps2_kbd_data_out),
 	
-	.ps2_clk_in(ps2_kbd_clk_in  || !PS2WE),
-	.ps2_dat_in(ps2_kbd_data_in || !PS2WE),
+	.ps2_clk_in(ps2_kbd_clk_in),
+	.ps2_dat_in(ps2_kbd_data_in),
 
 	.rdata(kbd_data_host),
 	.rd(kbd_rd)
@@ -493,67 +381,12 @@ ps2_device mouse
 	.ps2_clk_out(ps2_mouse_clk_out),
 	.ps2_dat_out(ps2_mouse_data_out),
 
-	.ps2_clk_in(ps2_mouse_clk_in  || !PS2WE),
-	.ps2_dat_in(ps2_mouse_data_in || !PS2WE),
+	.ps2_clk_in(ps2_mouse_clk_in),
+	.ps2_dat_in(ps2_mouse_data_in),
 
 	.rdata(mouse_data_host),
 	.rd(mouse_rd)
 );
-
-
-///////////////////////////////   DOWNLOADING   ///////////////////////////////
-
-localparam UIO_FILE_TX      = 8'h53;
-localparam UIO_FILE_TX_DAT  = 8'h54;
-localparam UIO_FILE_INDEX   = 8'h55;
-
-always@(posedge clk_sys) begin
-	reg [15:0] cmd;
-	reg        has_cmd;
-	reg [24:0] addr;
-	reg        wr;
-
-	ioctl_wr <= wr;
-	wr <= 0;
-
-	if(~io_enable) has_cmd <= 0;
-	else begin
-		if(io_strobe) begin
-
-			if(!has_cmd) begin
-				cmd <= io_din;
-				has_cmd <= 1;
-			end else begin
-
-				case(cmd)
-					UIO_FILE_INDEX:
-						begin
-							ioctl_index <= io_din[7:0];
-						end
-
-					UIO_FILE_TX:
-						begin
-							if(io_din[7:0]) begin
-								addr <= 0;
-								ioctl_download <= 1; 
-							end else begin
-								ioctl_addr <= addr;
-								ioctl_download <= 0;
-							end
-						end
-
-					UIO_FILE_TX_DAT:
-						begin
-							ioctl_addr <= addr;
-							ioctl_dout <= io_din[DW:0];
-							wr   <= 1;
-							addr <= addr + (WIDE ? 2'd2 : 2'd1);
-						end
-				endcase
-			end
-		end
-	end
-end
 
 endmodule
 

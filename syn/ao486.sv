@@ -107,7 +107,7 @@ assign VIDEO_ARY = status[1] ? 8'd9  : 8'd3;
 assign AUDIO_S   = 1;
 assign AUDIO_L   = {sb_out_l[15], sb_out_l[15:1]} + {1'b0, {15{speaker_ena & speaker_out}}};
 assign AUDIO_R   = {sb_out_r[15], sb_out_r[15:1]} + {1'b0, {15{speaker_ena & speaker_out}}};
-assign AUDIO_MIX = status[5:4];
+assign AUDIO_MIX = 0;
 
 
 assign LED_DISK[1] = 1;
@@ -129,11 +129,10 @@ localparam CONF_STR =
 	"-;",
 	"O1,Aspect ratio,4:3,16:9;",
 	"O3,FM mode,OPL2,OPL3;",
-	"O45,Stereo mix,none,25%,50%,100%;", 
 	"-;",
 	"OX2,Boot order,FDD/HDD,HDD/FDD;",
 	"T0,Reset and apply HDD;",
-	"V,v1.00.",`BUILD_DATE,
+	"V,v1.10.",`BUILD_DATE,
 	";+,...;"
 };
 
@@ -150,7 +149,6 @@ wire        ps2_mouse_clk_in;
 wire        ps2_mouse_data_in;
 
 wire  [1:0] buttons;
-wire        forced_scandoubler;
 wire [31:0] status;
 
 reg         ioctl_wait = 0;
@@ -164,7 +162,7 @@ wire  [1:0] dma_status;
 wire  [1:0] dma_req;
 
 
-hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000), .WIDE(1), .PS2WE(1)) hps_io
+hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000)) hps_io
 (
 	.clk_sys(clk_sys),
 	.conf_str(CONF_STR),
@@ -182,7 +180,6 @@ hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000), .WIDE(1), .PS2WE(1)) hps_
 	.ps2_mouse_data_in(ps2_mouse_data_in),
 
 	.buttons(buttons),
-	.forced_scandoubler(forced_scandoubler),
 	.status(status),
 
 	.ioctl_wait(ioctl_wait),

@@ -529,7 +529,7 @@ hdmi_lite hdmi_lite
 	.hdmi_hde(hde),
 	.hdmi_vde(vde),
 	.hdmi_d(hdmi_data),
-	.hdmi_de(HDMI_TX_DE),
+	.hdmi_de(hdmi_de),
 
 	.screen_w(WIDTH),
 	.screen_h(HEIGHT),

@@ -35,13 +35,17 @@ wire [31:0] posy   = (HEIGHT- videoh)>>1;
 always @(posedge clk) begin
 	reg [7:0] state = 0;
 	reg [7:0] arx, ary;
+	reg [7:0] arxd, aryd;
 	integer   timeout = 0;
+	
+	arxd <= ARX;
+	aryd <= ARY;
 
 	write <= 0;
-	if(reset || (!state && ((arx != ARX) || (ary != ARY)))) begin
-		arx <= ARX;
-		ary <= ARY;
-		timeout <= 1000000;
+	if(reset || (!state && ((arx != arxd) || (ary != aryd)))) begin
+		arx <= arxd;
+		ary <= aryd;
+		timeout <= 10000;
 	end
 	else
 	if(timeout > 0)
