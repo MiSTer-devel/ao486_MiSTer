@@ -1,7 +1,7 @@
 //============================================================================
 //
 //  DE10-nano HAL top module
-//  (c)2017 Sorgelig
+//  (c)2017,2018 Sorgelig
 //
 //  This program is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU General Public License as published by the Free
@@ -200,6 +200,8 @@ reg        cfg_custom_t = 0;
 reg  [5:0] cfg_custom_p1;
 reg [31:0] cfg_custom_p2;
 
+reg  [4:0] vol_att = 0;
+
 always@(posedge clk_sys) begin
 	reg  [7:0] cmd;
 	reg        has_cmd;
@@ -216,44 +218,43 @@ always@(posedge clk_sys) begin
 			cmd <= io_din[7:0];
 			cnt <= 0;
 		end
-		else
-		if(cmd == 1) begin
-			cfg <= io_din;
-			cfg_got <= 1;
-		end
-		else
-		if(cmd == 'h20) begin
-			cfg_got <= 0;
-			cnt <= cnt + 1'd1;
-			if(cnt<8) begin
-				case(cnt)
-					0: WIDTH  <= io_din[11:0];
-					1: HFP    <= io_din[11:0];
-					2: HS     <= io_din[11:0];
-					3: HBP    <= io_din[11:0];
-					4: HEIGHT <= io_din[11:0];
-					5: VFP    <= io_din[11:0];
-					6: VS     <= io_din[11:0];
-					7: VBP    <= io_din[11:0];
-				endcase
-				if(!cnt) begin
-					cfg_custom_p1 <= 0;
-					cfg_custom_p2 <= 0;
-					cfg_custom_t <= ~cfg_custom_t;
+		else begin
+			if(cmd == 1) begin
+				cfg <= io_din;
+				cfg_got <= 1;
+			end
+			if(cmd == 'h20) begin
+				cnt <= cnt + 1'd1;
+				if(cnt<8) begin
+					case(cnt)
+						0: WIDTH  <= io_din[11:0];
+						1: HFP    <= io_din[11:0];
+						2: HS     <= io_din[11:0];
+						3: HBP    <= io_din[11:0];
+						4: HEIGHT <= io_din[11:0];
+						5: VFP    <= io_din[11:0];
+						6: VS     <= io_din[11:0];
+						7: VBP    <= io_din[11:0];
+					endcase
+					if(!cnt) begin
+						cfg_custom_p1 <= 0;
+						cfg_custom_p2 <= 0;
+						cfg_custom_t <= ~cfg_custom_t;
+					end
+				end
+				else begin
+					if(cnt[1:0]==0) cfg_custom_p1 <= io_din[5:0];
+					if(cnt[1:0]==1) cfg_custom_p2[15:0]  <= io_din;
+					if(cnt[1:0]==2) begin
+						cfg_custom_p2[31:16] <= io_din;
+						cfg_custom_t <= ~cfg_custom_t;
+						cnt[1:0] <= 0;
+					end
 				end
 			end
-			else begin
-				if(cnt[1:0]==0) cfg_custom_p1 <= io_din[5:0];
-				if(cnt[1:0]==1) cfg_custom_p2[15:0]  <= io_din;
-				if(cnt[1:0]==2) begin
-					cfg_custom_p2[31:16] <= io_din;
-					cfg_custom_t <= ~cfg_custom_t;
-					cnt[1:0] <= 0;
-				end
-			end
+			if(cmd == 'h25) {led_overtake, led_state} <= io_din;
+			if(cmd == 'h26) vol_att <= io_din[4:0];
 		end
-		else
-		if(cmd == 'h25) {led_overtake, led_state} <= io_din;
 	end
 end
 
@@ -665,7 +666,7 @@ assign HDMI_MCLK = 0;
 i2s i2s
 (
 	.reset(~cfg_ready),
-	.clk_sys(FPGA_CLK1_50),
+	.clk_sys(FPGA_CLK3_50),
 	.half_rate(~audio_96k),
 
 	.sclk(HDMI_SCLK),
@@ -721,7 +722,7 @@ assign VGA_VS = VGA_EN ? 1'bZ      : csync ?     1'b1     : ~vs1;
 assign VGA_HS = VGA_EN ? 1'bZ      : csync ? ~(vs1 ^ hs1) : ~hs1;
 assign VGA_R  = VGA_EN ? 6'bZZZZZZ : vga_o[23:18];
 assign VGA_G  = VGA_EN ? 6'bZZZZZZ : vga_o[15:10];
-assign VGA_B  = VGA_EN ? 6'bZZZZZZ : vga_o[7:2];
+assign VGA_B  = VGA_EN ? {3'bZZZ, HDMI_I2S, HDMI_LRCLK, HDMI_SCLK} : vga_o[7:2];
 
 
 /////////////////////////  Audio output  ////////////////////////////////
@@ -758,30 +759,47 @@ spdif toslink
 reg [15:0] audio_l; 
 reg [15:0] audio_r;
 
-always @(*) begin
+always @(posedge FPGA_CLK3_50) begin
+	reg signed [15:0] al;
+	reg signed [15:0] ar;
+
 	case({audio_s,audio_mix})
-		'b000: audio_l = audio_ls;
-		'b001: audio_l = audio_ls - (audio_ls >> 3) + (audio_rs >> 3);
-		'b010: audio_l = audio_ls - (audio_ls >> 2) + (audio_rs >> 2);
-		'b011: audio_l = (audio_ls >> 1) + (audio_rs >> 1);
-		'b100: audio_l = audio_ls;
-		'b101: audio_l = audio_ls - (audio_ls >>> 3) + (audio_rs >>> 3);
-		'b110: audio_l = audio_ls - (audio_ls >>> 2) + (audio_rs >>> 2);
-		'b111: audio_l = (audio_ls >>> 1) + (audio_rs >>> 1);
+		'b000: al <= audio_ls;
+		'b001: al <= audio_ls - (audio_ls >> 3) + (audio_rs >> 3);
+		'b010: al <= audio_ls - (audio_ls >> 2) + (audio_rs >> 2);
+		'b011: al <= (audio_ls >> 1) + (audio_rs >> 1);
+		'b100: al <= audio_ls;
+		'b101: al <= audio_ls - (audio_ls >>> 3) + (audio_rs >>> 3);
+		'b110: al <= audio_ls - (audio_ls >>> 2) + (audio_rs >>> 2);
+		'b111: al <= (audio_ls >>> 1) + (audio_rs >>> 1);
 	endcase
 
 	case({audio_s,audio_mix})
-		'b000: audio_r = audio_rs;
-		'b001: audio_r = audio_rs - (audio_rs >> 3) + (audio_ls >> 3);
-		'b010: audio_r = audio_rs - (audio_rs >> 2) + (audio_ls >> 2);
-		'b011: audio_r = (audio_rs >> 1) + (audio_ls >> 1);
-		'b100: audio_r = audio_rs;
-		'b101: audio_r = audio_rs - (audio_rs >>> 3) + (audio_ls >>> 3);
-		'b110: audio_r = audio_rs - (audio_rs >>> 2) + (audio_ls >>> 2);
-		'b111: audio_r = (audio_rs >>> 1) + (audio_ls >>> 1);
+		'b000: ar <= audio_rs;
+		'b001: ar <= audio_rs - (audio_rs >> 3) + (audio_ls >> 3);
+		'b010: ar <= audio_rs - (audio_rs >> 2) + (audio_ls >> 2);
+		'b011: ar <= (audio_rs >> 1) + (audio_ls >> 1);
+		'b100: ar <= audio_rs;
+		'b101: ar <= audio_rs - (audio_rs >>> 3) + (audio_ls >>> 3);
+		'b110: ar <= audio_rs - (audio_rs >>> 2) + (audio_ls >>> 2);
+		'b111: ar <= (audio_rs >>> 1) + (audio_ls >>> 1);
 	endcase
+	
+	if(vol_att[4]) begin
+		audio_l <= 0;
+		audio_r <= 0;
+	end
+	else
+	if(audio_s) begin
+		audio_l <= al >>> vol_att[3:0];
+		audio_r <= ar >>> vol_att[3:0];
+	end
+	else
+	begin
+		audio_l <= al >> vol_att[3:0];
+		audio_r <= ar >> vol_att[3:0];
+	end
 end
-
 
 ///////////////////  User module connection ////////////////////////////
 
