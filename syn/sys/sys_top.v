@@ -30,9 +30,9 @@ module sys_top
 	output  [5:0] VGA_R,
 	output  [5:0] VGA_G,
 	output  [5:0] VGA_B,
-	output		  VGA_HS,
+	inout		  VGA_HS,  // VGA_HS is secondary SD card detect when VGA_EN = 1 (inactive)
 	output		  VGA_VS,
-	input         VGA_EN,
+	input         VGA_EN,  // active low
 
 	/////////// AUDIO //////////
 	output		  AUDIO_L,
@@ -85,6 +85,9 @@ module sys_top
 
 	////////// MB KEY ///////////
 	input   [1:0] KEY,
+
+	////////// MB SWITCH ////////
+	input   [3:0] SW,
 
 	////////// MB LED ///////////
 	output  [7:0] LED
@@ -722,17 +725,19 @@ assign VGA_VS = VGA_EN ? 1'bZ      : csync ?     1'b1     : ~vs1;
 assign VGA_HS = VGA_EN ? 1'bZ      : csync ? ~(vs1 ^ hs1) : ~hs1;
 assign VGA_R  = VGA_EN ? 6'bZZZZZZ : vga_o[23:18];
 assign VGA_G  = VGA_EN ? 6'bZZZZZZ : vga_o[15:10];
-assign VGA_B  = VGA_EN ? {3'bZZZ, HDMI_I2S, HDMI_LRCLK, HDMI_SCLK} : vga_o[7:2];
+assign VGA_B  = VGA_EN ? 6'bZZZZZZ : vga_o[7:2];
 
 
 /////////////////////////  Audio output  ////////////////////////////////
+
+wire al, ar, aspdif;
 
 sigma_delta_dac #(15) dac_l
 (
 	.CLK(FPGA_CLK3_50),
 	.RESET(reset),
 	.DACin({audio_l[15] ^ audio_s, audio_l[14:0]}),
-	.DACout(AUDIO_L)
+	.DACout(al)
 );
 
 sigma_delta_dac #(15) dac_r
@@ -740,7 +745,7 @@ sigma_delta_dac #(15) dac_r
 	.CLK(FPGA_CLK3_50),
 	.RESET(reset),
 	.DACin({audio_r[15] ^ audio_s, audio_r[14:0]}),
-	.DACout(AUDIO_R)
+	.DACout(ar)
 );
 
 spdif toslink
@@ -753,8 +758,12 @@ spdif toslink
 	.audio_l(audio_l >> !audio_s),
 	.audio_r(audio_r >> !audio_s),
 
-	.spdif_o(AUDIO_SPDIF)
+	.spdif_o(aspdif)
 );
+
+assign AUDIO_SPDIF = SW[0] ? HDMI_LRCLK : aspdif;
+assign AUDIO_R     = SW[0] ? HDMI_I2S   : ar;
+assign AUDIO_L     = SW[0] ? HDMI_SCLK  : al;
 
 reg [15:0] audio_l; 
 reg [15:0] audio_r;
@@ -866,11 +875,11 @@ emu emu
 	//    Z -> DAT1
 	//    Z -> DAT2
 	// CS   -> DAT3
-
 	.SD_SCK(SDIO_CLK),
 	.SD_MOSI(SDIO_CMD),
 	.SD_MISO(SDIO_DAT[0]),
 	.SD_CS(SDIO_DAT[3]),
+	.SD_CD(VGA_EN ? VGA_HS : SDIO_CD),
 
 	.DDRAM_CLK(ram_clk),
 	.DDRAM_ADDR(ram_address),
