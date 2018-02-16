@@ -281,9 +281,7 @@ always @(posedge FPGA_CLK2_50) begin
 	resetd2 <= resetd;
 end
 
-// 100MHz
 wire clk_ctl;
-wire clk_100;
 
 ///////////////////////// VIP version  ///////////////////////////////
 
@@ -301,9 +299,6 @@ vip vip
 	//DE10-nano has no reset signal on GPIO, so core has to emulate cold reset button.
 	.reset_cold_req(~btn_reset),
 	.reset_warm_req(0),
-	
-	.vclk_clk(iHdmiClk),
-	.clk100_clk(clk_100),
 
 	//control
 	.ctl_address(ctl_address),
@@ -340,23 +335,20 @@ vip vip
 	.ram2_write(0),
 
 	//Video input
-	.in_vid_clk(clk_vid),
-	.in_vid_data({r_out, g_out, b_out}),
-	.in_vid_de(de),
-	.in_vid_v_sync(vs),
-	.in_vid_h_sync(hs),
-	.in_vid_datavalid(ce_pix),
-	.in_vid_locked(1),
-	.in_vid_f(0),
-	.in_vid_color_encoding(0),
-	.in_vid_bit_width(0),
+	.in_clk(clk_vid),
+	.in_data({r_out, g_out, b_out}),
+	.in_de(de),
+	.in_v_sync(vs),
+	.in_h_sync(hs),
+	.in_ce(ce_pix),
+	.in_f(0),
 
 	//HDMI output
-	.hdmi_vid_clk(iHdmiClk),
-	.hdmi_vid_data(hdmi_data),
-	.hdmi_vid_datavalid(hdmi_de),
-	.hdmi_vid_v_sync(HDMI_TX_VS),
-	.hdmi_vid_h_sync(HDMI_TX_HS)
+	.hdmi_clk(iHdmiClk),
+	.hdmi_data(hdmi_data),
+	.hdmi_de(hdmi_de),
+	.hdmi_v_sync(HDMI_TX_VS),
+	.hdmi_h_sync(HDMI_TX_HS)
 );
 
 wire  [8:0] ctl_address;
@@ -459,7 +451,6 @@ pattern_vg
 );
 */
 
-assign clk_100 = clt_clk;
 wire reset;
 sysmem_lite sysmem
 (
@@ -842,7 +833,7 @@ emu emu
 (
 	.CLK_50M(FPGA_CLK3_50),
 	.RESET(reset),
-	.HPS_BUS({clk_100, clk_vid, ce_pix, de, hs, vs, io_wait, clk_sys, io_fpga, io_uio, io_strobe, io_wide, io_din, io_dout}),
+	.HPS_BUS({clk_ctl, clk_vid, ce_pix, de, hs, vs, io_wait, clk_sys, io_fpga, io_uio, io_strobe, io_wide, io_din, io_dout}),
 
 	.CLK_VIDEO(clk_vid),
 	.CE_PIXEL(ce_pix),

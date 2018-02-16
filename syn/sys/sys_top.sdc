@@ -11,6 +11,8 @@ derive_pll_clocks
 create_generated_clock -source [get_pins -compatibility_mode {pll_hdmi|pll_hdmi_inst|altera_pll_i|cyclonev_pll|counter[0].output_counter|divclk}] \
                       -name HDMI_CLK [get_ports HDMI_TX_CLK]
 
+create_generated_clock -source [get_pins { pll_hdmi|pll_hdmi_inst|altera_pll_i|cyclonev_pll|counter[0].output_counter|divclk}] \
+                       -name VID_CLK -divide_by 2 -duty_cycle 50 [get_nets {vip|output_inst|vid_clk}]
 
 derive_clock_uncertainty
 
@@ -29,7 +31,7 @@ set_clock_groups -asynchronous \
    -group [get_clocks { emu|u0|pll_0|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk}] \
    -group [get_clocks { emu|u0|pll_0|altera_pll_i|general[1].gpll~PLL_OUTPUT_COUNTER|divclk}] \
    -group [get_clocks { emu|u0|pll_0|altera_pll_i|general[2].gpll~PLL_OUTPUT_COUNTER|divclk}] \
-   -group [get_clocks { pll_hdmi|pll_hdmi_inst|altera_pll_i|cyclonev_pll|counter[0].output_counter|divclk}] \
+   -group [get_clocks { pll_hdmi|pll_hdmi_inst|altera_pll_i|cyclonev_pll|counter[0].output_counter|divclk VID_CLK}] \
    -group [get_clocks { *|h2f_user0_clk}] \
    -group [get_clocks { FPGA_CLK1_50 FPGA_CLK2_50 FPGA_CLK3_50}]
 

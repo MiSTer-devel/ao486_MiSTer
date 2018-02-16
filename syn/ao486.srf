@@ -36,6 +36,8 @@
 { "" "" "" "Vip.Video_Output: Interrupt sender Video_Output.status_update_irq is not connected to an interrupt receiver" {  } {  } 0 12251 "" 0 0 "Design Software" 0 -1 0 ""}
 { "" "" "" "Vip.: You have exported the interface HPS.f2h_sdram1_data but not its associated reset interface.  Export the driver(s) of HPS.h2f_reset" {  } {  } 0 12251 "" 0 0 "Design Software" 0 -1 0 ""}
 { "" "" "" "Vip.: You have exported the interface HPS.f2h_sdram2_data but not its associated reset interface.  Export the driver(s) of HPS.h2f_reset" {  } {  } 0 12251 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "Port \"extclk\" on the entity instantiation of \"cyclonev_pll\" is connected to a signal of width 1. The formal width of the signal in the module is 2.  The extra bits will be left dangling without any fan-out logic." {  } {  } 0 12030 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "Port \"trs\" on the entity instantiation of \"statemachine\" is connected to a signal of width 2. The formal width of the signal in the module is 1.  The extra bits will be ignored." {  } {  } 0 12020 "" 0 0 "Design Software" 0 -1 0 ""}
 { "" "" "" "*" {  } {  } 0 169085 "" 0 0 "Design Software" 0 -1 0 ""}
 { "" "" "" "*" {  } {  } 0 174073 "" 0 0 "Design Software" 0 -1 0 ""}
 { "" "" "" "*" {  } {  } 0 332174 "" 0 0 "Design Software" 0 -1 0 ""}
@@ -74,3 +76,6 @@
 { "" "" "" "altera_merlin_address_alignment.sv" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
 { "" "" "" "altera_merlin_traffic_limiter.sv" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
 { "" "" "" "Pass-through logic has been added" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "altera_pll.v" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "altera_cyclonev_pll.v" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "altera_pll_reconfig_core.v" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
