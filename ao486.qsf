@@ -46,10 +46,10 @@ set_global_assignment -name MAX_CORE_JUNCTION_TEMP 100
 set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
 set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 set_global_assignment -name TIMEQUEST_MULTICORNER_ANALYSIS OFF
+set_global_assignment -name OPTIMIZE_POWER_DURING_FITTING OFF
 set_global_assignment -name FINAL_PLACEMENT_OPTIMIZATION ALWAYS
 set_global_assignment -name FITTER_EFFORT "STANDARD FIT"
 set_global_assignment -name OPTIMIZATION_MODE "HIGH PERFORMANCE EFFORT"
-set_global_assignment -name OPTIMIZE_POWER_DURING_FITTING OFF
 set_global_assignment -name OPTIMIZATION_TECHNIQUE SPEED
 set_global_assignment -name ALLOW_SYNCH_CTRL_USAGE ON
 set_global_assignment -name ALM_REGISTER_PACKING_EFFORT LOW
@@ -57,7 +57,7 @@ set_global_assignment -name REMOVE_REDUNDANT_LOGIC_CELLS ON
 set_global_assignment -name OPTIMIZE_POWER_DURING_SYNTHESIS OFF
 set_global_assignment -name PRE_MAPPING_RESYNTHESIS ON
 set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_DUPLICATION ON
-set_global_assignment -name SEED 6
+set_global_assignment -name SEED 3
 
 #============================================================
 # ADC
@@ -356,35 +356,18 @@ set_location_assignment PIN_W24 -to SW[1]
 set_location_assignment PIN_W21 -to SW[2]
 set_location_assignment PIN_W20 -to SW[3]
 
-set_global_assignment -name SEARCH_PATH ./../rtl/ao486
 set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:sys/build_id.tcl"
+set_global_assignment -name SEARCH_PATH ./rtl/ao486
+
 set_global_assignment -name CDF_FILE jtag.cdf
 set_global_assignment -name QIP_FILE sys/sys.qip
-set_global_assignment -name QIP_FILE sys/vip.qip
+set_global_assignment -name QSYS_FILE sys/vip.qsys
 set_global_assignment -name QSYS_FILE system.qsys
-set_global_assignment -name VERILOG_FILE ../rtl/common/simple_single_rom.v
-set_global_assignment -name VERILOG_FILE ../rtl/common/simple_bidir_ram.v
-set_global_assignment -name VERILOG_FILE ../rtl/common/simple_rom.v
-set_global_assignment -name VERILOG_FILE ../rtl/common/simple_ram.v
-set_global_assignment -name VERILOG_FILE ../rtl/common/simple_mult.v
-set_global_assignment -name VERILOG_FILE ../rtl/common/simple_fifo.v
-set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/opl3_pkg.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/opl.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/opl3.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/vibrato.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/tremolo.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/register_file.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/phase_generator.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/opl3_log_sine_lut.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/opl3_exp_lut.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/operator.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/ksl_add_rom.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/envelope_generator.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/env_rate_counter.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/edge_detector.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/control_operators.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/channels.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/calc_rhythm_phase.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/soc/opl3/calc_phase_inc.sv
+set_global_assignment -name VERILOG_FILE rtl/common/simple_single_rom.v
+set_global_assignment -name VERILOG_FILE rtl/common/simple_bidir_ram.v
+set_global_assignment -name VERILOG_FILE rtl/common/simple_rom.v
+set_global_assignment -name VERILOG_FILE rtl/common/simple_ram.v
+set_global_assignment -name VERILOG_FILE rtl/common/simple_mult.v
+set_global_assignment -name VERILOG_FILE rtl/common/simple_fifo.v
 set_global_assignment -name SYSTEMVERILOG_FILE ao486.sv
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

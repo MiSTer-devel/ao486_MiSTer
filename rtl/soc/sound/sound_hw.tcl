@@ -42,6 +42,24 @@ set_fileset_property QUARTUS_SYNTH ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property QUARTUS_SYNTH ENABLE_FILE_OVERWRITE_MODE false
 add_fileset_file sound.v VERILOG PATH sound.v TOP_LEVEL_FILE
 add_fileset_file sound_dsp.v VERILOG PATH sound_dsp.v
+add_fileset_file calc_phase_inc.sv SYSTEMVERILOG PATH opl3/calc_phase_inc.sv
+add_fileset_file calc_rhythm_phase.sv SYSTEMVERILOG PATH opl3/calc_rhythm_phase.sv
+add_fileset_file channels.sv SYSTEMVERILOG PATH opl3/channels.sv
+add_fileset_file control_operators.sv SYSTEMVERILOG PATH opl3/control_operators.sv
+add_fileset_file edge_detector.sv SYSTEMVERILOG PATH opl3/edge_detector.sv
+add_fileset_file env_rate_counter.sv SYSTEMVERILOG PATH opl3/env_rate_counter.sv
+add_fileset_file envelope_generator.sv SYSTEMVERILOG PATH opl3/envelope_generator.sv
+add_fileset_file ksl_add_rom.sv SYSTEMVERILOG PATH opl3/ksl_add_rom.sv
+add_fileset_file operator.sv SYSTEMVERILOG PATH opl3/operator.sv
+add_fileset_file opl.sv SYSTEMVERILOG PATH opl3/opl.sv
+add_fileset_file opl3.sv SYSTEMVERILOG PATH opl3/opl3.sv
+add_fileset_file opl3_exp_lut.sv SYSTEMVERILOG PATH opl3/opl3_exp_lut.sv
+add_fileset_file opl3_log_sine_lut.sv SYSTEMVERILOG PATH opl3/opl3_log_sine_lut.sv
+add_fileset_file opl3_pkg.sv SYSTEMVERILOG PATH opl3/opl3_pkg.sv
+add_fileset_file phase_generator.sv SYSTEMVERILOG PATH opl3/phase_generator.sv
+add_fileset_file register_file.sv SYSTEMVERILOG PATH opl3/register_file.sv
+add_fileset_file tremolo.sv SYSTEMVERILOG PATH opl3/tremolo.sv
+add_fileset_file vibrato.sv SYSTEMVERILOG PATH opl3/vibrato.sv
 
 
 # 

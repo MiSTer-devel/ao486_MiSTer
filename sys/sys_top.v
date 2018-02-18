@@ -1,6 +1,6 @@
 //============================================================================
 //
-//  DE10-nano HAL top module
+//  MiSTer hardware abstraction module
 //  (c)2017,2018 Sorgelig
 //
 //  This program is free software; you can redistribute it and/or modify it

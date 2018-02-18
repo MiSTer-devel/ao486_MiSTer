@@ -132,7 +132,7 @@ localparam CONF_STR =
 	"O3,FM mode,OPL2,OPL3;",
 	"-;",
 	"OX2,Boot order,FDD/HDD,HDD/FDD;",
-	"T0,Reset and apply HDD;",
+	"R0,Reset and apply HDD;",
 	"V,v1.10.",`BUILD_DATE,
 	";+,...;"
 };

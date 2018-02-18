@@ -1,47 +1,39 @@
-/ao486_tool/build/
-sd.dat
-
-# ignore backup files
-*~
-
-# ignore vi swapfiles
-.*.swp
-
-# ignore compiled python
-*pyc
-
-# ignore some backup files
-*.bak
-
-# ignore some c files
-*.o
-*.d
-
-# ignore directories
-output_files
 db
+greybox_tmp
 incremental_db
-
+output_files
+simulation
+hc_output
+scaler
+hps_isw_handoff
+vip
+*_sim
+.qsys_edit
+PLLJ_PLLSPE_INFO.txt
+*.bak
+*.orig
+*.rej
+*.qdf
+*.rpt
+*.smsg
+*.summary
+*.done
+*.jdi
+*.pin
+*.sof
+*.qws
+*.ppf
+*.ddb
 build_id.v
 c5_pin_model_dump.txt
 *.sopcinfo
-PLLJ_PLLSPE_INFO.txt
-*.qws
-.qsys_edit
-vip
-system
-*_sim
-*.bsf
+*.csv
+*.f
 *.cmp
 *.sip
 *.spd
+*.bsf
+*~
 *.xml
-*.f
-*.ppf
-*.stp
-new_rtl_netlist
-old_rtl_netlist
-.metadata
-RemoteSystemsTempFiles
-exe.*
-*.a
+*_netlist
+*.cdf

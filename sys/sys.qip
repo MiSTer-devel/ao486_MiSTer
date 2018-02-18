@@ -12,4 +12,7 @@ set_global_assignment -name VERILOG_FILE sys/spdif.v
 set_global_assignment -name VERILOG_FILE sys/sigma_delta_dac.v
 set_global_assignment -name SYSTEMVERILOG_FILE sys/lpf48k.sv
 set_global_assignment -name SYSTEMVERILOG_FILE sys/hdmi_config.sv
+set_global_assignment -name SYSTEMVERILOG_FILE sys/sysmem.sv
+set_global_assignment -name VERILOG_FILE sys/ip/reset_source.v
+set_global_assignment -name SYSTEMVERILOG_FILE sys/vip_config.sv
 set_global_assignment -name VERILOG_FILE sys/hps_io.v

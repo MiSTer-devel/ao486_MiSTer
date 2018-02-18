@@ -1,2 +1,0 @@
-set_global_assignment -name SYSTEMVERILOG_FILE sys/vip_config.sv
-set_global_assignment -name QSYS_FILE sys/vip.qsys
