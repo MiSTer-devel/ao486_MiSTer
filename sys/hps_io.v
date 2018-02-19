@@ -30,7 +30,7 @@
 module hps_io #(parameter STRLEN=0, PS2DIV=2000)
 (
 	input             clk_sys,
-	inout      [43:0] HPS_BUS,
+	inout      [44:0] HPS_BUS,
 
 	// parameter STRLEN and the actual length of conf_str have to match
 	input [(8*STRLEN)-1:0] conf_str,
@@ -95,6 +95,7 @@ wire ce_pix  = HPS_BUS[41];
 wire de      = HPS_BUS[40];
 wire hs      = HPS_BUS[39];
 wire vs      = HPS_BUS[38];
+wire vs_hdmi = HPS_BUS[44];
 
 reg [31:0] vid_hcnt = 0;
 reg [31:0] vid_vcnt = 0;
@@ -165,6 +166,23 @@ always @(posedge clk_100) begin
 	if(calch & old_de) hcnt <= hcnt + 1;
 	if(old_de2 & ~old_de) calch <= 0;
 end
+
+reg [31:0] vid_vtime_hdmi;
+always @(posedge clk_100) begin
+	integer vtime;
+	reg old_vs, old_vs2;
+
+	old_vs <= vs_hdmi;
+	old_vs2 <= old_vs;
+
+	vtime <= vtime + 1'd1;
+
+	if(~old_vs2 & old_vs) begin
+		vid_vtime_hdmi <= vtime;
+		vtime <= 0;
+	end
+end
+
 
 /////////////////////////////////////////////////////////
 
@@ -262,6 +280,8 @@ always@(posedge clk_sys) begin
 									9: io_dout <= vid_vtime[31:16];
 								  10: io_dout <= vid_pix[15:0];
 								  11: io_dout <= vid_pix[31:16];
+								  12: io_dout <= vid_vtime_hdmi[15:0];
+								  13: io_dout <= vid_vtime_hdmi[31:16];
 								endcase
 						end
 
