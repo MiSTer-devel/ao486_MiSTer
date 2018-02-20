@@ -18,6 +18,7 @@ module reset_source
 	input  wire  cold_req,   //  reset_ctl.cold_req
 	output wire  reset,      //           .reset
 	input  wire  reset_req,  //           .reset_req
+	input  wire  reset_vip,  //           .reset_vip
 	input  wire  warm_req,   //           .warm_req
 	output wire  reset_warm  // reset_warm.reset
 );
@@ -25,8 +26,9 @@ module reset_source
 assign reset_cold = cold_req;
 assign reset_warm = warm_req;
 
-assign reset      = reset_sys;
-assign reset_sys  = sys_reset | reset_hps | reset_req;
+wire   reset_m    = sys_reset | reset_hps | reset_req;
+assign reset      = reset_m;
+assign reset_sys  = reset_m | reset_vip;
 
 reg  sys_reset = 1;
 always @(posedge clk) begin

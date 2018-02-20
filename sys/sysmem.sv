@@ -92,6 +92,7 @@ reset_source reset_source (
 	.cold_req   (reset_cold_req),                //  reset_ctl.cold_req
 	.reset      (reset_reset),                   //           .reset
 	.reset_req  (reset_reset_req),               //           .reset_req
+	.reset_vip  (0),                             //           .reset_vip
 	.warm_req   (reset_warm_req),                //           .warm_req
 	.reset_warm (reset_source_reset_warm_reset), // reset_warm.reset
 	.reset_cold (reset_source_reset_cold_reset)  // reset_cold.reset

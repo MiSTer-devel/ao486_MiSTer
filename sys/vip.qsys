@@ -983,7 +983,7 @@
   <parameter name="H_FRONT_PORCH" value="88" />
   <parameter name="H_SYNC_LENGTH" value="44" />
   <parameter name="INTERLACED" value="0" />
-  <parameter name="LOW_LATENCY" value="0" />
+  <parameter name="LOW_LATENCY" value="1" />
   <parameter name="NO_OF_CHANNELS" value="1" />
   <parameter name="NO_OF_MODES" value="1" />
   <parameter name="NUMBER_OF_COLOUR_PLANES" value="3" />

@@ -30,7 +30,7 @@ module sys_top
 	output  [5:0] VGA_R,
 	output  [5:0] VGA_G,
 	output  [5:0] VGA_B,
-	inout		  VGA_HS,  // VGA_HS is secondary SD card detect when VGA_EN = 1 (inactive)
+	inout         VGA_HS,  // VGA_HS is secondary SD card detect when VGA_EN = 1 (inactive)
 	output		  VGA_VS,
 	input         VGA_EN,  // active low
 
@@ -227,6 +227,7 @@ always@(posedge clk_sys) begin
 				cfg_got <= 1;
 			end
 			if(cmd == 'h20) begin
+				cfg_got <= 0;
 				cnt <= cnt + 1'd1;
 				if(cnt<8) begin
 					case(cnt)
@@ -239,7 +240,7 @@ always@(posedge clk_sys) begin
 						6: VS     <= io_din[11:0];
 						7: VBP    <= io_din[11:0];
 					endcase
-					if(!cnt) begin
+					if(cnt == 1) begin
 						cfg_custom_p1 <= 0;
 						cfg_custom_p2 <= 0;
 						cfg_custom_t <= ~cfg_custom_t;
@@ -257,6 +258,7 @@ always@(posedge clk_sys) begin
 			end
 			if(cmd == 'h25) {led_overtake, led_state} <= io_din;
 			if(cmd == 'h26) vol_att <= io_din[4:0];
+			if(cmd == 'h27) VSET    <= io_din[11:0];
 		end
 	end
 end
@@ -295,6 +297,7 @@ vip vip
 	//Reset/Clock
 	.reset_reset_req(reset_req | ~cfg_ready),
 	.reset_reset(reset),
+	.reset_reset_vip(0),
 
 	//DE10-nano has no reset signal on GPIO, so core has to emulate cold reset button.
 	.reset_cold_req(~btn_reset),
@@ -365,6 +368,7 @@ vip_config vip_config
 
 	.ARX(ARX),
 	.ARY(ARY),
+	.CFG_SET(cfg_got),
 
 	.WIDTH(WIDTH),
 	.HFP(HFP),
@@ -374,6 +378,7 @@ vip_config vip_config
 	.VFP(VFP),
 	.VBP(VBP),
 	.VS(VS),
+	.VSET(VSET),
 
 	.address(ctl_address),
 	.write(ctl_write),
@@ -564,15 +569,16 @@ pll_hdmi pll_hdmi
 	.outclk_0(HDMI_TX_CLK)
 );
 
-//1280x720@60 PCLK=74.25MHz CEA
-reg  [11:0] WIDTH  = 1280;
-reg  [11:0] HFP    = 110;
-reg  [11:0] HS     = 40;
-reg  [11:0] HBP    = 220;
-reg  [11:0] HEIGHT = 720;
-reg  [11:0] VFP    = 5;
+//1920x1080@60 PCLK=148.5MHz CEA
+reg  [11:0] WIDTH  = 1920;
+reg  [11:0] HFP    = 88;
+reg  [11:0] HS     = 48;
+reg  [11:0] HBP    = 148;
+reg  [11:0] HEIGHT = 1080;
+reg  [11:0] VFP    = 4;
 reg  [11:0] VS     = 5;
-reg  [11:0] VBP    = 20;
+reg  [11:0] VBP    = 36;
+reg  [11:0] VSET   = 0;
 
 wire [63:0] reconfig_to_pll;
 wire [63:0] reconfig_from_pll;
@@ -623,7 +629,6 @@ always @(posedge FPGA_CLK1_50) begin
 
 	old_wait <= cfg_waitrequest;
 	if(old_wait & ~cfg_waitrequest & gotd) cfg_ready <= 1;
-	if(~gotd) cfg_ready <= 0;
 end
 
 hdmi_config hdmi_config
