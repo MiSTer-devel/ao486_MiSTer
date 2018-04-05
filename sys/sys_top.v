@@ -194,11 +194,8 @@ reg        cfg_set   = 0;
 //wire [2:0] hdmi_res  = cfg[10:8];
 wire       dvi_mode  = cfg[7];
 wire       audio_96k = cfg[6];
-wire       ypbpr_en  = cfg[5];
+//wire       ypbpr_en  = cfg[5];
 wire       csync     = cfg[3];
-`ifndef LITE
-wire vga_scaler= cfg[2];
-`endif
 
 reg        cfg_custom_t = 0;
 reg  [5:0] cfg_custom_p1;
@@ -349,6 +346,16 @@ vip vip
 	.ram2_writedata(0),
 	.ram2_byteenable(0),
 	.ram2_write(0),
+
+	.uart_ri(0),
+	.uart_dcd(uart_dsr),
+	.uart_dsr(uart_dsr),
+	.uart_dtr(uart_dtr),
+
+	.uart_cts(uart_cts),
+	.uart_rts(uart_rts),
+	.uart_rxd(uart_rxd),
+	.uart_txd(uart_txd), 
 
 	//Video input
 	.in_clk(clk_vid),
@@ -693,7 +700,8 @@ i2s i2s
 
 /////////////////////////  VGA output  //////////////////////////////////
 
-wire [23:0] vga_q;
+`ifdef LITE
+wire [23:0] vga_o;
 osd vga_osd
 (
 	.clk_sys(clk_sys),
@@ -704,30 +712,20 @@ osd vga_osd
 
 	.clk_video(clk_vid),
 	.din(de ? {r_out, g_out, b_out} : 24'd0),
-	.dout(vga_q),
+	.dout(vga_o),
 	.de_in(de)
 );
 
-wire [23:0] vga_o;
-
-vga_out vga_out
-(
-	.ypbpr_full(1),
-	.ypbpr_en(ypbpr_en),
-	.dout(vga_o),
-`ifdef LITE
-	.din(vga_q)
 `else
-	.din(vga_scaler ? HDMI_TX_D : vga_q)
+	wire [23:0] vga_o = HDMI_TX_D;
 `endif
-);
 
 `ifdef LITE
 	wire vs1 = vs;
 	wire hs1 = hs;
 `else
-	wire vs1 = vga_scaler ? HDMI_TX_VS : vs;
-	wire hs1 = vga_scaler ? HDMI_TX_HS : hs;
+	wire vs1 = HDMI_TX_VS;
+	wire hs1 = HDMI_TX_HS;
 `endif
 
 assign VGA_VS = VGA_EN ? 1'bZ      : csync ?     1'b1     : ~vs1;
@@ -843,6 +841,13 @@ wire        led_user;
 wire  [1:0] led_power;
 wire  [1:0] led_disk;
 
+wire        uart_dtr;
+wire        uart_dsr;
+wire        uart_cts;
+wire        uart_rts;
+wire        uart_rxd;
+wire        uart_txd;
+
 wire vs_emu, hs_emu;
 sync_fix sync_v(FPGA_CLK3_50, vs_emu, vs);
 sync_fix sync_h(FPGA_CLK3_50, hs_emu, hs);
@@ -911,7 +916,14 @@ emu emu
 	.SDRAM_nRAS(SDRAM_nRAS),
 	.SDRAM_nCAS(SDRAM_nCAS),
 	.SDRAM_CLK(SDRAM_CLK),
-	.SDRAM_CKE(SDRAM_CKE)
+	.SDRAM_CKE(SDRAM_CKE),
+	
+   .UART_CTS(uart_rts),
+   .UART_RTS(uart_cts),
+   .UART_RXD(uart_txd),
+   .UART_TXD(uart_rxd),
+   .UART_DSR(uart_dtr),
+   .UART_DTR(uart_dsr)
 );
 
 endmodule

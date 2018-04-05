@@ -94,7 +94,14 @@ module emu
 	output        SDRAM_nCS,
 	output        SDRAM_nCAS,
 	output        SDRAM_nRAS,
-	output        SDRAM_nWE
+	output        SDRAM_nWE,
+	
+   input         UART_CTS,
+   output        UART_RTS,
+   input         UART_RXD,
+   output        UART_TXD,
+   input         UART_DSR,
+   output        UART_DTR
 );
 
 assign {SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 6'b111111;
@@ -133,8 +140,7 @@ localparam CONF_STR =
 	"-;",
 	"OX2,Boot order,FDD/HDD,HDD/FDD;",
 	"R0,Reset and apply HDD;",
-	"V,v1.10.",`BUILD_DATE,
-	";+,...;"
+	"V,v1.20.",`BUILD_DATE
 };
 
 
@@ -162,7 +168,6 @@ wire        dma_wr;
 wire  [1:0] dma_status;
 wire  [1:0] dma_req;
 
-
 hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000)) hps_io
 (
 	.clk_sys(clk_sys),
@@ -184,6 +189,8 @@ hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000)) hps_io
 	.status(status),
 
 	.ioctl_wait(ioctl_wait),
+	
+	.uart_mode(16'b000_11111_000_11111),
 
 	.dma_din(dma_din),
 	.dma_dout(dma_dout),
@@ -286,9 +293,22 @@ system u0
 	.disk_op_write        (dma_req[1]),
 	.disk_op_device       (device),
 	.disk_result_ok       (dma_status[0]),
-	.disk_result_error    (dma_status[1])
+	.disk_result_error    (dma_status[1]),
+	
+	.uart_h_cts_n         (UART_CTS),
+	.uart_h_rts_n         (UART_RTS),
+	.uart_s_sin           (UART_RXD),
+	.uart_s_sout          (UART_TXD),
+	.uart_h_dsr_n         (UART_DSR),
+	.uart_h_dtr_n         (UART_DTR),
+	.uart_h_dcd_n         (UART_DSR),
+	.uart_h_ri_n          (1),
+	.uart_s_sout_oe       (),
+	.uart_h_out1_n        (),
+	.uart_h_out2_n        ()
 );
 
+wire       uart_h_dtr_n;
 
 wire       sys_reset = rst_q[7] | ~init_reset_n | RESET;
 wire       cpu_reset = cpu_rst1 | sys_reset;
@@ -311,8 +331,6 @@ always @(posedge clk_sys) begin
 		init_reset_n <= 1;
 	end
 end
-
-
 
 always @(posedge clk_sys) begin
 	reg old_reset;

@@ -94,7 +94,7 @@ wire address_out_of_bounds =
     (avalon_io_address >= 16'h0378 && avalon_io_address < 16'h0388) ||
     (avalon_io_address >= 16'h038C && avalon_io_address < 16'h03B0) ||
     (avalon_io_address >= 16'h03E0 && avalon_io_address < 16'h03F0) ||
-    (avalon_io_address >= 16'h03F8 );
+    (avalon_io_address >= 16'h0400 );
 
 wire [31:0] avalon_io_readdata_final =
     (address_out_of_bounds)?            32'hFFFFFFFF :

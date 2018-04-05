@@ -561,6 +561,14 @@
          type = "String";
       }
    }
+   element vip
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
 }
 ]]></parameter>
  <parameter name="clockCrossingAdapter" value="HANDSHAKE" />
@@ -597,6 +605,7 @@
    internal="Reset_Source.reset_ctl"
    type="conduit"
    dir="end" />
+ <interface name="uart" internal="HPS.uart1" type="conduit" dir="end" />
  <module name="Controller" kind="avalon_combiner" version="17.0" enabled="1" />
  <module name="Frame_Buffer" kind="alt_vip_cl_vfb" version="17.0" enabled="1">
   <parameter name="AUTO_DEVICE" value="5CSEBA6U23I7" />
@@ -608,7 +617,7 @@
   <parameter name="CONTROLLED_DROP_REPEAT" value="0" />
   <parameter name="DROP_FRAMES" value="1" />
   <parameter name="DROP_INVALID_FIELDS" value="1" />
-  <parameter name="DROP_REPEAT_USER" value="0" />
+  <parameter name="DROP_REPEAT_USER" value="1" />
   <parameter name="FAMILY" value="Cyclone V" />
   <parameter name="INTERLACED_SUPPORT" value="0" />
   <parameter name="IS_FRAME_READER" value="0" />
@@ -626,15 +635,15 @@
   <parameter name="PIXELS_IN_PARALLEL" value="2" />
   <parameter name="READER_RUNTIME_CONTROL" value="0" />
   <parameter name="READY_LATENCY" value="1" />
-  <parameter name="READ_BURST_TARGET" value="64" />
-  <parameter name="READ_FIFO_DEPTH" value="512" />
+  <parameter name="READ_BURST_TARGET" value="32" />
+  <parameter name="READ_FIFO_DEPTH" value="128" />
   <parameter name="REPEAT_FRAMES" value="1" />
   <parameter name="TEST_INIT" value="0" />
   <parameter name="USER_PACKETS_MAX_STORAGE" value="1" />
   <parameter name="USE_BUFFER_OFFSET" value="0" />
   <parameter name="WRITER_RUNTIME_CONTROL" value="0" />
-  <parameter name="WRITE_BURST_TARGET" value="64" />
-  <parameter name="WRITE_FIFO_DEPTH" value="512" />
+  <parameter name="WRITE_BURST_TARGET" value="32" />
+  <parameter name="WRITE_FIFO_DEPTH" value="128" />
  </module>
  <module name="HPS" kind="altera_hps_lite" version="17.0" enabled="1">
   <parameter name="AUTO_DEVICE_SPEEDGRADE" value="7" />
@@ -772,8 +781,8 @@
   <parameter name="TRACE_PinMuxing" value="Unused" />
   <parameter name="UART0_Mode" value="N/A" />
   <parameter name="UART0_PinMuxing" value="Unused" />
-  <parameter name="UART1_Mode" value="N/A" />
-  <parameter name="UART1_PinMuxing" value="Unused" />
+  <parameter name="UART1_Mode" value="Full" />
+  <parameter name="UART1_PinMuxing" value="FPGA" />
   <parameter name="USB0_Mode" value="N/A" />
   <parameter name="USB0_PinMuxing" value="Unused" />
   <parameter name="USB1_Mode" value="N/A" />
@@ -873,7 +882,7 @@
   <parameter name="UNIFORM_VALUE_GCB" value="0" />
   <parameter name="UNIFORM_VALUE_RY" value="0" />
   <parameter name="USER_PACKET_FIFO_DEPTH" value="0" />
-  <parameter name="USER_PACKET_SUPPORT" value="DISCARD" />
+  <parameter name="USER_PACKET_SUPPORT" value="NONE_ALLOWED" />
  </module>
  <module name="Output" kind="out_mix" version="17.0" enabled="1" />
  <module name="Reset_Source" kind="reset_source" version="17.0" enabled="1" />

@@ -51,6 +51,8 @@ module hps_io #(parameter STRLEN=0, PS2DIV=2000)
 	output reg        dma_wr,
 	output reg  [1:0] dma_status,
 	input       [1:0] dma_req,
+	
+	input      [15:0] uart_mode,
 
 	// ps2 keyboard emulation
 	output            ps2_kbd_clk_out,
@@ -227,108 +229,104 @@ always@(posedge clk_sys) begin
 
 					// store incoming ps2 mouse bytes 
 					'h04: begin
-							mouse_data <= io_din[7:0];
-							mouse_we   <= 1;
-						end
+								mouse_data <= io_din[7:0];
+								mouse_we   <= 1;
+							end
 
 					// store incoming ps2 keyboard bytes 
 					'h05: begin
-							kbd_data <= io_din[7:0];
-							kbd_we   <= 1;
-						end
+								kbd_data <= io_din[7:0];
+								kbd_we   <= 1;
+							end
 
 					// reading config string
 					'h14: begin
-							// returning a byte from string
-							if(byte_cnt < STRLEN + 1) io_dout[7:0] <= conf_str[(STRLEN - byte_cnt)<<3 +:8];
-						end
+								// returning a byte from string
+								if(byte_cnt < STRLEN + 1) io_dout[7:0] <= conf_str[(STRLEN - byte_cnt)<<3 +:8];
+							end
 
 					// reading sd card status
 					'h16: io_dout <= 0;
 
 					// status, 32bit version
 					'h1e: if(byte_cnt==1) status[15:0] <= io_din;
-								else if(byte_cnt==2) status[31:16] <= io_din;
+							else
+							if(byte_cnt==2) status[31:16] <= io_din;
 
 					// reading keyboard LED status
 					'h1f: io_dout <= 16'h0100;
 
 					// reading ps2 keyboard/mouse control
-					'h21: begin
-							if(byte_cnt == 1) begin
+					'h21: if(byte_cnt == 1) begin
 								io_dout <= kbd_data_host;
 								kbd_rd <= 1;
 							end
-
+							else 
 							if(byte_cnt == 2) begin
 								io_dout <= mouse_data_host;
 								mouse_rd <= 1;
 							end
-						end
 
 					//Video res.
-					'h23: begin
-								case(byte_cnt)
-									1: io_dout <= vid_nres;
-									2: io_dout <= vid_hcnt[15:0];
-									3: io_dout <= vid_hcnt[31:16];
-									4: io_dout <= vid_vcnt[15:0];
-									5: io_dout <= vid_vcnt[31:16];
-									6: io_dout <= vid_htime[15:0];
-									7: io_dout <= vid_htime[31:16];
-									8: io_dout <= vid_vtime[15:0];
-									9: io_dout <= vid_vtime[31:16];
-								  10: io_dout <= vid_pix[15:0];
-								  11: io_dout <= vid_pix[31:16];
-								  12: io_dout <= vid_vtime_hdmi[15:0];
-								  13: io_dout <= vid_vtime_hdmi[31:16];
-								endcase
-						end
+					'h23: case(byte_cnt)
+								1: io_dout <= vid_nres;
+								2: io_dout <= vid_hcnt[15:0];
+								3: io_dout <= vid_hcnt[31:16];
+								4: io_dout <= vid_vcnt[15:0];
+								5: io_dout <= vid_vcnt[31:16];
+								6: io_dout <= vid_htime[15:0];
+								7: io_dout <= vid_htime[31:16];
+								8: io_dout <= vid_vtime[15:0];
+								9: io_dout <= vid_vtime[31:16];
+							  10: io_dout <= vid_pix[15:0];
+							  11: io_dout <= vid_pix[31:16];
+							  12: io_dout <= vid_vtime_hdmi[15:0];
+							  13: io_dout <= vid_vtime_hdmi[31:16];
+							endcase
 
-					'h61: begin
-								if(byte_cnt == 1) begin
-									dma_addr[15:0] <= io_din;
-								end
-								else
-								if(byte_cnt == 2) begin
-									dma_addr[31:16] <= io_din;
+					//UART flags
+					'h28: io_dout <= uart_mode;
+
+					'h61: if(byte_cnt == 1) begin
+								dma_addr[15:0] <= io_din;
+							end
+							else
+							if(byte_cnt == 2) begin
+								dma_addr[31:16] <= io_din;
+							end
+							else
+							begin
+								if(~dma_hilo) begin
+									if(byte_cnt>4) dma_addr <= dma_addr + 3'd4;
+									dma_dout[15:0] <= io_din;
 								end
 								else
 								begin
-									if(~dma_hilo) begin
-										if(byte_cnt>4) dma_addr <= dma_addr + 3'd4;
-										dma_dout[15:0] <= io_din;
-									end
-									else
-									begin
-										dma_dout[31:16] <= io_din;
-										dma_wr <= 1;
-									end
-									dma_hilo <= ~dma_hilo;
+									dma_dout[31:16] <= io_din;
+									dma_wr <= 1;
 								end
+								dma_hilo <= ~dma_hilo;
 							end
 
-					'h62: begin
-								if(byte_cnt == 1) begin
-									dma_addr[15:0] <= io_din;
-								end
-								else
-								if(byte_cnt == 2) begin
-									dma_addr[31:16] <= io_din;
+					'h62: if(byte_cnt == 1) begin
+								dma_addr[15:0] <= io_din;
+							end
+							else
+							if(byte_cnt == 2) begin
+								dma_addr[31:16] <= io_din;
+							end
+							else
+							begin
+								if(~dma_hilo) begin
+									dma_rd <= 1;
+									pending <= 1;
 								end
 								else
 								begin
-									if(~dma_hilo) begin
-										dma_rd <= 1;
-										pending <= 1;
-									end
-									else
-									begin
-										io_dout <= dma_din[31:16];
-										dma_addr <= dma_addr + 3'd4;
-									end
-									dma_hilo <= ~dma_hilo;
+									io_dout <= dma_din[31:16];
+									dma_addr <= dma_addr + 3'd4;
 								end
+								dma_hilo <= ~dma_hilo;
 							end
 
 					'h63: begin
