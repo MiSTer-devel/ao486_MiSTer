@@ -73,13 +73,13 @@ assign fm_readdata =       !fm_address ? io_readdata : 8'hFF;
 reg [8:0] index;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 0)                                  index <= 0;
-    else if(           sb_address == 8 && sb_write) index <= {1'b0, sb_writedata};
+    else if(      sb_address[2:0] == 0 && sb_write) index <= {1'b0, sb_writedata};
     else if(           fm_address == 0 && fm_write) index <= {1'b0, fm_writedata};
     else if(fm_mode && sb_address == 2 && sb_write) index <= {1'b1, sb_writedata};
     else if(fm_mode && fm_address == 2 && fm_write) index <= {1'b1, fm_writedata};
 end
 
-wire       io_write     = (((sb_address == 1 || (fm_mode && sb_address == 3) || sb_address == 9) && sb_write) || ((fm_address == 1 || (fm_mode && fm_address == 3)) && fm_write));
+wire       io_write     = (((sb_address[2:0] == 1 || (fm_mode && sb_address == 3)) && sb_write) || ((fm_address == 1 || (fm_mode && fm_address == 3)) && fm_write));
 wire [7:0] io_writedata = (sb_write)? sb_writedata : fm_writedata;
 
 //------------------------------------------------------------------------------ timer 1
