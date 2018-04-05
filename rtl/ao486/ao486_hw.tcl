@@ -146,7 +146,7 @@ add_interface_port reset_sink rst_n reset_n Input 1
 # connection point avalon_memory
 # 
 add_interface avalon_memory avalon start
-set_interface_property avalon_memory addressUnits SYMBOLS
+set_interface_property avalon_memory addressUnits WORDS
 set_interface_property avalon_memory associatedClock clock
 set_interface_property avalon_memory associatedReset reset_sink
 set_interface_property avalon_memory bitsPerSymbol 8
@@ -169,7 +169,7 @@ set_interface_property avalon_memory PORT_NAME_MAP ""
 set_interface_property avalon_memory CMSIS_SVD_VARIABLES ""
 set_interface_property avalon_memory SVD_ADDRESS_GROUP ""
 
-add_interface_port avalon_memory avm_address address Output 32
+add_interface_port avalon_memory avm_address address Output 30
 add_interface_port avalon_memory avm_writedata writedata Output 32
 add_interface_port avalon_memory avm_byteenable byteenable Output 4
 add_interface_port avalon_memory avm_burstcount burstcount Output 3

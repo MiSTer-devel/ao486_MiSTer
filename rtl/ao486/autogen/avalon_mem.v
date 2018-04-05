@@ -90,12 +90,12 @@ wire [31:0] bus_1_to_reg =
     (cond_12 && cond_13 && cond_15)? ( avm_readdata) :
     (cond_21 && cond_13 && cond_23)? ( avm_readdata) :
     bus_1;
-wire [31:0] avm_address_to_reg =
-    (cond_0 && cond_4)? (        { writeburst_address[31:2], 2'd0 }) :
-    (cond_0 && ~cond_4 && cond_5)? (        { writeline_address[31:4], 4'd0 }) :
-    (cond_0 && ~cond_4 && ~cond_5 && cond_6)? (    { readburst_address[31:2], 2'd0 }) :
-    (cond_0 && ~cond_4 && ~cond_5 && ~cond_6 && cond_7)? (    { readline_address[31:4], 4'd0 }) :
-    (cond_0 && ~cond_4 && ~cond_5 && ~cond_6 && ~cond_7 && cond_8)? (    { readcode_address[31:2], 2'd0 }) :
+wire [31:2] avm_address_to_reg =
+    (cond_0 && cond_4)? (        { writeburst_address[31:2]}) :
+    (cond_0 && ~cond_4 && cond_5)? (        { writeline_address[31:4], 2'd0 }) :
+    (cond_0 && ~cond_4 && ~cond_5 && cond_6)? (    { readburst_address[31:2]}) :
+    (cond_0 && ~cond_4 && ~cond_5 && ~cond_6 && cond_7)? (    { readline_address[31:4], 2'd0 }) :
+    (cond_0 && ~cond_4 && ~cond_5 && ~cond_6 && ~cond_7 && cond_8)? (    { readcode_address[31:2]}) :
     avm_address;
 wire  avm_write_to_reg =
     (cond_0 && cond_4)? (          `TRUE) :
@@ -170,7 +170,7 @@ always @(posedge clk or negedge rst_n) begin
     else              bus_1 <= bus_1_to_reg;
 end
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0) avm_address <= 32'd0;
+    if(rst_n == 1'b0) avm_address <= 0;
     else              avm_address <= avm_address_to_reg;
 end
 always @(posedge clk or negedge rst_n) begin

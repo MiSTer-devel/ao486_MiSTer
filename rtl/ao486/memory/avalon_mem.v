@@ -81,7 +81,7 @@ module avalon_mem(
     //END
     
     // avalon master
-    output reg  [31:0]  avm_address,
+    output reg  [31:2]  avm_address,
     output reg  [31:0]  avm_writedata,
     output reg  [3:0]   avm_byteenable,
     output reg  [2:0]   avm_burstcount,

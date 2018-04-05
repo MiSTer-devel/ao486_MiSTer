@@ -38,7 +38,7 @@ module ao486 (
     output              interrupt_done,
     
     //-------------------------------------------------------------------------- Altera Avalon memory bus
-    output      [31:0]  avm_address,
+    output      [29:0]  avm_address,
     output      [31:0]  avm_writedata,
     output      [3:0]   avm_byteenable,
     output      [2:0]   avm_burstcount,
@@ -152,8 +152,8 @@ wire        exc_pf_write;
 wire        exc_pf_code;
 wire        exc_pf_check;
 
-wire [31:0] avm_address_pre;
-assign      avm_address = {avm_address_pre[31:21], avm_address_pre[20] & a20_enable, avm_address_pre[19:0]};
+wire [31:2] avm_address_pre;
+assign      avm_address = {avm_address_pre[31:21], avm_address_pre[20] & a20_enable, avm_address_pre[19:2]};
 
 exception exception_inst(
     .clk                (clk),

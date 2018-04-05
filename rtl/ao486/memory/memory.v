@@ -138,7 +138,7 @@ module memory(
     input               wr_reset,
     
     // avalon master
-    output      [31:0]  avm_address,
+    output      [31:2]  avm_address,
     output      [31:0]  avm_writedata,
     output      [3:0]   avm_byteenable,
     output      [2:0]   avm_burstcount,
