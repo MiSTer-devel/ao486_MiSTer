@@ -717,7 +717,7 @@ osd vga_osd
 );
 
 `else
-	wire [23:0] vga_o = HDMI_TX_D;
+	wire [23:0] vga_o = HDMI_TX_DE ? HDMI_TX_D : 24'd0;
 `endif
 
 `ifdef LITE

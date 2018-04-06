@@ -57,7 +57,7 @@ set_global_assignment -name REMOVE_REDUNDANT_LOGIC_CELLS ON
 set_global_assignment -name OPTIMIZE_POWER_DURING_SYNTHESIS OFF
 set_global_assignment -name PRE_MAPPING_RESYNTHESIS ON
 set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_DUPLICATION ON
-set_global_assignment -name SEED 3
+set_global_assignment -name SEED 6
 
 #============================================================
 # ADC
