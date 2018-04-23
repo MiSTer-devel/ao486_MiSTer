@@ -36,27 +36,27 @@ wire  read_done_to_reg =
     (cond_7 && cond_9)? ( `TRUE) :
     read_done;
 //======================================================== always
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) buffer <= 56'd0;
     else              buffer <= buffer_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) address_2_reg <= 32'd0;
     else              address_2_reg <= address_2_reg_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) length_2_reg <= 4'd0;
     else              length_2_reg <= length_2_reg_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) read_data <= 64'd0;
     else              read_data <= read_data_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) state <= 2'd0;
     else              state <= state_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) read_done <= 1'd0;
     else              read_done <= read_done_to_reg;
 end

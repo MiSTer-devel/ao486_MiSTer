@@ -75,19 +75,19 @@ assign save  = req_writeburst_do && ~(resp_writeburst_done) && ~(req_writeburst_
 
 //------------------------------------------------------------------------------
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)               current_do <= `FALSE;
     else if(save)                   current_do <= req_writeburst_do;
     else if(resp_writeburst_done)   current_do <= `FALSE;
 end
 
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) address      <= 32'd0; else if(save) address      <= req_writeburst_address;      end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) dword_length <= 2'd0;  else if(save) dword_length <= req_writeburst_dword_length; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) byteenable_0 <= 4'd0;  else if(save) byteenable_0 <= req_writeburst_byteenable_0; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) byteenable_1 <= 4'd0;  else if(save) byteenable_1 <= req_writeburst_byteenable_1; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) data         <= 56'd0; else if(save) data         <= req_writeburst_data;         end
+always @(posedge clk) begin if(rst_n == 1'b0) address      <= 32'd0; else if(save) address      <= req_writeburst_address;      end
+always @(posedge clk) begin if(rst_n == 1'b0) dword_length <= 2'd0;  else if(save) dword_length <= req_writeburst_dword_length; end
+always @(posedge clk) begin if(rst_n == 1'b0) byteenable_0 <= 4'd0;  else if(save) byteenable_0 <= req_writeburst_byteenable_0; end
+always @(posedge clk) begin if(rst_n == 1'b0) byteenable_1 <= 4'd0;  else if(save) byteenable_1 <= req_writeburst_byteenable_1; end
+always @(posedge clk) begin if(rst_n == 1'b0) data         <= 56'd0; else if(save) data         <= req_writeburst_data;         end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)               done_delayed <= `FALSE;
     else                            done_delayed <= resp_writeburst_done;
 end

@@ -106,7 +106,7 @@ assign partial_length_current =
 
 //------------------------------------------------------------------------------
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           reset_waiting <= `FALSE;
     else if(pr_reset && state != STATE_IDLE)    reset_waiting <= `TRUE;
     else if(state == STATE_IDLE)                reset_waiting <= `FALSE;

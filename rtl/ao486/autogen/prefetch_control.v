@@ -22,19 +22,19 @@ wire  cache_disable_to_reg =
     (cond_0 && cond_1 && cond_2)? ( tlbcode_cache_disable) :
     cache_disable;
 //======================================================== always
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) physical <= 32'd0;
     else              physical <= physical_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) linear <= 32'd0;
     else              linear <= linear_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) state <= 2'd0;
     else              state <= state_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) cache_disable <= 1'd0;
     else              cache_disable <= cache_disable_to_reg;
 end

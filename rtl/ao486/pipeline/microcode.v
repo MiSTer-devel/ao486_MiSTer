@@ -174,17 +174,17 @@ microcode_commands microcode_commands_inst(
 
 //------------------------------------------------------------------------------
     
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) mc_operand_32bit       <= `FALSE; else if(m_load) mc_operand_32bit       <= dec_operand_32bit;       else if(exc_init) mc_operand_32bit       <= `FALSE;  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) mc_address_32bit       <= `FALSE; else if(m_load) mc_address_32bit       <= dec_address_32bit;       else if(exc_init) mc_address_32bit       <= `FALSE;  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) mc_prefix_group_1_rep  <= 2'd0;   else if(m_load) mc_prefix_group_1_rep  <= dec_prefix_group_1_rep;  else if(exc_init) mc_prefix_group_1_rep  <= 2'd0;    end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) mc_prefix_group_1_lock <= `FALSE; else if(m_load) mc_prefix_group_1_lock <= dec_prefix_group_1_lock; else if(exc_init) mc_prefix_group_1_lock <= `FALSE;  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) mc_prefix_group_2_seg  <= 3'd3;   else if(m_load) mc_prefix_group_2_seg  <= dec_prefix_group_2_seg;  else if(exc_init) mc_prefix_group_2_seg  <= 3'd3;    end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) mc_prefix_2byte        <= `FALSE; else if(m_load) mc_prefix_2byte        <= dec_prefix_2byte;        else if(exc_init) mc_prefix_2byte        <= `FALSE;  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) mc_decoder             <= 88'd0;  else if(m_load) mc_decoder             <= decoder[87:0];           else if(exc_init) mc_decoder             <= 88'd0;   end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) mc_modregrm_len        <= 3'd0;   else if(m_load) mc_modregrm_len        <= dec_modregrm_len;        else if(exc_init) mc_modregrm_len        <= 3'd0;    end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) mc_is_8bit             <= `FALSE; else if(m_load) mc_is_8bit             <= dec_is_8bit;             else if(exc_init) mc_is_8bit             <= `FALSE;  end
+always @(posedge clk) begin if(rst_n == 1'b0) mc_operand_32bit       <= `FALSE; else if(m_load) mc_operand_32bit       <= dec_operand_32bit;       else if(exc_init) mc_operand_32bit       <= `FALSE;  end
+always @(posedge clk) begin if(rst_n == 1'b0) mc_address_32bit       <= `FALSE; else if(m_load) mc_address_32bit       <= dec_address_32bit;       else if(exc_init) mc_address_32bit       <= `FALSE;  end
+always @(posedge clk) begin if(rst_n == 1'b0) mc_prefix_group_1_rep  <= 2'd0;   else if(m_load) mc_prefix_group_1_rep  <= dec_prefix_group_1_rep;  else if(exc_init) mc_prefix_group_1_rep  <= 2'd0;    end
+always @(posedge clk) begin if(rst_n == 1'b0) mc_prefix_group_1_lock <= `FALSE; else if(m_load) mc_prefix_group_1_lock <= dec_prefix_group_1_lock; else if(exc_init) mc_prefix_group_1_lock <= `FALSE;  end
+always @(posedge clk) begin if(rst_n == 1'b0) mc_prefix_group_2_seg  <= 3'd3;   else if(m_load) mc_prefix_group_2_seg  <= dec_prefix_group_2_seg;  else if(exc_init) mc_prefix_group_2_seg  <= 3'd3;    end
+always @(posedge clk) begin if(rst_n == 1'b0) mc_prefix_2byte        <= `FALSE; else if(m_load) mc_prefix_2byte        <= dec_prefix_2byte;        else if(exc_init) mc_prefix_2byte        <= `FALSE;  end
+always @(posedge clk) begin if(rst_n == 1'b0) mc_decoder             <= 88'd0;  else if(m_load) mc_decoder             <= decoder[87:0];           else if(exc_init) mc_decoder             <= 88'd0;   end
+always @(posedge clk) begin if(rst_n == 1'b0) mc_modregrm_len        <= 3'd0;   else if(m_load) mc_modregrm_len        <= dec_modregrm_len;        else if(exc_init) mc_modregrm_len        <= 3'd0;    end
+always @(posedge clk) begin if(rst_n == 1'b0) mc_is_8bit             <= `FALSE; else if(m_load) mc_is_8bit             <= dec_is_8bit;             else if(exc_init) mc_is_8bit             <= `FALSE;  end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)       mc_cmd <= `CMD_NULL;
     else if(exc_init)       mc_cmd <= `CMD_int;
     else if(micro_reset)    mc_cmd <= `CMD_NULL;
@@ -192,20 +192,20 @@ always @(posedge clk or negedge rst_n) begin
     else if(micro_ready)    mc_cmd <= mc_cmd_next;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   mc_cmdex <= 4'd0;
     else if(m_load)     mc_cmdex <= dec_cmdex;
     else if(exc_init)   mc_cmdex <= `CMDEX_int_STEP_0;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   mc_consumed <= 4'd0;
     else if(m_load)     mc_consumed <= dec_consumed;
     else if(task_start) mc_consumed <= 4'd0;
     else if(exc_load)   mc_consumed <= 4'd0;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   mc_eip <= 32'd0;
     else if(m_load)     mc_eip <= dec_eip;
     else if(task_start) mc_eip <= task_eip;
@@ -248,7 +248,7 @@ assign micro_eip =
 
 //------------------------------------------------------------------------------
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)       mc_step <= 6'd0;
     else if(m_load)         mc_step <= 6'd1;
     else if(micro_ready)    mc_step <= mc_step + 6'd1;
@@ -256,7 +256,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)       mc_cmdex_last <= 4'd0;
     else if(micro_ready)    mc_cmdex_last <= micro_cmdex;
     else if(exc_init)       mc_cmdex_last <= `CMDEX_int_STEP_0;

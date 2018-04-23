@@ -120,21 +120,21 @@ assign is_prefix =
 //------------------------------------------------------------------------------
 
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               dec_prefix_group_1_rep <= 2'd0;
     else if(instr_finished)                         dec_prefix_group_1_rep <= 2'd0;
     else if(instr_prefix && decoder[7:0] == 8'hF2)  dec_prefix_group_1_rep <= 2'd1;
     else if(instr_prefix && decoder[7:0] == 8'hF3)  dec_prefix_group_1_rep <= 2'd2;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               prefix_group_1_lock <= 1'd0;
     else if(instr_finished)                         prefix_group_1_lock <= 1'd0;
     else if(instr_prefix && decoder[7:0] == 8'hF0)  prefix_group_1_lock <= 1'd1;
 end
 
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               prefix_group_2 <= 3'd7;
     else if(instr_finished)                         prefix_group_2 <= 3'd7;
     else if(instr_prefix && decoder[7:0] == 8'h26)  prefix_group_2 <= 3'd0;
@@ -145,25 +145,25 @@ always @(posedge clk or negedge rst_n) begin
     else if(instr_prefix && decoder[7:0] == 8'h65)  prefix_group_2 <= 3'd5;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               prefix_group_3 <= 1'd0;
     else if(instr_finished)                         prefix_group_3 <= 1'd0;
     else if(instr_prefix && decoder[7:0] == 8'h66)  prefix_group_3 <= 1'd1;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               prefix_group_4 <= 1'd0;
     else if(instr_finished)                         prefix_group_4 <= 1'd0;
     else if(instr_prefix && decoder[7:0] == 8'h67)  prefix_group_4 <= 1'd1;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               dec_prefix_2byte <= 1'd0;
     else if(instr_finished)                         dec_prefix_2byte <= 1'd0;
     else if(instr_prefix && decoder[7:0] == 8'h0F)  dec_prefix_2byte <= 1'd1;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)       prefix_count <= 4'd0;
     else if(instr_finished) prefix_count <= 4'd0;
     else if(instr_prefix)   prefix_count <= prefix_count + 4'd1;

@@ -114,19 +114,19 @@ assign tlbwrite_rmw         = write_rmw;
 
 //------------------------------------------------------------------------------
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           reset_waiting <= `FALSE;
     else if(wr_reset && state != STATE_IDLE)    reset_waiting <= `TRUE;
     else if(state == STATE_IDLE)                reset_waiting <= `FALSE;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                   page_fault <= `FALSE;
     else if(wr_reset)                                   page_fault <= `FALSE;
     else if(tlbwrite_page_fault && ~(reset_waiting))    page_fault <= `TRUE;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               ac_fault <= `FALSE;
     else if(wr_reset)                               ac_fault <= `FALSE;
     else if(tlbwrite_ac_fault && ~(reset_waiting))  ac_fault <= `TRUE;

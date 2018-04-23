@@ -70,31 +70,31 @@ wire  cache_disable_to_reg =
     (cond_0 && ~cond_1 && ~cond_2 && ~cond_3 && cond_4)? (  dcacheread_cache_disable) :
     cache_disable;
 //======================================================== always
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) is_write <= 1'd0;
     else              is_write <= is_write_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) address <= 32'd0;
     else              address <= address_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) state <= 3'd0;
     else              state <= state_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) length <= 4'd0;
     else              length <= length_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) write_through <= 1'd0;
     else              write_through <= write_through_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) write_data <= 32'd0;
     else              write_data <= write_data_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) cache_disable <= 1'd0;
     else              cache_disable <= cache_disable_to_reg;
 end

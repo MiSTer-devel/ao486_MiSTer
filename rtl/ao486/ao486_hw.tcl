@@ -101,6 +101,9 @@ add_fileset_file prefetch_fifo.v VERILOG PATH memory/prefetch_fifo.v
 add_fileset_file tlb.v VERILOG PATH memory/tlb.v
 add_fileset_file tlb_memtype.v VERILOG PATH memory/tlb_memtype.v
 add_fileset_file tlb_regs.v VERILOG PATH memory/tlb_regs.v
+add_fileset_file simple_fifo.v VERILOG PATH ../common/simple_fifo.v
+add_fileset_file simple_ram.v VERILOG PATH ../common/simple_ram.v
+add_fileset_file simple_mult.v VERILOG PATH ../common/simple_mult.v
 
 
 # 

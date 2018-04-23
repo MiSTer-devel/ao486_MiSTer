@@ -74,14 +74,14 @@ reg [67:0] second;
 
 //------------------------------------------------------------------------------
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                                                   second_processing <= `FALSE;
     else if(pr_reset)                                                                                   second_processing <= `FALSE;
     else if(prefetchfifo_accept_do && second_processing == `FALSE && q[135:132] != 4'd0 && ~(empty))    second_processing <= `TRUE;
     else if(prefetchfifo_accept_do && second_processing == `TRUE)                                       second_processing <= `FALSE;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                               second <= 68'd0;
     else if(prefetchfifo_accept_do && second_processing == `FALSE)  second <= q[135:68];
 end

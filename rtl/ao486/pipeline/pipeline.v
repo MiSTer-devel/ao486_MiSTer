@@ -283,7 +283,7 @@ reg [1:0] pipeline_dec_idle_counter;
 
 assign pipeline_dec_idle                = rd_dec_is_front && prefetchfifo_accept_empty;
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                               pipeline_dec_idle_counter <= 2'd0;
     else if(pipeline_dec_idle && pipeline_dec_idle_counter < 2'd3)  pipeline_dec_idle_counter <= pipeline_dec_idle_counter + 2'd1;
     else if(~(pipeline_dec_idle))                                   pipeline_dec_idle_counter <= 2'd0;

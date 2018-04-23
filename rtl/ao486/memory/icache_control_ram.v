@@ -73,7 +73,7 @@ assign q = (~(init_done) || state == STATE_INVD || after_invalidate)? 7'd0 : ram
 
 //------------------------------------------------------------------------------
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   last_address <= 8'd0;
     else if(read_do)    last_address <= address[11:4];
 end

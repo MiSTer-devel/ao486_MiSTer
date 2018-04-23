@@ -47,23 +47,23 @@ wire [11:0] partial_length_to_reg =
     (cond_11 && cond_9 && cond_12)? ( { 3'd0, partial_length[11:3] }) :
     partial_length;
 //======================================================== always
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) address <= 32'd0;
     else              address <= address_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) state <= 2'd0;
     else              state <= state_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) length <= 5'd0;
     else              length <= length_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) cache_disable <= 1'd0;
     else              cache_disable <= cache_disable_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) partial_length <= 12'd0;
     else              partial_length <= partial_length_to_reg;
 end

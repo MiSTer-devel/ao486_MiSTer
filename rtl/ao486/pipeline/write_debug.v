@@ -92,7 +92,7 @@ wire [3:0]  wr_debug_read_current;
 
 assign wr_debug_read_current = (wr_debug_breakpoints_disabled)? 4'd0 : exe_debug_read;
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                               wr_debug_read_reg <= 4'd0;
     
     else if(wr_inhibit_interrupts_and_debug || wr_debug_prepare)    wr_debug_read_reg <= wr_debug_read_reg; // no change
@@ -123,38 +123,38 @@ assign wr_debug_linear_last = write_address + { 29'd0, write_length } - 32'd1;
 
 
 //NOTE: write_for_wr_ready at least two cycles after valid write_address
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   wr_debug_linear_last_reg <= 32'd0;
     else                wr_debug_linear_last_reg <= wr_debug_linear_last;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   write_address_last <= 32'd0;
     else                write_address_last <= write_address;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   wr_debug_b0_write_trigger <= `FALSE;
     else                wr_debug_b0_write_trigger <= dr7[16] == 1'b1 && // RW bits = (read or write) or write only
                                                      ( write_address_last        <= { dr0[31:3], dr0[2:0] | ~(debug_len0)} ) &&
                                                      ( wr_debug_linear_last_reg  >= { dr0[31:3], dr0[2:0] &   debug_len0 } );
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   wr_debug_b1_write_trigger <= `FALSE;
     else                wr_debug_b1_write_trigger <= dr7[20] == 1'b1 && // RW bits = (read or write) or write only
                                                      ( write_address_last        <= { dr1[31:3], dr1[2:0] | ~(debug_len1)} ) &&
                                                      ( wr_debug_linear_last_reg  >= { dr1[31:3], dr1[2:0] &   debug_len1 } );
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   wr_debug_b2_write_trigger <= `FALSE;
     else                wr_debug_b2_write_trigger <= dr7[24] == 1'b1 && // RW bits = (read or write) or write only
                                                      ( write_address_last        <= { dr2[31:3], dr2[2:0] | ~(debug_len2)} ) &&
                                                      ( wr_debug_linear_last_reg  >= { dr2[31:3], dr2[2:0] &   debug_len2 } );
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   wr_debug_b3_write_trigger <= `FALSE;
     else                wr_debug_b3_write_trigger <= dr7[28] == 1'b1 && // RW bits = (read or write) or write only
                                                      ( write_address_last        <= { dr3[31:3], dr3[2:0] | ~(debug_len3)} ) &&
@@ -171,7 +171,7 @@ assign wr_debug_write_current = (wr_debug_breakpoints_disabled)? 4'd0 :
     { wr_debug_b3_write_trigger, wr_debug_b2_write_trigger, wr_debug_b1_write_trigger, wr_debug_b0_write_trigger };
     
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               wr_debug_write_reg <= 4'd0;
     
     else if(wr_inhibit_interrupts_and_debug)        wr_debug_write_reg <= wr_debug_write_reg; // no change
@@ -224,7 +224,7 @@ assign wr_debug_code_active =
 assign wr_debug_code = (wr_debug_code_active)? 
     { wr_debug_b3_code_trigger, wr_debug_b2_code_trigger, wr_debug_b1_code_trigger, wr_debug_b0_code_trigger } : 4'd0;
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           wr_debug_code_reg <= 4'd0;
     else if(wr_debug_prepare)   wr_debug_code_reg <= wr_debug_code;
 end
@@ -233,12 +233,12 @@ end
 
 reg wr_debug_step;
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           wr_debug_step_reg <= `FALSE;
     else if(wr_debug_prepare)   wr_debug_step_reg <= wr_debug_step;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)               wr_debug_step <= `FALSE;
     else if(wr_debug_trap_clear)    wr_debug_step <= `FALSE;
     else if(wr_finished)            wr_debug_step <= tflag_to_reg;
@@ -246,7 +246,7 @@ end
 
 //------------------------------------------------------------------------------ debug task switch
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           wr_debug_task_reg <= `FALSE;
     else if(wr_debug_prepare)   wr_debug_task_reg <= wr_debug_task_trigger;
 end

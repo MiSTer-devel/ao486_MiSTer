@@ -75,19 +75,19 @@ assign save  = req_dcachewrite_do && ~(resp_dcachewrite_done) && ~(req_dcachewri
 
 //------------------------------------------------------------------------------
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)               current_do <= `FALSE;
     else if(save)                   current_do <= req_dcachewrite_do;
     else if(resp_dcachewrite_done)  current_do <= `FALSE;
 end
 
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) length        <= 3'd0;  else if(save) length        <= req_dcachewrite_length;        end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) cache_disable <= 1'b0;  else if(save) cache_disable <= req_dcachewrite_cache_disable; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) address       <= 32'd0; else if(save) address       <= req_dcachewrite_address;       end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) write_through <= 1'b0;  else if(save) write_through <= req_dcachewrite_write_through; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) data          <= 32'd0; else if(save) data          <= req_dcachewrite_data;          end
+always @(posedge clk) begin if(rst_n == 1'b0) length        <= 3'd0;  else if(save) length        <= req_dcachewrite_length;        end
+always @(posedge clk) begin if(rst_n == 1'b0) cache_disable <= 1'b0;  else if(save) cache_disable <= req_dcachewrite_cache_disable; end
+always @(posedge clk) begin if(rst_n == 1'b0) address       <= 32'd0; else if(save) address       <= req_dcachewrite_address;       end
+always @(posedge clk) begin if(rst_n == 1'b0) write_through <= 1'b0;  else if(save) write_through <= req_dcachewrite_write_through; end
+always @(posedge clk) begin if(rst_n == 1'b0) data          <= 32'd0; else if(save) data          <= req_dcachewrite_data;          end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)               done_delayed <= `FALSE;
     else                            done_delayed <= resp_dcachewrite_done;
 end

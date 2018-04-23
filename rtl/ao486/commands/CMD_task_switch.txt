@@ -155,7 +155,7 @@ assign rd_task_switch_linear_next =
     (glob_descriptor[`DESC_BITS_TYPE] <= 4'd3)? rd_task_switch_linear_reg + 32'd2 :
                                                 rd_task_switch_linear_reg + 32'd4;
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                               rd_task_switch_linear_reg <= 32'd0;
     else if(rd_cmd == `CMD_task_switch && rd_cmdex == `CMDEX_task_switch_STEP_12)   rd_task_switch_linear_reg <= rd_system_linear;
     else if(rd_ready)                                                               rd_task_switch_linear_reg <= rd_task_switch_linear_next;
@@ -657,7 +657,7 @@ assign wr_task_switch_linear_next =
     (tr_cache[`DESC_BITS_TYPE] <= 4'd3)?    wr_task_switch_linear_reg + 32'd2 :
                                             wr_task_switch_linear_reg + 32'd4;
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                               wr_task_switch_linear_reg <= 32'd0;
     else if(wr_cmd == `CMD_task_switch && wr_cmdex == `CMDEX_task_switch_STEP_9)    wr_task_switch_linear_reg <= wr_task_switch_linear;
     else if(wr_ready)                                                               wr_task_switch_linear_reg <= wr_task_switch_linear_next;

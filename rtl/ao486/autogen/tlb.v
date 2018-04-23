@@ -227,91 +227,91 @@ wire  code_pf_to_reg =
     (cond_32 && cond_14 && cond_33 && cond_26)? (                `TRUE) :
     code_pf;
 //======================================================== always
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) current_type <= 2'd0;
     else              current_type <= current_type_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) pde <= 32'd0;
     else              pde <= pde_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) state <= 5'd0;
     else              state <= state_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) tlb_read_pf_cr2 <= 32'd0;
     else              tlb_read_pf_cr2 <= tlb_read_pf_cr2_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) tlb_code_pf_cr2 <= 32'd0;
     else              tlb_code_pf_cr2 <= tlb_code_pf_cr2_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) su <= 1'd0;
     else              su <= su_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) tlb_check_pf_error_code <= 16'd0;
     else              tlb_check_pf_error_code <= tlb_check_pf_error_code_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) tlb_write_pf_error_code <= 16'd0;
     else              tlb_write_pf_error_code <= tlb_write_pf_error_code_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) write_double_linear <= 32'd0;
     else              write_double_linear <= write_double_linear_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) tlbcode_cache_disable <= 1'd0;
     else              tlbcode_cache_disable <= tlbcode_cache_disable_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) linear <= 32'd0;
     else              linear <= linear_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) tlb_code_pf_error_code <= 16'd0;
     else              tlb_code_pf_error_code <= tlb_code_pf_error_code_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) tlbcode_do <= 1'd0;
     else              tlbcode_do <= tlbcode_do_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) wp <= 1'd0;
     else              wp <= wp_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) tlbcheck_done <= 1'd0;
     else              tlbcheck_done <= tlbcheck_done_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) tlb_write_pf_cr2 <= 32'd0;
     else              tlb_write_pf_cr2 <= tlb_write_pf_cr2_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) pte <= 32'd0;
     else              pte <= pte_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) tlb_check_pf_cr2 <= 32'd0;
     else              tlb_check_pf_cr2 <= tlb_check_pf_cr2_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) tlb_read_pf_error_code <= 16'd0;
     else              tlb_read_pf_error_code <= tlb_read_pf_error_code_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) write_double_state <= 2'd0;
     else              write_double_state <= write_double_state_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) tlbcode_physical <= 32'd0;
     else              tlbcode_physical <= tlbcode_physical_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) rw <= 1'd0;
     else              rw <= rw_to_reg;
 end

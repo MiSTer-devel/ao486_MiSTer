@@ -338,49 +338,49 @@ tlb_regs tlb_regs_inst(
 
 //------------------------------------------------------------------------------
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   code_pf <= `FALSE;
     else if(pr_reset)   code_pf <= `FALSE;
     else                code_pf <= code_pf_to_reg;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   check_pf <= `FALSE;
     else if(exe_reset)  check_pf <= `FALSE;
     else                check_pf <= check_pf_to_reg;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   read_pf <= `FALSE;
     else if(rd_reset)   read_pf <= `FALSE;
     else                read_pf <= read_pf_to_reg;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   read_ac <= `FALSE;
     else if(rd_reset)   read_ac <= `FALSE;
     else                read_ac <= read_ac_to_reg;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   write_pf <= `FALSE;
     else if(wr_reset)   write_pf <= `FALSE;
     else                write_pf <= write_pf_to_reg;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   write_ac <= `FALSE;
     else if(wr_reset)   write_ac <= `FALSE;
     else                write_ac <= write_ac_to_reg;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           pr_reset_waiting <= `FALSE;
     else if(pr_reset && state != STATE_IDLE)    pr_reset_waiting <= `TRUE;
     else if(state == STATE_IDLE)                pr_reset_waiting <= `FALSE;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               tlbflushall_do_waiting <= `FALSE;
     else if(tlbflushall_do && state != STATE_IDLE)  tlbflushall_do_waiting <= `TRUE;
     else if(tlbregs_tlbflushall_do)                 tlbflushall_do_waiting <= `FALSE;

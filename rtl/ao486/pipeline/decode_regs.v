@@ -111,12 +111,12 @@ assign decoder_next =
 
 //------------------------------------------------------------------------------
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   decoder <= 96'd0;
     else                decoder <= decoder_next;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   decoder_count <= 4'd0;
     else if(dec_reset)  decoder_count <= 4'd0;
     else                decoder_count <= after_consume_count + accepted;

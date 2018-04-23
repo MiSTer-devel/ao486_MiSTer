@@ -125,19 +125,19 @@ assign merged =
 
 //------------------------------------------------------------------------------
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           reset_waiting <= `FALSE;
     else if(rd_reset && state != STATE_IDLE)    reset_waiting <= `TRUE;
     else if(state == STATE_IDLE)                reset_waiting <= `FALSE;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               read_page_fault <= `FALSE;
     else if(rd_reset)                               read_page_fault <= `FALSE;
     else if(tlbread_page_fault && ~(reset_waiting)) read_page_fault <= `TRUE;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               read_ac_fault <= `FALSE;
     else if(rd_reset)                               read_ac_fault <= `FALSE;
     else if(tlbread_ac_fault && ~(reset_waiting))   read_ac_fault <= `TRUE;

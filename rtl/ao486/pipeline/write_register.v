@@ -409,31 +409,31 @@ assign esp_value =
 //------------------------------------------------------------------------------ general registers
 
 
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) eax <= `STARTUP_EAX; else if(w_write_regrm) eax <= eax_value;                                              else eax <= eax_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) ebx <= `STARTUP_EBX; else if(w_write_regrm) ebx <= ebx_value;                                              else ebx <= ebx_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) ecx <= `STARTUP_ECX; else if(w_write_regrm) ecx <= ecx_value;                                              else ecx <= ecx_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) edx <= `STARTUP_EDX; else if(w_write_regrm) edx <= edx_value;                                              else edx <= edx_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) esi <= `STARTUP_ESI; else if(w_write_regrm) esi <= esi_value;                                              else esi <= esi_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) edi <= `STARTUP_EDI; else if(w_write_regrm) edi <= edi_value;                                              else edi <= edi_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) ebp <= `STARTUP_EBP; else if(w_write_regrm) ebp <= ebp_value;                                              else ebp <= ebp_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) esp <= `STARTUP_ESP; else if(w_write_regrm) esp <= esp_value; else if(exc_restore_esp) esp <= wr_esp_prev; else esp <= esp_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) eax <= `STARTUP_EAX; else if(w_write_regrm) eax <= eax_value;                                              else eax <= eax_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) ebx <= `STARTUP_EBX; else if(w_write_regrm) ebx <= ebx_value;                                              else ebx <= ebx_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) ecx <= `STARTUP_ECX; else if(w_write_regrm) ecx <= ecx_value;                                              else ecx <= ecx_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) edx <= `STARTUP_EDX; else if(w_write_regrm) edx <= edx_value;                                              else edx <= edx_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) esi <= `STARTUP_ESI; else if(w_write_regrm) esi <= esi_value;                                              else esi <= esi_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) edi <= `STARTUP_EDI; else if(w_write_regrm) edi <= edi_value;                                              else edi <= edi_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) ebp <= `STARTUP_EBP; else if(w_write_regrm) ebp <= ebp_value;                                              else ebp <= ebp_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) esp <= `STARTUP_ESP; else if(w_write_regrm) esp <= esp_value; else if(exc_restore_esp) esp <= wr_esp_prev; else esp <= esp_to_reg; end
 
 //------------------------------------------------------------------------------ control registers
 
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) cr0_pe <= `STARTUP_CR0_PE; else cr0_pe <= cr0_pe_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) cr0_mp <= `STARTUP_CR0_MP; else cr0_mp <= cr0_mp_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) cr0_em <= `STARTUP_CR0_EM; else cr0_em <= cr0_em_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) cr0_ts <= `STARTUP_CR0_TS; else cr0_ts <= cr0_ts_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) cr0_ne <= `STARTUP_CR0_NE; else cr0_ne <= cr0_ne_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) cr0_wp <= `STARTUP_CR0_WP; else cr0_wp <= cr0_wp_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) cr0_am <= `STARTUP_CR0_AM; else cr0_am <= cr0_am_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) cr0_nw <= `STARTUP_CR0_NW; else cr0_nw <= cr0_nw_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) cr0_cd <= `STARTUP_CR0_CD; else cr0_cd <= cr0_cd_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) cr0_pg <= `STARTUP_CR0_PG; else cr0_pg <= cr0_pg_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) cr0_pe <= `STARTUP_CR0_PE; else cr0_pe <= cr0_pe_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) cr0_mp <= `STARTUP_CR0_MP; else cr0_mp <= cr0_mp_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) cr0_em <= `STARTUP_CR0_EM; else cr0_em <= cr0_em_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) cr0_ts <= `STARTUP_CR0_TS; else cr0_ts <= cr0_ts_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) cr0_ne <= `STARTUP_CR0_NE; else cr0_ne <= cr0_ne_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) cr0_wp <= `STARTUP_CR0_WP; else cr0_wp <= cr0_wp_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) cr0_am <= `STARTUP_CR0_AM; else cr0_am <= cr0_am_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) cr0_nw <= `STARTUP_CR0_NW; else cr0_nw <= cr0_nw_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) cr0_cd <= `STARTUP_CR0_CD; else cr0_cd <= cr0_cd_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) cr0_pg <= `STARTUP_CR0_PG; else cr0_pg <= cr0_pg_to_reg; end
 
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) cr3    <= `STARTUP_CR3;  else cr3    <= cr3_to_reg;    end
+always @(posedge clk) begin if(rst_n == 1'b0) cr3    <= `STARTUP_CR3;  else cr3    <= cr3_to_reg;    end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)       cr2 <= `STARTUP_CR2;
     else if(exc_pf_write)   cr2 <= tlb_write_pf_cr2;
     else if(exc_pf_check)   cr2 <= tlb_check_pf_cr2;
@@ -444,22 +444,22 @@ end
 
 //------------------------------------------------------------------------------ eflags
 
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) cflag  <= `STARTUP_CFLAG;  else cflag  <= cflag_to_reg;  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) pflag  <= `STARTUP_PFLAG;  else pflag  <= pflag_to_reg;  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) aflag  <= `STARTUP_AFLAG;  else aflag  <= aflag_to_reg;  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) zflag  <= `STARTUP_ZFLAG;  else zflag  <= zflag_to_reg;  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) sflag  <= `STARTUP_SFLAG;  else sflag  <= sflag_to_reg;  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) oflag  <= `STARTUP_OFLAG;  else oflag  <= oflag_to_reg;  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tflag  <= `STARTUP_TFLAG;  else tflag  <= tflag_to_reg;  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) iflag  <= `STARTUP_IFLAG;  else iflag  <= iflag_to_reg;  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) dflag  <= `STARTUP_DFLAG;  else dflag  <= dflag_to_reg;  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) iopl   <= `STARTUP_IOPL;   else iopl   <= iopl_to_reg;   end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) ntflag <= `STARTUP_NTFLAG; else ntflag <= ntflag_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) vmflag <= `STARTUP_VMFLAG; else vmflag <= vmflag_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) acflag <= `STARTUP_ACFLAG; else acflag <= acflag_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) idflag <= `STARTUP_IDFLAG; else idflag <= idflag_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) cflag  <= `STARTUP_CFLAG;  else cflag  <= cflag_to_reg;  end
+always @(posedge clk) begin if(rst_n == 1'b0) pflag  <= `STARTUP_PFLAG;  else pflag  <= pflag_to_reg;  end
+always @(posedge clk) begin if(rst_n == 1'b0) aflag  <= `STARTUP_AFLAG;  else aflag  <= aflag_to_reg;  end
+always @(posedge clk) begin if(rst_n == 1'b0) zflag  <= `STARTUP_ZFLAG;  else zflag  <= zflag_to_reg;  end
+always @(posedge clk) begin if(rst_n == 1'b0) sflag  <= `STARTUP_SFLAG;  else sflag  <= sflag_to_reg;  end
+always @(posedge clk) begin if(rst_n == 1'b0) oflag  <= `STARTUP_OFLAG;  else oflag  <= oflag_to_reg;  end
+always @(posedge clk) begin if(rst_n == 1'b0) tflag  <= `STARTUP_TFLAG;  else tflag  <= tflag_to_reg;  end
+always @(posedge clk) begin if(rst_n == 1'b0) iflag  <= `STARTUP_IFLAG;  else iflag  <= iflag_to_reg;  end
+always @(posedge clk) begin if(rst_n == 1'b0) dflag  <= `STARTUP_DFLAG;  else dflag  <= dflag_to_reg;  end
+always @(posedge clk) begin if(rst_n == 1'b0) iopl   <= `STARTUP_IOPL;   else iopl   <= iopl_to_reg;   end
+always @(posedge clk) begin if(rst_n == 1'b0) ntflag <= `STARTUP_NTFLAG; else ntflag <= ntflag_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) vmflag <= `STARTUP_VMFLAG; else vmflag <= vmflag_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) acflag <= `STARTUP_ACFLAG; else acflag <= acflag_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) idflag <= `STARTUP_IDFLAG; else idflag <= idflag_to_reg; end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)       rflag <= `STARTUP_RFLAG;
     else if(wr_clear_rflag) rflag <= `FALSE;
     else if(exc_set_rflag)  rflag <= `TRUE;
@@ -468,33 +468,33 @@ end
 
 //------------------------------------------------------------------------------ gdtr, idtr
 
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) gdtr_base  <= `STARTUP_GDTR_BASE;  else gdtr_base  <= gdtr_base_to_reg;  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) gdtr_limit <= `STARTUP_GDTR_LIMIT; else gdtr_limit <= gdtr_limit_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) gdtr_base  <= `STARTUP_GDTR_BASE;  else gdtr_base  <= gdtr_base_to_reg;  end
+always @(posedge clk) begin if(rst_n == 1'b0) gdtr_limit <= `STARTUP_GDTR_LIMIT; else gdtr_limit <= gdtr_limit_to_reg; end
 
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) idtr_base  <= `STARTUP_IDTR_BASE;  else idtr_base  <= idtr_base_to_reg;  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) idtr_limit <= `STARTUP_IDTR_LIMIT; else idtr_limit <= idtr_limit_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) idtr_base  <= `STARTUP_IDTR_BASE;  else idtr_base  <= idtr_base_to_reg;  end
+always @(posedge clk) begin if(rst_n == 1'b0) idtr_limit <= `STARTUP_IDTR_LIMIT; else idtr_limit <= idtr_limit_to_reg; end
 
 
 //------------------------------------------------------------------------------ debug registers
 
 
 
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) dr0 <= `STARTUP_DR0; else dr0 <= dr0_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) dr1 <= `STARTUP_DR1; else dr1 <= dr1_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) dr2 <= `STARTUP_DR2; else dr2 <= dr2_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) dr3 <= `STARTUP_DR3; else dr3 <= dr3_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) dr0 <= `STARTUP_DR0; else dr0 <= dr0_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) dr1 <= `STARTUP_DR1; else dr1 <= dr1_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) dr2 <= `STARTUP_DR2; else dr2 <= dr2_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) dr3 <= `STARTUP_DR3; else dr3 <= dr3_to_reg; end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           dr6_breakpoints <= `STARTUP_DR6_BREAKPOINTS;
     else if(exc_debug_start)    dr6_breakpoints <= wr_debug_read_reg | wr_debug_write_reg | wr_debug_code_reg;
     else                        dr6_breakpoints <= dr6_breakpoints_to_reg;
 end
 
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) dr6_b12 <= `STARTUP_DR6_B12; else if(exc_debug_start) dr6_b12 <= `FALSE;                         else dr6_b12 <= dr6_b12_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) dr6_bd  <= `STARTUP_DR6_BD;  else if(dr6_bd_set)      dr6_bd  <= `TRUE;                          else dr6_bd  <= dr6_bd_to_reg;  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) dr6_bs  <= `STARTUP_DR6_BS;  else if(exc_debug_start) dr6_bs <= wr_debug_step_reg;               else dr6_bs  <= dr6_bs_to_reg;  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) dr6_bt  <= `STARTUP_DR6_BT;  else if(exc_debug_start) dr6_bt <= wr_debug_task_reg;               else dr6_bt  <= dr6_bt_to_reg;  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) dr7     <= `STARTUP_DR7;     else if(exc_debug_start) dr7    <= { dr7[31:14], 1'b0, dr7[12:0] }; else dr7     <= dr7_to_reg;     end
+always @(posedge clk) begin if(rst_n == 1'b0) dr6_b12 <= `STARTUP_DR6_B12; else if(exc_debug_start) dr6_b12 <= `FALSE;                         else dr6_b12 <= dr6_b12_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) dr6_bd  <= `STARTUP_DR6_BD;  else if(dr6_bd_set)      dr6_bd  <= `TRUE;                          else dr6_bd  <= dr6_bd_to_reg;  end
+always @(posedge clk) begin if(rst_n == 1'b0) dr6_bs  <= `STARTUP_DR6_BS;  else if(exc_debug_start) dr6_bs <= wr_debug_step_reg;               else dr6_bs  <= dr6_bs_to_reg;  end
+always @(posedge clk) begin if(rst_n == 1'b0) dr6_bt  <= `STARTUP_DR6_BT;  else if(exc_debug_start) dr6_bt <= wr_debug_task_reg;               else dr6_bt  <= dr6_bt_to_reg;  end
+always @(posedge clk) begin if(rst_n == 1'b0) dr7     <= `STARTUP_DR7;     else if(exc_debug_start) dr7    <= { dr7[31:14], 1'b0, dr7[12:0] }; else dr7     <= dr7_to_reg;     end
 
 
 //------------------------------------------------------------------------------ segment registers
@@ -518,25 +518,25 @@ assign es_invalidate = wr_validate_seg_regs && es_cache[`DESC_BITS_DPL] < cpl &&
 assign fs_invalidate = wr_validate_seg_regs && fs_cache[`DESC_BITS_DPL] < cpl && (fs_cache_valid == `FALSE || fs_cache[`DESC_BIT_SEG] == `FALSE || `DESC_IS_DATA(fs_cache) || `DESC_IS_CODE_NON_CONFORMING(fs_cache));
 assign gs_invalidate = wr_validate_seg_regs && gs_cache[`DESC_BITS_DPL] < cpl && (gs_cache_valid == `FALSE || gs_cache[`DESC_BIT_SEG] == `FALSE || `DESC_IS_DATA(gs_cache) || `DESC_IS_CODE_NON_CONFORMING(gs_cache));
 
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) es   <= `STARTUP_ES;   else if(es_invalidate) es <= 16'd0; else if(write_seg_sel && wr_seg_index == 3'd0) es   <= wr_seg_sel; else es   <= es_to_reg;   end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) ds   <= `STARTUP_DS;   else if(ds_invalidate) ds <= 16'd0; else if(write_seg_sel && wr_seg_index == 3'd3) ds   <= wr_seg_sel; else ds   <= ds_to_reg;   end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) ss   <= `STARTUP_SS;                                       else if(write_seg_sel && wr_seg_index == 3'd2) ss   <= wr_seg_sel; else ss   <= ss_to_reg;   end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) fs   <= `STARTUP_FS;   else if(fs_invalidate) fs <= 16'd0; else if(write_seg_sel && wr_seg_index == 3'd4) fs   <= wr_seg_sel; else fs   <= fs_to_reg;   end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) gs   <= `STARTUP_GS;   else if(gs_invalidate) gs <= 16'd0; else if(write_seg_sel && wr_seg_index == 3'd5) gs   <= wr_seg_sel; else gs   <= gs_to_reg;   end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) cs   <= `STARTUP_CS;                                       else if(write_seg_sel && wr_seg_index == 3'd1) cs   <= wr_seg_sel; else cs   <= cs_to_reg;   end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) ldtr <= `STARTUP_LDTR;                                     else if(write_seg_sel && wr_seg_index == 3'd6) ldtr <= wr_seg_sel; else ldtr <= ldtr_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tr   <= `STARTUP_TR;                                       else if(write_seg_sel && wr_seg_index == 3'd7) tr   <= wr_seg_sel; else tr   <= tr_to_reg;   end
+always @(posedge clk) begin if(rst_n == 1'b0) es   <= `STARTUP_ES;   else if(es_invalidate) es <= 16'd0; else if(write_seg_sel && wr_seg_index == 3'd0) es   <= wr_seg_sel; else es   <= es_to_reg;   end
+always @(posedge clk) begin if(rst_n == 1'b0) ds   <= `STARTUP_DS;   else if(ds_invalidate) ds <= 16'd0; else if(write_seg_sel && wr_seg_index == 3'd3) ds   <= wr_seg_sel; else ds   <= ds_to_reg;   end
+always @(posedge clk) begin if(rst_n == 1'b0) ss   <= `STARTUP_SS;                                       else if(write_seg_sel && wr_seg_index == 3'd2) ss   <= wr_seg_sel; else ss   <= ss_to_reg;   end
+always @(posedge clk) begin if(rst_n == 1'b0) fs   <= `STARTUP_FS;   else if(fs_invalidate) fs <= 16'd0; else if(write_seg_sel && wr_seg_index == 3'd4) fs   <= wr_seg_sel; else fs   <= fs_to_reg;   end
+always @(posedge clk) begin if(rst_n == 1'b0) gs   <= `STARTUP_GS;   else if(gs_invalidate) gs <= 16'd0; else if(write_seg_sel && wr_seg_index == 3'd5) gs   <= wr_seg_sel; else gs   <= gs_to_reg;   end
+always @(posedge clk) begin if(rst_n == 1'b0) cs   <= `STARTUP_CS;                                       else if(write_seg_sel && wr_seg_index == 3'd1) cs   <= wr_seg_sel; else cs   <= cs_to_reg;   end
+always @(posedge clk) begin if(rst_n == 1'b0) ldtr <= `STARTUP_LDTR;                                     else if(write_seg_sel && wr_seg_index == 3'd6) ldtr <= wr_seg_sel; else ldtr <= ldtr_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) tr   <= `STARTUP_TR;                                       else if(write_seg_sel && wr_seg_index == 3'd7) tr   <= wr_seg_sel; else tr   <= tr_to_reg;   end
 
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) es_rpl   <= `STARTUP_ES_RPL;   else if(write_seg_rpl && wr_seg_index == 3'd0)                             es_rpl   <= wr_seg_rpl; else es_rpl   <= es_rpl_to_reg;   end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) ds_rpl   <= `STARTUP_DS_RPL;   else if(write_seg_rpl && wr_seg_index == 3'd3)                             ds_rpl   <= wr_seg_rpl; else ds_rpl   <= ds_rpl_to_reg;   end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) ss_rpl   <= `STARTUP_SS_RPL;   else if(write_seg_rpl && wr_seg_index == 3'd2)                             ss_rpl   <= wr_seg_rpl; else ss_rpl   <= ss_rpl_to_reg;   end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) fs_rpl   <= `STARTUP_FS_RPL;   else if(write_seg_rpl && wr_seg_index == 3'd4)                             fs_rpl   <= wr_seg_rpl; else fs_rpl   <= fs_rpl_to_reg;   end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) gs_rpl   <= `STARTUP_GS_RPL;   else if(write_seg_rpl && wr_seg_index == 3'd5)                             gs_rpl   <= wr_seg_rpl; else gs_rpl   <= gs_rpl_to_reg;   end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) cs_rpl   <= `STARTUP_CS_RPL;   else if(write_seg_rpl && wr_seg_index == 3'd1)                             cs_rpl   <= wr_seg_rpl; else cs_rpl   <= cs_rpl_to_reg;   end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) ldtr_rpl <= `STARTUP_LDTR_RPL; else if(write_seg_rpl && wr_seg_index == 3'd6 && w_seg_cache[`DESC_BIT_P]) ldtr_rpl <= wr_seg_rpl; else ldtr_rpl <= ldtr_rpl_to_reg; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tr_rpl   <= `STARTUP_TR_RPL;   else if(write_seg_rpl && wr_seg_index == 3'd7)                             tr_rpl   <= wr_seg_rpl; else tr_rpl   <= tr_rpl_to_reg;   end
+always @(posedge clk) begin if(rst_n == 1'b0) es_rpl   <= `STARTUP_ES_RPL;   else if(write_seg_rpl && wr_seg_index == 3'd0)                             es_rpl   <= wr_seg_rpl; else es_rpl   <= es_rpl_to_reg;   end
+always @(posedge clk) begin if(rst_n == 1'b0) ds_rpl   <= `STARTUP_DS_RPL;   else if(write_seg_rpl && wr_seg_index == 3'd3)                             ds_rpl   <= wr_seg_rpl; else ds_rpl   <= ds_rpl_to_reg;   end
+always @(posedge clk) begin if(rst_n == 1'b0) ss_rpl   <= `STARTUP_SS_RPL;   else if(write_seg_rpl && wr_seg_index == 3'd2)                             ss_rpl   <= wr_seg_rpl; else ss_rpl   <= ss_rpl_to_reg;   end
+always @(posedge clk) begin if(rst_n == 1'b0) fs_rpl   <= `STARTUP_FS_RPL;   else if(write_seg_rpl && wr_seg_index == 3'd4)                             fs_rpl   <= wr_seg_rpl; else fs_rpl   <= fs_rpl_to_reg;   end
+always @(posedge clk) begin if(rst_n == 1'b0) gs_rpl   <= `STARTUP_GS_RPL;   else if(write_seg_rpl && wr_seg_index == 3'd5)                             gs_rpl   <= wr_seg_rpl; else gs_rpl   <= gs_rpl_to_reg;   end
+always @(posedge clk) begin if(rst_n == 1'b0) cs_rpl   <= `STARTUP_CS_RPL;   else if(write_seg_rpl && wr_seg_index == 3'd1)                             cs_rpl   <= wr_seg_rpl; else cs_rpl   <= cs_rpl_to_reg;   end
+always @(posedge clk) begin if(rst_n == 1'b0) ldtr_rpl <= `STARTUP_LDTR_RPL; else if(write_seg_rpl && wr_seg_index == 3'd6 && w_seg_cache[`DESC_BIT_P]) ldtr_rpl <= wr_seg_rpl; else ldtr_rpl <= ldtr_rpl_to_reg; end
+always @(posedge clk) begin if(rst_n == 1'b0) tr_rpl   <= `STARTUP_TR_RPL;   else if(write_seg_rpl && wr_seg_index == 3'd7)                             tr_rpl   <= wr_seg_rpl; else tr_rpl   <= tr_rpl_to_reg;   end
 
-`define ALWAYS   always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0)
+`define ALWAYS   always @(posedge clk) begin if(rst_n == 1'b0)
 
 // G=0, D/B=0, P=1, Data, Accessed, R/W
 `define DEFAULT_SEG_CACHE       { 8'd0,  8'd0, 1'b1, 2'b0, 1'b1, 1'b0, 1'b0, 2'b11, 8'd0,  16'd0, 16'hFFFF }

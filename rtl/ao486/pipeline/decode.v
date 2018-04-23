@@ -301,12 +301,12 @@ assign gp_fault = enable && ~(instr_prefix) && consume_count_local == 4'd0 && (
     ( dec_acceptable == 4'd0 )                  // instruction length limit reached
 );
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   gp_fault_last <= 1'b0;
     else                gp_fault_last <= gp_fault;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   dec_gp_fault <= `FALSE;
     else if(dec_reset)                  dec_gp_fault <= `FALSE;
     else if(gp_fault && gp_fault_last)  dec_gp_fault <= `TRUE;
@@ -315,7 +315,7 @@ end
 //-------------------------- UD
 
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           dec_ud_fault <= `FALSE;
     else if(dec_reset)          dec_ud_fault <= `FALSE;
     else if(dec_exception_ud)   dec_ud_fault <= `TRUE;
@@ -327,12 +327,12 @@ assign pf_fault = enable && ~(instr_prefix) && consume_count_local == 4'd0 && (
     ( fetch_valid == 4'd0 && fetch_page_fault )
 );
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   pf_fault_last <= 1'b0;
     else                pf_fault_last <= pf_fault;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   dec_pf_fault <= `FALSE;
     else if(dec_reset)                  dec_pf_fault <= `FALSE;
     else if(pf_fault && pf_fault_last)  dec_pf_fault <= `TRUE;
@@ -342,7 +342,7 @@ end
 
 assign dec_eip = eip + { 28'd0, dec_consumed };
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           eip <= `STARTUP_EIP;
     else if(pr_reset)                           eip <= prefetch_eip;
     else if(dec_ready)                          eip <= dec_eip;

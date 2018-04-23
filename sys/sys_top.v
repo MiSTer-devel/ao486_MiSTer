@@ -692,9 +692,8 @@ i2s i2s
 	.lrclk(HDMI_LRCLK),
 	.sdata(HDMI_I2S),
 
-	//Could inverse the MSB but it will shift 0 level to -MAX level
-	.left_chan (audio_l >> !audio_s),
-	.right_chan(audio_r >> !audio_s)
+	.left_chan (audio_l),
+	.right_chan(audio_r)
 );
 
 
@@ -717,7 +716,7 @@ osd vga_osd
 );
 
 `else
-	wire [23:0] vga_o = HDMI_TX_DE ? HDMI_TX_D : 24'd0;
+	wire [23:0] vga_o = {24{HDMI_TX_DE}} & HDMI_TX_D;
 `endif
 
 `ifdef LITE
@@ -743,7 +742,7 @@ sigma_delta_dac #(15) dac_l
 (
 	.CLK(FPGA_CLK3_50),
 	.RESET(reset),
-	.DACin({audio_l[15] ^ audio_s, audio_l[14:0]}),
+	.DACin({~audio_l[15], audio_l[14:0]}),
 	.DACout(al)
 );
 
@@ -751,7 +750,7 @@ sigma_delta_dac #(15) dac_r
 (
 	.CLK(FPGA_CLK3_50),
 	.RESET(reset),
-	.DACin({audio_r[15] ^ audio_s, audio_r[14:0]}),
+	.DACin({~audio_r[15], audio_r[14:0]}),
 	.DACout(ar)
 );
 
@@ -762,8 +761,8 @@ spdif toslink
 	.rst_i(reset),
 	.half_rate(0),
 
-	.audio_l(audio_l >> !audio_s),
-	.audio_r(audio_r >> !audio_s),
+	.audio_l(audio_l),
+	.audio_r(audio_r),
 
 	.spdif_o(aspdif)
 );
@@ -776,52 +775,18 @@ reg [15:0] audio_l;
 reg [15:0] audio_r;
 
 always @(posedge FPGA_CLK3_50) begin
-	reg signed [15:0] al;
-	reg signed [15:0] ar;
-
-	case({audio_s,audio_mix})
-		'b000: al <= audio_ls;
-		'b001: al <= audio_ls - (audio_ls >> 3) + (audio_rs >> 3);
-		'b010: al <= audio_ls - (audio_ls >> 2) + (audio_rs >> 2);
-		'b011: al <= (audio_ls >> 1) + (audio_rs >> 1);
-		'b100: al <= audio_ls;
-		'b101: al <= audio_ls - (audio_ls >>> 3) + (audio_rs >>> 3);
-		'b110: al <= audio_ls - (audio_ls >>> 2) + (audio_rs >>> 2);
-		'b111: al <= (audio_ls >>> 1) + (audio_rs >>> 1);
-	endcase
-
-	case({audio_s,audio_mix})
-		'b000: ar <= audio_rs;
-		'b001: ar <= audio_rs - (audio_rs >> 3) + (audio_ls >> 3);
-		'b010: ar <= audio_rs - (audio_rs >> 2) + (audio_ls >> 2);
-		'b011: ar <= (audio_rs >> 1) + (audio_ls >> 1);
-		'b100: ar <= audio_rs;
-		'b101: ar <= audio_rs - (audio_rs >>> 3) + (audio_ls >>> 3);
-		'b110: ar <= audio_rs - (audio_rs >>> 2) + (audio_ls >>> 2);
-		'b111: ar <= (audio_rs >>> 1) + (audio_ls >>> 1);
-	endcase
-	
 	if(vol_att[4]) begin
 		audio_l <= 0;
 		audio_r <= 0;
 	end
-	else
-	if(audio_s) begin
-		audio_l <= al >>> vol_att[3:0];
-		audio_r <= ar >>> vol_att[3:0];
-	end
-	else
-	begin
-		audio_l <= al >> vol_att[3:0];
-		audio_r <= ar >> vol_att[3:0];
+	else begin
+		audio_l <= audio_ls >>> vol_att[3:0];
+		audio_r <= audio_rs >>> vol_att[3:0];
 	end
 end
-
 ///////////////////  User module connection ////////////////////////////
 
 wire signed [15:0] audio_ls, audio_rs;
-wire        audio_s;
-wire  [1:0] audio_mix;
 wire  [7:0] r_out, g_out, b_out;
 wire        vs, hs, de;
 wire        clk_sys, clk_vid, ce_pix;
@@ -848,10 +813,6 @@ wire        uart_rts;
 wire        uart_rxd;
 wire        uart_txd;
 
-wire vs_emu, hs_emu;
-sync_fix sync_v(FPGA_CLK3_50, vs_emu, vs);
-sync_fix sync_h(FPGA_CLK3_50, hs_emu, hs);
-
 emu emu
 (
 	.CLK_50M(FPGA_CLK3_50),
@@ -864,8 +825,8 @@ emu emu
 	.VGA_R(r_out),
 	.VGA_G(g_out),
 	.VGA_B(b_out),
-	.VGA_HS(hs_emu),
-	.VGA_VS(vs_emu),
+	.VGA_HS(hs),
+	.VGA_VS(vs),
 	.VGA_DE(de),
 
 	.LED_USER(led_user),
@@ -879,9 +840,6 @@ emu emu
 
 	.AUDIO_L(audio_ls),
 	.AUDIO_R(audio_rs),
-	.AUDIO_S(audio_s),
-	.AUDIO_MIX(audio_mix),
-	.TAPE_IN(0),
 
 	// SCK  -> CLK
 	// MOSI -> CMD
@@ -925,34 +883,5 @@ emu emu
    .UART_DSR(uart_dtr),
    .UART_DTR(uart_dsr)
 );
-
-endmodule
-
-module sync_fix
-(
-	input clk,
-	
-	input sync_in,
-	output sync_out
-);
-
-assign sync_out = sync_in ^ pol;
-
-reg pol;
-always @(posedge clk) begin
-	integer pos = 0, neg = 0, cnt = 0;
-	reg s1,s2;
-
-	s1 <= sync_in;
-	s2 <= s1;
-
-	if(~s2 & s1) neg <= cnt;
-	if(s2 & ~s1) pos <= cnt;
-
-	cnt <= cnt + 1;
-	if(s2 != s1) cnt <= 0;
-
-	pol <= pos > neg;
-end
 
 endmodule

@@ -31,7 +31,7 @@ assign rd_ss_esp_from_tss_fault = (   (rd_cmd == `CMD_CALL_2 && rd_cmdex == `CMD
 wire [31:0] rd_task_switch_linear_next;
 reg [31:0] rd_task_switch_linear_reg;
 assign rd_task_switch_linear_next = (glob_descriptor[`DESC_BITS_TYPE] <= 4'd3)? rd_task_switch_linear_reg + 32'd2 : rd_task_switch_linear_reg + 32'd4;
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0)                                                               rd_task_switch_linear_reg <= 32'd0; else if(rd_cmd == `CMD_task_switch && rd_cmdex == `CMDEX_task_switch_STEP_12)   rd_task_switch_linear_reg <= rd_system_linear; else if(rd_ready)                                                               rd_task_switch_linear_reg <= rd_task_switch_linear_next;
+always @(posedge clk) begin if(rst_n == 1'b0)                                                               rd_task_switch_linear_reg <= 32'd0; else if(rd_cmd == `CMD_task_switch && rd_cmdex == `CMDEX_task_switch_STEP_12)   rd_task_switch_linear_reg <= rd_system_linear; else if(rd_ready)                                                               rd_task_switch_linear_reg <= rd_task_switch_linear_next;
 end
 
 //======================================================== conditions

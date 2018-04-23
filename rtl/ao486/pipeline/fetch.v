@@ -87,7 +87,7 @@ assign partial                  = dec_acceptable <  fetch_valid && prefetchfifo_
 //------------------------------------------------------------------------------
 
 reg [3:0] fetch_count;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)               fetch_count <= 4'd0;
     else if(pr_reset)               fetch_count <= 4'd0;
     else if(prefetchfifo_accept_do) fetch_count <= 4'd0;

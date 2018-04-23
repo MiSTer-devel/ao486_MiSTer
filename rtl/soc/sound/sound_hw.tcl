@@ -60,6 +60,7 @@ add_fileset_file phase_generator.sv SYSTEMVERILOG PATH opl3/phase_generator.sv
 add_fileset_file register_file.sv SYSTEMVERILOG PATH opl3/register_file.sv
 add_fileset_file tremolo.sv SYSTEMVERILOG PATH opl3/tremolo.sv
 add_fileset_file vibrato.sv SYSTEMVERILOG PATH opl3/vibrato.sv
+add_fileset_file simple_single_rom.v VERILOG PATH ../../common/simple_single_rom.v
 
 
 # 

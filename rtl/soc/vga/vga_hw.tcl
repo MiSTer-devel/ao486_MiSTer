@@ -41,6 +41,7 @@ set_fileset_property QUARTUS_SYNTH TOP_LEVEL vga
 set_fileset_property QUARTUS_SYNTH ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property QUARTUS_SYNTH ENABLE_FILE_OVERWRITE_MODE false
 add_fileset_file vga.v VERILOG PATH vga.v TOP_LEVEL_FILE
+add_fileset_file simple_bidir_ram.v VERILOG PATH ../../common/simple_bidir_ram.v
 
 
 # 

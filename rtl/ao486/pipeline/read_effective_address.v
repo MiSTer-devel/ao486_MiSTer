@@ -228,7 +228,7 @@ assign pop_next =
 
 assign pop_offset_speedup_next = (ss_cache[`DESC_BIT_D_B])? pop_next : { 16'd0, pop_next[15:0] };
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   pop_offset_speedup <= 32'd0;
     else if(rd_ready)   pop_offset_speedup <= pop_offset_speedup_next;
 end
@@ -307,7 +307,7 @@ assign stack_next =
     (rd_operand_16bit)?                                     stack_saved - 32'd2 :
                                                             stack_saved - 32'd4;
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                   stack_saved <= 32'd0;
     else if(rd_ready && address_stack_add_4_to_saved)   stack_saved <= stack_saved + 32'd4;
     else if(rd_ready)                                   stack_saved <= stack_next;
@@ -370,7 +370,7 @@ wire [31:0] esp_for_enter_offset;
 assign ebp_for_enter_next    = (rd_operand_16bit)? ebp_for_enter - 32'd2 : ebp_for_enter - 32'd4;
 assign ebp_for_enter_offset = (ss_cache[`DESC_BIT_D_B])? ebp_for_enter_next : { 16'd0, ebp_for_enter_next[15:0] };
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           ebp_for_enter <= 32'd0;
     else if(address_enter_init) ebp_for_enter <= ebp;
     else if(rd_ready)           ebp_for_enter <= ebp_for_enter_offset;
@@ -392,20 +392,20 @@ assign ea_buffer_sum  =
 
 assign ea_buffer_next = (rd_address_16bit)? { 16'd0, ea_buffer_sum[15:0] } : ea_buffer_sum;
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               ea_buffer <= 32'd0;
     else if(rd_ready && rd_address_effective_ready) ea_buffer <= ea_buffer_next;
 end
 
 //------------------------------------------------------------------------------ final effective address
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   rd_address_effective_ready <= `FALSE;
     else if(rd_ready || rd_reset)       rd_address_effective_ready <= `FALSE;
     else if(rd_address_effective_do)    rd_address_effective_ready <= `TRUE;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               rd_address_effective <= 32'd0;
     else if(address_memoffset && rd_address_16bit)  rd_address_effective <= { 16'd0, rd_decoder[23:8] };
     else if(address_memoffset && rd_address_32bit)  rd_address_effective <= rd_decoder[39:8];

@@ -68,15 +68,15 @@ assign save  = req_dcacheread_do && ~(resp_dcacheread_done);
 
 //------------------------------------------------------------------------------
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)               current_do <= `FALSE;
     else if(save)                   current_do <= req_dcacheread_do;
     else if(resp_dcacheread_done)   current_do <= `FALSE;
 end
 
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) length        <= 4'd0;  else if(save) length        <= req_dcacheread_length;        end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) cache_disable <= 1'b0;  else if(save) cache_disable <= req_dcacheread_cache_disable; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) address       <= 32'd0; else if(save) address       <= req_dcacheread_address;       end
+always @(posedge clk) begin if(rst_n == 1'b0) length        <= 4'd0;  else if(save) length        <= req_dcacheread_length;        end
+always @(posedge clk) begin if(rst_n == 1'b0) cache_disable <= 1'b0;  else if(save) cache_disable <= req_dcacheread_cache_disable; end
+always @(posedge clk) begin if(rst_n == 1'b0) address       <= 32'd0; else if(save) address       <= req_dcacheread_address;       end
 
 //------------------------------------------------------------------------------
 

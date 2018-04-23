@@ -556,7 +556,7 @@ localparam [30:0] TLB0_VALUE = 31'b0000000000000001000000010001011; //0,1,3,7,15
     
 //------------------------------------------------------------------------------
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   plru <= 31'd0;
     else if(tlbflushall_do)             plru <= 31'd0;
     else if(tlb0_write  || tlb0_sel)    plru <= (plru & ~(TLB0_MASK))  | TLB0_VALUE;
@@ -594,38 +594,38 @@ always @(posedge clk or negedge rst_n) begin
 end
 
  
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb0 <= 46'd0;  else if(tlbflushall_do || tlb0_tlbflush)  tlb0  <= 46'd0; else if(tlb0_write)  tlb0  <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb1 <= 46'd0;  else if(tlbflushall_do || tlb1_tlbflush)  tlb1  <= 46'd0; else if(tlb1_write)  tlb1  <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb2 <= 46'd0;  else if(tlbflushall_do || tlb2_tlbflush)  tlb2  <= 46'd0; else if(tlb2_write)  tlb2  <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb3 <= 46'd0;  else if(tlbflushall_do || tlb3_tlbflush)  tlb3  <= 46'd0; else if(tlb3_write)  tlb3  <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb4 <= 46'd0;  else if(tlbflushall_do || tlb4_tlbflush)  tlb4  <= 46'd0; else if(tlb4_write)  tlb4  <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb5 <= 46'd0;  else if(tlbflushall_do || tlb5_tlbflush)  tlb5  <= 46'd0; else if(tlb5_write)  tlb5  <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb6 <= 46'd0;  else if(tlbflushall_do || tlb6_tlbflush)  tlb6  <= 46'd0; else if(tlb6_write)  tlb6  <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb7 <= 46'd0;  else if(tlbflushall_do || tlb7_tlbflush)  tlb7  <= 46'd0; else if(tlb7_write)  tlb7  <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb8 <= 46'd0;  else if(tlbflushall_do || tlb8_tlbflush)  tlb8  <= 46'd0; else if(tlb8_write)  tlb8  <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb9 <= 46'd0;  else if(tlbflushall_do || tlb9_tlbflush)  tlb9  <= 46'd0; else if(tlb9_write)  tlb9  <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb10 <= 46'd0; else if(tlbflushall_do || tlb10_tlbflush) tlb10 <= 46'd0; else if(tlb10_write) tlb10 <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb11 <= 46'd0; else if(tlbflushall_do || tlb11_tlbflush) tlb11 <= 46'd0; else if(tlb11_write) tlb11 <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb12 <= 46'd0; else if(tlbflushall_do || tlb12_tlbflush) tlb12 <= 46'd0; else if(tlb12_write) tlb12 <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb13 <= 46'd0; else if(tlbflushall_do || tlb13_tlbflush) tlb13 <= 46'd0; else if(tlb13_write) tlb13 <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb14 <= 46'd0; else if(tlbflushall_do || tlb14_tlbflush) tlb14 <= 46'd0; else if(tlb14_write) tlb14 <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb15 <= 46'd0; else if(tlbflushall_do || tlb15_tlbflush) tlb15 <= 46'd0; else if(tlb15_write) tlb15 <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb16 <= 46'd0; else if(tlbflushall_do || tlb16_tlbflush) tlb16 <= 46'd0; else if(tlb16_write) tlb16 <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb17 <= 46'd0; else if(tlbflushall_do || tlb17_tlbflush) tlb17 <= 46'd0; else if(tlb17_write) tlb17 <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb18 <= 46'd0; else if(tlbflushall_do || tlb18_tlbflush) tlb18 <= 46'd0; else if(tlb18_write) tlb18 <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb19 <= 46'd0; else if(tlbflushall_do || tlb19_tlbflush) tlb19 <= 46'd0; else if(tlb19_write) tlb19 <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb20 <= 46'd0; else if(tlbflushall_do || tlb20_tlbflush) tlb20 <= 46'd0; else if(tlb20_write) tlb20 <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb21 <= 46'd0; else if(tlbflushall_do || tlb21_tlbflush) tlb21 <= 46'd0; else if(tlb21_write) tlb21 <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb22 <= 46'd0; else if(tlbflushall_do || tlb22_tlbflush) tlb22 <= 46'd0; else if(tlb22_write) tlb22 <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb23 <= 46'd0; else if(tlbflushall_do || tlb23_tlbflush) tlb23 <= 46'd0; else if(tlb23_write) tlb23 <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb24 <= 46'd0; else if(tlbflushall_do || tlb24_tlbflush) tlb24 <= 46'd0; else if(tlb24_write) tlb24 <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb25 <= 46'd0; else if(tlbflushall_do || tlb25_tlbflush) tlb25 <= 46'd0; else if(tlb25_write) tlb25 <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb26 <= 46'd0; else if(tlbflushall_do || tlb26_tlbflush) tlb26 <= 46'd0; else if(tlb26_write) tlb26 <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb27 <= 46'd0; else if(tlbflushall_do || tlb27_tlbflush) tlb27 <= 46'd0; else if(tlb27_write) tlb27 <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb28 <= 46'd0; else if(tlbflushall_do || tlb28_tlbflush) tlb28 <= 46'd0; else if(tlb28_write) tlb28 <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb29 <= 46'd0; else if(tlbflushall_do || tlb29_tlbflush) tlb29 <= 46'd0; else if(tlb29_write) tlb29 <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb30 <= 46'd0; else if(tlbflushall_do || tlb30_tlbflush) tlb30 <= 46'd0; else if(tlb30_write) tlb30 <= write_data; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) tlb31 <= 46'd0; else if(tlbflushall_do || tlb31_tlbflush) tlb31 <= 46'd0; else if(tlb31_write) tlb31 <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb0 <= 46'd0;  else if(tlbflushall_do || tlb0_tlbflush)  tlb0  <= 46'd0; else if(tlb0_write)  tlb0  <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb1 <= 46'd0;  else if(tlbflushall_do || tlb1_tlbflush)  tlb1  <= 46'd0; else if(tlb1_write)  tlb1  <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb2 <= 46'd0;  else if(tlbflushall_do || tlb2_tlbflush)  tlb2  <= 46'd0; else if(tlb2_write)  tlb2  <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb3 <= 46'd0;  else if(tlbflushall_do || tlb3_tlbflush)  tlb3  <= 46'd0; else if(tlb3_write)  tlb3  <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb4 <= 46'd0;  else if(tlbflushall_do || tlb4_tlbflush)  tlb4  <= 46'd0; else if(tlb4_write)  tlb4  <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb5 <= 46'd0;  else if(tlbflushall_do || tlb5_tlbflush)  tlb5  <= 46'd0; else if(tlb5_write)  tlb5  <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb6 <= 46'd0;  else if(tlbflushall_do || tlb6_tlbflush)  tlb6  <= 46'd0; else if(tlb6_write)  tlb6  <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb7 <= 46'd0;  else if(tlbflushall_do || tlb7_tlbflush)  tlb7  <= 46'd0; else if(tlb7_write)  tlb7  <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb8 <= 46'd0;  else if(tlbflushall_do || tlb8_tlbflush)  tlb8  <= 46'd0; else if(tlb8_write)  tlb8  <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb9 <= 46'd0;  else if(tlbflushall_do || tlb9_tlbflush)  tlb9  <= 46'd0; else if(tlb9_write)  tlb9  <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb10 <= 46'd0; else if(tlbflushall_do || tlb10_tlbflush) tlb10 <= 46'd0; else if(tlb10_write) tlb10 <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb11 <= 46'd0; else if(tlbflushall_do || tlb11_tlbflush) tlb11 <= 46'd0; else if(tlb11_write) tlb11 <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb12 <= 46'd0; else if(tlbflushall_do || tlb12_tlbflush) tlb12 <= 46'd0; else if(tlb12_write) tlb12 <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb13 <= 46'd0; else if(tlbflushall_do || tlb13_tlbflush) tlb13 <= 46'd0; else if(tlb13_write) tlb13 <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb14 <= 46'd0; else if(tlbflushall_do || tlb14_tlbflush) tlb14 <= 46'd0; else if(tlb14_write) tlb14 <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb15 <= 46'd0; else if(tlbflushall_do || tlb15_tlbflush) tlb15 <= 46'd0; else if(tlb15_write) tlb15 <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb16 <= 46'd0; else if(tlbflushall_do || tlb16_tlbflush) tlb16 <= 46'd0; else if(tlb16_write) tlb16 <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb17 <= 46'd0; else if(tlbflushall_do || tlb17_tlbflush) tlb17 <= 46'd0; else if(tlb17_write) tlb17 <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb18 <= 46'd0; else if(tlbflushall_do || tlb18_tlbflush) tlb18 <= 46'd0; else if(tlb18_write) tlb18 <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb19 <= 46'd0; else if(tlbflushall_do || tlb19_tlbflush) tlb19 <= 46'd0; else if(tlb19_write) tlb19 <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb20 <= 46'd0; else if(tlbflushall_do || tlb20_tlbflush) tlb20 <= 46'd0; else if(tlb20_write) tlb20 <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb21 <= 46'd0; else if(tlbflushall_do || tlb21_tlbflush) tlb21 <= 46'd0; else if(tlb21_write) tlb21 <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb22 <= 46'd0; else if(tlbflushall_do || tlb22_tlbflush) tlb22 <= 46'd0; else if(tlb22_write) tlb22 <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb23 <= 46'd0; else if(tlbflushall_do || tlb23_tlbflush) tlb23 <= 46'd0; else if(tlb23_write) tlb23 <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb24 <= 46'd0; else if(tlbflushall_do || tlb24_tlbflush) tlb24 <= 46'd0; else if(tlb24_write) tlb24 <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb25 <= 46'd0; else if(tlbflushall_do || tlb25_tlbflush) tlb25 <= 46'd0; else if(tlb25_write) tlb25 <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb26 <= 46'd0; else if(tlbflushall_do || tlb26_tlbflush) tlb26 <= 46'd0; else if(tlb26_write) tlb26 <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb27 <= 46'd0; else if(tlbflushall_do || tlb27_tlbflush) tlb27 <= 46'd0; else if(tlb27_write) tlb27 <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb28 <= 46'd0; else if(tlbflushall_do || tlb28_tlbflush) tlb28 <= 46'd0; else if(tlb28_write) tlb28 <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb29 <= 46'd0; else if(tlbflushall_do || tlb29_tlbflush) tlb29 <= 46'd0; else if(tlb29_write) tlb29 <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb30 <= 46'd0; else if(tlbflushall_do || tlb30_tlbflush) tlb30 <= 46'd0; else if(tlb30_write) tlb30 <= write_data; end
+always @(posedge clk) begin if(rst_n == 1'b0) tlb31 <= 46'd0; else if(tlbflushall_do || tlb31_tlbflush) tlb31 <= 46'd0; else if(tlb31_write) tlb31 <= write_data; end
 
 //------------------------------------------------------------------------------
 

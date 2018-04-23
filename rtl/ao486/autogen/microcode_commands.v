@@ -284,11 +284,11 @@ wire [3:0] mc_saved_cmdex_to_reg =
     (cond_181)? (   `CMDEX_OUT_protected) :
     mc_saved_cmdex;
 //======================================================== always
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) mc_saved_command <= 7'd0;
     else              mc_saved_command <= mc_saved_command_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) mc_saved_cmdex <= 4'd0;
     else              mc_saved_cmdex <= mc_saved_cmdex_to_reg;
 end

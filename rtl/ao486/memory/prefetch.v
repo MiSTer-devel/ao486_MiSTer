@@ -78,19 +78,19 @@ assign prefetchfifo_signal_limit_do = limit == 32'd0 && limit_signaled == `FALSE
 
 //------------------------------------------------------------------------------
    
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)       limit <= `STARTUP_PREFETCH_LIMIT;
     else if(pr_reset)       limit <= (cs_limit >= prefetch_eip)? cs_limit - prefetch_eip + 32'd1 : 32'd0;
     else if(prefetched_do)  limit <= limit - { 27'd0, length };
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)       linear <= `STARTUP_PREFETCH_LINEAR;
     else if(pr_reset)       linear <= cs_base + prefetch_eip;
     else if(prefetched_do)  linear <= linear + { 27'd0, length };
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                       limit_signaled <= `FALSE;
     else if(pr_reset)                       limit_signaled <= `FALSE;
     else if(prefetchfifo_signal_limit_do)   limit_signaled <= `TRUE;

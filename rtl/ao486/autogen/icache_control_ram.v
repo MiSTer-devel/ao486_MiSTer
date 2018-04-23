@@ -22,19 +22,19 @@ wire  init_done_to_reg =
     (cond_0 && cond_1)? ( `TRUE) :
     init_done;
 //======================================================== always
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) after_invalidate <= 1'd0;
     else              after_invalidate <= after_invalidate_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) invd_counter <= 8'd0;
     else              invd_counter <= invd_counter_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) state <= 1'd0;
     else              state <= state_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) init_done <= 1'd0;
     else              init_done <= init_done_to_reg;
 end

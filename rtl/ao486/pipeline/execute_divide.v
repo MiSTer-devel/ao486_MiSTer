@@ -94,7 +94,7 @@ assign div_working= div_counter > 6'd1;
 assign div_busy   = div_counter != 6'd0 || ~(div_one_time);
 //div_end condition: div_counter == 6'd1 && ~(exe_div_exception)
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)            div_one_time <= `FALSE;
     else if(exe_reset)           div_one_time <= `FALSE;
     else if(exe_ready)           div_one_time <= `FALSE;
@@ -111,13 +111,13 @@ assign div_exception_zero = div_counter == 6'd0 && (exe_cmd == `CMD_IDIV || exe_
     (exe_operand_16bit  && src[15:0] == 16'd0) ||
     (exe_operand_32bit  && src       == 32'd0) );
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               div_overflow_waiting <= `FALSE;
     else if(exe_reset)                              div_overflow_waiting <= `FALSE;
     else if(div_counter == 6'd1 && div_overflow)    div_overflow_waiting <= `TRUE;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                       div_counter <= 6'd0;
     else if(exe_reset)                      div_counter <= 6'd0;
     else if(div_start && exe_is_8bit)       div_counter <= 6'd10;
@@ -141,14 +141,14 @@ assign div_denom_neg = -div_denom;
                             
 assign div_diff = div_dividend - div_divisor;
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               div_dividend <= 64'd0;
     else if(div_start && div_numer[64] == 1'b0)     div_dividend <=  div_numer[63:0];
     else if(div_start && div_numer[64] == 1'b1)     div_dividend <= -div_numer[63:0];
     else if(div_working && div_diff[64] == 1'b0)    div_dividend <= div_diff[63:0];
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   div_divisor <= 64'd0;
     else if(div_start && div_denom[32] == 1'b0 && exe_is_8bit)          div_divisor <= { 48'd0, div_denom    [7:0], 8'd0 };
     else if(div_start && div_denom[32] == 1'b1 && exe_is_8bit)          div_divisor <= { 48'd0, div_denom_neg[7:0], 8'd0 };
@@ -159,7 +159,7 @@ always @(posedge clk or negedge rst_n) begin
     else if(div_working)                                                div_divisor <= { 1'b0, div_divisor[63:1] };
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               div_quotient <= 33'd0;
     else if(div_start)                              div_quotient <= 33'd0;
     else if(div_working && div_diff[64] == 1'b0)    div_quotient <= { div_quotient[31:0], 1'b1 };

@@ -325,7 +325,7 @@ assign exe_privilege_not_accepted =
 wire        exe_buffer_shift;
 wire        exe_buffer_shift_word;
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)               exe_buffer_shifted <= 464'd0;
     else if(exe_buffer_shift)       exe_buffer_shifted <= { exe_buffer_shifted[431:0], exe_buffer };
     else if(exe_buffer_shift_word)  exe_buffer_shifted <= { exe_buffer_shifted[447:0], exe_buffer[15:0] };

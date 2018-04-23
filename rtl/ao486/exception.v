@@ -214,7 +214,7 @@ assign exc_pf_check= active_exe && exe_trigger_pf_fault;
 
 //------------------------------------------------------------------------------
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               exc_vector_full <= 9'd0;
     
     else if(active_wr && wr_new_push_ss_fault)      exc_vector_full <= { 1'b1, `EXCEPTION_SS };
@@ -253,7 +253,7 @@ always @(posedge clk or negedge rst_n) begin
     else                                            exc_vector_full <= exc_vector_full_to_reg; //set if(exception_init || wr_debug_init || interrupt_done)
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           exc_error_code <= 16'd0;
     
     else if(active_wr && write_ac_fault)        exc_error_code <= 16'd0;
@@ -273,25 +273,25 @@ always @(posedge clk or negedge rst_n) begin
     else                                        exc_error_code <= exc_error_code_to_reg; //set if(exception_init || wr_debug_init || interrupt_done)
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)               exc_push_error <= `FALSE;
     else if(active_wr && wr_int)    exc_push_error <= `FALSE;
     else                            exc_push_error <= exc_push_error_to_reg;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)               exc_soft_int <= `FALSE;
     else if(active_wr && wr_int)    exc_soft_int <= wr_int_soft_int;
     else                            exc_soft_int <= exc_soft_int_to_reg;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)               exc_soft_int_ib <= `FALSE;
     else if(active_wr && wr_int)    exc_soft_int_ib <= wr_int_soft_int_ib;
     else                            exc_soft_int_ib <= exc_soft_int_ib_to_reg;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   exc_load <= `FALSE;
     else                exc_load <= exception_start || interrupt_done;
 end
@@ -300,27 +300,27 @@ end
 
 //------------------------------------------------------------------------------
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   external <= 1'b0;
     else if(wr_exception_external_set)  external <= `TRUE;
     else if(wr_exception_finished)      external <= `FALSE;
     else                                external <= external_to_reg;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   count <= 2'b0;
     else if(wr_exception_finished)      count <= 2'd0;
     else                                count <= count_to_reg;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   last_type <= 2'b0;
     else                last_type <= last_type_to_reg;
 end
 
 assign exception_eip_from_wr = wr_eip  - { 28'd0, wr_consumed };
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)      exc_eip <= 32'd0;
     else if(active_wr)     exc_eip <= exception_eip_from_wr;
     else if(active_exe)    exc_eip <= exe_eip - { 28'd0, exe_consumed };
@@ -329,7 +329,7 @@ always @(posedge clk or negedge rst_n) begin
     else                   exc_eip <= exc_eip_to_reg;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)      trap_eip <= 32'd0;
     else if(active_wr)     trap_eip <= wr_eip;
     else if(active_exe)    trap_eip <= exe_eip;
@@ -337,7 +337,7 @@ always @(posedge clk or negedge rst_n) begin
     else if(active_dec)    trap_eip <= dec_eip;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   shutdown <= `FALSE;
     else                shutdown <= shutdown_to_reg;
 end
@@ -378,18 +378,18 @@ assign shutdown_start = count > 2'd2 || (count > 2'd0 && last_type == `EXCEPTION
 
 // interrupt_vector[7:0], interrupt_done; 
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)               interrupt_done <= `FALSE;
     else if(wr_interrupt_possible)  interrupt_done <= `TRUE;
     else                            interrupt_done <= `FALSE;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           interrupt_load <= `FALSE;
     else                        interrupt_load <= interrupt_done;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                               interrupt_string_in_progress <= `FALSE;
     else if(wr_interrupt_possible && wr_string_in_progress_final)   interrupt_string_in_progress <= `TRUE;
     else if(wr_interrupt_possible)                                  interrupt_string_in_progress <= `FALSE;

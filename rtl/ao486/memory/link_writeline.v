@@ -66,16 +66,16 @@ assign save  = req_writeline_do && ~(resp_writeline_done) && ~(req_writeline_don
 
 //------------------------------------------------------------------------------
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)               current_do <= `FALSE;
     else if(save)                   current_do <= req_writeline_do;
     else if(resp_writeline_done)    current_do <= `FALSE;
 end
 
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) address      <= 32'd0;  else if(save) address <= req_writeline_address; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) line         <= 128'd0; else if(save) line    <= req_writeline_line;    end
+always @(posedge clk) begin if(rst_n == 1'b0) address      <= 32'd0;  else if(save) address <= req_writeline_address; end
+always @(posedge clk) begin if(rst_n == 1'b0) line         <= 128'd0; else if(save) line    <= req_writeline_line;    end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)               done_delayed <= `FALSE;
     else                            done_delayed <= resp_writeline_done;
 end

@@ -378,18 +378,18 @@ assign wr_interrupt_possible_prepare =
 
 assign wr_clear_rflag = wr_finished && wr_eip <= cs_limit && ~(exc_init) && ~(wr_debug_prepare) && ~(wr_interrupt_possible_prepare);
     
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   wr_interrupt_possible <= `FALSE;
     else if(wr_reset)   wr_interrupt_possible <= `FALSE;
     else                wr_interrupt_possible <= wr_interrupt_possible_prepare;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   wr_debug_init <= `FALSE;
     else                wr_debug_init <= wr_debug_prepare;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   wr_string_in_progress_last <= `FALSE;
     else                wr_string_in_progress_last <= wr_string_in_progress;
 end
@@ -400,7 +400,7 @@ assign wr_string_in_progress_final = wr_string_in_progress || ((wr_debug_init ||
 
 reg wr_first_cycle;
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   wr_first_cycle <= `FALSE;
     else if(wr_reset)   wr_first_cycle <= `FALSE;
     else if(w_load)     wr_first_cycle <= `TRUE;
@@ -440,48 +440,48 @@ reg         wr_arith_sub_carry;
 reg         wr_arith_sbb_carry;
 reg         wr_mult_overflow;
 
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_decoder              <= 16'd0;     else if(w_load) wr_decoder              <= exe_decoder[15:0];        end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_eip                  <= 32'd0;     else if(w_load) wr_eip                  <= exe_eip_final;            end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_operand_32bit        <= `FALSE;    else if(w_load) wr_operand_32bit        <= exe_operand_32bit;        end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_address_32bit        <= `FALSE;    else if(w_load) wr_address_32bit        <= exe_address_32bit;        end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_prefix_group_1_rep   <= 2'd0;      else if(w_load) wr_prefix_group_1_rep   <= exe_prefix_group_1_rep;   end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_prefix_group_1_lock  <= `FALSE;    else if(w_load) wr_prefix_group_1_lock  <= exe_prefix_group_1_lock;  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_consumed             <= 4'd0;      else if(w_load) wr_consumed             <= exe_consumed_final;       end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_is_8bit              <= `FALSE;    else if(w_load) wr_is_8bit              <= exe_is_8bit_final;        end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_cmdex                <= 4'd0;      else if(w_load) wr_cmdex                <= exe_cmdex;                end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_dst_is_reg           <= `FALSE;    else if(w_load) wr_dst_is_reg           <= exe_dst_is_reg;           end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_dst_is_rm            <= `FALSE;    else if(w_load) wr_dst_is_rm            <= exe_dst_is_rm;            end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_dst_is_memory        <= `FALSE;    else if(w_load) wr_dst_is_memory        <= exe_dst_is_memory;        end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_dst_is_eax           <= `FALSE;    else if(w_load) wr_dst_is_eax           <= exe_dst_is_eax;           end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_dst_is_edx_eax       <= `FALSE;    else if(w_load) wr_dst_is_edx_eax       <= exe_dst_is_edx_eax;       end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_dst_is_implicit_reg  <= `FALSE;    else if(w_load) wr_dst_is_implicit_reg  <= exe_dst_is_implicit_reg;  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_linear               <= 32'd0;     else if(w_load) wr_linear               <= exe_linear;               end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_decoder              <= 16'd0;     else if(w_load) wr_decoder              <= exe_decoder[15:0];        end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_eip                  <= 32'd0;     else if(w_load) wr_eip                  <= exe_eip_final;            end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_operand_32bit        <= `FALSE;    else if(w_load) wr_operand_32bit        <= exe_operand_32bit;        end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_address_32bit        <= `FALSE;    else if(w_load) wr_address_32bit        <= exe_address_32bit;        end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_prefix_group_1_rep   <= 2'd0;      else if(w_load) wr_prefix_group_1_rep   <= exe_prefix_group_1_rep;   end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_prefix_group_1_lock  <= `FALSE;    else if(w_load) wr_prefix_group_1_lock  <= exe_prefix_group_1_lock;  end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_consumed             <= 4'd0;      else if(w_load) wr_consumed             <= exe_consumed_final;       end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_is_8bit              <= `FALSE;    else if(w_load) wr_is_8bit              <= exe_is_8bit_final;        end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_cmdex                <= 4'd0;      else if(w_load) wr_cmdex                <= exe_cmdex;                end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_dst_is_reg           <= `FALSE;    else if(w_load) wr_dst_is_reg           <= exe_dst_is_reg;           end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_dst_is_rm            <= `FALSE;    else if(w_load) wr_dst_is_rm            <= exe_dst_is_rm;            end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_dst_is_memory        <= `FALSE;    else if(w_load) wr_dst_is_memory        <= exe_dst_is_memory;        end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_dst_is_eax           <= `FALSE;    else if(w_load) wr_dst_is_eax           <= exe_dst_is_eax;           end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_dst_is_edx_eax       <= `FALSE;    else if(w_load) wr_dst_is_edx_eax       <= exe_dst_is_edx_eax;       end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_dst_is_implicit_reg  <= `FALSE;    else if(w_load) wr_dst_is_implicit_reg  <= exe_dst_is_implicit_reg;  end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_linear               <= 32'd0;     else if(w_load) wr_linear               <= exe_linear;               end
 
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) result                  <= 32'd0;     else if(w_load) result                  <= exe_result;               end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) result2                 <= 32'd0;     else if(w_load) result2                 <= exe_result2;              end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) result_push             <= 32'd0;     else if(w_load) result_push             <= exe_result_push;          end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) result_signals          <= 5'd0;      else if(w_load) result_signals          <= exe_result_signals;       end
+always @(posedge clk) begin if(rst_n == 1'b0) result                  <= 32'd0;     else if(w_load) result                  <= exe_result;               end
+always @(posedge clk) begin if(rst_n == 1'b0) result2                 <= 32'd0;     else if(w_load) result2                 <= exe_result2;              end
+always @(posedge clk) begin if(rst_n == 1'b0) result_push             <= 32'd0;     else if(w_load) result_push             <= exe_result_push;          end
+always @(posedge clk) begin if(rst_n == 1'b0) result_signals          <= 5'd0;      else if(w_load) result_signals          <= exe_result_signals;       end
 
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_arith_index          <= 4'd0;      else if(w_load) wr_arith_index          <= exe_arith_index;          end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_src                  <= 32'd0;     else if(w_load) wr_src                  <= src_final;                end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_dst                  <= 32'd0;     else if(w_load) wr_dst                  <= dst_final;                end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_arith_index          <= 4'd0;      else if(w_load) wr_arith_index          <= exe_arith_index;          end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_src                  <= 32'd0;     else if(w_load) wr_src                  <= src_final;                end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_dst                  <= 32'd0;     else if(w_load) wr_dst                  <= dst_final;                end
 
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_arith_sub_carry      <= 1'd0;      else if(w_load) wr_arith_sub_carry      <= exe_arith_sub_carry;      end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_arith_add_carry      <= 1'd0;      else if(w_load) wr_arith_add_carry      <= exe_arith_add_carry;      end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_arith_adc_carry      <= 1'd0;      else if(w_load) wr_arith_adc_carry      <= exe_arith_adc_carry;      end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_arith_sbb_carry      <= 1'd0;      else if(w_load) wr_arith_sbb_carry      <= exe_arith_sbb_carry;      end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_mult_overflow        <= 1'd0;      else if(w_load) wr_mult_overflow        <= exe_mult_overflow;        end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_arith_sub_carry      <= 1'd0;      else if(w_load) wr_arith_sub_carry      <= exe_arith_sub_carry;      end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_arith_add_carry      <= 1'd0;      else if(w_load) wr_arith_add_carry      <= exe_arith_add_carry;      end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_arith_adc_carry      <= 1'd0;      else if(w_load) wr_arith_adc_carry      <= exe_arith_adc_carry;      end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_arith_sbb_carry      <= 1'd0;      else if(w_load) wr_arith_sbb_carry      <= exe_arith_sbb_carry;      end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_mult_overflow        <= 1'd0;      else if(w_load) wr_mult_overflow        <= exe_mult_overflow;        end
 
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) wr_stack_offset         <= 32'd0;     else if(w_load) wr_stack_offset         <= exe_stack_offset;         end
+always @(posedge clk) begin if(rst_n == 1'b0) wr_stack_offset         <= 32'd0;     else if(w_load) wr_stack_offset         <= exe_stack_offset;         end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   wr_cmd <= `CMD_NULL;
     else if(wr_reset)   wr_cmd <= `CMD_NULL;
     else if(w_load)     wr_cmd <= exe_cmd;
     else if(wr_ready)   wr_cmd <= `CMD_NULL;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                       wr_mutex <= 11'd0;
     else if(wr_reset)                                       wr_mutex <= 11'd0;
     else if(w_load)                                         wr_mutex <= exe_mutex;
@@ -584,12 +584,12 @@ assign write_io_for_wr_ready = io_write_done;
 
 //------------------------------------------------------------------------------ esp speculative
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                               wr_esp_prev <= 32'd0;
     else if(wr_make_esp_speculative && ~(wr_is_esp_speculative))    wr_esp_prev <= esp;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   wr_is_esp_speculative <= `FALSE;
     else if(wr_reset || exe_reset)      wr_is_esp_speculative <= `FALSE;
     else if(wr_make_esp_commit)         wr_is_esp_speculative <= `FALSE;

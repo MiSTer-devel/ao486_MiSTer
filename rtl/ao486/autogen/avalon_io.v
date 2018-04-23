@@ -70,43 +70,43 @@ wire  io_write_done_to_reg =
     (cond_6 && cond_4)? ( `TRUE) :
     io_write_done;
 //======================================================== always
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) was_readdatavalid <= 1'd0;
     else              was_readdatavalid <= was_readdatavalid_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) io_read_data <= 32'd0;
     else              io_read_data <= io_read_data_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) io_read_done <= 1'd0;
     else              io_read_done <= io_read_done_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) state <= 3'd0;
     else              state <= state_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) avalon_io_writedata <= 32'd0;
     else              avalon_io_writedata <= avalon_io_writedata_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) avalon_io_address <= 16'd0;
     else              avalon_io_address <= avalon_io_address_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) avalon_io_write_reg <= 1'd0;
     else              avalon_io_write_reg <= avalon_io_write_reg_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) avalon_io_byteenable <= 4'd0;
     else              avalon_io_byteenable <= avalon_io_byteenable_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) avalon_io_read_reg <= 1'd0;
     else              avalon_io_read_reg <= avalon_io_read_reg_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) io_write_done <= 1'd0;
     else              io_write_done <= io_write_done_to_reg;
 end

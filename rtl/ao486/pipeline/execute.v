@@ -331,38 +331,38 @@ reg [31:0]  dst;
 reg [31:0]  exe_address_effective;
 reg         exe_prefix_2byte;
 
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) exe_decoder              <= 40'd0;     else if(e_load) exe_decoder              <= rd_decoder[39:0];        end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) exe_eip                  <= 32'd0;     else if(e_load) exe_eip                  <= rd_eip;                  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) exe_operand_32bit        <= `FALSE;    else if(e_load) exe_operand_32bit        <= rd_operand_32bit;        end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) exe_address_32bit        <= `FALSE;    else if(e_load) exe_address_32bit        <= rd_address_32bit;        end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) exe_prefix_group_1_rep   <= 2'd0;      else if(e_load) exe_prefix_group_1_rep   <= rd_prefix_group_1_rep;   end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) exe_prefix_group_1_lock  <= `FALSE;    else if(e_load) exe_prefix_group_1_lock  <= rd_prefix_group_1_lock;  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) exe_prefix_2byte         <= `FALSE;    else if(e_load) exe_prefix_2byte         <= rd_prefix_2byte;         end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) exe_consumed             <= 4'd0;      else if(e_load) exe_consumed             <= rd_consumed;             end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) exe_is_8bit              <= `FALSE;    else if(e_load) exe_is_8bit              <= rd_is_8bit;              end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) exe_cmdex                <= 4'd0;      else if(e_load) exe_cmdex                <= rd_cmdex;                end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) exe_modregrm_imm         <= 8'd0;      else if(e_load) exe_modregrm_imm         <= rd_modregrm_imm[7:0];    end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) exe_dst_is_reg           <= `FALSE;    else if(e_load) exe_dst_is_reg           <= rd_dst_is_reg;           end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) exe_dst_is_rm            <= `FALSE;    else if(e_load) exe_dst_is_rm            <= rd_dst_is_rm;            end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) exe_dst_is_memory        <= `FALSE;    else if(e_load) exe_dst_is_memory        <= rd_dst_is_memory;        end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) exe_dst_is_eax           <= `FALSE;    else if(e_load) exe_dst_is_eax           <= rd_dst_is_eax;           end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) exe_dst_is_edx_eax       <= `FALSE;    else if(e_load) exe_dst_is_edx_eax       <= rd_dst_is_edx_eax;       end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) exe_dst_is_implicit_reg  <= `FALSE;    else if(e_load) exe_dst_is_implicit_reg  <= rd_dst_is_implicit_reg;  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) exe_extra                <= 32'd0;     else if(e_load) exe_extra                <= rd_extra_wire;           end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) exe_linear               <= 32'd0;     else if(e_load) exe_linear               <= rd_linear;               end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) exe_debug_read           <= 4'd0;      else if(e_load) exe_debug_read           <= rd_debug_read;           end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) src                      <= 32'd0;     else if(e_load) src                      <= src_wire;                end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) dst                      <= 32'd0;     else if(e_load) dst                      <= dst_wire;                end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) exe_address_effective    <= 32'd0;     else if(e_load) exe_address_effective    <= rd_address_effective;    end
+always @(posedge clk) begin if(rst_n == 1'b0) exe_decoder              <= 40'd0;     else if(e_load) exe_decoder              <= rd_decoder[39:0];        end
+always @(posedge clk) begin if(rst_n == 1'b0) exe_eip                  <= 32'd0;     else if(e_load) exe_eip                  <= rd_eip;                  end
+always @(posedge clk) begin if(rst_n == 1'b0) exe_operand_32bit        <= `FALSE;    else if(e_load) exe_operand_32bit        <= rd_operand_32bit;        end
+always @(posedge clk) begin if(rst_n == 1'b0) exe_address_32bit        <= `FALSE;    else if(e_load) exe_address_32bit        <= rd_address_32bit;        end
+always @(posedge clk) begin if(rst_n == 1'b0) exe_prefix_group_1_rep   <= 2'd0;      else if(e_load) exe_prefix_group_1_rep   <= rd_prefix_group_1_rep;   end
+always @(posedge clk) begin if(rst_n == 1'b0) exe_prefix_group_1_lock  <= `FALSE;    else if(e_load) exe_prefix_group_1_lock  <= rd_prefix_group_1_lock;  end
+always @(posedge clk) begin if(rst_n == 1'b0) exe_prefix_2byte         <= `FALSE;    else if(e_load) exe_prefix_2byte         <= rd_prefix_2byte;         end
+always @(posedge clk) begin if(rst_n == 1'b0) exe_consumed             <= 4'd0;      else if(e_load) exe_consumed             <= rd_consumed;             end
+always @(posedge clk) begin if(rst_n == 1'b0) exe_is_8bit              <= `FALSE;    else if(e_load) exe_is_8bit              <= rd_is_8bit;              end
+always @(posedge clk) begin if(rst_n == 1'b0) exe_cmdex                <= 4'd0;      else if(e_load) exe_cmdex                <= rd_cmdex;                end
+always @(posedge clk) begin if(rst_n == 1'b0) exe_modregrm_imm         <= 8'd0;      else if(e_load) exe_modregrm_imm         <= rd_modregrm_imm[7:0];    end
+always @(posedge clk) begin if(rst_n == 1'b0) exe_dst_is_reg           <= `FALSE;    else if(e_load) exe_dst_is_reg           <= rd_dst_is_reg;           end
+always @(posedge clk) begin if(rst_n == 1'b0) exe_dst_is_rm            <= `FALSE;    else if(e_load) exe_dst_is_rm            <= rd_dst_is_rm;            end
+always @(posedge clk) begin if(rst_n == 1'b0) exe_dst_is_memory        <= `FALSE;    else if(e_load) exe_dst_is_memory        <= rd_dst_is_memory;        end
+always @(posedge clk) begin if(rst_n == 1'b0) exe_dst_is_eax           <= `FALSE;    else if(e_load) exe_dst_is_eax           <= rd_dst_is_eax;           end
+always @(posedge clk) begin if(rst_n == 1'b0) exe_dst_is_edx_eax       <= `FALSE;    else if(e_load) exe_dst_is_edx_eax       <= rd_dst_is_edx_eax;       end
+always @(posedge clk) begin if(rst_n == 1'b0) exe_dst_is_implicit_reg  <= `FALSE;    else if(e_load) exe_dst_is_implicit_reg  <= rd_dst_is_implicit_reg;  end
+always @(posedge clk) begin if(rst_n == 1'b0) exe_extra                <= 32'd0;     else if(e_load) exe_extra                <= rd_extra_wire;           end
+always @(posedge clk) begin if(rst_n == 1'b0) exe_linear               <= 32'd0;     else if(e_load) exe_linear               <= rd_linear;               end
+always @(posedge clk) begin if(rst_n == 1'b0) exe_debug_read           <= 4'd0;      else if(e_load) exe_debug_read           <= rd_debug_read;           end
+always @(posedge clk) begin if(rst_n == 1'b0) src                      <= 32'd0;     else if(e_load) src                      <= src_wire;                end
+always @(posedge clk) begin if(rst_n == 1'b0) dst                      <= 32'd0;     else if(e_load) dst                      <= dst_wire;                end
+always @(posedge clk) begin if(rst_n == 1'b0) exe_address_effective    <= 32'd0;     else if(e_load) exe_address_effective    <= rd_address_effective;    end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   exe_mutex <= 11'd0;
     else if(exe_reset)  exe_mutex <= 11'd0;
     else if(e_load)     exe_mutex <= rd_mutex_next;
     else if(exe_ready)  exe_mutex <= 11'd0;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   exe_cmd <= `CMD_NULL;
     else if(exe_reset)  exe_cmd <= `CMD_NULL;
     else if(e_load)     exe_cmd <= rd_cmd;

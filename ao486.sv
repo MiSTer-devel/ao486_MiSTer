@@ -59,9 +59,6 @@ module emu
 
 	output [15:0] AUDIO_L,
 	output [15:0] AUDIO_R,
-	output        AUDIO_S, // 1 - signed audio samples, 0 - unsigned
-	output  [1:0] AUDIO_MIX, // 0 - no mix, 1 - 25%, 2 - 50%, 3 - 100% (mono)
-	input         TAPE_IN,
 
 	// SD-SPI
 	output        SD_SCK,
@@ -112,11 +109,8 @@ assign CE_PIXEL  = 1;
 assign VIDEO_ARX = status[1] ? 8'd16 : 8'd4;
 assign VIDEO_ARY = status[1] ? 8'd9  : 8'd3;
 
-assign AUDIO_S   = 1;
 assign AUDIO_L   = {sb_out_l[15], sb_out_l[15:1]} + {1'b0, {15{speaker_ena & speaker_out}}};
 assign AUDIO_R   = {sb_out_r[15], sb_out_r[15:1]} + {1'b0, {15{speaker_ena & speaker_out}}};
-assign AUDIO_MIX = 0;
-
 
 assign LED_DISK[1] = 1;
 assign LED_POWER   = 0;

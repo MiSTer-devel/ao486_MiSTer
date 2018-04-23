@@ -19,7 +19,7 @@ wire [31:0] wr_task_switch_linear_next;
 reg  [31:0] wr_task_switch_linear_reg;
 assign wr_task_switch_linear = (wr_cmd == `CMD_task_switch && wr_cmdex == `CMDEX_task_switch_STEP_9 && tr_cache[`DESC_BITS_TYPE] <= 4'd3)?     tr_base + 32'd14 : (wr_cmd == `CMD_task_switch && wr_cmdex == `CMDEX_task_switch_STEP_9 && tr_cache[`DESC_BITS_TYPE] > 4'd3)?      tr_base + 32'h20 : wr_task_switch_linear_next;
 assign wr_task_switch_linear_next = (tr_cache[`DESC_BITS_TYPE] <= 4'd3)?    wr_task_switch_linear_reg + 32'd2 : wr_task_switch_linear_reg + 32'd4;
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0)                                                               wr_task_switch_linear_reg <= 32'd0; else if(wr_cmd == `CMD_task_switch && wr_cmdex == `CMDEX_task_switch_STEP_9)    wr_task_switch_linear_reg <= wr_task_switch_linear; else if(wr_ready)                                                               wr_task_switch_linear_reg <= wr_task_switch_linear_next;
+always @(posedge clk) begin if(rst_n == 1'b0)                                                               wr_task_switch_linear_reg <= 32'd0; else if(wr_cmd == `CMD_task_switch && wr_cmdex == `CMDEX_task_switch_STEP_9)    wr_task_switch_linear_reg <= wr_task_switch_linear; else if(wr_ready)                                                               wr_task_switch_linear_reg <= wr_task_switch_linear_next;
 end
 
 //======================================================== conditions
@@ -870,7 +870,7 @@ assign idflag_to_reg =
     (cond_240)? ( task_eflags[21]) :
     idflag;
 //======================================================== always
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) wr_task_rpl <= 2'd0;
     else              wr_task_rpl <= wr_task_rpl_to_reg;
 end

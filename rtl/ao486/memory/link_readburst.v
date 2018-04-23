@@ -68,15 +68,15 @@ assign save  = req_readburst_do && ~(resp_readburst_done);
 
 //------------------------------------------------------------------------------
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)               current_do <= `FALSE;
     else if(save)                   current_do <= req_readburst_do;
     else if(resp_readburst_done)    current_do <= `FALSE;
 end
 
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) address      <= 32'd0; else if(save) address      <= req_readburst_address;      end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) dword_length <= 2'd0;  else if(save) dword_length <= req_readburst_dword_length; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) byte_length  <= 4'd0;  else if(save) byte_length  <= req_readburst_byte_length;  end
+always @(posedge clk) begin if(rst_n == 1'b0) address      <= 32'd0; else if(save) address      <= req_readburst_address;      end
+always @(posedge clk) begin if(rst_n == 1'b0) dword_length <= 2'd0;  else if(save) dword_length <= req_readburst_dword_length; end
+always @(posedge clk) begin if(rst_n == 1'b0) byte_length  <= 4'd0;  else if(save) byte_length  <= req_readburst_byte_length;  end
 
 //------------------------------------------------------------------------------
 

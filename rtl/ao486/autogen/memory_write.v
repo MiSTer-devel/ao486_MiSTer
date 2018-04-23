@@ -31,19 +31,19 @@ wire [1:0] state_to_reg =
     (cond_9 && cond_10)? ( STATE_IDLE) :
     state;
 //======================================================== always
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) buffer <= 24'd0;
     else              buffer <= buffer_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) address_2_reg <= 32'd0;
     else              address_2_reg <= address_2_reg_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) length_2_reg <= 3'd0;
     else              length_2_reg <= length_2_reg_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) state <= 2'd0;
     else              state <= state_to_reg;
 end

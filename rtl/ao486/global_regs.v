@@ -76,37 +76,37 @@ assign glob_desc_2_limit = glob_descriptor_2[`DESC_BIT_G]? { glob_descriptor_2[5
 
 //------------------------------------------------------------------------------
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           glob_param_1 <= 32'd0;
     else if(glob_param_1_set)   glob_param_1 <= glob_param_1_value;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           glob_param_2 <= 32'd0;
     else if(glob_param_2_set)   glob_param_2 <= glob_param_2_value;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           glob_param_3 <= 32'd0;
     else if(glob_param_3_set)   glob_param_3 <= glob_param_3_value;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           glob_param_4 <= 32'd0;
     else if(glob_param_4_set)   glob_param_4 <= glob_param_4_value;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           glob_param_5 <= 32'd0;
     else if(glob_param_5_set)   glob_param_5 <= glob_param_5_value;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)               glob_descriptor <= 64'd0;
     else if(glob_descriptor_set)    glob_descriptor <= glob_descriptor_value;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)               glob_descriptor_2 <= 64'd0;
     else if(glob_descriptor_2_set)  glob_descriptor_2 <= glob_descriptor_2_value;
 end

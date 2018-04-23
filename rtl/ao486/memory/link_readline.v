@@ -62,13 +62,13 @@ assign save  = req_readline_do && ~(resp_readline_done);
 
 //------------------------------------------------------------------------------
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)               current_do <= `FALSE;
     else if(save)                   current_do <= req_readline_do;
     else if(resp_readline_done)     current_do <= `FALSE;
 end
 
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) address <= 32'd0; else if(save) address <= req_readline_address;      end
+always @(posedge clk) begin if(rst_n == 1'b0) address <= 32'd0; else if(save) address <= req_readline_address;      end
 
 //------------------------------------------------------------------------------
 

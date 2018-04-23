@@ -240,20 +240,20 @@ assign r_load = micro_ready;
 reg [2:0]   rd_modregrm_len;
 reg [2:0]   rd_prefix_group_2_seg;
 
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) rd_decoder              <= 88'd0;     else if(r_load) rd_decoder              <= micro_decoder;              end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) rd_eip                  <= 32'd0;     else if(r_load) rd_eip                  <= micro_eip;                  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) rd_operand_32bit        <= `FALSE;    else if(r_load) rd_operand_32bit        <= micro_operand_32bit;        end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) rd_address_32bit        <= `FALSE;    else if(r_load) rd_address_32bit        <= micro_address_32bit;        end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) rd_prefix_group_1_rep   <= 2'd0;      else if(r_load) rd_prefix_group_1_rep   <= micro_prefix_group_1_rep;   end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) rd_prefix_group_1_lock  <= `FALSE;    else if(r_load) rd_prefix_group_1_lock  <= micro_prefix_group_1_lock;  end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) rd_prefix_group_2_seg   <= 3'd3;      else if(r_load) rd_prefix_group_2_seg   <= micro_prefix_group_2_seg;   end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) rd_prefix_2byte         <= `FALSE;    else if(r_load) rd_prefix_2byte         <= micro_prefix_2byte;         end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) rd_consumed             <= 4'd0;      else if(r_load) rd_consumed             <= micro_consumed;             end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) rd_modregrm_len         <= 3'd0;      else if(r_load) rd_modregrm_len         <= micro_modregrm_len;         end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) rd_is_8bit              <= `FALSE;    else if(r_load) rd_is_8bit              <= micro_is_8bit;              end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) rd_cmdex                <= 4'd0;      else if(r_load) rd_cmdex                <= micro_cmdex;                end
+always @(posedge clk) begin if(rst_n == 1'b0) rd_decoder              <= 88'd0;     else if(r_load) rd_decoder              <= micro_decoder;              end
+always @(posedge clk) begin if(rst_n == 1'b0) rd_eip                  <= 32'd0;     else if(r_load) rd_eip                  <= micro_eip;                  end
+always @(posedge clk) begin if(rst_n == 1'b0) rd_operand_32bit        <= `FALSE;    else if(r_load) rd_operand_32bit        <= micro_operand_32bit;        end
+always @(posedge clk) begin if(rst_n == 1'b0) rd_address_32bit        <= `FALSE;    else if(r_load) rd_address_32bit        <= micro_address_32bit;        end
+always @(posedge clk) begin if(rst_n == 1'b0) rd_prefix_group_1_rep   <= 2'd0;      else if(r_load) rd_prefix_group_1_rep   <= micro_prefix_group_1_rep;   end
+always @(posedge clk) begin if(rst_n == 1'b0) rd_prefix_group_1_lock  <= `FALSE;    else if(r_load) rd_prefix_group_1_lock  <= micro_prefix_group_1_lock;  end
+always @(posedge clk) begin if(rst_n == 1'b0) rd_prefix_group_2_seg   <= 3'd3;      else if(r_load) rd_prefix_group_2_seg   <= micro_prefix_group_2_seg;   end
+always @(posedge clk) begin if(rst_n == 1'b0) rd_prefix_2byte         <= `FALSE;    else if(r_load) rd_prefix_2byte         <= micro_prefix_2byte;         end
+always @(posedge clk) begin if(rst_n == 1'b0) rd_consumed             <= 4'd0;      else if(r_load) rd_consumed             <= micro_consumed;             end
+always @(posedge clk) begin if(rst_n == 1'b0) rd_modregrm_len         <= 3'd0;      else if(r_load) rd_modregrm_len         <= micro_modregrm_len;         end
+always @(posedge clk) begin if(rst_n == 1'b0) rd_is_8bit              <= `FALSE;    else if(r_load) rd_is_8bit              <= micro_is_8bit;              end
+always @(posedge clk) begin if(rst_n == 1'b0) rd_cmdex                <= 4'd0;      else if(r_load) rd_cmdex                <= micro_cmdex;                end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   rd_cmd <= `CMD_NULL;
     else if(rd_reset)   rd_cmd <= `CMD_NULL;
     else if(r_load)     rd_cmd <= micro_cmd;
@@ -424,7 +424,7 @@ wire _unused_ok = &{ 1'b0, rd_src_is_reg, 1'b0 };
 
 //------------------------------------------------------------------------------
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                       rd_memory_last <= 32'd0;
     else if(read_for_rd_ready && rd_ready)  rd_memory_last <= read_4;
 end
@@ -498,7 +498,7 @@ assign dst_wire =
 
 //------------------------------------------------------------------------------ io_read
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)               rd_one_io_read <= `FALSE;
     else if(rd_ready || rd_reset)   rd_one_io_read <= `FALSE;
     else if(io_read_done)           rd_one_io_read <= `TRUE;
@@ -521,13 +521,13 @@ assign rd_io_ready = rd_one_io_read || io_read_done;
 wire rd_seg_gp_fault_init;
 wire rd_seg_ss_fault_init;
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)               rd_seg_gp_fault <= `FALSE;
     else if(rd_ready || rd_reset)   rd_seg_gp_fault <= `FALSE;
     else                            rd_seg_gp_fault <= rd_seg_gp_fault_init;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)               rd_seg_ss_fault <= `FALSE;
     else if(rd_ready || rd_reset)   rd_seg_ss_fault <= `FALSE;
     else                            rd_seg_ss_fault <= rd_seg_ss_fault_init;
@@ -560,7 +560,7 @@ assign read_length =
     rd_operand_16bit?           4'd2 :
                                 4'd4;
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                               rd_one_mem_read <= `FALSE;
     else if(rd_ready || rd_reset)                                   rd_one_mem_read <= `FALSE;
     else if(read_done && ~(read_page_fault) && ~(read_ac_fault))    rd_one_mem_read <= `TRUE;
@@ -579,7 +579,7 @@ assign read_8 = read_data;
 
 //------------------------------------------------------------------------------ write check
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                       rd_address_effective_ready_delayed <= `FALSE;
     else if(rd_ready || rd_reset || ~(write_virtual_check)) rd_address_effective_ready_delayed <= `FALSE;
     else                                                    rd_address_effective_ready_delayed <= rd_address_effective_ready;

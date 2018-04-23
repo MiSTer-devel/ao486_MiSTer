@@ -129,71 +129,71 @@ wire  read_code_done_trigger_to_reg =
     (cond_21 && cond_13 && cond_18)? ( `TRUE) :
     read_code_done_trigger;
 //======================================================== always
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) avm_read <= 1'd0;
     else              avm_read <= avm_read_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) read_line_done_trigger <= 1'd0;
     else              read_line_done_trigger <= read_line_done_trigger_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) counter <= 2'd0;
     else              counter <= counter_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) state <= 2'd0;
     else              state <= state_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) bus_3 <= 32'd0;
     else              bus_3 <= bus_3_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) avm_writedata <= 32'd0;
     else              avm_writedata <= avm_writedata_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) bus_0 <= 32'd0;
     else              bus_0 <= bus_0_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) bus_2 <= 32'd0;
     else              bus_2 <= bus_2_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) byteenable_next <= 4'd0;
     else              byteenable_next <= byteenable_next_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) bus_1 <= 32'd0;
     else              bus_1 <= bus_1_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) avm_address <= 0;
     else              avm_address <= avm_address_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) avm_write <= 1'd0;
     else              avm_write <= avm_write_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) bus_code_partial <= 32'd0;
     else              bus_code_partial <= bus_code_partial_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) read_burst_done_trigger <= 1'd0;
     else              read_burst_done_trigger <= read_burst_done_trigger_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) avm_byteenable <= 4'd0;
     else              avm_byteenable <= avm_byteenable_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) avm_burstcount <= 3'd0;
     else              avm_burstcount <= avm_burstcount_to_reg;
 end
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) read_code_done_trigger <= 1'd0;
     else              read_code_done_trigger <= read_code_done_trigger_to_reg;
 end
