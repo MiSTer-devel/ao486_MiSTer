@@ -1,0 +1,101 @@
+;Project file: Z:\OPL3FW\OPL3.PRJ for HI-TECH C Z80/Z180/64180 V7.80
+
+List: Source Files	Rel Auto
+Entry: YMF262.C
+Endlist:
+
+List: Object Files	Abs Auto
+Entry: $(LIB)\RTZ80-c.OBJ
+Endlist:
+
+List: CPP Include Paths	Abs Auto
+Entry: $(INC)
+Endlist:
+
+List: CPP Pre-defined Symbols	Abs Auto
+Entry: -Dz80
+Entry: -DHI_TECH_C
+Entry: -SP2,2,2,2,2,2,2
+Entry: -S1,2,2,4,4,4
+Entry: -D_HOSTED
+Entry: -DCPM
+Entry: -DSMALL_MODEL
+Entry: -D_HTC_VER_MAJOR_=7
+Entry: -D_HTC_VER_MINOR_=80
+Entry: -D_HTC_VER_PATCH_=2
+Endlist:
+
+List: Libraries	Abs Auto
+Entry: $(LIB)\Z80-cC.LIB
+Endlist:
+
+List: Linker options	Abs Frozen Warned
+Entry: -pvectors=0,lowtext,text,strings,const,im2vecs,bss
+Entry: -pnvram=bss,heap
+Entry: -Pdata=1900h
+Endlist:
+
+List: Objtohex options	Abs Auto
+Entry: -b100h
+Endlist:
+
+Depfiles:
+Entry: $(INC)\STRING.H
+Entry: $(INC)\SYS.H
+Entry: ymf262.h
+Enddeps:
+
+Dependencies:
+Entry: 1528935816 3 0 1 2
+Enddeps:
+
+
+Int: Checksize: 1
+Int: OuputFormat: 0
+Int: Warnlevel: 0
+Int: IdLength: 31
+Int: DebugBaud: 0
+Int: ComPort: 0
+Int: GlobOptLevel: 9
+Time: OptionsModified: 1528921310
+Int: Rom_addr: 0
+Int: Ram_addr: 32768
+Int: Ram_size: 32768
+Int: Nvram_addr: 0
+Int: Ram_phys: 262144
+Int: Bank_addr: 8192
+Int: Bank_size: 24576
+Int: Bank_phys: 8192
+Int: Size_phys: 1040384
+Int: Modelno: 2
+Int: Chiptype: 0
+
+Bool: Globopt: 1
+Bool: Postopt: 1
+Bool: Assemopt: 0
+Bool: Symbolic_debug: 0
+Bool: Nolocal: 0
+Bool: Uselong: 0
+Bool: Usefloat: 0
+Bool: Autoload: 0
+Bool: Cppasm: 0
+Bool: Genlist: 0
+Bool: GenSrclist: 0
+Bool: Gotadrs: 1
+Bool: Multirom: 0
+Bool: Avocet_symbols: 0
+Bool: Stopwarn: 1
+Bool: StrictANSI: 0
+Bool: Savedeps: 1
+Bool: NumericSort: 0
+Bool: Romdata: 0
+Bool: Port8: 0
+Bool: UseAltReg: 0
+
+String: Outfile:OPL3.COM
+String: Mapfile:
+String: Symfile:
+ROM Ranges:
+EndROM
+Checksums:
+EndChecksums

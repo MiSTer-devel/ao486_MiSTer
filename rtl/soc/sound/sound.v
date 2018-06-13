@@ -114,47 +114,44 @@ sound_dsp sound_dsp_inst(
 
 //------------------------------------------------------------------------------ opl
 
-wire [7:0] sb_readdata_from_opl;
+wire  [7:0] sb_readdata_from_opl;
 
 wire        sample_from_opl;
 wire [15:0] sample_from_opl_l;
 wire [15:0] sample_from_opl_r;
 
-opl sound_opl
+reg [12:0] period_80us;
+always @(posedge clk or negedge rst_n) begin
+    if(rst_n == 0)                               period_80us <= 2400;
+    else if(mgmt_write && mgmt_address == 256)   period_80us <= mgmt_writedata[12:0];
+end
+
+wire  [7:0] opl_dout;
+
+wire opl_we = (           io_address[2:1] == 0 && io_write)
+           || (             fm_address[1] == 0 && fm_write)
+           || (fm_mode && io_address[3:1] == 1 && io_write)
+           || (fm_mode &&   fm_address[1] == 1 && fm_write);
+
+opl3 #(50000000) opl
 (
-    .clk                        (clk),
-    .clk_opl                    (clk_opl),
-    .rst_n                      (rst_n),
-    
-    //sb slave 220h-22Fh
-    .sb_address                 (io_address),               //input [3:0]
-    .sb_read                    (io_read),                  //input
-    .sb_readdata                (sb_readdata_from_opl),     //output [7:0]
-    .sb_write                   (io_write),                 //input
-    .sb_writedata               (io_writedata),             //input [7:0]
-    
-    
-    //fm music io slave 388h-38Bh
-    .fm_address                 (fm_address),               //input
-    .fm_read                    (fm_read),                  //input
-    .fm_readdata                (fm_readdata),              //output [7:0]
-    .fm_write                   (fm_write),                 //input
-    .fm_writedata               (fm_writedata),             //input [7:0]
-    .fm_mode                    (fm_mode),
+	.clk(clk),
+	.clk_opl(clk_opl),
+	.rst_n(rst_n),
 
-    //sample
-    .sample_l                   (sample_from_opl_l),        //output [15:0]
-    .sample_r                   (sample_from_opl_r),        //output [15:0]
+	.period_80us(period_80us),
 
-    //mgmt slave
-    /*
-    256.[12:0]:  cycles in 80us
-    257.[9:0]:   cycles in 1 sample: 96000 Hz
-    */
-    .mgmt_address               (mgmt_address),   //input [8:0]
-    .mgmt_write                 (mgmt_write),     //input
-    .mgmt_writedata             (mgmt_writedata)  //input [31:0]
+	.addr(io_write ? io_address[1:0] : fm_address),
+	.din(io_write  ? io_writedata    : fm_writedata),
+	.dout(opl_dout),
+	.we(opl_we),
+
+	.sample_l(sample_from_opl_l),
+	.sample_r(sample_from_opl_r)
 );
+
+assign sb_readdata_from_opl = (io_address == 8) ? opl_dout : 8'hFF;
+assign fm_readdata          = !fm_address       ? opl_dout : 8'hFF;
 
 //------------------------------------------------------------------------------ io_readdata
 

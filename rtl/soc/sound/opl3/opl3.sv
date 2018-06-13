@@ -1,123 +1,186 @@
-/*******************************************************************************
-#   +html+<pre>
-#
-#   FILENAME: opl3.sv
-#   AUTHOR: Greg Taylor     CREATION DATE: 24 Feb 2015
-#
-#   DESCRIPTION:
-#
-#   CHANGE HISTORY:
-#   24 Feb 2015        Greg Taylor
-#       Initial version
-#
-#   Copyright (C) 2014 Greg Taylor <gtaylor@sonic.net>
-#    
-#   This file is part of OPL3 FPGA.
-#    
-#   OPL3 FPGA is free software: you can redistribute it and/or modify
-#   it under the terms of the GNU Lesser General Public License as published by
-#   the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
-#   
-#   OPL3 FPGA is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#   GNU Lesser General Public License for more details.
-#   
-#   You should have received a copy of the GNU Lesser General Public License
-#   along with OPL3 FPGA.  If not, see <http://www.gnu.org/licenses/>.
-#   
-#   Original Java Code: 
-#   Copyright (C) 2008 Robson Cozendey <robson@cozendey.com>
-#   
-#   Original C++ Code: 
-#   Copyright (C) 2012  Steffen Ohrendorf <steffen.ohrendorf@gmx.de>
-#   
-#   Some code based on forum posts in: 
-#   http://forums.submarine.org.uk/phpBB/viewforum.php?f=9,
-#   Copyright (C) 2010-2013 by carbon14 and opl3    
-#   
-#******************************************************************************/
-`timescale 1ns / 1ps
-`default_nettype none // disable implicit net type declarations
-
-import opl3_pkg::*;
+/*
+ * Copyright (c) 2014, Aleksander Osman
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * * Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * 
+ * * Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 
 module opl3
+#(
+	parameter            OPLCLK = 64000000 // opl_clk in Hz
+)
 (
-    input  wire clk,
-    input  wire [7:0] opl_reg[512],
+	input                clk,
+	input                clk_opl,
+	input                rst_n,
+	output reg           irq_n,
 
-    output reg signed [SAMPLE_WIDTH-1:0] sample_l = 0,
-    output reg signed [SAMPLE_WIDTH-1:0] sample_r = 0
+	input         [12:0] period_80us, // from clk
+
+	input          [1:0] addr,
+	output         [7:0] dout,
+	input          [7:0] din,
+	input                we,
+
+	output signed [15:0] sample_l,
+	output signed [15:0] sample_r
 );
 
-logic sample_clk_en;
+//------------------------------------------------------------------------------
 
-wire [REG_TIMER_WIDTH-1:0] timer1;
-wire [REG_TIMER_WIDTH-1:0] timer2;
-wire irq_rst;
-wire mt1;
-wire mt2;
-wire st1;
-wire st2;
-wire [REG_CONNECTION_SEL_WIDTH-1:0] connection_sel;
-wire is_new;
-wire nts;                     // keyboard split selection     
-wire [REG_FNUM_WIDTH-1:0] fnum [2][9];
-wire [REG_MULT_WIDTH-1:0] mult [2][18];
-wire [REG_BLOCK_WIDTH-1:0] block [2][9];
-wire [REG_WS_WIDTH-1:0] ws [2][18];
-wire vib [2][18];
-wire dvb;
-wire kon [2][9];  
-wire [REG_ENV_WIDTH-1:0] ar [2][18]; // attack rate
-wire [REG_ENV_WIDTH-1:0] dr [2][18]; // decay rate
-wire [REG_ENV_WIDTH-1:0] sl [2][18]; // sustain level
-wire [REG_ENV_WIDTH-1:0] rr [2][18]; // release rate
-wire [REG_TL_WIDTH-1:0] tl [2][18];  // total level
-wire ksr [2][18];                    // key scale rate
-wire [REG_KSL_WIDTH-1:0] ksl [2][18]; // key scale level
-wire egt [2][18];                     // envelope type
-wire am [2][18];                      // amplitude modulation (tremolo)
-wire dam;                             // depth of tremolo
-wire ryt;
-wire bd;
-wire sd;
-wire tom;
-wire tc;
-wire hh;
-wire cha [2][9];
-wire chb [2][9];
-wire chc [2][9];
-wire chd [2][9];
-wire [REG_FB_WIDTH-1:0] fb [2][9];
-wire cnt [2][9];
-wire irq;
+wire [7:0] io_readdata = { timer1_overflow | timer2_overflow, timer1_overflow, timer2_overflow, 5'd0 };
+assign dout = !addr ? io_readdata : 8'hFF;
 
-wire signed [SAMPLE_WIDTH-1:0] channel_a;
-wire signed [SAMPLE_WIDTH-1:0] channel_b;
-wire signed [SAMPLE_WIDTH-1:0] channel_c;
-wire signed [SAMPLE_WIDTH-1:0] channel_d;   
+//------------------------------------------------------------------------------
 
-logic [$clog2(CLK_DIV_COUNT)-1:0] counter = 0;
- 
-always_ff @(posedge clk) begin
-	if (counter == CLK_DIV_COUNT - 1) counter <= 0;
-	else counter <= counter + 1'd1;
+reg old_write;
+always @(posedge clk) old_write <= we;
+
+wire write = (~old_write & we);
+
+reg [8:0] index;
+always @(posedge clk or negedge rst_n) begin
+    if(rst_n == 0) index <= 0;
+    else if(~addr[0] && write) index <= {addr[1], din};
 end
 
-always_ff @(posedge clk) begin
-	sample_clk_en <= (counter == CLK_DIV_COUNT - 1);
-end
-	  
-always_ff @(posedge clk) begin
-	sample_l <= ({channel_a[SAMPLE_WIDTH-1], channel_a[SAMPLE_WIDTH-1:1]} + {channel_c[SAMPLE_WIDTH-1], channel_c[SAMPLE_WIDTH-1:1]});
-	sample_r <= ({channel_b[SAMPLE_WIDTH-1], channel_b[SAMPLE_WIDTH-1:1]} + {channel_d[SAMPLE_WIDTH-1], channel_d[SAMPLE_WIDTH-1:1]});
+wire       io_write     = (addr[0] && write);
+wire [7:0] io_writedata = din;
+
+//------------------------------------------------------------------------------ timer 1
+
+reg [7:0] timer1_preset;
+always @(posedge clk or negedge rst_n) begin
+    if(rst_n == 0)                  timer1_preset <= 0;
+    else if(io_write && index == 2) timer1_preset <= io_writedata;
 end
 
-channels channels(.*);
-register_file register_file(.*); 
+reg timer1_mask;
+reg timer1_active;
+always @(posedge clk or negedge rst_n) begin
+    if(rst_n == 0)                                      {timer1_mask, timer1_active} <= 0;
+    else if(io_write && index == 4 && ~io_writedata[7]) {timer1_mask, timer1_active} <= {io_writedata[6], io_writedata[0]};
+end
+
+wire timer1_pulse;
+timer timer1( clk, period_80us, timer1_preset, timer1_active, timer1_pulse );
+
+reg timer1_overflow;
+always @(posedge clk or negedge rst_n) begin
+	if(rst_n == 0)                                   timer1_overflow <= 0;
+	else begin
+		if(io_write && index == 4 && io_writedata[7]) timer1_overflow <= 0;
+		if(timer1_pulse)             						 timer1_overflow <= 1;
+	end
+end
+
+
+//------------------------------------------------------------------------------ timer 2
+
+reg [7:0] timer2_preset;
+always @(posedge clk or negedge rst_n) begin
+    if(rst_n == 0)                  timer2_preset <= 0;
+    else if(io_write && index == 3) timer2_preset <= io_writedata;
+end
+
+reg timer2_mask;
+reg timer2_active;
+always @(posedge clk or negedge rst_n) begin
+    if(rst_n == 0)                                      {timer2_mask, timer2_active} <= 0;
+    else if(io_write && index == 4 && ~io_writedata[7]) {timer2_mask, timer2_active} <= {io_writedata[5], io_writedata[1]};
+end
+
+wire timer2_pulse;
+timer timer2( clk, {period_80us, 2'b00}, timer2_preset, timer2_active, timer2_pulse );
+
+reg timer2_overflow;
+always @(posedge clk or negedge rst_n) begin
+	if(rst_n == 0)                                   timer2_overflow <= 0;
+	else begin
+		if(io_write && index == 4 && io_writedata[7]) timer2_overflow <= 0;
+		if(timer2_pulse)                  				 timer2_overflow <= 1;
+	end
+end
+
+
+//------------------------------------------------------------------------------ IRQ
+
+always @(posedge clk or negedge rst_n) begin
+	if(rst_n == 0)                                   irq_n <= 1;
+	else begin
+		if(io_write && index == 4 && io_writedata[7]) irq_n <= 1;
+		if(~timer1_mask && timer1_pulse)              irq_n <= 0;
+		if(~timer2_mask && timer2_pulse)              irq_n <= 0;
+	end
+end
+
+opl3sw #(OPLCLK) opl3
+(
+    .reset(~rst_n),
+
+    .cpu_clk(clk),
+    .addr(addr),
+    .din(din),
+    .wr(write),
+
+    .clk(clk_opl),
+    .left(sample_l),
+    .right(sample_r)
+);
 
 endmodule
-`default_nettype wire  // re-enable implicit net type declarations
+
+module timer
+(
+	input         clk,
+	input  [14:0] resolution,
+	input   [7:0] init,
+	input         active,
+	output reg    overflow_pulse
+);
+
+always @(posedge clk) begin
+	reg  [7:0] counter     = 0;
+	reg [14:0] sub_counter = 0;
+	reg        old_act;
+
+	old_act <= active;
+	overflow_pulse <= 0;
+
+	if(~old_act && active) begin
+		counter <= init;
+		sub_counter <= resolution;
+	end
+	else if(active) begin
+		sub_counter <= sub_counter - 1'd1;
+		if(!sub_counter) begin
+			sub_counter <= resolution;
+			counter     <= counter + 1'd1;
+			if(&counter) begin
+				overflow_pulse <= 1;
+				counter <= init;
+			end
+		end
+	end
+end
+    
+endmodule
