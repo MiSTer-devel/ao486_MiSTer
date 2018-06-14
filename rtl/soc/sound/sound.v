@@ -166,7 +166,7 @@ always @(posedge clk or negedge rst_n) begin
     else if(sample_from_dsp_do)         sample_dsp <= {~sample_from_dsp_value[7], sample_from_dsp_value[6:0], sample_from_dsp_value};  //unsigned to signed
 end
 
-assign sample_l = {sample_dsp[15], sample_dsp[15:1]} + {sample_from_opl_l[15], sample_from_opl_l[15:1]};
-assign sample_r = {sample_dsp[15], sample_dsp[15:1]} + {sample_from_opl_r[15], sample_from_opl_r[15:1]};
+assign sample_l = {{2{sample_dsp[15]}}, sample_dsp[15:2]} + {sample_from_opl_l[15], sample_from_opl_l[15:1]};
+assign sample_r = {{2{sample_dsp[15]}}, sample_dsp[15:2]} + {sample_from_opl_r[15], sample_from_opl_r[15:1]};
 
 endmodule
