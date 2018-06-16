@@ -13,7 +13,6 @@ Still it's a great emulator for very old DOS games/apps.
 
 ## How to install
 
-* Make sure you use the latest MiSTer binary (from [releases](https://github.com/MiSTer-devel/Main_MiSTer/tree/master/releases) folder)
 * Copy ao486.rbf to root of SD card
 * Create /ao486 directory on SD card and copy [boot0.rom](https://github.com/MiSTer-devel/ao486_MiSTer/blob/master/releases/bios/boot0.rom?raw=true), [boot1.rom](https://github.com/MiSTer-devel/ao486_MiSTer/blob/master/releases/bios/boot1.rom?raw=true) there.
 * For floppy: copy desired floppy raw image with extension **img** to ao486 directory.
