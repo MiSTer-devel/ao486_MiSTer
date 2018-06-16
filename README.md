@@ -1,15 +1,15 @@
 # ao486 port for MiSTer by Sorgelig.
 
-Basically it's 486 compatible core, but speed is not great.
+Basically it's 486 compatible core, but not fast.
 Still it's a great emulator for very old DOS games/apps. 
 
 ## Differences from original ao486
 * Master clock is 90MHz instead of 30MHz in original ao486.
 * BIOS, floppy and HDD images are located in separate files for easy use. No special utility required.
 * Uses standard MiSTer OSD, can choose floppy(hot swap) and HDD(after reset).
-* SoundBlaster 2.0 with better OPL2/3 implementation (OPL2/3 code is based on [opl3_fpga](https://github.com/gtaylormb/opl3_fpga))
+* SoundBlaster 2.0 with better OPL2/3 implementation.
 * HDMI video and audio. Note: original ao486 output non-standard VGA video frequencies and have bad centering.
-
+* UART (COM1) implementation to connect either Linux console or PPP.
 
 ## How to install
 
@@ -21,7 +21,6 @@ Still it's a great emulator for very old DOS games/apps.
 * Boot ao486 and in OSD choose desired floppy, hdd and boot order
 * Save settings and press "Reset and apply HDD"
 
-
 HDD image is a raw image with MBR. It can be opened in Windows/Linux by many applications,
 so it's possible to prepare a HDD in windows/linux (in most cases you need to work with .img files, then just rename it to .vhd extension)
 
@@ -32,7 +31,7 @@ so it's possible to prepare a HDD in windows/linux (in most cases you need to wo
 * type SoundBlaster 2.0
 
 ### Note:
-* With new MiSTer binaries you need to press **WIN+F12** to access **OSD on ao486 core**. F12 alone acts as generic F12 PC key.
+* Press **WIN+F12** to access **OSD on ao486 core**. F12 alone acts as generic F12 PC key.
 
 ---------------------------------------------------------------------------
 # Original ao486 ReadMe. 
