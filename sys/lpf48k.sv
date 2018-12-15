@@ -76,7 +76,7 @@ always @(posedge RESET or posedge CLK) begin
 	end
 end
 
-assign W_DATA = LPF_TAP_DATA[FF_ADDR] * IDATA;
+assign W_DATA = LPF_TAP_DATA[FF_ADDR] * $signed(IDATA);
 
 always @(posedge RESET or posedge CLK) begin
 	if (RESET) FF_INTEG <= 0;
@@ -84,7 +84,7 @@ always @(posedge RESET or posedge CLK) begin
 	begin
 		if (CE) begin
 			if (W_ADDR_END) FF_INTEG <= 0;
-				else FF_INTEG <= FF_INTEG + W_DATA;
+				else FF_INTEG <= $signed(FF_INTEG) + $signed(W_DATA);
 		end
 	end
 end

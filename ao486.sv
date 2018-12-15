@@ -48,6 +48,8 @@ module emu
 	output        VGA_HS,
 	output        VGA_VS,
 	output        VGA_DE,    // = ~(VBlank | HBlank)
+	output        VGA_F1,
+	output [1:0]  VGA_SL,
 
 	output        LED_USER,  // 1 - ON, 0 - OFF.
 
@@ -59,6 +61,9 @@ module emu
 
 	output [15:0] AUDIO_L,
 	output [15:0] AUDIO_R,
+	output        AUDIO_S, // 1 - signed audio samples, 0 - unsigned
+	output  [1:0] AUDIO_MIX, // 0 - no mix, 1 - 25%, 2 - 50%, 3 - 100% (mono)
+	input         TAPE_IN,
 
 	// SD-SPI
 	output        SD_SCK,
@@ -92,13 +97,13 @@ module emu
 	output        SDRAM_nCAS,
 	output        SDRAM_nRAS,
 	output        SDRAM_nWE,
-	
-   input         UART_CTS,
-   output        UART_RTS,
-   input         UART_RXD,
-   output        UART_TXD,
-   input         UART_DSR,
-   output        UART_DTR
+
+	input         UART_CTS,
+	output        UART_RTS,
+	input         UART_RXD,
+	output        UART_TXD,
+	output        UART_DTR,
+	input         UART_DSR
 );
 
 assign {SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 6'b111111;
@@ -109,6 +114,8 @@ assign CE_PIXEL  = 1;
 assign VIDEO_ARX = status[1] ? 8'd16 : 8'd4;
 assign VIDEO_ARY = status[1] ? 8'd9  : 8'd3;
 
+assign AUDIO_S   = 1;
+assign AUDIO_MIX = 0;
 assign AUDIO_L   = sb_out_l + {2'b00, {14{speaker_ena & speaker_out}}};
 assign AUDIO_R   = sb_out_r + {2'b00, {14{speaker_ena & speaker_out}}};
 
@@ -134,8 +141,7 @@ localparam CONF_STR =
 	"-;",
 	"OX2,Boot order,FDD/HDD,HDD/FDD;",
 	"R0,Reset and apply HDD;",
-	"V,v1.31.",`BUILD_DATE,
-	";+"
+	"V,v",`BUILD_DATE
 };
 
 
@@ -224,6 +230,9 @@ always @(posedge CLK_VIDEO) ded <= (ded<<1) | de;
 
 // ugly fix of right black border.
 assign VGA_DE = de & ded[15];
+
+assign VGA_F1 = 0;
+assign VGA_SL = 0;
 
 system u0
 (
@@ -379,7 +388,7 @@ module led
 
 integer counter = 0;
 always @(posedge clk) begin
-	if(!counter) out = 0;
+	if(!counter) out <= 0;
 	else begin
 		counter <= counter - 1'b1;
 		out <= 1;

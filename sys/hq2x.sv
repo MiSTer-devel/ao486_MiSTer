@@ -1,7 +1,7 @@
 //
 //
 // Copyright (c) 2012-2013 Ludvig Strigeus
-// Copyright (c) 2017 Sorgelig
+// Copyright (c) 2017,2018 Sorgelig
 //
 // This program is GPL Licensed. See COPYING for the full license.
 //
@@ -12,36 +12,24 @@
 `timescale 1 ps / 1 ps
 // synopsys translate_on
 
-`define BITS_TO_FIT(N) ( \
-     N <=    2 ? 0 : \
-     N <=    4 ? 1 : \
-     N <=    8 ? 2 : \
-     N <=   16 ? 3 : \
-     N <=   32 ? 4 : \
-     N <=   64 ? 5 : \
-     N <=  128 ? 6 : \
-     N <=  256 ? 7 : \
-     N <=  512 ? 8 : \
-     N <= 1024 ? 9 : \
-     N <= 2048 ?10 : 11 )
-
 module Hq2x #(parameter LENGTH, parameter HALF_DEPTH)
 (
-	input               clk,
-	input               ce_x4,
-	input    [DWIDTH:0] inputpixel,
-	input               mono,
-	input               disable_hq2x,
-	input               reset_frame,
-	input               reset_line,
-	input         [1:0] read_y,
-	input  [AWIDTH+1:0] read_x,
-	output   [DWIDTH:0] outpixel
+	input             clk,
+	input             ce_x4,
+	input  [DWIDTH:0] inputpixel,
+	input             mono,
+	input             disable_hq2x,
+	input             reset_frame,
+	input             reset_line,
+	input       [1:0] read_y,
+	input             hblank,
+	output [DWIDTH:0] outpixel
 );
 
 
-localparam AWIDTH = `BITS_TO_FIT(LENGTH);
+localparam AWIDTH = $clog2(LENGTH)-1;
 localparam DWIDTH = HALF_DEPTH ? 11 : 23;
+localparam DWIDTH1 = DWIDTH+1;
 
 wire [5:0] hqTable[256] = '{
 	19, 19, 26, 11, 19, 19, 26, 11, 23, 15, 47, 35, 23, 15, 55, 39,
@@ -62,30 +50,29 @@ wire [5:0] hqTable[256] = '{
 	19, 19, 26, 11, 19, 19, 26, 11, 23, 15, 7,  35, 23, 15, 7,  43
 };
 
-reg [23:0] Prev0, Prev1, Prev2, Curr0, Curr1, Next0, Next1, Next2;
+reg [23:0] Prev0, Prev1, Prev2, Curr0, Curr1, Curr2, Next0, Next1, Next2;
 reg [23:0] A, B, D, F, G, H;
 reg  [7:0] pattern, nextpatt;
-reg  [1:0] i;
-reg  [7:0] y;
+reg  [1:0] cyc;
 
-wire curbuf = y[0];
+reg  curbuf;
 reg  prevbuf = 0;
 wire iobuf = !curbuf;
 
 wire diff0, diff1;
-DiffCheck diffcheck0(Curr1, (i == 0) ? Prev0 : (i == 1) ? Curr0 : (i == 2) ? Prev2 : Next1, diff0);
-DiffCheck diffcheck1(Curr1, (i == 0) ? Prev1 : (i == 1) ? Next0 : (i == 2) ? Curr2 : Next2, diff1);
+DiffCheck diffcheck0(Curr1, (cyc == 0) ? Prev0 : (cyc == 1) ? Curr0 : (cyc == 2) ? Prev2 : Next1, diff0);
+DiffCheck diffcheck1(Curr1, (cyc == 0) ? Prev1 : (cyc == 1) ? Next0 : (cyc == 2) ? Curr2 : Next2, diff1);
 
 wire [7:0] new_pattern = {diff1, diff0, pattern[7:2]};
 
-wire [23:0] X = (i == 0) ? A : (i == 1) ? Prev1 : (i == 2) ? Next1 : G;
-wire [23:0] blend_result;
-Blend blender(hqTable[nextpatt], disable_hq2x, Curr0, X, B, D, F, H, blend_result);
+wire [23:0] X = (cyc == 0) ? A : (cyc == 1) ? Prev1 : (cyc == 2) ? Next1 : G;
+wire [23:0] blend_result_pre;
+Blend blender(hqTable[nextpatt], disable_hq2x, Curr0, X, B, D, F, H, blend_result_pre);
 
-reg             Curr2_addr1;
-reg  [AWIDTH:0] Curr2_addr2;
-wire     [23:0] Curr2 = HALF_DEPTH ? h2rgb(Curr2tmp) : Curr2tmp;
-wire [DWIDTH:0] Curr2tmp;
+wire [DWIDTH:0] Curr20tmp;
+wire     [23:0] Curr20 = HALF_DEPTH ? h2rgb(Curr20tmp) : Curr20tmp;
+wire [DWIDTH:0] Curr21tmp;
+wire     [23:0] Curr21 = HALF_DEPTH ? h2rgb(Curr21tmp) : Curr21tmp;
 
 reg  [AWIDTH:0] wrin_addr2;
 reg  [DWIDTH:0] wrpix;
@@ -109,9 +96,11 @@ hq2x_in #(.LENGTH(LENGTH), .DWIDTH(DWIDTH)) hq2x_in
 (
 	.clk(clk),
 
-	.rdaddr(Curr2_addr2),
-	.rdbuf(Curr2_addr1),
-	.q(Curr2tmp),
+	.rdaddr(offs),
+	.rdbuf0(prevbuf),
+	.rdbuf1(curbuf),
+	.q0(Curr20tmp),
+	.q1(Curr21tmp),
 
 	.wraddr(wrin_addr2),
 	.wrbuf(iobuf),
@@ -119,27 +108,31 @@ hq2x_in #(.LENGTH(LENGTH), .DWIDTH(DWIDTH)) hq2x_in
 	.wren(wrin_en)
 );
 
-reg         [1:0] wrout_addr1;
-reg  [AWIDTH+1:0] wrout_addr2;
-reg               wrout_en;
-reg    [DWIDTH:0] wrdata;
+reg     [AWIDTH+1:0] read_x;
+reg     [AWIDTH+1:0] wrout_addr; 
+reg                  wrout_en;
+reg  [DWIDTH1*4-1:0] wrdata, wrdata_pre;
+wire [DWIDTH1*4-1:0] outpixel_x4;
+reg  [DWIDTH1*2-1:0] outpixel_x2;
 
-hq2x_out #(.LENGTH(LENGTH), .DWIDTH(DWIDTH)) hq2x_out
+assign outpixel = read_x[0] ? outpixel_x2[DWIDTH1*2-1:DWIDTH1] : outpixel_x2[DWIDTH:0];
+
+hq2x_buf #(.NUMWORDS(LENGTH*2), .AWIDTH(AWIDTH+1), .DWIDTH(DWIDTH1*4-1)) hq2x_out
 (
-	.clk(clk),
+	.clock(clk),
 
-	.rdaddr(read_x),
-	.rdbuf(read_y),
-	.q(outpixel),
+	.rdaddress({read_x[AWIDTH+1:1],read_y[1]}),
+	.q(outpixel_x4),
 
-	.wraddr(wrout_addr2),
-	.wrbuf(wrout_addr1),
 	.data(wrdata),
+	.wraddress(wrout_addr),
 	.wren(wrout_en)
 );
 
+wire [DWIDTH:0] blend_result = HALF_DEPTH ? rgb2h(blend_result_pre) : blend_result_pre[DWIDTH:0];
+
+reg [AWIDTH:0] offs;
 always @(posedge clk) begin
-	reg [AWIDTH:0] offs;
 	reg old_reset_line;
 	reg old_reset_frame;
 
@@ -149,36 +142,33 @@ always @(posedge clk) begin
 	if(ce_x4) begin
 
 		pattern <= new_pattern;
+		if(read_x[0]) outpixel_x2 <= read_y[0] ? outpixel_x4[DWIDTH1*4-1:DWIDTH1*2] : outpixel_x4[DWIDTH1*2-1:0];
 
 		if(~&offs) begin
-			if (i == 0) begin
-				Curr2_addr1 <= prevbuf;
-				Curr2_addr2 <= offs;
-			end
-			if (i == 1) begin
-				Prev2 <= Curr2;
-				Curr2_addr1 <= curbuf;
-				Curr2_addr2 <= offs;
-			end
-			if (i == 2) begin
+			if (cyc == 1) begin
+				Prev2 <= Curr20;
+				Curr2 <= Curr21;
 				Next2 <= HALF_DEPTH ? h2rgb(inputpixel) : inputpixel;
 				wrpix <= inputpixel;
 				wrin_addr2 <= offs;
 				wrin_en <= 1;
 			end
-			if (i == 3) begin
+
+			case({cyc[1],^cyc})
+				0: wrdata[DWIDTH:0]                   <= blend_result;
+				1: wrdata[DWIDTH1+DWIDTH:DWIDTH1]     <= blend_result;
+				2: wrdata[DWIDTH1*2+DWIDTH:DWIDTH1*2] <= blend_result;
+				3: wrdata[DWIDTH1*3+DWIDTH:DWIDTH1*3] <= blend_result;
+			endcase
+
+			if(cyc==3) begin
 				offs <= offs + 1'd1;
+				wrout_addr <= {offs, curbuf};
+				wrout_en <= 1;
 			end
-
-			if(HALF_DEPTH) wrdata <= rgb2h(blend_result);
-			else           wrdata <= blend_result;
-
-			wrout_addr1 <= {curbuf, i[1]};
-			wrout_addr2 <= {offs, i[1]^i[0]};
-			wrout_en    <= 1;
 		end
 
-		if(i==3) begin
+		if(cyc==3) begin
 			nextpatt <= {new_pattern[7:6], new_pattern[3], new_pattern[5], new_pattern[2], new_pattern[4], new_pattern[1:0]};
 			{A, G} <= {Prev0, Next0};
 			{B, F, H, D} <= {Prev1, Curr2, Next1, Curr0};
@@ -190,18 +180,22 @@ always @(posedge clk) begin
 			{B, F, H, D} <= {F, H, D, B};
 		end
 
-		i <= i + 1'b1;
+		cyc <= cyc + 1'b1;
 		if(old_reset_line && ~reset_line) begin
 			old_reset_frame <= reset_frame;
 			offs <= 0;
-			i <= 0;
-			y <= y + 1'd1;
+			cyc <= 0;
+			curbuf <= ~curbuf;
 			prevbuf <= curbuf;
+			{Prev0, Prev1, Prev2, Curr0, Curr1, Curr2, Next0, Next1, Next2} <= '0;
 			if(old_reset_frame & ~reset_frame) begin
-				y <= 0;
+				curbuf <= 0;
 				prevbuf <= 0;
 			end
 		end
+		
+		if(~hblank & ~&read_x) read_x <= read_x + 1'd1;
+		if(hblank) read_x <= 0;
 
 		old_reset_line  <= reset_line;
 	end
@@ -216,8 +210,8 @@ module hq2x_in #(parameter LENGTH, parameter DWIDTH)
 	input            clk,
 
 	input [AWIDTH:0] rdaddr,
-	input            rdbuf,
-	output[DWIDTH:0] q,
+	input            rdbuf0, rdbuf1,
+	output[DWIDTH:0] q0,q1,
 
 	input [AWIDTH:0] wraddr,
 	input            wrbuf,
@@ -225,39 +219,14 @@ module hq2x_in #(parameter LENGTH, parameter DWIDTH)
 	input            wren
 );
 
-	localparam AWIDTH = `BITS_TO_FIT(LENGTH);
-	wire [DWIDTH:0] out[2];
-	assign q = out[rdbuf];
+	localparam AWIDTH = $clog2(LENGTH)-1;
+	wire  [DWIDTH:0] out[2];
+	assign q0 = out[rdbuf0];
+	assign q1 = out[rdbuf1];
 
 	hq2x_buf #(.NUMWORDS(LENGTH), .AWIDTH(AWIDTH), .DWIDTH(DWIDTH)) buf0(clk,data,rdaddr,wraddr,wren && (wrbuf == 0),out[0]);
 	hq2x_buf #(.NUMWORDS(LENGTH), .AWIDTH(AWIDTH), .DWIDTH(DWIDTH)) buf1(clk,data,rdaddr,wraddr,wren && (wrbuf == 1),out[1]);
 endmodule
-
-
-module hq2x_out #(parameter LENGTH, parameter DWIDTH)
-(
-	input            clk,
-
-	input [AWIDTH:0] rdaddr,
-	input      [1:0] rdbuf,
-	output[DWIDTH:0] q,
-
-	input [AWIDTH:0] wraddr,
-	input      [1:0] wrbuf,
-	input [DWIDTH:0] data,
-	input            wren
-);
-
-	localparam AWIDTH = `BITS_TO_FIT(LENGTH*2);
-	wire  [DWIDTH:0] out[4];
-	assign q = out[rdbuf];
-
-	hq2x_buf #(.NUMWORDS(LENGTH*2), .AWIDTH(AWIDTH), .DWIDTH(DWIDTH)) buf0(clk,data,rdaddr,wraddr,wren && (wrbuf == 0),out[0]);
-	hq2x_buf #(.NUMWORDS(LENGTH*2), .AWIDTH(AWIDTH), .DWIDTH(DWIDTH)) buf1(clk,data,rdaddr,wraddr,wren && (wrbuf == 1),out[1]);
-	hq2x_buf #(.NUMWORDS(LENGTH*2), .AWIDTH(AWIDTH), .DWIDTH(DWIDTH)) buf2(clk,data,rdaddr,wraddr,wren && (wrbuf == 2),out[2]);
-	hq2x_buf #(.NUMWORDS(LENGTH*2), .AWIDTH(AWIDTH), .DWIDTH(DWIDTH)) buf3(clk,data,rdaddr,wraddr,wren && (wrbuf == 3),out[3]);
-endmodule
-
 
 module hq2x_buf #(parameter NUMWORDS, parameter AWIDTH, parameter DWIDTH)
 (

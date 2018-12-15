@@ -160,7 +160,7 @@ always @(posedge clk_sys) begin
 	VGA_HS <= hs;
 
 	old_hde <= hde;
-	if(~old_hde && hde && vde) VGA_DE <= 1;
+	if(~old_hde && hde) VGA_DE <= vde;
 	if(old_hde && ~hde) VGA_DE <= 0;
 end
 

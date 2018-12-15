@@ -1,81 +1,14 @@
-{ "" "" "" "Variable or input pin \"data_b\" is defined but never used." {  } {  } 0 287013 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Found combinational loop of 47 nodes" {  } {  } 0 332125 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "LOCKED port on the PLL is not properly connected on instance \"pll_hdmi:pll_hdmi\|pll_hdmi_0002:pll_hdmi_inst\|altera_pll:altera_pll_i\|general\[0\].gpll\". The LOCKED port on the PLL should be connected when the FBOUTCLK port is connected. Although it is unnecessary to connect the LOCKED signal, any logic driven off of an output clock of the PLL will not know when the PLL is locked and ready." {  } {  } 0 21300 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Net \"soc_system:soc_system\|soc_system_Video_Output:video_output\|alt_vip_cvo_core:cvo_core\|genlock_enable_sync1\[1\]\" is missing source, defaulting to GND" {  } {  } 0 12110 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Inferred RAM node \"zxspectrum:emu\|mist_io:mist_io\|ps2_kbd_fifo_rtl_0\" from synchronous design logic.  Pass-through logic has been added to match the read-during-write behavior of the original design." {  } {  } 0 276020 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Inferred RAM node \"zxspectrum:emu\|mist_io:mist_io\|ps2_mouse_fifo_rtl_0\" from synchronous design logic.  Pass-through logic has been added to match the read-during-write behavior of the original design." {  } {  } 0 276020 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "No destination clock period was found satisfying the set_net_delay assignment from \"\[get_keepers \{soc_system\|video_output\|cvo_core\|mode_banks\|h_sync_polarity_reg\}\]\" to \"\[get_keepers \{soc_system\|video_output\|cvo_core\|mode_banks\|vid_h_sync_polarity\}\]\". This assignment will be ignored." {  } {  } 0 17897 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "No destination clock period was found satisfying the set_net_delay assignment from \"\[get_keepers \{soc_system\|video_output\|cvo_core\|mode_banks\|v_sync_polarity_reg\}\]\" to \"\[get_keepers \{soc_system\|video_output\|cvo_core\|mode_banks\|vid_v_sync_polarity\}\]\". This assignment will be ignored." {  } {  } 0 17897 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "No destination clock period was found satisfying the set_net_delay assignment from \"\[get_keepers \{soc_system\|video_output\|cvo_core\|mode_banks\|interlaced_field_reg\[*\]\}\]\" to \"\[get_keepers \{soc_system\|video_output\|cvo_core\|mode_banks\|vid_interlaced_field\[*\]\}\]\". This assignment will be ignored." {  } {  } 0 17897 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Some pins have incomplete I/O assignments. Refer to the I/O Assignment Warnings report for details" {  } {  } 0 15714 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "55 hierarchies have connectivity warnings - see the Connectivity Checks report folder" {  } {  } 0 12241 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Inferred RAM node \"emu:emu\|mister_io:mister_io\|ps2_kbd_fifo_rtl_0\" from synchronous design logic.  Pass-through logic has been added to match the read-during-write behavior of the original design." {  } {  } 0 276020 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Inferred RAM node \"emu:emu\|mister_io:mister_io\|ps2_mouse_fifo_rtl_0\" from synchronous design logic.  Pass-through logic has been added to match the read-during-write behavior of the original design." {  } {  } 0 276020 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Verilog HDL or VHDL warning at de10_top.v(97): object \"io_win\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Verilog HDL or VHDL warning at de10_top.v(102): object \"io_sdd\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Overwriting existing clock: vip\|hps\|fpga_interfaces\|clocks_resets\|h2f_user0_clk" {  } {  } 0 332043 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Variable or input pin \"data_a\" is defined but never used." {  } {  } 0 287013 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Net \"mem.data_a\" at simple_single_rom.v(39) has no driver or initial value, using a default initial value '0'" {  } {  } 0 10030 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Net \"mem.waddr_a\" at simple_single_rom.v(39) has no driver or initial value, using a default initial value '0'" {  } {  } 0 10030 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Net \"mem.we_a\" at simple_single_rom.v(39) has no driver or initial value, using a default initial value '0'" {  } {  } 0 10030 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Net \"mem.data_a\" at simple_rom.v(42) has no driver or initial value, using a default initial value '0'" {  } {  } 0 10030 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Net \"mem.waddr_a\" at simple_rom.v(42) has no driver or initial value, using a default initial value '0'" {  } {  } 0 10030 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Net \"mem.we_a\" at simple_rom.v(42) has no driver or initial value, using a default initial value '0'" {  } {  } 0 10030 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Inferred dual-clock RAM node \"emu:emu\|system:u0\|vga:vga\|simple_bidir_ram:dac_ram_inst\|mem_rtl_0\" from synchronous design logic.  The read-during-write behavior of a dual-clock RAM is undefined and may not match the behavior of the original design." {  } {  } 0 276027 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Inferred dual-clock RAM node \"emu:emu\|system:u0\|vga:vga\|simple_bidir_ram:internal_palette_ram_inst\|mem_rtl_0\" from synchronous design logic.  The read-during-write behavior of a dual-clock RAM is undefined and may not match the behavior of the original design." {  } {  } 0 276027 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Inferred dual-clock RAM node \"emu:emu\|system:u0\|vga:vga\|simple_bidir_ram:plane_ram_inst3\|mem_rtl_0\" from synchronous design logic.  The read-during-write behavior of a dual-clock RAM is undefined and may not match the behavior of the original design." {  } {  } 0 276027 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Inferred dual-clock RAM node \"emu:emu\|system:u0\|vga:vga\|simple_bidir_ram:plane_ram_inst2\|mem_rtl_0\" from synchronous design logic.  The read-during-write behavior of a dual-clock RAM is undefined and may not match the behavior of the original design." {  } {  } 0 276027 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Inferred dual-clock RAM node \"emu:emu\|system:u0\|vga:vga\|simple_bidir_ram:plane_ram_inst1\|mem_rtl_0\" from synchronous design logic.  The read-during-write behavior of a dual-clock RAM is undefined and may not match the behavior of the original design." {  } {  } 0 276027 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Inferred dual-clock RAM node \"emu:emu\|system:u0\|vga:vga\|simple_bidir_ram:plane_ram_inst0\|mem_rtl_0\" from synchronous design logic.  The read-during-write behavior of a dual-clock RAM is undefined and may not match the behavior of the original design." {  } {  } 0 276027 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Vip.vip: Module dependency loop involving: \"HPS\" (altera_hps_lite 17.0)" {  } {  } 0 12251 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Vip.Mixer: The MixerII register map changed in ACDS v16.0. Please refer to the VIP User Guide for details." {  } {  } 0 12251 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Vip.Reset_Source.reset_sys: Associated reset sinks not declared" {  } {  } 0 12251 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Vip.Reset_Source.reset_warm: Associated reset sinks not declared" {  } {  } 0 12251 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Vip.Reset_Source.reset_cold: Associated reset sinks not declared" {  } {  } 0 12251 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Vip.Video_Output.control: Interrupt sender control.av_mm_control_interrupt is not connected to an interrupt receiver" {  } {  } 0 12251 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Vip.Video_Output: Interrupt sender Video_Output.status_update_irq is not connected to an interrupt receiver" {  } {  } 0 12251 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Vip.: You have exported the interface HPS.f2h_sdram1_data but not its associated reset interface.  Export the driver(s) of HPS.h2f_reset" {  } {  } 0 12251 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Vip.: You have exported the interface HPS.f2h_sdram2_data but not its associated reset interface.  Export the driver(s) of HPS.h2f_reset" {  } {  } 0 12251 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "System.pll_0: Able to implement PLL - Actual settings differ from Requested settings" {  } {  } 0 12251 "" 0 0 "Design Software" 0 -1 0 ""}
 { "" "" "" "Port \"extclk\" on the entity instantiation of \"cyclonev_pll\" is connected to a signal of width 1. The formal width of the signal in the module is 2.  The extra bits will be left dangling without any fan-out logic." {  } {  } 0 12030 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Port \"trs\" on the entity instantiation of \"statemachine\" is connected to a signal of width 2. The formal width of the signal in the module is 1.  The extra bits will be ignored." {  } {  } 0 12020 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "*" {  } {  } 0 169085 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "*" {  } {  } 0 174073 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "*" {  } {  } 0 332174 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "*" {  } {  } 0 13009 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "*" {  } {  } 0 21300 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "alt_vip_cvo_mode_banks" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "hps_sdram_pll.sv" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "alt_vip_common_frame_counter.v" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "hps_sdram_p0_acv_hard_memphy.v" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "hps_sdram_p0_acv_ldc.v" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "hps_sdram_p0_acv_hard_io_pads.v" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "altera_mem_if_hard_memory_controller_top_cyclonev.sv" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "genlock_enable_sync" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "u_calculate_mode" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "genlock_enable" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "reset_value" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "soc_system:soc_system\|soc_system_pll_video:pll_video\|altera_pll:altera_pll_i\|general\[0\].gpll" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "alt_vip_cvo_core.sdc" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "alt_vip_packet_transfer.sdc" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "hps_sdram_p0.sdc" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "alt_vip_common_dc_mixed_widths_fifo.sdc" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "altera_mem_if_hhp_qseq_synth_top" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "soc_system:soc_system\|soc_system_vip_vout:vip_vout\|alt_vip_cvo_core:cvo_core\|genlock_enable_sync1" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "soc_system:soc_system\|soc_system_vip_fb:vip_fb\|alt_vip_packet_transfer:pkt_trans_rd\|alt_vip_packet_transfer_read_proc:READ_BLOCK.read_proc_instance\|alt_vip_common_fifo2:output_msg_queue\|scfifo:scfifo_component\|scfifo_scd1:auto_generated\|a_dpfifo_e471:dpfifo\|altsyncram_ums1:FIFOram\|q_b" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "soc_system:soc_system\|soc_system_Video_Input:video_input\|alt_vip_cvi_core:cvi_core\|alt_vip_cvi_write_fifo_buffer:write_fifo_buffer" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "soc_system:soc_system\|soc_system_Frame_Buffer:frame_buffer\|alt_vip_packet_transfer:pkt_trans_rd" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "soc_system_hps_fpga_interfaces.sdc" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "soc_system_HPS_fpga_interfaces.sdc" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "RST" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "alt_vip_scaler_alg_core" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "cvo_core" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "vip_HPS_fpga_interfaces.sdc" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "alt_vip_dil_vof_scheduler.sdc" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "altera_merlin_width_adapter.sv" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "altera_merlin_burst_adapter_13_1.sv" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "altera_merlin_address_alignment.sv" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "altera_merlin_traffic_limiter.sv" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
-{ "" "" "" "Pass-through logic has been added" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "RST port on the PLL is not properly connected on instance emu:emu\|system:u0\|system_pll_0:pll_0\|altera_pll:altera_pll_i\|general\[0\].gpll. The reset port on the PLL should be connected. If the PLL loses lock for any reason, you might need to manually reset the PLL in order to re-establish lock to the reference clock." {  } {  } 0 0 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "RST port on the PLL is not properly connected on instance emu:emu\|system:u0\|system_pll_0:pll_0\|altera_pll:altera_pll_i\|general\[1\].gpll. The reset port on the PLL should be connected. If the PLL loses lock for any reason, you might need to manually reset the PLL in order to re-establish lock to the reference clock." {  } {  } 0 0 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "RST port on the PLL is not properly connected on instance emu:emu\|system:u0\|system_pll_0:pll_0\|altera_pll:altera_pll_i\|general\[2\].gpll. The reset port on the PLL should be connected. If the PLL loses lock for any reason, you might need to manually reset the PLL in order to re-establish lock to the reference clock." {  } {  } 0 0 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "LOCKED port on the PLL is not properly connected on instance \"emu:emu\|system:u0\|system_pll_0:pll_0\|altera_pll:altera_pll_i\|general\[0\].gpll\". The LOCKED port on the PLL should be connected when the FBOUTCLK port is connected. Although it is unnecessary to connect the LOCKED signal, any logic driven off of an output clock of the PLL will not know when the PLL is locked and ready." {  } {  } 0 21300 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "*" {  } {  } 0 276027 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "*" {  } {  } 0 276020 "" 0 0 "Design Software" 0 -1 0 ""}
 { "" "" "" "altera_pll.v" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
 { "" "" "" "altera_cyclonev_pll.v" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
 { "" "" "" "altera_pll_reconfig_core.v" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "altera_merlin_width_adapter.sv" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "altera_merlin_burst_adapter_13_1.sv" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "altera_merlin_address_alignment.sv" {  } {  } 0 9999 "" 0 0 "Design Software" 0 -1 0 ""}

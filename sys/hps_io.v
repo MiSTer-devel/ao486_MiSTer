@@ -1,10 +1,8 @@
 //
 // hps_io.v (ao486 only!)
 //
-// mist_io-like module for the Terasic DE10 board
-//
 // Copyright (c) 2014 Till Harbaum <till@harbaum.org>
-// Copyright (c) 2017 Sorgelig (port to DE10-nano)
+// Copyright (c) 2017,2018 Sorgelig
 //
 // This source file is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published
@@ -41,6 +39,9 @@ module hps_io #(parameter STRLEN=0, PS2DIV=2000)
 	output      [1:0] buttons,
 
 	output reg [31:0] status,
+
+	//toggle to force notify of video mode change
+	input             new_vmode,
 
 	input             ioctl_wait,
 	
@@ -106,7 +107,7 @@ integer hcnt;
 
 always @(posedge clk_vid) begin
 	integer vcnt;
-	reg old_vs= 0, old_de = 0;
+	reg old_vs= 0, old_de = 0, old_vmode = 0;
 	reg calch = 0;
 
 	if(ce_pix) begin
@@ -119,7 +120,8 @@ always @(posedge clk_vid) begin
 
 		if(old_vs & ~vs) begin
 			if(hcnt && vcnt) begin
-				if(vid_hcnt != hcnt || vid_vcnt != vcnt) vid_nres <= vid_nres + 1'd1;
+				old_vmode <= new_vmode;
+				if(vid_hcnt != hcnt || vid_vcnt != vcnt || old_vmode != new_vmode) vid_nres <= vid_nres + 1'd1;
 				vid_hcnt <= hcnt;
 				vid_vcnt <= vcnt;
 			end
@@ -218,6 +220,7 @@ always@(posedge clk_sys) begin
 
 			if(byte_cnt == 0) begin
 				cmd <= io_din;
+				if(io_din == 'h2B) io_dout <= 1;
 				dma_hilo <= 0;
 			end else begin
 
