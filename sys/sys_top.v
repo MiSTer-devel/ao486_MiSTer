@@ -320,8 +320,9 @@ always @(posedge FPGA_CLK2_50) begin
 	resetd2 <= resetd;
 end
 
-wire clk_ctl;
-wire iHdmiClk = ~HDMI_TX_CLK;			// Internal HDMI clock, inverted in relation to external clock
+wire clk_100m;
+wire clk_hdmi  = ~HDMI_TX_CLK;  // Internal HDMI clock, inverted in relation to external clock
+wire clk_audio = FPGA_CLK3_50;
 
 /////////////////////////  SYSTEM MODULE  ////////////////////////////////
 
@@ -331,7 +332,7 @@ sysmem_lite sysmem
 	//Reset/Clock
 	.reset_reset_req(reset_req),
 	.reset_reset(reset),
-	.ctl_clock(clk_ctl),
+	.ctl_clock(clk_100m),
 
 	//DE10-nano has no reset signal on GPIO, so core has to emulate cold reset button.
 	.reset_cold_req(~btn_reset),
@@ -364,7 +365,7 @@ sysmem_lite sysmem
 	.ram2_write(0),
 
 	// HDMI frame buffer
-	.vbuf_clk(clk_ctl),
+	.vbuf_clk(clk_100m),
 	.vbuf_address(vbuf_address),
 	.vbuf_burstcount(vbuf_burstcount),
 	.vbuf_waitrequest(vbuf_waitrequest),
@@ -414,7 +415,7 @@ ascal
 	.vimin  (0),
 	.vimax  (0),
 
-	.o_clk  (iHdmiClk),
+	.o_clk  (clk_hdmi),
 	.o_ce   (1),
 	.o_r    (hdmi_data[23:16]),
 	.o_g    (hdmi_data[15:8]),
@@ -441,7 +442,7 @@ ascal
 	.poly_dw  (coef_data),
 	.poly_wr  (coef_wr),
 
-	.avl_clk          (clk_ctl),
+	.avl_clk          (clk_100m),
 	.avl_waitrequest  (vbuf_waitrequest),
 	.avl_readdata     (vbuf_readdata),
 	.avl_readdatavalid(vbuf_readdatavalid),
@@ -592,7 +593,7 @@ wire        hdmi_de;
 
 scanlines #(1) HDMI_scanlines
 (
-	.clk(iHdmiClk),
+	.clk(clk_hdmi),
 
 	.scanlines(scanlines),
 	.din(hdmi_data),
@@ -609,7 +610,7 @@ osd hdmi_osd
 	.io_strobe(io_strobe),
 	.io_din(io_din),
 
-	.clk_video(iHdmiClk),
+	.clk_video(clk_hdmi),
 	.din(hdmi_data_sl),
 	.dout(HDMI_TX_D),
 	.de_in(hdmi_de),
@@ -620,7 +621,7 @@ assign HDMI_MCLK = 0;
 i2s i2s
 (
 	.reset(~cfg_ready),
-	.clk_sys(FPGA_CLK3_50),
+	.clk_sys(clk_audio),
 	.half_rate(~audio_96k),
 
 	.sclk(HDMI_SCLK),
@@ -689,7 +690,7 @@ wire al, ar, aspdif;
 
 sigma_delta_dac #(15) dac_l
 (
-	.CLK(FPGA_CLK3_50),
+	.CLK(clk_audio),
 	.RESET(reset),
 	.DACin({audio_l[15] ^ audio_s, audio_l[14:0]}),
 	.DACout(al)
@@ -697,7 +698,7 @@ sigma_delta_dac #(15) dac_l
 
 sigma_delta_dac #(15) dac_r
 (
-	.CLK(FPGA_CLK3_50),
+	.CLK(clk_audio),
 	.RESET(reset),
 	.DACin({audio_r[15] ^ audio_s, audio_r[14:0]}),
 	.DACout(ar)
@@ -705,7 +706,7 @@ sigma_delta_dac #(15) dac_r
 
 spdif toslink
 (
-	.clk_i(FPGA_CLK3_50),
+	.clk_i(clk_audio),
 
 	.rst_i(reset),
 	.half_rate(0),
@@ -723,7 +724,7 @@ assign AUDIO_L     = SW[0] ? HDMI_SCLK  : al;
 reg [15:0] audio_l; 
 reg [15:0] audio_r;
 
-always @(posedge FPGA_CLK3_50) begin
+always @(posedge clk_audio) begin
 	reg signed [15:0] al;
 	reg signed [15:0] ar;
 
@@ -806,7 +807,7 @@ emu emu
 (
 	.CLK_50M(FPGA_CLK3_50),
 	.RESET(reset),
-	.HPS_BUS({HDMI_TX_VS, clk_ctl, clk_vid, ce_pix, de, hs, vs, io_wait, clk_sys, io_fpga, io_uio, io_strobe, io_wide, io_din, io_dout}),
+	.HPS_BUS({HDMI_TX_VS, clk_100m, clk_vid, ce_pix, de, hs, vs, io_wait, clk_sys, io_fpga, io_uio, io_strobe, io_wide, io_din, io_dout}),
 
 	.CLK_VIDEO(clk_vid),
 	.CE_PIXEL(ce_pix),
