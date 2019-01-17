@@ -211,6 +211,7 @@ reg        coef_wr = 0;
 wire  [7:0] ARX, ARY;
 reg  [11:0] VSET = 0;
 reg   [2:0] scaler_flt;
+reg         lowlat = 0;
 
 always@(posedge clk_sys) begin
 	reg  [7:0] cmd;
@@ -262,8 +263,9 @@ always@(posedge clk_sys) begin
 					if(cnt[1:0]==2) begin
 						cfg_custom_p2[31:16] <= io_din;
 						cfg_custom_t <= ~cfg_custom_t;
-						cnt[1:0] <= 0;
+						cnt[2:0] <= 3'b100;
 					end
+					if(cnt == 8) lowlat <= io_din[15];
 				end
 			end
 			if(cmd == 'h25) {led_overtake, led_state} <= io_din;
@@ -392,6 +394,7 @@ ascal
 (
 	.reset_na (~reset_req),
 	.run      (1),
+	.freeze   (0),
 
 	.i_clk  (clk_vid),
 	.i_ce   (ce_pix),
@@ -429,7 +432,7 @@ ascal
 	.vmin   (vmin),
 	.vmax   (vmax),
 
-	.mode     ({1'b1,scaler_flt ? 3'd4 : 3'd0}),
+	.mode     ({~lowlat,|scaler_flt,2'b00}),
 	.poly_clk (clk_sys),
 	.poly_a   (coef_addr),
 	.poly_dw  (coef_data),
@@ -478,6 +481,23 @@ always @(posedge clk_vid) begin
 	endcase
 end
 
+pll_hdmi_adj pll_hdmi_adj
+(
+   .clk(FPGA_CLK1_50),
+	.reset_na(~reset_req),
+
+	.llena(lowlat),
+	.lltune(lltune),
+	.i_waitrequest(adj_waitrequest),
+	.i_write(adj_write),
+	.i_address(adj_address),
+	.i_writedata(adj_data),
+	.o_waitrequest(cfg_waitrequest),
+	.o_write(cfg_write),
+	.o_address(cfg_address),
+	.o_writedata(cfg_data)
+);
+
 
 /////////////////////////  HDMI output  /////////////////////////////////
 
@@ -502,10 +522,10 @@ reg  [11:0] VBP    = 36;
 
 wire [63:0] reconfig_to_pll;
 wire [63:0] reconfig_from_pll;
-wire        cfg_waitrequest;
-reg         cfg_write;
-reg   [5:0] cfg_address;
-reg  [31:0] cfg_data;
+wire        cfg_waitrequest,adj_waitrequest;
+reg         cfg_write,adj_write;
+reg   [5:0] cfg_address,adj_address;
+reg  [31:0] cfg_data,adj_data;
 
 pll_hdmi_cfg pll_hdmi_cfg
 (
@@ -531,24 +551,24 @@ always @(posedge FPGA_CLK1_50) begin
 	gotd  <= cfg_got;
 	gotd2 <= gotd;
 	
-	cfg_write <= 0;
+	adj_write <= 0;
 	
 	custd <= cfg_custom_t;
 	custd2 <= custd;
 	if(custd2 != custd & ~gotd) begin
-		cfg_address <= cfg_custom_p1;
-		cfg_data <= cfg_custom_p2;
-		cfg_write <= 1;
+		adj_address <= cfg_custom_p1;
+		adj_data <= cfg_custom_p2;
+		adj_write <= 1;
 	end
 
 	if(~gotd2 & gotd) begin
-		cfg_address <= 2;
-		cfg_data <= 0;
-		cfg_write <= 1;
+		adj_address <= 2;
+		adj_data <= 0;
+		adj_write <= 1;
 	end
 
-	old_wait <= cfg_waitrequest;
-	if(old_wait & ~cfg_waitrequest & gotd) cfg_ready <= 1;
+	old_wait <= adj_waitrequest;
+	if(old_wait & ~adj_waitrequest & gotd) cfg_ready <= 1;
 end
 
 hdmi_config hdmi_config
@@ -750,6 +770,7 @@ wire  [1:0] audio_mix;
 wire  [7:0] r_out, g_out, b_out;
 wire        vs, hs, de, f1;
 wire  [1:0] scanlines;
+wire [15:0] lltune;
 wire        clk_sys, clk_vid, ce_pix;
 
 wire        ram_clk;

@@ -63,34 +63,27 @@ module spdif
 );
 
 reg lpf_ce;
-always @(negedge clk_i) begin
-	reg [3:0] div;
+always @(posedge clk_i) begin
+	reg [2:0] div;
 
-	div <= div + 1'd1;
-	if(div == 13) div <= 0;
-
+	if(bit_clk_q) div <= div + 1'd1;
 	lpf_ce <= !div;
 end
 
 wire [15:0] al, ar;
 
-lpf48k #(15) lpf_l
+lpf_spdif lpf_l
 (
-   .RESET(rst_i),
    .CLK(clk_i),
    .CE(lpf_ce),
-	.ENABLE(1),
-
    .IDATA(audio_l),
    .ODATA(al)
 );
 
-lpf48k #(15) lpf_r
+lpf_spdif lpf_r
 (
-   .RESET(rst_i),
    .CLK(clk_i),
    .CE(lpf_ce),
-	.ENABLE(1),
 
    .IDATA(audio_r),
    .ODATA(ar)
@@ -422,5 +415,31 @@ else
     spdif_out_q <= bit_r;
 
 assign spdif_o  = spdif_out_q;
+
+endmodule
+
+module lpf_spdif
+(
+   input         CLK,
+   input         CE,
+   input  [15:0] IDATA,
+   output reg [15:0] ODATA
+);
+
+reg [511:0] acc;
+reg [20:0] sum;
+
+always @(*) begin
+	integer i;
+	sum = 0;
+	for (i = 0; i < 32; i = i+1) sum = sum + {{5{acc[(i*16)+15]}}, acc[i*16 +:16]};
+end
+
+always @(posedge CLK) begin
+	if(CE) begin
+		acc <= {acc[495:0], IDATA};
+		ODATA <= sum[20:5];
+	end
+end
 
 endmodule

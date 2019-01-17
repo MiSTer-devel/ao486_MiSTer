@@ -3,6 +3,7 @@ set_global_assignment -name SDC_FILE           [file join $::quartus(qip_path) s
 set_global_assignment -name QIP_FILE           [file join $::quartus(qip_path) pll_hdmi.qip ]
 set_global_assignment -name QIP_FILE           [file join $::quartus(qip_path) pll_hdmi_cfg.qip ]
 set_global_assignment -name VHDL_FILE          [file join $::quartus(qip_path) ascal.vhd ]
+set_global_assignment -name VHDL_FILE          [file join $::quartus(qip_path) pll_hdmi_adj.vhd ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) hq2x.sv ]
 set_global_assignment -name VERILOG_FILE       [file join $::quartus(qip_path) scandoubler.v ]
 set_global_assignment -name VERILOG_FILE       [file join $::quartus(qip_path) scanlines.v ]
