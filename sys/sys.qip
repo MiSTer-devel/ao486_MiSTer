@@ -21,4 +21,4 @@ set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) s
 set_global_assignment -name VERILOG_FILE       [file join $::quartus(qip_path) reset_source.v ]
 set_global_assignment -name VERILOG_FILE       [file join $::quartus(qip_path) sd_card.v ]
 set_global_assignment -name VERILOG_FILE       [file join $::quartus(qip_path) hps_io.v ]
-set_instance_assignment -name HPS_LOCATION HPSINTERFACEPERIPHERALUART_X52_Y67_N111 -entity sysmem_HPS_fpga_interfaces -to peripheral_uart1
+set_instance_assignment -name HPS_LOCATION HPSINTERFACEPERIPHERALUART_X52_Y67_N111 -entity sys_top -to uart

@@ -287,6 +287,19 @@ always @(posedge clk_sys) begin
 	end
 end
 
+cyclonev_hps_interface_peripheral_uart uart
+(
+	.ri(0),
+	.dsr(uart_dsr),
+	.dcd(uart_dsr),
+	.dtr(uart_dtr),
+
+	.cts(uart_cts),
+	.rts(uart_rts),
+	.rxd(uart_rxd),
+	.txd(uart_txd)
+);
+
 ///////////////////////////  RESET  ///////////////////////////////////
 
 reg reset_req = 0;
@@ -349,16 +362,6 @@ sysmem_lite sysmem
 	.ram2_writedata(0),
 	.ram2_byteenable(0),
 	.ram2_write(0),
-
-	.uart_ri(0),
-	.uart_dsr(uart_dsr),
-	.uart_dcd(uart_dsr),
-	.uart_dtr(uart_dtr),
-
-	.uart_cts(uart_cts),
-	.uart_rts(uart_rts),
-	.uart_rxd(uart_rxd),
-	.uart_txd(uart_txd), 
 
 	// HDMI frame buffer
 	.vbuf_clk(clk_ctl),

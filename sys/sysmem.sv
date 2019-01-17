@@ -38,18 +38,7 @@ module sysmem_lite
 	input          vbuf_read,             //          .read
 	input  [127:0] vbuf_writedata,        //          .writedata
 	input   [15:0] vbuf_byteenable,       //          .byteenable
-	input          vbuf_write,            //          .write
-
-	input          uart_cts,              //      uart.cts
-	input          uart_dsr,              //          .dsr
-	input          uart_dcd,              //          .dcd
-	input          uart_ri,               //          .ri
-	output         uart_dtr,              //          .dtr
-	output         uart_rts,              //          .rts
-	output         uart_out1_n,           //          .out1_n
-	output         uart_out2_n,           //          .out2_n
-	input          uart_rxd,              //          .rxd
-	output         uart_txd               //          .txd 	
+	input          vbuf_write             //          .write
 );
 
 assign ctl_clock = clk_vip_clk;
@@ -93,17 +82,7 @@ sysmem_HPS_fpga_interfaces fpga_interfaces (
 	.f2h_sdram2_READ          (ram2_read),                      //                   .read
 	.f2h_sdram2_WRITEDATA     (ram2_writedata),                 //                   .writedata
 	.f2h_sdram2_BYTEENABLE    (ram2_byteenable),                //                   .byteenable
-	.f2h_sdram2_WRITE         (ram2_write),                     //                   .write
-	.uart_cts                 (uart_cts),
-	.uart_dsr                 (uart_dsr),
-	.uart_dcd                 (uart_dcd),
-	.uart_ri                  (uart_ri),
-	.uart_dtr                 (uart_dtr),
-	.uart_rts                 (uart_rts),
-	.uart_out1_n              (uart_out1_n),
-	.uart_out2_n              (uart_out2_n),
-	.uart_rxd                 (uart_rxd),
-	.uart_txd                 (uart_txd)
+	.f2h_sdram2_WRITE         (ram2_write)                      //                   .write
 );
 
 reset_source reset_source (
@@ -176,17 +155,6 @@ module sysmem_HPS_fpga_interfaces
 
 	// f2h_sdram2_clock
 	,input wire [1 - 1 : 0 ] f2h_sdram2_clk
-
-	,input          uart_cts              //    uart.cts
-	,input          uart_dsr              //        .dsr
-	,input          uart_dcd              //        .dcd
-	,input          uart_ri               //        .ri
-	,output         uart_dtr              //        .dtr
-	,output         uart_rts              //        .rts
-	,output         uart_out1_n           //        .out1_n
-	,output         uart_out2_n           //        .out2_n
-	,input          uart_rxd              //        .rxd
-	,output         uart_txd               //        .txd 	
 );
 
 
@@ -459,20 +427,6 @@ cyclonev_hps_interface_fpga2sdram f2sdram(
    ,intermediate[7:7] // 1:1
    ,intermediate[4:4] // 0:0
   })
-);
-
-cyclonev_hps_interface_peripheral_uart peripheral_uart1
-(
-	 .txd(uart_txd)
-	,.cts(uart_cts)
-	,.out1_n(uart_out1_n)
-	,.dtr(uart_dtr)
-	,.rts(uart_rts)
-	,.out2_n(uart_out2_n)
-	,.rxd(uart_rxd)
-	,.ri(uart_ri)
-	,.dsr(uart_dsr)
-	,.dcd(uart_dcd)
 );
 
 endmodule
