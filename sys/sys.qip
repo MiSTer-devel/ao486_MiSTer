@@ -12,6 +12,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) v
 set_global_assignment -name VERILOG_FILE       [file join $::quartus(qip_path) osd.v ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) vga_out.sv ]
 set_global_assignment -name VERILOG_FILE       [file join $::quartus(qip_path) i2c.v ]
+set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) alsa.sv ]
 set_global_assignment -name VERILOG_FILE       [file join $::quartus(qip_path) i2s.v ]
 set_global_assignment -name VERILOG_FILE       [file join $::quartus(qip_path) spdif.v ]
 set_global_assignment -name VERILOG_FILE       [file join $::quartus(qip_path) sigma_delta_dac.v ]
@@ -21,4 +22,5 @@ set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) s
 set_global_assignment -name VERILOG_FILE       [file join $::quartus(qip_path) reset_source.v ]
 set_global_assignment -name VERILOG_FILE       [file join $::quartus(qip_path) sd_card.v ]
 set_global_assignment -name VERILOG_FILE       [file join $::quartus(qip_path) hps_io.v ]
+set_instance_assignment -name HPS_LOCATION HPSINTERFACEPERIPHERALSPIMASTER_X52_Y72_N111 -entity sys_top -to spi
 set_instance_assignment -name HPS_LOCATION HPSINTERFACEPERIPHERALUART_X52_Y67_N111 -entity sys_top -to uart

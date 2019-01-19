@@ -300,6 +300,18 @@ cyclonev_hps_interface_peripheral_uart uart
 	.txd(uart_txd)
 );
 
+wire aspi_sck,aspi_mosi,aspi_ss;
+cyclonev_hps_interface_peripheral_spi_master spi
+(
+	.sclk_out(aspi_sck),
+	.txd(aspi_mosi), // mosi
+	.rxd(1),         // miso
+
+	.ss_0_n(aspi_ss),
+	.ss_in_n(1)
+);
+
+
 ///////////////////////////  RESET  ///////////////////////////////////
 
 reg reset_req = 0;
@@ -353,15 +365,15 @@ sysmem_lite sysmem
 	//Spare 64-bit DDR3 RAM access
 	//currently unused
 	//can combine with ram1 to make a wider RAM bus (although will increase the latency)
-	.ramclk2_clk(0),
-	.ram2_address(0),
-	.ram2_burstcount(0),
-	.ram2_waitrequest(),
-	.ram2_readdata(),
-	.ram2_readdatavalid(),
-	.ram2_read(0),
+	.ramclk2_clk(clk_audio),
+	.ram2_address(aram_address),
+	.ram2_burstcount(aram_burstcount),
+	.ram2_waitrequest(aram_waitrequest),
+	.ram2_readdata(aram_readdata),
+	.ram2_readdatavalid(aram_readdatavalid),
+	.ram2_read(aram_read),
 	.ram2_writedata(0),
-	.ram2_byteenable(0),
+	.ram2_byteenable(8'hFF),
 	.ram2_write(0),
 
 	// HDMI frame buffer
@@ -629,8 +641,8 @@ i2s i2s
 	.sdata(HDMI_I2S),
 
 	//Could inverse the MSB but it will shift 0 level to -MAX level
-	.left_chan (audio_l >> !audio_s),
-	.right_chan(audio_r >> !audio_s)
+	.left_chan (audio_l),
+	.right_chan(audio_r)
 );
 
 
@@ -686,22 +698,22 @@ assign VGA_B  = VGA_EN ? 6'bZZZZZZ : vga_o[7:2];
 
 /////////////////////////  Audio output  ////////////////////////////////
 
-wire al, ar, aspdif;
+wire anl, anr, aspdif;
 
 sigma_delta_dac #(15) dac_l
 (
 	.CLK(clk_audio),
 	.RESET(reset),
-	.DACin({audio_l[15] ^ audio_s, audio_l[14:0]}),
-	.DACout(al)
+	.DACin({~audio_l[15], audio_l[14:0]}),
+	.DACout(anl)
 );
 
 sigma_delta_dac #(15) dac_r
 (
 	.CLK(clk_audio),
 	.RESET(reset),
-	.DACin({audio_r[15] ^ audio_s, audio_r[14:0]}),
-	.DACout(ar)
+	.DACin({~audio_r[15], audio_r[14:0]}),
+	.DACout(anr)
 );
 
 spdif toslink
@@ -711,64 +723,89 @@ spdif toslink
 	.rst_i(reset),
 	.half_rate(0),
 
-	.audio_l(audio_l >> !audio_s),
-	.audio_r(audio_r >> !audio_s),
+	.audio_l(audio_l),
+	.audio_r(audio_r),
 
 	.spdif_o(aspdif)
 );
 
 assign AUDIO_SPDIF = SW[0] ? HDMI_LRCLK : aspdif;
-assign AUDIO_R     = SW[0] ? HDMI_I2S   : ar;
-assign AUDIO_L     = SW[0] ? HDMI_SCLK  : al;
+assign AUDIO_R     = SW[0] ? HDMI_I2S   : anr;
+assign AUDIO_L     = SW[0] ? HDMI_SCLK  : anl;
 
-reg [15:0] audio_l; 
-reg [15:0] audio_r;
+reg signed [15:0] audio_l;
+reg signed [15:0] audio_r;
 
 always @(posedge clk_audio) begin
-	reg signed [15:0] al;
-	reg signed [15:0] ar;
+	reg signed [16:0] als, al, acl, apl;
+	reg signed [16:0] ars, ar, acr, apr;
 
-	case({audio_s,audio_mix})
-		'b000: al <= audio_ls;
-		'b001: al <= audio_ls - (audio_ls >> 3) + (audio_rs >> 3);
-		'b010: al <= audio_ls - (audio_ls >> 2) + (audio_rs >> 2);
-		'b011: al <= (audio_ls >> 1) + (audio_rs >> 1);
-		'b100: al <= audio_ls;
-		'b101: al <= audio_ls - (audio_ls >>> 3) + (audio_rs >>> 3);
-		'b110: al <= audio_ls - (audio_ls >>> 2) + (audio_rs >>> 2);
-		'b111: al <= (audio_ls >>> 1) + (audio_rs >>> 1);
+	{acl,acr} <= audio_s ? {audio_ls[15],audio_ls,audio_rs[15],audio_rs}: 
+	                       {2'b00,audio_ls[15:1],  2'b00,audio_rs[15:1]};
+
+	als <= acl + {alsa_l[15],alsa_l};
+	ars <= acr + {alsa_r[15],alsa_r};
+
+	case(audio_mix)
+		0: al <= als;
+		1: al <= als - (als >>> 3) + (ars >>> 3);
+		2: al <= als - (als >>> 2) + (ars >>> 2);
+		3: al <= (als >>> 1) + (ars >>> 1);
 	endcase
 
-	case({audio_s,audio_mix})
-		'b000: ar <= audio_rs;
-		'b001: ar <= audio_rs - (audio_rs >> 3) + (audio_ls >> 3);
-		'b010: ar <= audio_rs - (audio_rs >> 2) + (audio_ls >> 2);
-		'b011: ar <= (audio_rs >> 1) + (audio_ls >> 1);
-		'b100: ar <= audio_rs;
-		'b101: ar <= audio_rs - (audio_rs >>> 3) + (audio_ls >>> 3);
-		'b110: ar <= audio_rs - (audio_rs >>> 2) + (audio_ls >>> 2);
-		'b111: ar <= (audio_rs >>> 1) + (audio_ls >>> 1);
+	case(audio_mix)
+		0: ar <= ars;
+		1: ar <= ars - (ars >>> 3) + (als >>> 3);
+		2: ar <= ars - (ars >>> 2) + (als >>> 2);
+		3: ar <= (ars >>> 1) + (als >>> 1);
 	endcase
 	
 	if(vol_att[4]) begin
-		audio_l <= 0;
-		audio_r <= 0;
-	end
-	else
-	if(audio_s) begin
-		audio_l <= al >>> vol_att[3:0];
-		audio_r <= ar >>> vol_att[3:0];
+		apl <= 0;
+		apr <= 0;
 	end
 	else
 	begin
-		audio_l <= al >> vol_att[3:0];
-		audio_r <= ar >> vol_att[3:0];
+		apl <= al >>> vol_att[3:0];
+		apr <= ar >>> vol_att[3:0];
 	end
+
+	audio_l <= ($signed(apl) > $signed(17'd32767)) ? 16'd32767 : ($signed(apl) < $signed(-17'd32768)) ? -16'd32768 : apl[15:0];
+	audio_r <= ($signed(apr) > $signed(17'd32767)) ? 16'd32767 : ($signed(apr) < $signed(-17'd32768)) ? -16'd32768 : apr[15:0];
 end
+
+wire [28:0] aram_address;
+wire  [7:0] aram_burstcount;
+wire        aram_waitrequest;
+wire [63:0] aram_readdata;
+wire        aram_readdatavalid;
+wire        aram_read;
+
+wire signed [15:0] alsa_l, alsa_r;
+
+alsa alsa
+(
+	.reset(reset),
+
+	.ram_clk(clk_audio),
+	.ram_address(aram_address),
+	.ram_burstcount(aram_burstcount),
+	.ram_waitrequest(aram_waitrequest),
+	.ram_readdata(aram_readdata),
+	.ram_readdatavalid(aram_readdatavalid),
+	.ram_read(aram_read),
+
+	.spi_ss(aspi_ss),
+	.spi_sck(aspi_sck),
+	.spi_mosi(aspi_mosi),
+
+	.pcm_l(alsa_l),
+	.pcm_r(alsa_r)
+);
 
 ///////////////////  User module connection ////////////////////////////
 
-wire signed [15:0] audio_ls, audio_rs;
+wire [15:0] audio_ls, audio_rs;
 wire        audio_s;
 wire  [1:0] audio_mix;
 wire  [7:0] r_out, g_out, b_out;
