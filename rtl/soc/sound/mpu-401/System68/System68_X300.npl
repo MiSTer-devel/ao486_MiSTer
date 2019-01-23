@@ -1,0 +1,38 @@
+JDF G
+// Created by Project Navigator ver 1.0
+PROJECT System68_X300
+DESIGN system68_x300
+DEVFAM spartan2e
+DEVFAMTIME 0
+DEVICE xc2s300e
+DEVICETIME 0
+DEVPKG pq208
+DEVPKGTIME 0
+DEVSPEED -6
+DEVSPEEDTIME 0
+DEVTOPLEVELMODULETYPE HDL
+TOPLEVELMODULETYPETIME 0
+DEVSYNTHESISTOOL XST (VHDL/Verilog)
+SYNTHESISTOOLTIME 0
+DEVSIMULATOR Other
+SIMULATORTIME 0
+DEVGENERATEDSIMULATIONMODEL VHDL
+GENERATEDSIMULATIONMODELTIME 0
+SOURCE System68.vhd
+SOURCE cpu68.vhd
+SOURCE datram.vhd
+SOURCE ioport.vhd
+SOURCE timer.vhd
+SOURCE trap.vhd
+SOURCE swtbug_rom.vhd
+SOURCE swtbug.vhd
+SOURCE txunit3.vhd
+SOURCE rxunit3.vhd
+SOURCE miniUART3.vhd
+STIMULUS miniuart_tb.vhd
+DEPASSOC sys68 system68.ucf
+[Normal]
+p_impactConfigFileName=xstvhd, spartan2e, Implementation.t_impactProgrammingTool, 1066323192, C:\Vhdl\System68_X300\sys68.bit
+p_impactConfigMode=xstvhd, spartan2e, Implementation.t_impactProgrammingTool, 1066323192, Boundary Scan
+[STRATEGY-LIST]
+Normal=True

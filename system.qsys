@@ -401,12 +401,28 @@
          type = "int";
       }
    }
+   element sound.mpu
+   {
+      datum baseAddress
+      {
+         value = "816";
+         type = "String";
+      }
+   }
    element sys_clk_out
    {
       datum _sortIndex
       {
          value = "2";
          type = "int";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
       }
    }
    element system
@@ -1083,6 +1099,11 @@
  <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="pic.master">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0020" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="sound.mpu">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0330" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
