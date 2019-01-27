@@ -169,6 +169,9 @@ wire        dma_wr;
 wire  [1:0] dma_status;
 wire  [1:0] dma_req;
 
+wire [15:0] joystick_0;
+wire [15:0] joystick_1;
+
 hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000)) hps_io
 (
 	.clk_sys(clk_sys),
@@ -188,6 +191,9 @@ hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000)) hps_io
 
 	.buttons(buttons),
 	.status(status),
+	
+	.joystick_0(joystick_0),
+	.joystick_1(joystick_1),
 
 	.ioctl_wait(ioctl_wait),
 	
@@ -253,9 +259,14 @@ system u0
 	.sound_sample_r       (sb_out_r),
 	.sound_fm_mode        (status[3]),
 
+	.sound_joystick_0     (joystick_0[11:0]),
+	.sound_joystick_1     (joystick_1[11:0]),
+	
+	.sound_mpu_midi_in    (mpu_midi_in),
+	.sound_mpu_midi_out   (mpu_midi_out),
+	
 	.speaker_enable       (speaker_ena),
 	.speaker_out          (speaker_out),
-
 
 	.ps2_misc_a20_enable  (),
 	.ps2_misc_reset_n     (ps2_reset_n),

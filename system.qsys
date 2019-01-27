@@ -401,8 +401,21 @@
          type = "int";
       }
    }
+   element sound.joy
+   {
+      datum baseAddress
+      {
+         value = "512";
+         type = "String";
+      }
+   }
    element sound.mpu
    {
+      datum _lockedAddress
+      {
+         value = "0";
+         type = "boolean";
+      }
       datum baseAddress
       {
          value = "816";
@@ -1085,6 +1098,11 @@
  <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="vga.io_d">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x03d0" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="sound.joy">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0200" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection

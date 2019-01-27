@@ -56,6 +56,18 @@ module sound(
 	input               mpu_midi_in,
 	output              mpu_midi_out,
 	
+	
+	// GamePort Joystick 200-207h (supposed to be at 0x201, but Qsys won't directly allow the odd addresses). ElectronAsh.
+	input [2:0] joy_addr,
+	input joy_read,
+	output [7:0] joy_readdata,
+	
+	input  joy_write,
+	input [7:0] joy_writedata,
+	
+	input [11:0] joystick_0,
+	input [11:0] joystick_1,
+	
     //dma
     output              dma_soundblaster_req,
     input               dma_soundblaster_ack,
@@ -195,13 +207,31 @@ mpu_401 mpu_401_inst
 	.ICC_INT_TRIG( ICC_INT_TRIG ) ,	// input  ICC_INT_TRIG
 
 	.MIDI_IN( mpu_midi_in ) ,		// input  MIDI_IN
-	.MIDI_OUT( mpu_midi_out ) ,		// output  MIDI_OUT
+	.MIDI_OUT( mpu_midi_out ) ,	// output  MIDI_OUT
 	
-	.LEDG( ledg ) ,	// output [7:0] LEDG
+	.LEDG( ledg ) ,// output [7:0] LEDG
 	.LEDR( ledr ) 	// output [9:0] LEDR
 );
 
 wire [7:0] ledg;
 wire [9:0] ledr;
+
+
+
+joystick joystick_inst
+(
+	.CLOCK(clk) ,				// input  CLOCK
+	.RESET_N(rst_n) ,			// input  RESET_N
+	
+	.JOY_ADDR( joy_addr ) ,		// input [2:0] JOY_ADDR
+	.JOY_READ( joy_read ) ,		// input  JOY_READ
+	.JOY_DO( joy_readdata ) ,	// output [7:0] JOY_DO
+	.JOY_WRITE( joy_write ) ,	// input  JOY_WRITE
+	.JOY_DI( joy_writedata ) ,	// input [7:0] JOY_DI
+	.joystick_0( joystick_0 ) ,// input [11:0] joystick_0
+	.joystick_1( joystick_1 ) 	// input [11:0] joystick_1
+);
+
+
 
 endmodule

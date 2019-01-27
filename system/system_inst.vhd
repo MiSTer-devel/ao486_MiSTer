@@ -44,6 +44,8 @@
 			sound_fm_mode       : in  std_logic                     := 'X';             -- fm_mode
 			sound_mpu_midi_in   : in  std_logic                     := 'X';             -- mpu_midi_in
 			sound_mpu_midi_out  : out std_logic;                                        -- mpu_midi_out
+			sound_joystick_0    : in  std_logic_vector(11 downto 0) := (others => 'X'); -- joystick_0
+			sound_joystick_1    : in  std_logic_vector(11 downto 0) := (others => 'X'); -- joystick_1
 			speaker_enable      : out std_logic;                                        -- enable
 			speaker_out         : out std_logic;                                        -- out
 			uart_h_cts_n        : in  std_logic                     := 'X';             -- cts_n
@@ -113,6 +115,8 @@
 			sound_fm_mode       => CONNECTED_TO_sound_fm_mode,       --           .fm_mode
 			sound_mpu_midi_in   => CONNECTED_TO_sound_mpu_midi_in,   --           .mpu_midi_in
 			sound_mpu_midi_out  => CONNECTED_TO_sound_mpu_midi_out,  --           .mpu_midi_out
+			sound_joystick_0    => CONNECTED_TO_sound_joystick_0,    --           .joystick_0
+			sound_joystick_1    => CONNECTED_TO_sound_joystick_1,    --           .joystick_1
 			speaker_enable      => CONNECTED_TO_speaker_enable,      --    speaker.enable
 			speaker_out         => CONNECTED_TO_speaker_out,         --           .out
 			uart_h_cts_n        => CONNECTED_TO_uart_h_cts_n,        --     uart_h.cts_n

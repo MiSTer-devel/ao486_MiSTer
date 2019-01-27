@@ -48,6 +48,8 @@ module system (
 		input  wire        sound_fm_mode,       //           .fm_mode
 		input  wire        sound_mpu_midi_in,   //           .mpu_midi_in
 		output wire        sound_mpu_midi_out,  //           .mpu_midi_out
+		input  wire [11:0] sound_joystick_0,    //           .joystick_0
+		input  wire [11:0] sound_joystick_1,    //           .joystick_1
 		output wire        speaker_enable,      //    speaker.enable
 		output wire        speaker_out,         //           .out
 		input  wire        uart_h_cts_n,        //     uart_h.cts_n
@@ -188,6 +190,11 @@ module system (
 	wire         mm_interconnect_0_vga_io_d_read;                                      // mm_interconnect_0:vga_io_d_read -> vga:io_d_read
 	wire         mm_interconnect_0_vga_io_d_write;                                     // mm_interconnect_0:vga_io_d_write -> vga:io_d_write
 	wire   [7:0] mm_interconnect_0_vga_io_d_writedata;                                 // mm_interconnect_0:vga_io_d_writedata -> vga:io_d_writedata
+	wire   [7:0] mm_interconnect_0_sound_joy_readdata;                                 // sound:joy_readdata -> mm_interconnect_0:sound_joy_readdata
+	wire   [2:0] mm_interconnect_0_sound_joy_address;                                  // mm_interconnect_0:sound_joy_address -> sound:joy_address
+	wire         mm_interconnect_0_sound_joy_read;                                     // mm_interconnect_0:sound_joy_read -> sound:joy_read
+	wire         mm_interconnect_0_sound_joy_write;                                    // mm_interconnect_0:sound_joy_write -> sound:joy_write
+	wire   [7:0] mm_interconnect_0_sound_joy_writedata;                                // mm_interconnect_0:sound_joy_writedata -> sound:joy_writedata
 	wire   [7:0] mm_interconnect_0_pc_dma_master_readdata;                             // pc_dma:master_readdata -> mm_interconnect_0:pc_dma_master_readdata
 	wire   [4:0] mm_interconnect_0_pc_dma_master_address;                              // mm_interconnect_0:pc_dma_master_address -> pc_dma:master_address
 	wire         mm_interconnect_0_pc_dma_master_read;                                 // mm_interconnect_0:pc_dma_master_read -> pc_dma:master_read
@@ -836,12 +843,19 @@ module system (
 		.fm_mode                    (sound_fm_mode),                                             //                         .fm_mode
 		.mpu_midi_in                (sound_mpu_midi_in),                                         //                         .mpu_midi_in
 		.mpu_midi_out               (sound_mpu_midi_out),                                        //                         .mpu_midi_out
+		.joystick_0                 (sound_joystick_0),                                          //                         .joystick_0
+		.joystick_1                 (sound_joystick_1),                                          //                         .joystick_1
 		.clk_opl                    (clk_clk),                                                   //                clock_opl.clk
 		.mpu_address                (mm_interconnect_0_sound_mpu_address),                       //                      mpu.address
 		.mpu_read                   (mm_interconnect_0_sound_mpu_read),                          //                         .read
 		.mpu_readdata               (mm_interconnect_0_sound_mpu_readdata),                      //                         .readdata
 		.mpu_write                  (mm_interconnect_0_sound_mpu_write),                         //                         .write
-		.mpu_writedata              (mm_interconnect_0_sound_mpu_writedata)                      //                         .writedata
+		.mpu_writedata              (mm_interconnect_0_sound_mpu_writedata),                     //                         .writedata
+		.joy_read                   (mm_interconnect_0_sound_joy_read),                          //                      joy.read
+		.joy_readdata               (mm_interconnect_0_sound_joy_readdata),                      //                         .readdata
+		.joy_write                  (mm_interconnect_0_sound_joy_write),                         //                         .write
+		.joy_writedata              (mm_interconnect_0_sound_joy_writedata),                     //                         .writedata
+		.joy_address                (mm_interconnect_0_sound_joy_address)                        //                         .address
 	);
 
 	altera_16550_uart #(
@@ -1021,6 +1035,11 @@ module system (
 		.sound_io_read                                 (mm_interconnect_0_sound_io_read),             //                                        .read
 		.sound_io_readdata                             (mm_interconnect_0_sound_io_readdata),         //                                        .readdata
 		.sound_io_writedata                            (mm_interconnect_0_sound_io_writedata),        //                                        .writedata
+		.sound_joy_address                             (mm_interconnect_0_sound_joy_address),         //                               sound_joy.address
+		.sound_joy_write                               (mm_interconnect_0_sound_joy_write),           //                                        .write
+		.sound_joy_read                                (mm_interconnect_0_sound_joy_read),            //                                        .read
+		.sound_joy_readdata                            (mm_interconnect_0_sound_joy_readdata),        //                                        .readdata
+		.sound_joy_writedata                           (mm_interconnect_0_sound_joy_writedata),       //                                        .writedata
 		.sound_mpu_address                             (mm_interconnect_0_sound_mpu_address),         //                               sound_mpu.address
 		.sound_mpu_write                               (mm_interconnect_0_sound_mpu_write),           //                                        .write
 		.sound_mpu_read                                (mm_interconnect_0_sound_mpu_read),            //                                        .read

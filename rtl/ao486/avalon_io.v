@@ -89,8 +89,10 @@ wire address_out_of_bounds =
     (avalon_io_address >= 16'h00A4 && avalon_io_address < 16'h00C0) ||
     (avalon_io_address >= 16'h00E0 && avalon_io_address < 16'h0170) ||
     (avalon_io_address >= 16'h0178 && avalon_io_address < 16'h01F0) ||
-    (avalon_io_address >= 16'h01F8 && avalon_io_address < 16'h0220) ||
-    (avalon_io_address >= 16'h0230 && avalon_io_address < 16'h0370) ||
+    (avalon_io_address >= 16'h01F8 && avalon_io_address < 16'h0200) ||	// 0x201 = Joystick port (GamePort).
+	 (avalon_io_address >= 16'h0208 && avalon_io_address < 16'h0220) ||
+	(avalon_io_address >= 16'h0230 && avalon_io_address < 16'h0330) ||	// 0x330-0x331 = MPU-401.
+    (avalon_io_address >= 16'h0340 && avalon_io_address < 16'h0370) ||
     (avalon_io_address >= 16'h0378 && avalon_io_address < 16'h0388) ||
     (avalon_io_address >= 16'h038C && avalon_io_address < 16'h03B0) ||
     (avalon_io_address >= 16'h03E0 && avalon_io_address < 16'h03F0) ||

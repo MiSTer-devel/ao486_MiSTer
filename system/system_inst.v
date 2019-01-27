@@ -43,6 +43,8 @@
 		.sound_fm_mode       (<connected-to-sound_fm_mode>),       //           .fm_mode
 		.sound_mpu_midi_in   (<connected-to-sound_mpu_midi_in>),   //           .mpu_midi_in
 		.sound_mpu_midi_out  (<connected-to-sound_mpu_midi_out>),  //           .mpu_midi_out
+		.sound_joystick_0    (<connected-to-sound_joystick_0>),    //           .joystick_0
+		.sound_joystick_1    (<connected-to-sound_joystick_1>),    //           .joystick_1
 		.speaker_enable      (<connected-to-speaker_enable>),      //    speaker.enable
 		.speaker_out         (<connected-to-speaker_out>),         //           .out
 		.uart_h_cts_n        (<connected-to-uart_h_cts_n>),        //     uart_h.cts_n

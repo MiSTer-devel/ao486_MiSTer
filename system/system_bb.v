@@ -44,6 +44,8 @@ module system (
 	sound_fm_mode,
 	sound_mpu_midi_in,
 	sound_mpu_midi_out,
+	sound_joystick_0,
+	sound_joystick_1,
 	speaker_enable,
 	speaker_out,
 	uart_h_cts_n,
@@ -109,6 +111,8 @@ module system (
 	input		sound_fm_mode;
 	input		sound_mpu_midi_in;
 	output		sound_mpu_midi_out;
+	input	[11:0]	sound_joystick_0;
+	input	[11:0]	sound_joystick_1;
 	output		speaker_enable;
 	output		speaker_out;
 	input		uart_h_cts_n;
