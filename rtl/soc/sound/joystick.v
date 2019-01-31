@@ -15,7 +15,7 @@ module joystick
 	input [11:0] joystick_1
 );
 
-assign JOY_DO = {~joystick_0[7:4], JOY2_Y==16'd65535, JOY2_X==16'd65535, JOY1_Y==16'd65535, JOY1_X==16'd65535};
+	assign JOY_DO = {~joystick_0[7:4], JOY2_Y<16'd65535, JOY2_X<16'd65535, JOY1_Y<16'd65535, JOY1_X<16'd65535};
 
 
 reg [15:0] JOY1_X;
@@ -24,7 +24,7 @@ reg [15:0] JOY1_Y;
 reg [15:0] JOY2_X;
 reg [15:0] JOY2_Y;
 
-reg [4:0] CLK_DIV;
+	reg [6:0] CLK_DIV;
 
 always @(posedge CLOCK or negedge RESET_N)
 if (!RESET_N) begin
