@@ -9,7 +9,7 @@ input [7:0] TxD_data;
 output TxD, TxD_busy;
 
 
-parameter ClkFrequency = 9281250;
+parameter ClkFrequency = 90500000;	// 90.5 MHz for ao486!
 parameter Baud = 31250;	// MIDI baud rate!
 parameter RegisterInputData = 1;	// in RegisterInputData mode, the input doesn't have to stay valid while the character is been transmitted
 

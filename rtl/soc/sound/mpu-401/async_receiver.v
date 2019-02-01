@@ -6,7 +6,7 @@ input clk, RxD;
 output RxD_data_ready;  // one clock pulse when RxD_data is valid
 output [7:0] RxD_data;
 
-parameter ClkFrequency = 9281250; // 9.28125MHz
+parameter ClkFrequency = 90500000;	// 90.5 MHz for ao486!
 parameter Baud = 31250;	// MIDI baud rate!
 
 // We also detect if a gap occurs in the received stream of characters

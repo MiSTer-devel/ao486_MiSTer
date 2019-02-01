@@ -77,20 +77,20 @@ wire JOY2_BUT4  = joystick_1[7];
 
 always @(posedge CLOCK or negedge RESET_N)
 if (!RESET_N) begin
-	JOY1_X <= 9'd255;
-	JOY1_Y <= 9'd255;
-	JOY2_X <= 9'd255;
-	JOY2_Y <= 9'd255;
+	JOY1_X <= 9'd194;
+	JOY1_Y <= 9'd194;
+	JOY2_X <= 9'd194;
+	JOY2_Y <= 9'd194;
 end
 else begin
 	CLK_DIV <= CLK_DIV + 1'b1;
 
 	if (JOY_WRITE && JOY_ADDR==3'd1) begin
-		JOY1_X <= (JOY1_LEFT) ? 9'd8 : (JOY1_RIGHT) ? 9'd397 : 9'd200;
-		JOY1_Y <= (JOY1_UP)   ? 9'd8 : (JOY1_DOWN)  ? 9'd397 : 9'd200;
+		JOY1_X <= (JOY1_LEFT) ? 9'd8 : (JOY1_RIGHT) ? 9'd397 : 9'd194;
+		JOY1_Y <= (JOY1_UP)   ? 9'd8 : (JOY1_DOWN)  ? 9'd397 : 9'd194;
 		
-		JOY2_X <= (JOY2_LEFT) ? 9'd8 : (JOY2_RIGHT) ? 9'd397 : 9'd200;
-		JOY2_Y <= (JOY2_UP)   ? 9'd8 : (JOY2_DOWN)  ? 9'd397 : 9'd200;
+		JOY2_X <= (JOY2_LEFT) ? 9'd8 : (JOY2_RIGHT) ? 9'd397 : 9'd194;
+		JOY2_Y <= (JOY2_UP)   ? 9'd8 : (JOY2_DOWN)  ? 9'd397 : 9'd194;
 	end
 	
 	if (CLK_DIV==0) begin

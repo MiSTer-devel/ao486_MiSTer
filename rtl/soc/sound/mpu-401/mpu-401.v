@@ -260,7 +260,7 @@ reg ICC_INT/*synthesis keep*/;
 reg TMR_INT/*synthesis keep*/;
 reg OCC_INT/*synthesis keep*/;
 
-reg [1:0] TIMER_DIV;
+reg [4:0] TIMER_DIV;
 
 reg TXD_BUSY_1;
 
@@ -297,7 +297,7 @@ if (!RESET_N) begin
 	OCC_INT <= 1'b0;
 	TMR_INT <= 1'b0;
 	
-	TIMER_DIV <= 4'h0;
+	TIMER_DIV <= 0;
 	
 	ASIC_BYTE <= 8'h00;
 	ASIC_STAT <= 8'h00;
