@@ -45,16 +45,6 @@ module sound(
     input               fm_write,
     input       [7:0]   fm_writedata,
 	 input               fm_mode,
-
-	 //MPU-401 io slave 330h-333h.
-	 input       [2:0]   mpu_address,
-	 input               mpu_read,
-	 output      [7:0]   mpu_readdata,
-	 input               mpu_write,
-	 input       [7:0]   mpu_writedata,
-	 
-	 input               mpu_midi_in,
-	 output              mpu_midi_out,
 	
 	 // GamePort Joystick 200-207h (supposed to be at 0x201, but Qsys won't directly allow the odd addresses). ElectronAsh.
 	 input [2:0] joy_address,
@@ -191,32 +181,6 @@ assign sample_l = {{2{sample_dsp[15]}}, sample_dsp[15:2]} + {sample_from_opl_l[1
 assign sample_r = {{2{sample_dsp[15]}}, sample_dsp[15:2]} + {sample_from_opl_r[15], sample_from_opl_r[15:1]};
 
 
-mpu_401 mpu_401_inst
-(
-	.CLOCK(clk) ,				// input  CLOCK
-	.RESET_N(rst_n) ,			// input  RESET_N
-		
-	.MPU_ADDR( mpu_address ) ,	// input [2:0] MPU_ADDR
-	.MPU_READ( mpu_read ) ,		// input  MPU_READ
-	.MPU_DO( mpu_readdata ) ,	// output [7:0] MPU_DO
-	.MPU_WRITE( mpu_write ) ,	// input  MPU_WRITE
-	.MPU_DI( mpu_writedata ) ,	// input [7:0] MPU_DI
-	
-	.OCC_INT_TRIG( OCC_INT_TRIG ) ,	// input  OCC_INT_TRIG
-	.ICC_INT_TRIG( ICC_INT_TRIG ) ,	// input  ICC_INT_TRIG
-
-	.MIDI_IN( mpu_midi_in ) ,		// input  MIDI_IN
-	.MIDI_OUT( mpu_midi_out ) ,	// output  MIDI_OUT
-	
-	.LEDG( ledg ) ,// output [7:0] LEDG
-	.LEDR( ledr ) 	// output [9:0] LEDR
-);
-
-wire [7:0] ledg;
-wire [9:0] ledr;
-
-
-
 joystick joystick_inst
 (
 	.CLOCK(clk) ,				// input  CLOCK
@@ -230,7 +194,6 @@ joystick joystick_inst
 	.joystick_0( joystick_0 ) ,// input [11:0] joystick_0
 	.joystick_1( joystick_1 ) 	// input [11:0] joystick_1
 );
-
 
 
 endmodule

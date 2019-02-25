@@ -365,30 +365,6 @@ set_location_assignment PIN_W20 -to SW[3]
 set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:sys/build_id.tcl"
 set_global_assignment -name SEARCH_PATH ./rtl/ao486
 
-set_global_assignment -name VHDL_FILE "rtl/soc/sound/mpu-401/System68/txunit3.vhd"
-set_global_assignment -name VHDL_FILE "rtl/soc/sound/mpu-401/System68/trap.vhd"
-set_global_assignment -name VHDL_FILE "rtl/soc/sound/mpu-401/System68/timer.vhd"
-set_global_assignment -name VHDL_FILE "rtl/soc/sound/mpu-401/System68/System68.vhd"
-set_global_assignment -name VHDL_FILE "rtl/soc/sound/mpu-401/System68/swtbug_rom.vhd"
-set_global_assignment -name VHDL_FILE "rtl/soc/sound/mpu-401/System68/swtbug.vhd"
-set_global_assignment -name VHDL_FILE "rtl/soc/sound/mpu-401/System68/rxunit3.vhd"
-set_global_assignment -name VHDL_FILE "rtl/soc/sound/mpu-401/System68/miniUART3.vhd"
-set_global_assignment -name VHDL_FILE "rtl/soc/sound/mpu-401/System68/miniuart_tb.vhd"
-set_global_assignment -name VHDL_FILE "rtl/soc/sound/mpu-401/System68/ioport.vhd"
-set_global_assignment -name VHDL_FILE "rtl/soc/sound/mpu-401/System68/datram.vhd"
-set_global_assignment -name VHDL_FILE "rtl/soc/sound/mpu-401/System68/cpu68.vhd"
-set_global_assignment -name VHDL_FILE "rtl/soc/sound/mpu-401/System68/blockram.vhd"
-set_global_assignment -name VERILOG_FILE "rtl/soc/sound/mpu-401/rom.v"
-set_global_assignment -name VERILOG_FILE "rtl/soc/sound/mpu-401/ram.v"
-set_global_assignment -name VERILOG_FILE "rtl/soc/sound/mpu-401/mpu-401.v"
-set_global_assignment -name VERILOG_FILE "rtl/soc/sound/mpu-401/internal_ram.v"
-set_global_assignment -name VERILOG_FILE "rtl/soc/sound/mpu-401/async_transmitter.v"
-set_global_assignment -name VERILOG_FILE "rtl/soc/sound/mpu-401/async_receiver.v"
-set_global_assignment -name CDF_FILE jtag.cdf
-set_global_assignment -name QIP_FILE sys/sys.qip
-set_global_assignment -name QSYS_FILE sys/vip.qsys
-set_global_assignment -name QSYS_FILE system.qsys
-set_global_assignment -name SYSTEMVERILOG_FILE ao486.sv
 set_global_assignment -name ENABLE_SIGNALTAP ON
 set_global_assignment -name USE_SIGNALTAP_FILE stp1.stp
 set_global_assignment -name SLD_NODE_CREATOR_ID 110 -section_id auto_signaltap_0
@@ -927,5 +903,11 @@ set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[6] -t
 set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[13] -to auto_signaltap_0|gnd -section_id auto_signaltap_0
 set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[21] -to auto_signaltap_0|vcc -section_id auto_signaltap_0
 set_instance_assignment -name POST_FIT_CONNECT_TO_SLD_NODE_ENTITY_PORT crc[26] -to auto_signaltap_0|gnd -section_id auto_signaltap_0
+set_global_assignment -name VERILOG_FILE rtl/soc/sound/joystick.v
+set_global_assignment -name CDF_FILE jtag.cdf
+set_global_assignment -name QIP_FILE sys/sys.qip
+set_global_assignment -name QSYS_FILE sys/vip.qsys
+set_global_assignment -name QSYS_FILE system.qsys
+set_global_assignment -name SYSTEMVERILOG_FILE ao486.sv
 set_global_assignment -name SLD_FILE db/stp1_auto_stripped.stp
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

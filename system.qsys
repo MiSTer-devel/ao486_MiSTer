@@ -400,26 +400,10 @@
          value = "10";
          type = "int";
       }
-   }
-   element sound.joy
-   {
-      datum baseAddress
+      datum sopceditor_expanded
       {
-         value = "512";
-         type = "String";
-      }
-   }
-   element sound.mpu
-   {
-      datum _lockedAddress
-      {
-         value = "0";
+         value = "1";
          type = "boolean";
-      }
-      datum baseAddress
-      {
-         value = "816";
-         type = "String";
       }
    }
    element sys_clk_out
@@ -428,6 +412,30 @@
       {
          value = "2";
          type = "int";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
       }
    }
    element system
@@ -1117,11 +1125,6 @@
  <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="pic.master">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0020" />
-  <parameter name="defaultConnection" value="false" />
- </connection>
- <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="sound.mpu">
-  <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x0330" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection

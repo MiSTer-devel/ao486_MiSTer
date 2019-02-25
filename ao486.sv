@@ -262,9 +262,6 @@ system u0
 	.sound_joystick_0     (joystick_0[11:0]),
 	.sound_joystick_1     (joystick_1[11:0]),
 	
-	.sound_mpu_midi_in    (mpu_midi_in),
-	.sound_mpu_midi_out   (mpu_midi_out),
-	
 	.speaker_enable       (speaker_ena),
 	.speaker_out          (speaker_out),
 
