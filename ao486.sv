@@ -152,6 +152,7 @@ localparam CONF_STR =
 	"-;",
 	"OX2,Boot order,FDD/HDD,HDD/FDD;",
 	"R0,Reset and apply HDD;",
+	"J,Button 1,Button 2;",
 	"V,v",`BUILD_DATE
 };
 
@@ -179,6 +180,11 @@ wire        dma_rd;
 wire        dma_wr;
 wire  [1:0] dma_status;
 wire  [1:0] dma_req;
+
+wire  [5:0] joystick_0;
+wire  [5:0] joystick_1;
+wire [15:0] joystick_analog_0;
+wire [15:0] joystick_analog_1;
 
 hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000)) hps_io
 (
@@ -210,7 +216,12 @@ hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000)) hps_io
 	.dma_rd(dma_rd),
 	.dma_wr(dma_wr),
 	.dma_req(dma_req),
-	.dma_status(dma_status)
+	.dma_status(dma_status),
+
+	.joystick_0(joystick_0),
+	.joystick_1(joystick_1),
+	.joystick_analog_0(joystick_analog_0),
+	.joystick_analog_1(joystick_analog_1)
 );
 
 
@@ -263,7 +274,7 @@ system u0
 	.sound_sample_l       (sb_out_l),
 	.sound_sample_r       (sb_out_r),
 	.sound_fm_mode        (status[3]),
-
+	
 	.speaker_enable       (speaker_ena),
 	.speaker_out          (speaker_out),
 
@@ -280,6 +291,11 @@ system u0
 	.ps2_mousedat_in      (ps2_mouse_data_out),
 	.ps2_mouseclk_out     (ps2_mouse_clk_in),
 	.ps2_mousedat_out     (ps2_mouse_data_in),
+
+	.joystick_dig_1       (joystick_0),
+	.joystick_dig_2       (joystick_1),
+	.joystick_ana_1       (joystick_analog_0),
+	.joystick_ana_2       (joystick_analog_1),
 
 	.cpu_reset_reset      (cpu_reset),
 

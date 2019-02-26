@@ -45,7 +45,7 @@
    {
       datum _sortIndex
       {
-         value = "19";
+         value = "20";
          type = "int";
       }
    }
@@ -61,7 +61,7 @@
    {
       datum _sortIndex
       {
-         value = "16";
+         value = "17";
          type = "int";
       }
    }
@@ -85,7 +85,7 @@
    {
       datum _sortIndex
       {
-         value = "15";
+         value = "16";
          type = "int";
       }
    }
@@ -109,7 +109,7 @@
    {
       datum _sortIndex
       {
-         value = "17";
+         value = "18";
          type = "int";
       }
    }
@@ -141,7 +141,7 @@
    {
       datum _sortIndex
       {
-         value = "18";
+         value = "19";
          type = "int";
       }
    }
@@ -153,11 +153,27 @@
          type = "String";
       }
    }
+   element joystick_0
+   {
+      datum _sortIndex
+      {
+         value = "11";
+         type = "int";
+      }
+   }
+   element joystick_0.io
+   {
+      datum baseAddress
+      {
+         value = "512";
+         type = "String";
+      }
+   }
    element mm_bridge
    {
       datum _sortIndex
       {
-         value = "20";
+         value = "21";
          type = "int";
       }
    }
@@ -241,7 +257,7 @@
    {
       datum _sortIndex
       {
-         value = "14";
+         value = "15";
          type = "int";
       }
    }
@@ -265,7 +281,7 @@
    {
       datum _sortIndex
       {
-         value = "13";
+         value = "14";
          type = "int";
       }
    }
@@ -289,7 +305,7 @@
    {
       datum _sortIndex
       {
-         value = "11";
+         value = "12";
          type = "int";
       }
    }
@@ -381,7 +397,7 @@
    {
       datum _sortIndex
       {
-         value = "12";
+         value = "13";
          type = "int";
       }
    }
@@ -577,11 +593,27 @@
          type = "String";
       }
    }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element uart
    {
       datum _sortIndex
       {
-         value = "22";
+         value = "23";
          type = "int";
       }
    }
@@ -597,7 +629,7 @@
    {
       datum _sortIndex
       {
-         value = "21";
+         value = "22";
          type = "int";
       }
    }
@@ -646,6 +678,11 @@
    type="avalon"
    dir="start" />
  <interface name="disk" internal="driver_sd.conduit_prx" type="conduit" dir="end" />
+ <interface
+   name="joystick"
+   internal="joystick_0.joystick"
+   type="conduit"
+   dir="end" />
  <interface name="mem" internal="mm_bridge.s0" type="avalon" dir="end" />
  <interface name="pll_reset" internal="pll_0.reset" type="reset" dir="end" />
  <interface name="ps2" internal="ps2.export_ps2" type="conduit" dir="end" />
@@ -663,7 +700,6 @@
  <interface name="sd_cmd" internal="driver_sd.conduit_cmd" />
  <interface name="sd_dat" internal="driver_sd.conduit_dat" />
  <interface name="sound" internal="sound.conduit_sound" type="conduit" dir="end" />
- <interface name="sound_conduit_end" internal="sound.conduit_end" />
  <interface
    name="speaker"
    internal="pit.conduit_speaker"
@@ -704,6 +740,7 @@
   <parameter name="BufAddress" value="4096" />
  </module>
  <module name="hddext_0x370" kind="hddext" version="1.0" enabled="1" />
+ <module name="joystick_0" kind="joystick" version="1.0" enabled="1" />
  <module
    name="mm_bridge"
    kind="altera_avalon_mm_bridge"
@@ -1012,11 +1049,6 @@
   <parameter name="baseAddress" value="0x03f8" />
   <parameter name="defaultConnection" value="false" />
  </connection>
- <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="sound.io">
-  <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x0220" />
-  <parameter name="defaultConnection" value="false" />
- </connection>
  <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="rtc.io">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0070" />
@@ -1054,6 +1086,20 @@
    end="hddext_0x370.io">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0370" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="sound.io">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0220" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="17.0"
+   start="ao486.avalon_io"
+   end="joystick_0.io">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0200" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="vga.io_b">
@@ -1205,11 +1251,6 @@
   <parameter name="baseAddress" value="0x8c00" />
   <parameter name="defaultConnection" value="false" />
  </connection>
- <connection kind="avalon" version="17.0" start="mm_bridge.m0" end="sound.mgmt">
-  <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x9000" />
-  <parameter name="defaultConnection" value="false" />
- </connection>
  <connection kind="avalon" version="17.0" start="mm_bridge.m0" end="pit.mgmt">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x8880" />
@@ -1218,6 +1259,11 @@
  <connection kind="avalon" version="17.0" start="mm_bridge.m0" end="hdd1.mgmt">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x9840" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection kind="avalon" version="17.0" start="mm_bridge.m0" end="sound.mgmt">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x9000" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
@@ -1283,7 +1329,6 @@
  <connection kind="clock" version="17.0" start="pll_0.outclk0" end="pit.clock" />
  <connection kind="clock" version="17.0" start="pll_0.outclk0" end="ps2.clock" />
  <connection kind="clock" version="17.0" start="pll_0.outclk0" end="rtc.clock" />
- <connection kind="clock" version="17.0" start="pll_0.outclk0" end="sound.clock" />
  <connection
    kind="clock"
    version="17.0"
@@ -1295,6 +1340,12 @@
    version="17.0"
    start="pll_0.outclk0"
    end="hddext_0x370.clock" />
+ <connection kind="clock" version="17.0" start="pll_0.outclk0" end="sound.clock" />
+ <connection
+   kind="clock"
+   version="17.0"
+   start="pll_0.outclk0"
+   end="joystick_0.clock" />
  <connection kind="clock" version="17.0" start="pll_0.outclk0" end="vga.clock_sys" />
  <connection
    kind="clock"
@@ -1403,13 +1454,6 @@
    kind="interrupt"
    version="17.0"
    start="pic.interrupt_receiver"
-   end="sound.interrupt_sender">
-  <parameter name="irqNumber" value="5" />
- </connection>
- <connection
-   kind="interrupt"
-   version="17.0"
-   start="pic.interrupt_receiver"
    end="hdd0.interrupt_sender">
   <parameter name="irqNumber" value="14" />
  </connection>
@@ -1433,6 +1477,13 @@
    start="pic.interrupt_receiver"
    end="vga.interrupt_sender">
   <parameter name="irqNumber" value="2" />
+ </connection>
+ <connection
+   kind="interrupt"
+   version="17.0"
+   start="pic.interrupt_receiver"
+   end="sound.interrupt_sender">
+  <parameter name="irqNumber" value="5" />
  </connection>
  <connection
    kind="interrupt"
@@ -1479,6 +1530,11 @@
    kind="reset"
    version="17.0"
    start="reset_sys.reset_out"
+   end="joystick_0.reset" />
+ <connection
+   kind="reset"
+   version="17.0"
+   start="reset_sys.reset_out"
    end="pc_dma.reset_sink" />
  <connection
    kind="reset"
@@ -1514,11 +1570,6 @@
    kind="reset"
    version="17.0"
    start="reset_sys.reset_out"
-   end="sound.reset_sink" />
- <connection
-   kind="reset"
-   version="17.0"
-   start="reset_sys.reset_out"
    end="driver_sd.reset_sink" />
  <connection
    kind="reset"
@@ -1545,6 +1596,11 @@
    version="17.0"
    start="reset_sys.reset_out"
    end="uart.reset_sink" />
+ <connection
+   kind="reset"
+   version="17.0"
+   start="reset_sys.reset_out"
+   end="sound.reset_sink" />
  <interconnectRequirement for="$system" name="qsys_mm.clockCrossingAdapter" value="HANDSHAKE" />
  <interconnectRequirement for="$system" name="qsys_mm.maxAdditionalLatency" value="0" />
 </system>

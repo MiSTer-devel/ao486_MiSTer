@@ -150,6 +150,18 @@
   <tag2 key="COMPONENT_HIDE_FROM_SOPC" value="true" />
  </component>
  <component
+   name="joystick"
+   file="./rtl/soc/joystick/joystick_hw.tcl"
+   displayName="joystick"
+   version="1.0"
+   description=""
+   tags="AUTHORSHIP= /// CONNECTION_TYPES=avalon,clock,conduit,interrupt,reset /// INTERNAL_COMPONENT=false"
+   categories="ao486"
+   factory="TclModuleFactory">
+  <tag2 key="COMPONENT_EDITABLE" value="true" />
+  <tag2 key="COMPONENT_HIDE_FROM_SOPC" value="true" />
+ </component>
+ <component
    name="vga"
    file="./rtl/soc/vga/vga_hw.tcl"
    displayName="vga"
