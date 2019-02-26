@@ -401,12 +401,28 @@
          type = "int";
       }
    }
+   element sound.joy
+   {
+      datum baseAddress
+      {
+         value = "512";
+         type = "String";
+      }
+   }
    element sys_clk_out
    {
       datum _sortIndex
       {
          value = "2";
          type = "int";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
       }
    }
    element system
@@ -663,7 +679,6 @@
  <interface name="sd_cmd" internal="driver_sd.conduit_cmd" />
  <interface name="sd_dat" internal="driver_sd.conduit_dat" />
  <interface name="sound" internal="sound.conduit_sound" type="conduit" dir="end" />
- <interface name="sound_conduit_end" internal="sound.conduit_end" />
  <interface
    name="speaker"
    internal="pit.conduit_speaker"
@@ -1012,11 +1027,6 @@
   <parameter name="baseAddress" value="0x03f8" />
   <parameter name="defaultConnection" value="false" />
  </connection>
- <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="sound.io">
-  <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x0220" />
-  <parameter name="defaultConnection" value="false" />
- </connection>
  <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="rtc.io">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0070" />
@@ -1056,6 +1066,11 @@
   <parameter name="baseAddress" value="0x0370" />
   <parameter name="defaultConnection" value="false" />
  </connection>
+ <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="sound.io">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0220" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
  <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="vga.io_b">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x03b0" />
@@ -1069,6 +1084,11 @@
  <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="vga.io_d">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x03d0" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="sound.joy">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0200" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
@@ -1205,11 +1225,6 @@
   <parameter name="baseAddress" value="0x8c00" />
   <parameter name="defaultConnection" value="false" />
  </connection>
- <connection kind="avalon" version="17.0" start="mm_bridge.m0" end="sound.mgmt">
-  <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x9000" />
-  <parameter name="defaultConnection" value="false" />
- </connection>
  <connection kind="avalon" version="17.0" start="mm_bridge.m0" end="pit.mgmt">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x8880" />
@@ -1218,6 +1233,11 @@
  <connection kind="avalon" version="17.0" start="mm_bridge.m0" end="hdd1.mgmt">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x9840" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection kind="avalon" version="17.0" start="mm_bridge.m0" end="sound.mgmt">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x9000" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
@@ -1283,7 +1303,6 @@
  <connection kind="clock" version="17.0" start="pll_0.outclk0" end="pit.clock" />
  <connection kind="clock" version="17.0" start="pll_0.outclk0" end="ps2.clock" />
  <connection kind="clock" version="17.0" start="pll_0.outclk0" end="rtc.clock" />
- <connection kind="clock" version="17.0" start="pll_0.outclk0" end="sound.clock" />
  <connection
    kind="clock"
    version="17.0"
@@ -1295,6 +1314,7 @@
    version="17.0"
    start="pll_0.outclk0"
    end="hddext_0x370.clock" />
+ <connection kind="clock" version="17.0" start="pll_0.outclk0" end="sound.clock" />
  <connection kind="clock" version="17.0" start="pll_0.outclk0" end="vga.clock_sys" />
  <connection
    kind="clock"
@@ -1403,13 +1423,6 @@
    kind="interrupt"
    version="17.0"
    start="pic.interrupt_receiver"
-   end="sound.interrupt_sender">
-  <parameter name="irqNumber" value="5" />
- </connection>
- <connection
-   kind="interrupt"
-   version="17.0"
-   start="pic.interrupt_receiver"
    end="hdd0.interrupt_sender">
   <parameter name="irqNumber" value="14" />
  </connection>
@@ -1433,6 +1446,13 @@
    start="pic.interrupt_receiver"
    end="vga.interrupt_sender">
   <parameter name="irqNumber" value="2" />
+ </connection>
+ <connection
+   kind="interrupt"
+   version="17.0"
+   start="pic.interrupt_receiver"
+   end="sound.interrupt_sender">
+  <parameter name="irqNumber" value="5" />
  </connection>
  <connection
    kind="interrupt"
@@ -1514,11 +1534,6 @@
    kind="reset"
    version="17.0"
    start="reset_sys.reset_out"
-   end="sound.reset_sink" />
- <connection
-   kind="reset"
-   version="17.0"
-   start="reset_sys.reset_out"
    end="driver_sd.reset_sink" />
  <connection
    kind="reset"
@@ -1545,6 +1560,11 @@
    version="17.0"
    start="reset_sys.reset_out"
    end="uart.reset_sink" />
+ <connection
+   kind="reset"
+   version="17.0"
+   start="reset_sys.reset_out"
+   end="sound.reset_sink" />
  <interconnectRequirement for="$system" name="qsys_mm.clockCrossingAdapter" value="HANDSHAKE" />
  <interconnectRequirement for="$system" name="qsys_mm.maxAdditionalLatency" value="0" />
 </system>

@@ -44,8 +44,19 @@ module sound(
     output      [7:0]   fm_readdata,
     input               fm_write,
     input       [7:0]   fm_writedata,
-	input               fm_mode,
+	 input               fm_mode,
 
+	 // GamePort Joystick 200-207h (supposed to be at 0x201, but Qsys won't directly allow the odd addresses). ElectronAsh.
+	 input [2:0] joy_address,
+	 input joy_read,
+	 output [7:0] joy_readdata,
+	
+	 input  joy_write,
+	 input [7:0] joy_writedata,
+	
+	 input [15:0] joystick_0,
+	 input [15:0] joystick_1,
+	 
     //dma
     output              dma_soundblaster_req,
     input               dma_soundblaster_ack,
@@ -168,5 +179,21 @@ end
 
 assign sample_l = {{2{sample_dsp[15]}}, sample_dsp[15:2]} + {sample_from_opl_l[15], sample_from_opl_l[15:1]};
 assign sample_r = {{2{sample_dsp[15]}}, sample_dsp[15:2]} + {sample_from_opl_r[15], sample_from_opl_r[15:1]};
+
+
+joystick joystick_inst
+(
+	.clk(clk) ,					// input  rst_n
+	.rst_n(rst_n) ,			// input  RESET_N
+	
+	.joy_address( joy_address ) ,		// input [2:0] joy_address
+	.joy_read( joy_read ) ,				// input  joy_read
+	.joy_readdata( joy_readdata ) ,	// output [7:0] joy_readdata
+	.joy_write( joy_write ) ,			// input  joy_write
+	.joy_writedata( joy_writedata ) ,// input [7:0] joy_writedata
+	.joystick_0( joystick_0 ) ,		// input [15:0] joystick_0
+	.joystick_1( joystick_1 ) 			// input [15:0] joystick_1
+);
+
 
 endmodule
