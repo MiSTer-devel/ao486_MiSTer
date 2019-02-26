@@ -169,9 +169,6 @@ wire        dma_wr;
 wire  [1:0] dma_status;
 wire  [1:0] dma_req;
 
-wire [15:0] joystick_0;
-wire [15:0] joystick_1;
-
 hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000)) hps_io
 (
 	.clk_sys(clk_sys),
@@ -202,10 +199,7 @@ hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000)) hps_io
 	.dma_rd(dma_rd),
 	.dma_wr(dma_wr),
 	.dma_req(dma_req),
-	.dma_status(dma_status),
-	
-	.joystick_0(joystick_0[11:0]),
-	.joystick_1(joystick_1[11:0])
+	.dma_status(dma_status)
 );
 
 
@@ -258,9 +252,6 @@ system u0
 	.sound_sample_l       (sb_out_l),
 	.sound_sample_r       (sb_out_r),
 	.sound_fm_mode        (status[3]),
-	
-	.sound_joystick_0     (joystick_0[11:0]),
-	.sound_joystick_1     (joystick_1[11:0]),
 
 	.speaker_enable       (speaker_ena),
 	.speaker_out          (speaker_out),
