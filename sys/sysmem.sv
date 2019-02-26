@@ -1,104 +1,101 @@
 `timescale 1 ps / 1 ps
 module sysmem_lite
 (
-	input          ramclk1_clk,           //   ramclk1.clk
-	input   [28:0] ram1_address,          //      ram1.address
-	input    [7:0] ram1_burstcount,       //          .burstcount
-	output         ram1_waitrequest,      //          .waitrequest
-	output  [63:0] ram1_readdata,         //          .readdata
-	output         ram1_readdatavalid,    //          .readdatavalid
-	input          ram1_read,             //          .read
-	input   [63:0] ram1_writedata,        //          .writedata
-	input    [7:0] ram1_byteenable,       //          .byteenable
-	input          ram1_write,            //          .write
+	output         clock,
+	output         reset_out,
 
-	input          ramclk2_clk,           //   ramclk2.clk
-	input   [28:0] ram2_address,          //      ram2.address
-	input    [7:0] ram2_burstcount,       //          .burstcount
-	output         ram2_waitrequest,      //          .waitrequest
-	output  [63:0] ram2_readdata,         //          .readdata
-	output         ram2_readdatavalid,    //          .readdatavalid
-	input          ram2_read,             //          .read
-	input   [63:0] ram2_writedata,        //          .writedata
-	input    [7:0] ram2_byteenable,       //          .byteenable
-	input          ram2_write,            //          .write
+	input          reset_hps_cold_req,
+	input          reset_hps_warm_req,
+	input          reset_core_req,
 
-	output         ctl_clock,
-	input          reset_cold_req,        //     reset.cold_req
-	output         reset_reset,           //          .reset
-	input          reset_reset_req,       //          .reset_req
-	input          reset_warm_req,        //          .warm_req
+	input          ram1_clk,
+	input   [28:0] ram1_address,
+	input    [7:0] ram1_burstcount,
+	output         ram1_waitrequest,
+	output  [63:0] ram1_readdata,
+	output         ram1_readdatavalid,
+	input          ram1_read,
+	input   [63:0] ram1_writedata,
+	input    [7:0] ram1_byteenable,
+	input          ram1_write,
 
-	input          vbuf_clk,              //      vbuf.clk
-	input   [27:0] vbuf_address,          //      vbuf.address
-	input    [7:0] vbuf_burstcount,       //          .burstcount
-	output         vbuf_waitrequest,      //          .waitrequest
-	output [127:0] vbuf_readdata,         //          .readdata
-	output         vbuf_readdatavalid,    //          .readdatavalid
-	input          vbuf_read,             //          .read
-	input  [127:0] vbuf_writedata,        //          .writedata
-	input   [15:0] vbuf_byteenable,       //          .byteenable
-	input          vbuf_write             //          .write
+	input          ram2_clk,
+	input   [28:0] ram2_address,
+	input    [7:0] ram2_burstcount,
+	output         ram2_waitrequest,
+	output  [63:0] ram2_readdata,
+	output         ram2_readdatavalid,
+	input          ram2_read,
+	input   [63:0] ram2_writedata,
+	input    [7:0] ram2_byteenable,
+	input          ram2_write,
+
+	input          vbuf_clk,
+	input   [27:0] vbuf_address,
+	input    [7:0] vbuf_burstcount,
+	output         vbuf_waitrequest,
+	output [127:0] vbuf_readdata,
+	output         vbuf_readdatavalid,
+	input          vbuf_read,
+	input  [127:0] vbuf_writedata,
+	input   [15:0] vbuf_byteenable,
+	input          vbuf_write
 );
 
-assign ctl_clock = clk_vip_clk;
-
-wire hps_h2f_reset_reset;           // HPS:h2f_rst_n -> Reset_Source:reset_hps
-wire reset_source_reset_cold_reset; // Reset_Source:reset_cold -> HPS:f2h_cold_rst_req_n
-wire reset_source_reset_warm_reset; // Reset_Source:reset_warm -> HPS:f2h_warm_rst_req_n
-wire clk_vip_clk;
+assign reset_out = ~init_reset_n | ~hps_h2f_reset_n | reset_core_req;
 
 sysmem_HPS_fpga_interfaces fpga_interfaces (
-	.f2h_cold_rst_req_n       (~reset_source_reset_cold_reset), // f2h_cold_reset_req.reset_n
-	.f2h_warm_rst_req_n       (~reset_source_reset_warm_reset), // f2h_warm_reset_req.reset_n
-	.h2f_user0_clk            (clk_vip_clk),                    //    h2f_user0_clock.clk
-	.h2f_rst_n                (hps_h2f_reset_reset),            //          h2f_reset.reset_n
-	.f2h_sdram0_clk           (vbuf_clk),                       //   f2h_sdram0_clock.clk
-	.f2h_sdram0_ADDRESS       (vbuf_address),                   //    f2h_sdram0_data.address
-	.f2h_sdram0_BURSTCOUNT    (vbuf_burstcount),                //                   .burstcount
-	.f2h_sdram0_WAITREQUEST   (vbuf_waitrequest),               //                   .waitrequest
-	.f2h_sdram0_READDATA      (vbuf_readdata),                  //                   .readdata
-	.f2h_sdram0_READDATAVALID (vbuf_readdatavalid),             //                   .readdatavalid
-	.f2h_sdram0_READ          (vbuf_read),                      //                   .read
-	.f2h_sdram0_WRITEDATA     (vbuf_writedata),                 //                   .writedata
-	.f2h_sdram0_BYTEENABLE    (vbuf_byteenable),                //                   .byteenable
-	.f2h_sdram0_WRITE         (vbuf_write),                     //                   .write
-	.f2h_sdram1_clk           (ramclk1_clk),                    //   f2h_sdram1_clock.clk
-	.f2h_sdram1_ADDRESS       (ram1_address),                   //    f2h_sdram1_data.address
-	.f2h_sdram1_BURSTCOUNT    (ram1_burstcount),                //                   .burstcount
-	.f2h_sdram1_WAITREQUEST   (ram1_waitrequest),               //                   .waitrequest
-	.f2h_sdram1_READDATA      (ram1_readdata),                  //                   .readdata
-	.f2h_sdram1_READDATAVALID (ram1_readdatavalid),             //                   .readdatavalid
-	.f2h_sdram1_READ          (ram1_read),                      //                   .read
-	.f2h_sdram1_WRITEDATA     (ram1_writedata),                 //                   .writedata
-	.f2h_sdram1_BYTEENABLE    (ram1_byteenable),                //                   .byteenable
-	.f2h_sdram1_WRITE         (ram1_write),                     //                   .write
-	.f2h_sdram2_clk           (ramclk2_clk),                    //   f2h_sdram2_clock.clk
-	.f2h_sdram2_ADDRESS       (ram2_address),                   //    f2h_sdram2_data.address
-	.f2h_sdram2_BURSTCOUNT    (ram2_burstcount),                //                   .burstcount
-	.f2h_sdram2_WAITREQUEST   (ram2_waitrequest),               //                   .waitrequest
-	.f2h_sdram2_READDATA      (ram2_readdata),                  //                   .readdata
-	.f2h_sdram2_READDATAVALID (ram2_readdatavalid),             //                   .readdatavalid
-	.f2h_sdram2_READ          (ram2_read),                      //                   .read
-	.f2h_sdram2_WRITEDATA     (ram2_writedata),                 //                   .writedata
-	.f2h_sdram2_BYTEENABLE    (ram2_byteenable),                //                   .byteenable
-	.f2h_sdram2_WRITE         (ram2_write)                      //                   .write
+	.f2h_cold_rst_req_n       (~reset_hps_cold_req),
+	.f2h_warm_rst_req_n       (~reset_hps_warm_req),
+	.h2f_user0_clk            (clock),
+	.h2f_rst_n                (hps_h2f_reset_n),
+	.f2h_sdram0_clk           (vbuf_clk),
+	.f2h_sdram0_ADDRESS       (vbuf_address),
+	.f2h_sdram0_BURSTCOUNT    (vbuf_burstcount),
+	.f2h_sdram0_WAITREQUEST   (vbuf_waitrequest),
+	.f2h_sdram0_READDATA      (vbuf_readdata),
+	.f2h_sdram0_READDATAVALID (vbuf_readdatavalid),
+	.f2h_sdram0_READ          (vbuf_read),
+	.f2h_sdram0_WRITEDATA     (vbuf_writedata),
+	.f2h_sdram0_BYTEENABLE    (vbuf_byteenable),
+	.f2h_sdram0_WRITE         (vbuf_write),
+	.f2h_sdram1_clk           (ram1_clk),
+	.f2h_sdram1_ADDRESS       (ram1_address),
+	.f2h_sdram1_BURSTCOUNT    (ram1_burstcount),
+	.f2h_sdram1_WAITREQUEST   (ram1_waitrequest),
+	.f2h_sdram1_READDATA      (ram1_readdata),
+	.f2h_sdram1_READDATAVALID (ram1_readdatavalid),
+	.f2h_sdram1_READ          (ram1_read),
+	.f2h_sdram1_WRITEDATA     (ram1_writedata),
+	.f2h_sdram1_BYTEENABLE    (ram1_byteenable),
+	.f2h_sdram1_WRITE         (ram1_write),
+	.f2h_sdram2_clk           (ram2_clk),
+	.f2h_sdram2_ADDRESS       (ram2_address),
+	.f2h_sdram2_BURSTCOUNT    (ram2_burstcount),
+	.f2h_sdram2_WAITREQUEST   (ram2_waitrequest),
+	.f2h_sdram2_READDATA      (ram2_readdata),
+	.f2h_sdram2_READDATAVALID (ram2_readdatavalid),
+	.f2h_sdram2_READ          (ram2_read),
+	.f2h_sdram2_WRITEDATA     (ram2_writedata),
+	.f2h_sdram2_BYTEENABLE    (ram2_byteenable),
+	.f2h_sdram2_WRITE         (ram2_write)
 );
 
-reset_source reset_source (
-	.clk        (clk_vip_clk),                   //      clock.clk
-	.reset_hps  (~hps_h2f_reset_reset),          //  reset_hps.reset
-	.reset_sys  (),                              //  reset_sys.reset
-	.cold_req   (reset_cold_req),                //  reset_ctl.cold_req
-	.reset      (reset_reset),                   //           .reset
-	.reset_req  (reset_reset_req),               //           .reset_req
-	.reset_vip  (0),                             //           .reset_vip
-	.warm_req   (reset_warm_req),                //           .warm_req
-	.reset_warm (reset_source_reset_warm_reset), // reset_warm.reset
-	.reset_cold (reset_source_reset_cold_reset)  // reset_cold.reset
-);
+wire hps_h2f_reset_n;
+
+reg init_reset_n = 0;
+always @(posedge clock) begin
+	integer timeout = 0;
+
+	if(timeout < 2000000) begin
+		init_reset_n <= 0;
+		timeout <= timeout + 1;
+	end
+	else init_reset_n <= 1;
+end
 
 endmodule
+
 
 module sysmem_HPS_fpga_interfaces
 (

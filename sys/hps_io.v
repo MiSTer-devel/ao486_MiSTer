@@ -35,6 +35,8 @@ module hps_io #(parameter STRLEN=0, PS2DIV=2000)
 
 	output reg [15:0] joystick_0,
 	output reg [15:0] joystick_1,
+	output reg [15:0] joystick_analog_0,
+	output reg [15:0] joystick_analog_1,
 
 	output      [1:0] buttons,
 
@@ -247,6 +249,15 @@ always@(posedge clk_sys) begin
 								// returning a byte from string
 								if(byte_cnt < STRLEN + 1) io_dout[7:0] <= conf_str[(STRLEN - byte_cnt)<<3 +:8];
 							end
+
+					// joystick analog
+					'h1a: case(byte_cnt)
+								1: stick_idx <= io_din[2:0]; // first byte is joystick index
+								2: case(stick_idx)
+										0: joystick_analog_0 <= io_din;
+										1: joystick_analog_1 <= io_din;
+									endcase
+							endcase
 
 					// reading sd card status
 					'h16: io_dout <= 0;

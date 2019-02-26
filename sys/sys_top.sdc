@@ -22,6 +22,9 @@ set_clock_groups -asynchronous \
 set_output_delay -max -clock HDMI_CLK 2.0ns [get_ports {HDMI_TX_D[*] HDMI_TX_DE HDMI_TX_HS HDMI_TX_VS}]
 set_output_delay -min -clock HDMI_CLK -1.5ns [get_ports {HDMI_TX_D[*] HDMI_TX_DE HDMI_TX_HS HDMI_TX_VS}]
 
+set_false_path -from {*} -to [get_registers {wcalc[*] hcalc[*]}]
+
+
 # Put constraints on input ports
 set_false_path -from [get_ports {KEY*}] -to *
 set_false_path -from [get_ports {BTN_*}] -to *

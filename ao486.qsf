@@ -80,19 +80,6 @@ set_location_assignment PIN_AD4 -to ADC_SDO
 #============================================================
 # ARDUINO
 #============================================================
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[3]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[4]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[5]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[6]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[7]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[8]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[9]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[10]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[11]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[12]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[13]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[14]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[15]
 set_location_assignment PIN_AG9 -to ARDUINO_IO[3]
 set_location_assignment PIN_U14 -to ARDUINO_IO[4]
 set_location_assignment PIN_U13 -to ARDUINO_IO[5]
@@ -100,12 +87,22 @@ set_location_assignment PIN_AG8 -to ARDUINO_IO[6]
 set_location_assignment PIN_AH8 -to ARDUINO_IO[7]
 set_location_assignment PIN_AF17 -to ARDUINO_IO[8]
 set_location_assignment PIN_AE15 -to ARDUINO_IO[9]
-set_location_assignment PIN_AF15 -to ARDUINO_IO[10]
-set_location_assignment PIN_AG16 -to ARDUINO_IO[11]
-set_location_assignment PIN_AH11 -to ARDUINO_IO[12]
-set_location_assignment PIN_AH12 -to ARDUINO_IO[13]
-set_location_assignment PIN_AH9 -to ARDUINO_IO[14]
-set_location_assignment PIN_AG11 -to ARDUINO_IO[15]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[*]
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to ARDUINO_IO[*]
+set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to ARDUINO_IO[*]
+
+#============================================================
+# USER PORT
+#============================================================
+set_location_assignment PIN_AF15 -to USER_IO[5]
+set_location_assignment PIN_AG16 -to USER_IO[4]
+set_location_assignment PIN_AH11 -to USER_IO[3]
+set_location_assignment PIN_AH12 -to USER_IO[2]
+set_location_assignment PIN_AH9 -to USER_IO[1]
+set_location_assignment PIN_AG11 -to USER_IO[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to USER_IO[*]
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to USER_IO[*]
+set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to USER_IO[*]
 
 #============================================================
 # SDIO
@@ -367,7 +364,6 @@ set_global_assignment -name SEARCH_PATH ./rtl/ao486
 
 set_global_assignment -name CDF_FILE jtag.cdf
 set_global_assignment -name QIP_FILE sys/sys.qip
-set_global_assignment -name QSYS_FILE sys/vip.qsys
 set_global_assignment -name QSYS_FILE system.qsys
 set_global_assignment -name SYSTEMVERILOG_FILE ao486.sv
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
