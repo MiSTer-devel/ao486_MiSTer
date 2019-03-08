@@ -340,7 +340,7 @@ wire clk_100m;
 wire clk_hdmi  = ~HDMI_TX_CLK;  // Internal HDMI clock, inverted in relation to external clock
 wire clk_audio = FPGA_CLK3_50;
 
-/////////////////////////  SYSTEM MODULE  ////////////////////////////////
+////////////////////  SYSTEM MEMORY & SCALER  /////////////////////////
 
 wire reset;
 sysmem_lite sysmem
@@ -691,57 +691,11 @@ assign VGA_B  = VGA_EN ? 6'bZZZZZZ : vga_o[7:2];
 
 /////////////////////////  Audio output  ////////////////////////////////
 
-assign AUDIO_SPDIF = SW[0] ? HDMI_LRCLK : aspdif;
+assign AUDIO_SPDIF = SW[0] ? HDMI_LRCLK : spdif;
 assign AUDIO_R     = SW[0] ? HDMI_I2S   : anr;
 assign AUDIO_L     = SW[0] ? HDMI_SCLK  : anl;
 
 assign HDMI_MCLK = 0;
-i2s i2s
-(
-	.clk_sys(clk_audio),
-	.reset(reset),
-
-	.half_rate(~audio_96k),
-
-	.sclk(HDMI_SCLK),
-	.lrclk(HDMI_LRCLK),
-	.sdata(HDMI_I2S),
-
-	.left_chan (audio_l),
-	.right_chan(audio_r)
-);
-
-wire anl;
-sigma_delta_dac #(15) dac_l
-(
-	.CLK(clk_audio),
-	.RESET(reset),
-	.DACin({~audio_l[15], audio_l[14:0]}),
-	.DACout(anl)
-);
-
-wire anr;
-sigma_delta_dac #(15) dac_r
-(
-	.CLK(clk_audio),
-	.RESET(reset),
-	.DACin({~audio_r[15], audio_r[14:0]}),
-	.DACout(anr)
-);
-
-wire aspdif;
-spdif toslink
-(
-	.clk_i(clk_audio),
-
-	.rst_i(reset),
-	.half_rate(0),
-
-	.audio_l(audio_l),
-	.audio_r(audio_r),
-
-	.spdif_o(aspdif)
-);
 
 wire [15:0] audio_l, audio_l_pre;
 aud_mix_top audmix_l
@@ -773,6 +727,22 @@ aud_mix_top audmix_r
 
 	.pre_out(audio_r_pre),
 	.out(audio_r)
+);
+
+wire anl,anr,spdif;
+audio_out audio_out
+(
+	.reset(reset),
+	.clk(clk_audio),
+	.sample_rate(audio_96k),
+	.left_in(audio_l),
+	.right_in(audio_r),
+	.i2s_bclk(HDMI_SCLK),
+	.i2s_lrclk(HDMI_LRCLK),
+	.i2s_data(HDMI_I2S),
+   .spdif(spdif),
+	.dac_l(anl),
+	.dac_r(anr)
 );
 
 wire [28:0] aram_address;
