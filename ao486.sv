@@ -121,7 +121,6 @@ assign {SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_n
 assign SDRAM_DQ  ='Z;
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 
-assign CE_PIXEL  = 1;
 assign VIDEO_ARX = status[1] ? 8'd16 : 8'd4;
 assign VIDEO_ARY = status[1] ? 8'd9  : 8'd3;
 
@@ -148,6 +147,7 @@ localparam CONF_STR =
 	"S3,VHD,Mount Secondary HDD;",
 	"-;",
 	"O1,Aspect ratio,4:3,16:9;",
+	"O4,VSync,60Hz,Variable;",
 	"O3,FM mode,OPL2,OPL3;",
 	"-;",
 	"OX2,Boot order,FDD/HDD,HDD/FDD;",
@@ -205,6 +205,7 @@ hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000)) hps_io
 
 	.buttons(buttons),
 	.status(status),
+	.new_vmode(status[4]),
 
 	.ioctl_wait(ioctl_wait),
 	
@@ -248,13 +249,14 @@ wire        device;
 
 wire        de;
 reg  [15:0] ded;
-always @(posedge CLK_VIDEO) ded <= (ded<<1) | de;
+always @(posedge CLK_VIDEO) if(CE_PIXEL) ded <= (ded<<1) | de;
 
 // ugly fix of right black border.
 assign VGA_DE = de & ded[15];
 
 assign VGA_F1 = 0;
 assign VGA_SL = 0;
+assign CLK_VIDEO = clk_sys;
 
 system u0
 (
@@ -263,7 +265,8 @@ system u0
 	.qsys_reset_reset     (sys_reset),
 	.pll_reset_reset      (0),
 
-	.vga_clock            (CLK_VIDEO),
+	.vga_ce               (CE_PIXEL),
+	.vga_mode             (status[4]),
 	.vga_blank_n          (de),
 	.vga_hsync            (VGA_HS),
 	.vga_vsync            (VGA_VS),

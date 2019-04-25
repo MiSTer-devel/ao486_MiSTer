@@ -14,7 +14,6 @@ derive_clock_uncertainty
 set_clock_groups -asynchronous \
    -group [get_clocks { emu|u0|pll_0|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk}] \
    -group [get_clocks { emu|u0|pll_0|altera_pll_i|general[1].gpll~PLL_OUTPUT_COUNTER|divclk}] \
-   -group [get_clocks { emu|u0|pll_0|altera_pll_i|general[2].gpll~PLL_OUTPUT_COUNTER|divclk}] \
    -group [get_clocks { pll_hdmi|pll_hdmi_inst|altera_pll_i|cyclonev_pll|counter[0].output_counter|divclk}] \
    -group [get_clocks { *|h2f_user0_clk}] \
    -group [get_clocks { FPGA_CLK1_50 FPGA_CLK2_50 FPGA_CLK3_50}]

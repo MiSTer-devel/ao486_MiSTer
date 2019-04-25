@@ -63,7 +63,8 @@ set_global_assignment -name AUTO_DELAY_CHAINS_FOR_HIGH_FANOUT_INPUT_PINS ON
 set_global_assignment -name PERIPHERY_TO_CORE_PLACEMENT_AND_ROUTING_OPTIMIZATION ON
 set_global_assignment -name PHYSICAL_SYNTHESIS_COMBO_LOGIC_FOR_AREA ON
 set_global_assignment -name ROUTER_CLOCKING_TOPOLOGY_ANALYSIS ON
-set_global_assignment -name SEED 4
+set_global_assignment -name SYNTH_GATED_CLOCK_CONVERSION ON
+set_global_assignment -name SEED 1
 
 #============================================================
 # ADC

@@ -27,7 +27,6 @@
 module vga
 (
     input               clk_sys,
-    input               clk_vga,
     input               rst_n,
 
     //avalon slave vga io
@@ -62,7 +61,8 @@ module vga
     output              irq,
 
     //vga
-    output              vga_clock,
+    output              vga_ce,
+    input               vga_mode,
     output              vga_blank_n,
     output              vga_horiz_sync,
     output              vga_vert_sync,
@@ -73,6 +73,40 @@ module vga
 
 //------------------------------------------------------------------------------
 
+wire clk_vga = clk_sys & ce_video;
+
+reg ce_video;
+reg [31:0] pixclk = 25175000;
+always @(negedge clk_sys) begin
+	reg [31:0] sum = 0;
+	
+	ce_video = 0;
+	sum = sum + pixclk;
+	if(sum >= 90500000) begin
+		sum = sum - 90500000;
+		ce_video = 1;
+	end
+end
+
+
+always @(posedge clk_sys) begin
+	reg [31:0] pixcnt = 0, pix60;
+	reg old_sync = 0;
+	
+	if(~rst_n || vga_mode) pixclk <= 25175000;
+	else if(ce_video) begin
+		old_sync <= vga_vert_sync;
+		pixcnt <= pixcnt + 1;
+		if(~old_sync & vga_vert_sync) begin
+			pix60 <= {pixcnt[26:0],5'd0}+{pixcnt[27:0],4'd0}+{pixcnt[28:0],3'd0}+{pixcnt[29:0],2'd0};
+			pixcnt <= 0;
+		end
+		
+		if(pix60<15000000) pixclk <= 15000000;
+		else if(pix60>30000000) pixclk <= 30000000;
+		else pixclk <= pix60;
+	end
+end
 
 reg io_b_read_last;
 always @(posedge clk_sys or negedge rst_n) begin if(rst_n == 1'b0) io_b_read_last <= 1'b0; else if(io_b_read_last) io_b_read_last <= 1'b0; else io_b_read_last <= io_b_read; end 
@@ -975,11 +1009,7 @@ wire [7:0] plane_ram1_q;
 wire [7:0] plane_ram2_q;
 wire [7:0] plane_ram3_q;
 
-
-simple_bidir_ram #(
-    .widthad    (16),
-    .width      (8)
-)
+dpram_difclk #(16,8,16,8)
 plane_ram_inst0(
     .clk_a          (clk_sys),
     .address_a      (host_address),
@@ -992,10 +1022,7 @@ plane_ram_inst0(
     .q_b            (plane_ram0_q)
 );
 
-simple_bidir_ram #(
-    .widthad    (16),
-    .width      (8)
-)
+dpram_difclk #(16,8,16,8)
 plane_ram_inst1(
     .clk_a          (clk_sys),
     .address_a      (host_address),
@@ -1008,10 +1035,7 @@ plane_ram_inst1(
     .q_b            (plane_ram1_q)
 );
 
-simple_bidir_ram #(
-    .widthad    (16),
-    .width      (8)
-)
+dpram_difclk #(16,8,16,8)
 plane_ram_inst2(
     .clk_a          (clk_sys),
     .address_a      (host_address),
@@ -1024,10 +1048,7 @@ plane_ram_inst2(
     .q_b            (plane_ram2_q)
 );
 
-simple_bidir_ram #(
-    .widthad    (16),
-    .width      (8)
-)
+dpram_difclk #(16,8,16,8)
 plane_ram_inst3(
     .clk_a          (clk_sys),
     .address_a      (host_address),
@@ -1227,10 +1248,7 @@ end
 
 wire [5:0] pel_palette;
 
-simple_bidir_ram #(
-    .widthad    (4),
-    .width      (6)
-)
+dpram_difclk #(4,6,4,6)
 internal_palette_ram_inst(
     
     .clk_a          (clk_sys),
@@ -1262,10 +1280,7 @@ wire [7:0] pel_index =
 
 wire [17:0] dac_color;
 
-simple_bidir_ram #(
-    .widthad    (8),
-    .width      (18)
-)
+dpram_difclk #(8,18,8,18)
 dac_ram_inst(
     
     .clk_a          (clk_sys),
@@ -1413,7 +1428,7 @@ always @(posedge clk_vga) begin
     vgareg_b <= output_enable ? { dac_color[5:0],   dac_color[5:4]   } : 8'd0;
 end
 
-assign vga_clock  = clk_vga;
+assign vga_ce  = ce_video;
 
 assign vga_blank_n    = vgareg_blank_n;
 assign vga_horiz_sync = vgareg1_horiz_sync;
