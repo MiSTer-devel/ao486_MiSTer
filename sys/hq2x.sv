@@ -15,12 +15,15 @@
 module Hq2x #(parameter LENGTH, parameter HALF_DEPTH)
 (
 	input             clk,
-	input             ce_x4,
+
+	input             ce_in,
 	input  [DWIDTH:0] inputpixel,
 	input             mono,
 	input             disable_hq2x,
 	input             reset_frame,
 	input             reset_line,
+
+	input             ce_out,
 	input       [1:0] read_y,
 	input             hblank,
 	output [DWIDTH:0] outpixel
@@ -129,6 +132,14 @@ hq2x_buf #(.NUMWORDS(LENGTH*2), .AWIDTH(AWIDTH+1), .DWIDTH(DWIDTH1*4-1)) hq2x_ou
 	.wren(wrout_en)
 );
 
+always @(posedge clk) begin
+	if(ce_out) begin
+		if(read_x[0]) outpixel_x2 <= read_y[0] ? outpixel_x4[DWIDTH1*4-1:DWIDTH1*2] : outpixel_x4[DWIDTH1*2-1:0];
+		if(~hblank & ~&read_x) read_x <= read_x + 1'd1;
+		if(hblank) read_x <= 0;
+	end
+end
+
 wire [DWIDTH:0] blend_result = HALF_DEPTH ? rgb2h(blend_result_pre) : blend_result_pre[DWIDTH:0];
 
 reg [AWIDTH:0] offs;
@@ -139,10 +150,7 @@ always @(posedge clk) begin
 	wrout_en <= 0;
 	wrin_en  <= 0;
 
-	if(ce_x4) begin
-
-		pattern <= new_pattern;
-		if(read_x[0]) outpixel_x2 <= read_y[0] ? outpixel_x4[DWIDTH1*4-1:DWIDTH1*2] : outpixel_x4[DWIDTH1*2-1:0];
+	if(ce_in) begin
 
 		if(~&offs) begin
 			if (cyc == 1) begin
@@ -168,6 +176,7 @@ always @(posedge clk) begin
 			end
 		end
 
+		pattern <= new_pattern;
 		if(cyc==3) begin
 			nextpatt <= {new_pattern[7:6], new_pattern[3], new_pattern[5], new_pattern[2], new_pattern[4], new_pattern[1:0]};
 			{A, G} <= {Prev0, Next0};
@@ -194,9 +203,6 @@ always @(posedge clk) begin
 			end
 		end
 		
-		if(~hblank & ~&read_x) read_x <= read_x + 1'd1;
-		if(hblank) read_x <= 0;
-
 		old_reset_line  <= reset_line;
 	end
 end

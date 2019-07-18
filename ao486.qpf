@@ -1,7 +1,2 @@
-#
-# please keep this file read-only!
-# Quartus changes this file everytime revision is switched, 
-# and it will be marked as changed with every commit.
-#
-
+QUARTUS_VERSION = "17.0"
 PROJECT_REVISION = "ao486"

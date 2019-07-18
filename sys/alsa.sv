@@ -23,6 +23,9 @@ module alsa
 (
 	input             reset,
 
+	output reg        en_out,
+	input             en_in,
+
 	input             ram_clk,
 	output reg [28:0] ram_address,
 	output reg  [7:0] ram_burstcount,
@@ -30,11 +33,11 @@ module alsa
 	input      [63:0] ram_readdata,
 	input             ram_readdatavalid,
 	output reg        ram_read,
-	
+
 	input             spi_ss,
 	input             spi_sck,
 	input             spi_mosi,
-	
+
 	output reg [15:0] pcm_l,
 	output reg [15:0] pcm_r
 );
@@ -44,7 +47,7 @@ reg [127:0] spi_data;
 always @(posedge spi_sck, posedge spi_ss) begin
 	reg [7:0] mosi;
 	reg [6:0] spicnt = 0;
-	
+
 	if(spi_ss) spicnt <= 0;
 	else begin
 		mosi <= {mosi[6:0],spi_mosi};
@@ -68,10 +71,10 @@ always @(posedge ram_clk) begin
 	n1 <= spi_new;
 	n2 <= n1;
 	n3 <= n2;
-	
+
 	data1 <= spi_data;
 	data2 <= data1;
-	
+
 	if(~n3 & n2) {buf_wptr,buf_len,buf_addr} <= data2[95:0];
 end
 
@@ -79,7 +82,7 @@ reg [31:0] buf_rptr = 0;
 always @(posedge ram_clk) begin
 	reg got_first = 0;
 	reg ready = 0;
-	reg ud;
+	reg ud = 0;
 	reg [31:0] readdata;
 
 	if(~ram_waitrequest) ram_read <= 0;
@@ -90,7 +93,7 @@ always @(posedge ram_clk) begin
 		if(buf_rptr[31:2] >= buf_len[31:2]) buf_rptr <= 0;
 	end
 
-	if(reset) {ready, got_first} <= 0;
+	if(reset) {ready, got_first, ram_burstcount} <= 0;
 	else
 	if(buf_rptr[31:2] != buf_wptr[31:2]) begin
 		if(~got_first) begin
@@ -98,7 +101,7 @@ always @(posedge ram_clk) begin
 			got_first <= 1;
 		end
 		else
-		if(!ram_burstcount && ~ram_waitrequest && ~ready) begin
+		if(!ram_burstcount && ~ram_waitrequest && ~ready && en_out == en_in) begin
 			ram_address <= buf_addr[31:3] + buf_rptr[31:3];
 			ud <= buf_rptr[2];
 			ram_burstcount <= 1;
@@ -111,6 +114,8 @@ always @(posedge ram_clk) begin
 		{pcm_r,pcm_l} <= readdata;
 		ready <= 0;
 	end
+	
+	if(ce_48k) en_out <= ~en_out;
 end
 
 reg ce_48k;

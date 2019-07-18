@@ -7,6 +7,8 @@ module hdmi_config
 	
 	input       dvi_mode,
 	input       audio_96k,
+	input       hdmi_limited,
+	output reg  done,
 
 	//	I2C Side
 	output		I2C_SCL,
@@ -41,6 +43,7 @@ always@(posedge iCLK or negedge iRST_N) begin
 		LUT_INDEX	<=	0;
 		mSetup_ST	<=	0;
 		mI2C_GO		<=	0;
+		done        <= 0;
 	end else begin
 		if(init_data[LUT_INDEX] != 16'hFFFF) begin
 			case(mSetup_ST)
@@ -58,13 +61,14 @@ always@(posedge iCLK or negedge iRST_N) begin
 				end
 			endcase
 		end
+		else done <= 1;
 	end
 end
 
 ////////////////////////////////////////////////////////////////////
 /////////////////////	Config Data LUT   //////////////////////////
 
-wire [15:0] init_data[58] = 
+wire [15:0] init_data[82] = 
 '{
 	16'h9803,					// ADI required Write.
 
@@ -101,10 +105,34 @@ wire [15:0] init_data[58] =
 
 	{8'h17, 8'b01100010},   // Aspect ratio 16:9 [1]=1, 4:3 [1]=0
 
-	{8'h18, 8'b0100_0110},	// CSC disabled [7]=0.
-									// CSC Scaling Factor [6:5] b10 = +/- 4.0, -16384 - 16380.
-									// CSC Equation 3 [4:0] b00110.
-
+	{8'h18, hdmi_limited,   // CSC enable [7]. 0 - Off. 1 - On.
+	        7'h0D},         // CSC Scaling Factors and Coefficients for RGB Full->Limited.
+	{8'h19, 8'hBC},         // Taken from table in ADV7513 Programming Guide.
+	{8'h1A, 8'h00},         // CSC Channel A.
+	{8'h1B, 8'h00},
+	{8'h1C, 8'h00},
+	{8'h1D, 8'h00},
+	{8'h1E, 8'h01},
+	{8'h1F, 8'h00},
+	
+	{8'h20, 8'h00},         // CSC Channel B.
+	{8'h21, 8'h00},
+	{8'h22, 8'h0D},
+	{8'h23, 8'hBC},
+	{8'h24, 8'h00},
+	{8'h25, 8'h00},
+	{8'h26, 8'h01},
+	{8'h27, 8'h00},
+	
+	{8'h28, 8'h00},         // CSC Channel C.
+	{8'h29, 8'h00},
+	{8'h2A, 8'h00},
+	{8'h2B, 8'h00},
+	{8'h2C, 8'h0D},
+	{8'h2D, 8'hBC},
+	{8'h2E, 8'h01},
+	{8'h2F, 8'h00},
+	
 
 	{8'h3B, 8'b0000_0000},	// Pixel repetition [6:5] b00 AUTO. [4:3] b00 x1 mult of input clock. [2:1] b00 x1 pixel rep to send to HDMI Rx.
 
@@ -121,6 +149,11 @@ wire [15:0] init_data[58] =
 									// AVI InfoFrame Valid [4].
 									// Bar Info [3:2] b00 Bars invalid. b01 Bars vertical. b10 Bars horizontal. b11 Bars both.
 									// Scan Info [1:0] b00 (No data). b01 TV. b10 PC. b11 None.
+
+	{8'h57, 1'b0,           // [7] IT Content. 0 - No. 1 - Yes (type set in register h59).
+	3'b000,                 // [6:4] Color space (ignored for RGB)
+	hdmi_limited ? 2'b01 : 2'b10, // [3:2] RGB Quantization range
+	2'b00},                 // [1:0] Non-Uniform Scaled: 00 - None. 01 - Horiz. 10 - Vert. 11 - Both.
 
 	16'h7301,
 

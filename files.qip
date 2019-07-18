@@ -1,0 +1,3 @@
+set_global_assignment -name SEARCH_PATH ./rtl/ao486
+set_global_assignment -name QSYS_FILE system.qsys
+set_global_assignment -name SYSTEMVERILOG_FILE ao486.sv

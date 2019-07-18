@@ -2,7 +2,7 @@
 // hps_io.v (ao486 only!)
 //
 // Copyright (c) 2014 Till Harbaum <till@harbaum.org>
-// Copyright (c) 2017,2018 Sorgelig
+// Copyright (c) 2017-2019 Sorgelig
 //
 // This source file is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published
@@ -28,7 +28,7 @@
 module hps_io #(parameter STRLEN=0, PS2DIV=2000)
 (
 	input             clk_sys,
-	inout      [44:0] HPS_BUS,
+	inout      [45:0] HPS_BUS,
 
 	// parameter STRLEN and the actual length of conf_str have to match
 	input [(8*STRLEN)-1:0] conf_str,
@@ -41,6 +41,9 @@ module hps_io #(parameter STRLEN=0, PS2DIV=2000)
 	output      [1:0] buttons,
 
 	output reg [31:0] status,
+	input      [31:0] status_in,
+	input             status_set,
+	input      [15:0] status_menumask,
 
 	//toggle to force notify of video mode change
 	input             new_vmode,
@@ -101,10 +104,12 @@ wire de      = HPS_BUS[40];
 wire hs      = HPS_BUS[39];
 wire vs      = HPS_BUS[38];
 wire vs_hdmi = HPS_BUS[44];
+wire f1      = HPS_BUS[45];
 
 reg [31:0] vid_hcnt = 0;
 reg [31:0] vid_vcnt = 0;
 reg  [7:0] vid_nres = 0;
+reg  [1:0] vid_int  = 0;
 integer hcnt;
 
 always @(posedge clk_vid) begin
@@ -122,20 +127,22 @@ always @(posedge clk_vid) begin
 		if(old_de & ~de) calch <= 0;
 
 		if(old_vs & ~vs) begin
-			if(hcnt && vcnt) begin
-				old_vmode <= new_vmode;
+			vid_int <= {vid_int[0],f1};
+			if(~f1) begin
+				if(hcnt && vcnt) begin
+					old_vmode <= new_vmode;
 
-				//report new resolution after timeout
-				if(resto) resto <= resto + 1'd1;
-				if(vid_hcnt != hcnt || vid_vcnt != vcnt || old_vmode != new_vmode) resto <= 1;
-				if(&resto) vid_nres <= vid_nres + 1'd1;
-
-				vid_hcnt <= hcnt;
-				vid_vcnt <= vcnt;
+					//report new resolution after timeout
+					if(resto) resto <= resto + 1'd1;
+					if(vid_hcnt != hcnt || vid_vcnt != vcnt || old_vmode != new_vmode) resto <= 1;
+					if(&resto) vid_nres <= vid_nres + 1'd1;
+					vid_hcnt <= hcnt;
+					vid_vcnt <= vcnt;
+				end
+				vcnt <= 0;
+				hcnt <= 0;
+				calch <= 1;
 			end
-			vcnt <= 0;
-			hcnt <= 0;
-			calch <= 1;
 		end
 	end
 end
@@ -206,6 +213,15 @@ always@(posedge clk_sys) begin
 	reg        dma_hilo;
 	reg        old_wait;
 	reg        pending;
+	reg  [3:0] stflg = 0;
+	reg [31:0] status_req;
+	reg        old_status_set = 0;
+
+	old_status_set <= status_set;
+	if(~old_status_set & status_set) begin
+		stflg <= stflg + 1'd1;
+		status_req <= status_in;
+	end
 
 	{kbd_rd,kbd_we,mouse_rd,mouse_we} <= 0;
 	
@@ -228,7 +244,9 @@ always@(posedge clk_sys) begin
 
 			if(byte_cnt == 0) begin
 				cmd <= io_din;
+				if(io_din == 'h29) io_dout <= {4'hA, stflg};
 				if(io_din == 'h2B) io_dout <= 1;
+				if(io_din == 'h2F) io_dout <= 1;
 				dma_hilo <= 0;
 			end else begin
 
@@ -289,7 +307,7 @@ always@(posedge clk_sys) begin
 
 					//Video res.
 					'h23: case(byte_cnt)
-								1: io_dout <= vid_nres;
+								1: io_dout <= {|vid_int, vid_nres};
 								2: io_dout <= vid_hcnt[15:0];
 								3: io_dout <= vid_hcnt[31:16];
 								4: io_dout <= vid_vcnt[15:0];
@@ -306,6 +324,15 @@ always@(posedge clk_sys) begin
 
 					//UART flags
 					'h28: io_dout <= uart_mode;
+
+					//status set
+					'h29: case(byte_cnt)
+								1: io_dout <= status_req[15:0];
+								2: io_dout <= status_req[31:16];
+							endcase
+					
+					//menu mask
+					'h2E: if(byte_cnt == 1) io_dout <= status_menumask;
 
 					'h61: if(byte_cnt == 1) begin
 								dma_addr[15:0] <= io_din;

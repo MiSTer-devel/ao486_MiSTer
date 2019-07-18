@@ -5,11 +5,11 @@
 -- Changes the HDMI PLL frequency according to the scaler suggestions.
 --------------------------------------------
 -- LLTUNE :
---  0   : Input Syncline
---  1   : 
+--  0   : Input Display Enable
+--  1   : Input Vsync
 --  2   : Input Interlaced mode
 --  3   : Input Interlaced field
---  4   : Output Syncline
+--  4   : Output Image frame
 --  5   : 
 --  6   : Input clock
 --  7   : Output clock
@@ -51,6 +51,11 @@ END ENTITY pll_hdmi_adj;
 --##############################################################################
 
 ARCHITECTURE rtl OF pll_hdmi_adj IS
+
+  SIGNAL i_clk,i_de,i_de2,i_vss,i_vss2,i_vss_delay,i_ce : std_logic;
+  SIGNAL i_linecpt,i_line : natural RANGE 0 TO 2**12-1;
+  SIGNAL i_delay : natural RANGE 0 TO 2**14-1;
+  
   SIGNAL pwrite : std_logic;
   SIGNAL paddress : unsigned(5 DOWNTO 0);
   SIGNAL pdata    : unsigned(31 DOWNTO 0);
@@ -61,19 +66,57 @@ ARCHITECTURE rtl OF pll_hdmi_adj IS
   SIGNAL mfrac,mfrac_mem,mfrac_ref,diff : unsigned(40 DOWNTO 0);
   SIGNAL mul : unsigned(15 DOWNTO 0);
   SIGNAL sign,sign_pre : std_logic;
+  SIGNAL expand : boolean;
   SIGNAL up,modo,phm,dir : std_logic;
   SIGNAL cpt : natural RANGE 0 TO 3;
   SIGNAL col : natural RANGE 0 TO 15;
   
-  SIGNAL icpt,ocpt,ssh : natural RANGE 0 TO 2**24-1;
-  SIGNAL isync,isync2,itog,ipulse : std_logic;
-  SIGNAL osync,osync2,otog,opulse : std_logic;
+  SIGNAL icpt,ocpt,o2cpt,ssh,ofsize,ifsize : natural RANGE 0 TO 2**24-1;
+  SIGNAL ivss,ivss2,itog : std_logic;
+  SIGNAL ovss,ovss2,otog : std_logic;
   SIGNAL sync,pulse,los,lop : std_logic;
-  SIGNAL osize,isize,offset,osizep : signed(23 DOWNTO 0);
+  SIGNAL osize,offset,osizep,offsetp : signed(23 DOWNTO 0);
   SIGNAL logcpt : natural RANGE 0 TO 31;
   SIGNAL udiff : integer RANGE -2**23 TO 2**23-1 :=0;
   
 BEGIN
+  
+  ----------------------------------------------------------------------------
+  -- 4 lines delay to input
+  i_vss<=lltune(0);
+  i_de <=lltune(1);
+  i_ce <=lltune(5);
+  i_clk<=lltune(6);
+  
+  Delay:PROCESS(i_clk) IS
+  BEGIN
+    IF rising_edge(i_clk) THEN
+      IF i_ce='1' THEN
+        -- Measure input line time.
+        i_de2<=i_de;
+        
+        IF i_de='1' AND i_de2='0' THEN
+          i_linecpt<=0;
+          IF i_vss='1' THEN
+            i_line<=i_linecpt;
+          END IF;
+        ELSE
+          i_linecpt<=i_linecpt+1;
+        END IF;
+        
+        -- Delay 4 lines
+        i_vss2<=i_vss;
+        IF i_vss/=i_vss2 THEN
+          i_delay<=0;
+        ELSIF i_delay=i_line * 4 THEN
+          i_vss_delay<=i_vss;
+        ELSE
+          i_delay<=i_delay+1;
+        END IF;
+      END IF;
+    END IF;
+  END PROCESS Delay;
+  
   ----------------------------------------------------------------------------
   -- Sample image sizes
   Sampler:PROCESS(clk,reset_na) IS
@@ -82,39 +125,47 @@ BEGIN
 --pragma synthesis_off
       otog<='0';
       itog<='0';
-      isync<='0';
-      isync2<='0';
-      osync<='0';
-      osync2<='0';
+      ivss<='0';
+      ivss2<='0';
+      ovss<='0';
+      ovss2<='0';
 --pragma synthesis_on
       
     ELSIF rising_edge(clk) THEN
       -- Clock domain crossing
-      isync<=lltune(0); -- <ASYNC>
-      isync2<=isync;
-      osync<=lltune(4); -- <ASYNC>
-      osync2<=osync;
       
-      itog<=itog XOR (isync AND NOT isync2);
-      otog<=otog XOR (osync AND NOT osync2);
+      ivss<=i_vss_delay; -- <ASYNC>
+      ivss2<=ivss;
       
-      --ipulse<=isync AND NOT isync2 AND itog;
-      --opulse<=osync AND NOT osync2 AND otog;
+      ovss<=lltune(4); -- <ASYNC>
+      ovss2<=ovss;
       
-      -- Measure output image size
-      IF osync='1' AND osync2='0' AND otog='1' THEN
+      otog<=otog XOR (ovss AND NOT ovss2);
+      
+      -- Measure output frame time
+      IF ovss='1' AND ovss2='0' AND otog='1' THEN
         ocpt<=0;
         osizep<=to_signed(ocpt,24);
       ELSE
         ocpt<=ocpt+1;
       END IF;
+      IF ovss='0' AND ovss2='1' AND otog='0' THEN
+        o2cpt<=0;
+      ELSE
+        o2cpt<=o2cpt+1;
+      END IF;
       
-      -- Measure input image size
-      IF isync='1' AND isync2='0' AND itog='1' THEN
+      -- Measure output image time
+      IF ovss='0' AND ovss2='1' AND otog='0' THEN
+        ofsize<=ocpt;
+      END IF;
+      
+      itog<=itog XOR (ivss AND NOT ivss2);
+
+      -- Measure input frame time
+      IF ivss='1' AND ivss2='0' AND itog='1' THEN
         icpt<=0;
-        --isize<=to_signed(icpt,24);
         osize<=osizep;
-        offset<=to_signed(ocpt,24);
         udiff<=integer(to_integer(osizep)) - integer(icpt);
         sync<='1';
       ELSE
@@ -122,6 +173,28 @@ BEGIN
         sync<='0';
       END IF;
 
+      -- Measure input image time
+      IF ivss='0' AND ivss2='1' AND itog='0' THEN
+        ifsize<=icpt;
+      END IF;
+      
+      expand<=(ofsize>=ifsize);
+      -- IN  |  #########       | EXPAND = 1
+      -- OUT |   #############  |
+
+      -- IN  |  #########       | EXPAND = 0
+      -- OUT |      ######      |
+      
+      IF expand THEN
+        IF ivss='1' AND ivss2='0' AND itog='1' THEN
+          offset<=to_signed(ocpt,24);
+        END IF;
+      ELSE
+        IF ivss='0' AND ivss2='1' AND itog='0' THEN
+          offset<=to_signed(o2cpt,24);
+        END IF;
+      END IF;
+      
       --------------------------------------------
       pulse<='0';
       IF sync='1' THEN
