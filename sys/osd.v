@@ -4,16 +4,20 @@
 module osd
 (
 	input         clk_sys,
-
 	input         io_osd,
 	input         io_strobe,
 	input  [15:0] io_din,
 
 	input         clk_video,
 	input  [23:0] din,
-	output [23:0] dout,
 	input         de_in,
+	input         vs_in,
+	input         hs_in,
+	output [23:0] dout,
 	output reg    de_out,
+	output reg    vs_out,
+	output reg    hs_out,
+
 	output reg    osd_status
 );
 
@@ -143,6 +147,7 @@ always @(posedge clk_video) begin
 	reg [21:0] osd_hcnt;
 	reg        osd_de1,osd_de2;
 	reg  [1:0] osd_en;
+	reg        f1;
 
 	if(ce_pix) begin
 
@@ -168,28 +173,31 @@ always @(posedge clk_video) begin
 
 			if(h_cnt > {dsp_width, 2'b00}) begin
 				v_cnt <= 1;
+				f1 <= ~f1; // skip every other frame for interlace compatibility.
+				if(~f1) begin
 
-				osd_en <= (osd_en << 1) | osd_enable;
-				if(~osd_enable) osd_en <= 0;
+					osd_en <= (osd_en << 1) | osd_enable;
+					if(~osd_enable) osd_en <= 0;
 
-				if(v_cnt_below320) begin
-					multiscan <= 0;
-					v_osd_start <= info ? infoy : v_osd_start_320;
-				end
-				else if(v_cnt_below640) begin
-					multiscan <= 1;
-					v_osd_start <= info ? (infoy<<1) : v_osd_start_640;
-				end
-				else if(v_cnt_below960) begin
-					multiscan <= 2;
-					v_osd_start <= info ? (infoy + (infoy << 1)) : v_osd_start_960;
-				end
-				else begin
-					multiscan <= 3;
-					v_osd_start <= info ? (infoy<<2) : v_osd_start_other;
+					if(v_cnt_below320) begin
+						multiscan <= 0;
+						v_osd_start <= info ? infoy : v_osd_start_320;
+					end
+					else if(v_cnt_below640) begin
+						multiscan <= 1;
+						v_osd_start <= info ? (infoy<<1) : v_osd_start_640;
+					end
+					else if(v_cnt_below960) begin
+						multiscan <= 2;
+						v_osd_start <= info ? (infoy + (infoy << 1)) : v_osd_start_960;
+					end
+					else begin
+						multiscan <= 3;
+						v_osd_start <= info ? (infoy<<2) : v_osd_start_other;
+					end
 				end
 			end
-			
+
 			osd_div <= osd_div + 1'd1;
 			if(osd_div == multiscan) begin
 				osd_div <= 0;
@@ -208,19 +216,30 @@ end
 reg [23:0] rdout;
 assign dout = rdout;
 
-reg [23:0] osd_rdout, normal_rdout;
-reg osd_mux;
-reg de_dly;
-									 
 always @(posedge clk_video) begin
-	normal_rdout <= din;
-	osd_rdout <= {{osd_pixel, osd_pixel, OSD_COLOR[2], din[23:19]},// 23:16
-	              {osd_pixel, osd_pixel, OSD_COLOR[1], din[15:11]},// 15:8
-	              {osd_pixel, osd_pixel, OSD_COLOR[0], din[7:3]}}; //  7:0
+	reg [23:0] ordout1, nrdout1, rdout2, rdout3;
+	reg de1,de2,de3;
+	reg osd_mux;
+	reg vs1,vs2,vs3;
+	reg hs1,hs2,hs3;
+
+	nrdout1 <= din;
+	ordout1 <= {{osd_pixel, osd_pixel, OSD_COLOR[2], din[23:19]},// 23:16
+	            {osd_pixel, osd_pixel, OSD_COLOR[1], din[15:11]},// 15:8
+	            {osd_pixel, osd_pixel, OSD_COLOR[0], din[7:3]}}; //  7:0
+
 	osd_mux <= ~osd_de[2];
-	rdout  <= osd_mux ? normal_rdout : osd_rdout;
-	de_dly <= de_in;
-	de_out <= de_dly;
+	rdout2  <= osd_mux ? nrdout1 : ordout1;
+	rdout3  <= rdout2;
+
+	de1 <= de_in; de2 <= de1; de3 <= de2;
+	hs1 <= hs_in; hs2 <= hs1; hs3 <= hs2;
+	vs1 <= vs_in; vs2 <= vs1; vs3 <= vs2;
+
+	rdout   <= rdout3;
+	de_out  <= de3;
+	hs_out  <= hs3;
+	vs_out  <= vs3;
 end
 
 endmodule

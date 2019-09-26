@@ -19,16 +19,23 @@ set_location_assignment PIN_AD4 -to ADC_SDO
 #============================================================
 # ARDUINO
 #============================================================
-set_location_assignment PIN_AG9 -to ARDUINO_IO[3]
-set_location_assignment PIN_U14 -to ARDUINO_IO[4]
-set_location_assignment PIN_U13 -to ARDUINO_IO[5]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[*]
 set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to ARDUINO_IO[*]
 set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to ARDUINO_IO[*]
 
 #============================================================
+# I2C LEDS/BUTTONS
+#============================================================
+set_location_assignment PIN_U14 -to IO_SCL
+set_location_assignment PIN_AG9 -to IO_SDA
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to IO_S*
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to IO_S*
+set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to IO_S*
+
+#============================================================
 # USER PORT
 #============================================================
+set_location_assignment PIN_AF17 -to USER_IO[6]
 set_location_assignment PIN_AF15 -to USER_IO[5]
 set_location_assignment PIN_AG16 -to USER_IO[4]
 set_location_assignment PIN_AH11 -to USER_IO[3]
@@ -43,9 +50,7 @@ set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to USER_IO
 # SDIO_CD or SPDIF_OUT
 #============================================================
 set_location_assignment PIN_AH7 -to SDCD_SPDIF
-
 set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to SDCD_SPDIF
-
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SDCD_SPDIF
 set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to SDCD_SPDIF
 
@@ -67,7 +72,6 @@ set_location_assignment PIN_AD17 -to SDRAM_A[11]
 set_location_assignment PIN_D12 -to SDRAM_A[12]
 set_location_assignment PIN_Y17 -to SDRAM_BA[0]
 set_location_assignment PIN_AB25 -to SDRAM_BA[1]
-
 set_location_assignment PIN_E8 -to SDRAM_DQ[0]
 set_location_assignment PIN_V12 -to SDRAM_DQ[1]
 set_location_assignment PIN_D11 -to SDRAM_DQ[2]
@@ -86,10 +90,8 @@ set_location_assignment PIN_AF4 -to SDRAM_DQ[14]
 set_location_assignment PIN_AH3 -to SDRAM_DQ[15]
 set_location_assignment PIN_AG13 -to SDRAM_DQML
 set_location_assignment PIN_AF13 -to SDRAM_DQMH
-
 set_location_assignment PIN_AD20 -to SDRAM_CLK
 set_location_assignment PIN_AG10 -to SDRAM_CKE
-
 set_location_assignment PIN_AA19 -to SDRAM_nWE
 set_location_assignment PIN_AA18 -to SDRAM_nCAS
 set_location_assignment PIN_Y18 -to SDRAM_nCS
@@ -106,18 +108,15 @@ set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to SDRAM_DQ[*]
 set_instance_assignment -name ALLOW_SYNCH_CTRL_USAGE OFF -to *|SDRAM_*
 
 #============================================================
-# I/O #2
+# SPI SD
 #============================================================
-set_location_assignment PIN_AG8 -to BTNLED[0]
-set_location_assignment PIN_AH8 -to BTNLED[1]
-set_location_assignment PIN_AF17 -to BTNLED[2]
-set_location_assignment PIN_AE15 -to BTNLED[3]
-
-set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to BTNLED[*]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to BTNLED[*]
-set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to BTNLED[*]
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to BTNLED[*]
-set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to  BTNLED[*]
+set_location_assignment PIN_AE15 -to SD_SPI_CS
+set_location_assignment PIN_AH8  -to SD_SPI_MISO
+set_location_assignment PIN_AG8  -to SD_SPI_CLK
+set_location_assignment PIN_U13  -to SD_SPI_MOSI
+set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to SD_SPI*
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SD_SPI*
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to SD_SPI*
 
 
 #============================================================
@@ -246,6 +245,7 @@ set_location_assignment PIN_W20 -to SW[3]
 
 set_instance_assignment -name HPS_LOCATION HPSINTERFACEPERIPHERALSPIMASTER_X52_Y72_N111 -entity sys_top -to spi
 set_instance_assignment -name HPS_LOCATION HPSINTERFACEPERIPHERALUART_X52_Y67_N111 -entity sys_top -to uart
+set_location_assignment FRACTIONALPLL_X89_Y1_N0 -to emu:emu|pll:pll|pll_0002:pll_inst|altera_pll:altera_pll_i|altera_cyclonev_pll:cyclonev_pll|altera_cyclonev_pll_base:fpll_0|fpll
 
 set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:sys/build_id.tcl"
 
