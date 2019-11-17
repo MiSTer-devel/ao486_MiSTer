@@ -40,8 +40,8 @@ module hps_io #(parameter STRLEN=0, PS2DIV=2000)
 
 	output      [1:0] buttons,
 
-	output reg [31:0] status,
-	input      [31:0] status_in,
+	output reg [63:0] status,
+	input      [63:0] status_in,
 	input             status_set,
 	input      [15:0] status_menumask,
 
@@ -72,7 +72,9 @@ module hps_io #(parameter STRLEN=0, PS2DIV=2000)
 	output            ps2_mouse_clk_out,
 	output            ps2_mouse_data_out,
 	input             ps2_mouse_clk_in,
-	input             ps2_mouse_data_in
+	input             ps2_mouse_data_in,
+
+	inout      [21:0] gamma_bus
 );
 
 wire        io_wait  = ioctl_wait;
@@ -95,126 +97,43 @@ assign buttons = cfg[1:0];
 //cfg[5] - ypbpr handled in sys_top
 
 
-///////////////// calc video parameters //////////////////
+/////////////////////////////////////////////////////////
 
-wire clk_100 = HPS_BUS[43];
-wire clk_vid = HPS_BUS[42];
-wire ce_pix  = HPS_BUS[41];
-wire de      = HPS_BUS[40];
-wire hs      = HPS_BUS[39];
-wire vs      = HPS_BUS[38];
-wire vs_hdmi = HPS_BUS[44];
-wire f1      = HPS_BUS[45];
+wire [15:0] vc_dout;
+video_calc video_calc
+(
+	.clk_100(HPS_BUS[43]),
+	.clk_vid(HPS_BUS[42]),
+	.ce_pix(HPS_BUS[41]),
+	.de(HPS_BUS[40]),
+	.hs(HPS_BUS[39]),
+	.vs(HPS_BUS[38]),
+	.vs_hdmi(HPS_BUS[44]),
+	.f1(HPS_BUS[45]),
+	.new_vmode(new_vmode),
 
-reg [31:0] vid_hcnt = 0;
-reg [31:0] vid_vcnt = 0;
-reg  [7:0] vid_nres = 0;
-reg  [1:0] vid_int  = 0;
-integer hcnt;
-
-always @(posedge clk_vid) begin
-	integer vcnt;
-	reg old_vs= 0, old_de = 0, old_vmode = 0;
-	reg [3:0] resto = 0;
-	reg calch = 0;
-
-	if(ce_pix) begin
-		old_vs <= vs;
-		old_de <= de;
-
-		if(~vs & ~old_de & de) vcnt <= vcnt + 1;
-		if(calch & de) hcnt <= hcnt + 1;
-		if(old_de & ~de) calch <= 0;
-
-		if(old_vs & ~vs) begin
-			vid_int <= {vid_int[0],f1};
-			if(~f1) begin
-				if(hcnt && vcnt) begin
-					old_vmode <= new_vmode;
-
-					//report new resolution after timeout
-					if(resto) resto <= resto + 1'd1;
-					if(vid_hcnt != hcnt || vid_vcnt != vcnt || old_vmode != new_vmode) resto <= 1;
-					if(&resto) vid_nres <= vid_nres + 1'd1;
-					vid_hcnt <= hcnt;
-					vid_vcnt <= vcnt;
-				end
-				vcnt <= 0;
-				hcnt <= 0;
-				calch <= 1;
-			end
-		end
-	end
-end
-
-reg [31:0] vid_htime = 0;
-reg [31:0] vid_vtime = 0;
-reg [31:0] vid_pix = 0;
-
-always @(posedge clk_100) begin
-	integer vtime, htime, hcnt;
-	reg old_vs, old_hs, old_vs2, old_hs2, old_de, old_de2;
-	reg calch = 0;
-
-	old_vs <= vs;
-	old_hs <= hs;
-
-	old_vs2 <= old_vs;
-	old_hs2 <= old_hs;
-
-	vtime <= vtime + 1'd1;
-	htime <= htime + 1'd1;
-
-	if(~old_vs2 & old_vs) begin
-		vid_pix <= hcnt;
-		vid_vtime <= vtime;
-		vtime <= 0;
-		hcnt <= 0;
-	end
-
-	if(old_vs2 & ~old_vs) calch <= 1;
-
-	if(~old_hs2 & old_hs) begin
-		vid_htime <= htime;
-		htime <= 0;
-	end
-
-	old_de   <= de;
-	old_de2  <= old_de;
-
-	if(calch & old_de) hcnt <= hcnt + 1;
-	if(old_de2 & ~old_de) calch <= 0;
-end
-
-reg [31:0] vid_vtime_hdmi;
-always @(posedge clk_100) begin
-	integer vtime;
-	reg old_vs, old_vs2;
-
-	old_vs <= vs_hdmi;
-	old_vs2 <= old_vs;
-
-	vtime <= vtime + 1'd1;
-
-	if(~old_vs2 & old_vs) begin
-		vid_vtime_hdmi <= vtime;
-		vtime <= 0;
-	end
-end
-
+	.par_num(byte_cnt[3:0]),
+	.dout(vc_dout)
+);
 
 /////////////////////////////////////////////////////////
+assign     gamma_bus[20:0] = {clk_sys, gamma_en, gamma_wr, gamma_wr_addr, gamma_value};
+reg        gamma_en;
+reg        gamma_wr;
+reg  [9:0] gamma_wr_addr;
+reg  [7:0] gamma_value;
+
+reg  [9:0] byte_cnt;
 
 always@(posedge clk_sys) begin
 	reg [15:0] cmd;
-	reg  [9:0] byte_cnt;   // counts bytes
 	reg  [2:0] b_wr;
 	reg  [2:0] stick_idx;
 	reg        dma_hilo;
 	reg        old_wait;
 	reg        pending;
 	reg  [3:0] stflg = 0;
-	reg [31:0] status_req;
+	reg [63:0] status_req;
 	reg        old_status_set = 0;
 
 	old_status_set <= status_set;
@@ -247,6 +166,7 @@ always@(posedge clk_sys) begin
 				if(io_din == 'h29) io_dout <= {4'hA, stflg};
 				if(io_din == 'h2B) io_dout <= 1;
 				if(io_din == 'h2F) io_dout <= 1;
+				if(io_din == 'h32) io_dout <= gamma_bus[21];
 				dma_hilo <= 0;
 			end else begin
 
@@ -286,10 +206,13 @@ always@(posedge clk_sys) begin
 					// reading sd card status
 					'h16: io_dout <= 0;
 
-					// status, 32bit version
-					'h1e: if(byte_cnt==1) status[15:0] <= io_din;
-							else
-							if(byte_cnt==2) status[31:16] <= io_din;
+					// status, 64bit version
+					'h1e: case(byte_cnt)
+								1: status[15:00] <= io_din;
+								2: status[31:16] <= io_din;
+								3: status[47:32] <= io_din;
+								4: status[63:48] <= io_din;
+							endcase
 
 					// reading keyboard LED status
 					'h1f: io_dout <= 16'h0100;
@@ -306,33 +229,29 @@ always@(posedge clk_sys) begin
 							end
 
 					//Video res.
-					'h23: case(byte_cnt)
-								1: io_dout <= {|vid_int, vid_nres};
-								2: io_dout <= vid_hcnt[15:0];
-								3: io_dout <= vid_hcnt[31:16];
-								4: io_dout <= vid_vcnt[15:0];
-								5: io_dout <= vid_vcnt[31:16];
-								6: io_dout <= vid_htime[15:0];
-								7: io_dout <= vid_htime[31:16];
-								8: io_dout <= vid_vtime[15:0];
-								9: io_dout <= vid_vtime[31:16];
-							  10: io_dout <= vid_pix[15:0];
-							  11: io_dout <= vid_pix[31:16];
-							  12: io_dout <= vid_vtime_hdmi[15:0];
-							  13: io_dout <= vid_vtime_hdmi[31:16];
-							endcase
+					'h23: if(!byte_cnt[9:4]) io_dout <= vc_dout;
 
 					//UART flags
 					'h28: io_dout <= uart_mode;
 
 					//status set
 					'h29: case(byte_cnt)
-								1: io_dout <= status_req[15:0];
+								1: io_dout <= status_req[15:00];
 								2: io_dout <= status_req[31:16];
+								3: io_dout <= status_req[47:32];
+								4: io_dout <= status_req[63:48];
 							endcase
 					
 					//menu mask
 					'h2E: if(byte_cnt == 1) io_dout <= status_menumask;
+
+					// Gamma
+					'h32: gamma_en <= io_din[0];
+					'h33: begin
+						gamma_wr_addr <= {(byte_cnt[1:0]-1'b1),io_din[15:8]};
+						{gamma_wr, gamma_value} <= {1'b1,io_din[7:0]};
+						if (byte_cnt[1:0] == 3) byte_cnt <= 1;
+					end
 
 					'h61: if(byte_cnt == 1) begin
 								dma_addr[15:0] <= io_din;
@@ -590,6 +509,141 @@ always@(posedge clk_sys) begin
 	if(~old_clk & ps2_clk) ps2_clk_out <= 1;
 	if(old_clk & ~ps2_clk) ps2_clk_out <= ((tx_state == 0) && (rx_state<2));
 
+end
+
+endmodule
+
+
+///////////////// calc video parameters //////////////////
+module video_calc
+(
+	input clk_100,
+	input clk_vid,
+	input ce_pix,
+	input de,
+	input hs,
+	input vs,
+	input vs_hdmi,
+	input f1,
+	input new_vmode,
+
+	input       [3:0] par_num,
+	output reg [15:0] dout
+);
+
+always @(*) begin
+	case(par_num)
+		1: dout = {|vid_int, vid_nres};
+		2: dout = vid_hcnt[15:0];
+		3: dout = vid_hcnt[31:16];
+		4: dout = vid_vcnt[15:0];
+		5: dout = vid_vcnt[31:16];
+		6: dout = vid_htime[15:0];
+		7: dout = vid_htime[31:16];
+		8: dout = vid_vtime[15:0];
+		9: dout = vid_vtime[31:16];
+	  10: dout = vid_pix[15:0];
+	  11: dout = vid_pix[31:16];
+	  12: dout = vid_vtime_hdmi[15:0];
+	  13: dout = vid_vtime_hdmi[31:16];
+	  default dout = 0;
+	endcase
+end
+
+reg [31:0] vid_hcnt = 0;
+reg [31:0] vid_vcnt = 0;
+reg  [7:0] vid_nres = 0;
+reg  [1:0] vid_int  = 0;
+
+always @(posedge clk_vid) begin
+	integer hcnt;
+	integer vcnt;
+	reg old_vs= 0, old_de = 0, old_vmode = 0;
+	reg [3:0] resto = 0;
+	reg calch = 0;
+
+	if(ce_pix) begin
+		old_vs <= vs;
+		old_de <= de;
+
+		if(~vs & ~old_de & de) vcnt <= vcnt + 1;
+		if(calch & de) hcnt <= hcnt + 1;
+		if(old_de & ~de) calch <= 0;
+
+		if(old_vs & ~vs) begin
+			vid_int <= {vid_int[0],f1};
+			if(~f1) begin
+				if(hcnt && vcnt) begin
+					old_vmode <= new_vmode;
+
+					//report new resolution after timeout
+					if(resto) resto <= resto + 1'd1;
+					if(vid_hcnt != hcnt || vid_vcnt != vcnt || old_vmode != new_vmode) resto <= 1;
+					if(&resto) vid_nres <= vid_nres + 1'd1;
+					vid_hcnt <= hcnt;
+					vid_vcnt <= vcnt;
+				end
+				vcnt <= 0;
+				hcnt <= 0;
+				calch <= 1;
+			end
+		end
+	end
+end
+
+reg [31:0] vid_htime = 0;
+reg [31:0] vid_vtime = 0;
+reg [31:0] vid_pix = 0;
+
+always @(posedge clk_100) begin
+	integer vtime, htime, hcnt;
+	reg old_vs, old_hs, old_vs2, old_hs2, old_de, old_de2;
+	reg calch = 0;
+
+	old_vs <= vs;
+	old_hs <= hs;
+
+	old_vs2 <= old_vs;
+	old_hs2 <= old_hs;
+
+	vtime <= vtime + 1'd1;
+	htime <= htime + 1'd1;
+
+	if(~old_vs2 & old_vs) begin
+		vid_pix <= hcnt;
+		vid_vtime <= vtime;
+		vtime <= 0;
+		hcnt <= 0;
+	end
+
+	if(old_vs2 & ~old_vs) calch <= 1;
+
+	if(~old_hs2 & old_hs) begin
+		vid_htime <= htime;
+		htime <= 0;
+	end
+
+	old_de   <= de;
+	old_de2  <= old_de;
+
+	if(calch & old_de) hcnt <= hcnt + 1;
+	if(old_de2 & ~old_de) calch <= 0;
+end
+
+reg [31:0] vid_vtime_hdmi;
+always @(posedge clk_100) begin
+	integer vtime;
+	reg old_vs, old_vs2;
+
+	old_vs <= vs_hdmi;
+	old_vs2 <= old_vs;
+
+	vtime <= vtime + 1'd1;
+
+	if(~old_vs2 & old_vs) begin
+		vid_vtime_hdmi <= vtime;
+		vtime <= 0;
+	end
 end
 
 endmodule

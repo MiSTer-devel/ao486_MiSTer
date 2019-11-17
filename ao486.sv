@@ -195,6 +195,8 @@ wire  [5:0] joystick_1;
 wire [15:0] joystick_analog_0;
 wire [15:0] joystick_analog_1;
 
+wire [21:0] gamma_bus;
+
 hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000)) hps_io
 (
 	.clk_sys(clk_sys),
@@ -215,6 +217,7 @@ hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000)) hps_io
 	.buttons(buttons),
 	.status(status),
 	.new_vmode(status[4]),
+	.gamma_bus(gamma_bus),
 
 	.ioctl_wait(ioctl_wait),
 	
@@ -280,13 +283,35 @@ video_cleaner video_cleaner
 	.VSync(VSync),
 	.DE_in(de & ded[15]),
 
-	.VGA_R(VGA_R),
-	.VGA_G(VGA_G),
-	.VGA_B(VGA_B),
-	.VGA_VS(VGA_VS),
-	.VGA_HS(VGA_HS),
-	.DE_out(VGA_DE)
+	.VGA_R(R),
+	.VGA_G(G),
+	.VGA_B(B),
+	.VGA_VS(vs),
+	.VGA_HS(hs),
+	.DE_out(de1)
 );
+
+wire hs,vs,de1;
+wire [7:0] R,G,B;
+
+gamma_fast gamma
+(
+	.clk_vid(CLK_VIDEO),
+	.ce_pix(CE_PIXEL),
+
+	.gamma_bus(gamma_bus),
+
+	.HSync(hs),
+	.VSync(vs),
+	.DE(de1),
+	.RGB_in({R,G,B}),
+
+	.HSync_out(VGA_HS),
+	.VSync_out(VGA_VS),
+	.DE_out(VGA_DE),
+	.RGB_out({VGA_R,VGA_G,VGA_B})
+);
+
 
 system u0
 (

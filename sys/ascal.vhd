@@ -387,6 +387,7 @@ ARCHITECTURE rtl OF ascal IS
   SIGNAL o_format : unsigned(5 DOWNTO 0);
   SIGNAL o_fb_pal_dr : unsigned(23 DOWNTO 0);
   SIGNAL pal_mem : arr_uv24(0 TO 255);
+  ATTRIBUTE ramstyle of pal_mem : signal is "no_rw_check";
   SIGNAL o_htotal,o_hsstart,o_hsend : uint12;
   SIGNAL o_hmin,o_hmax,o_hdisp : uint12;
   SIGNAL o_hsize,o_vsize : uint12;
@@ -422,7 +423,8 @@ ARCHITECTURE rtl OF ascal IS
   SIGNAL o_wr : unsigned(3 DOWNTO 0);
   SIGNAL o_hcpt,o_vcpt,o_vcpt_pre,o_vcpt_pre2,o_vcpt_pre3 : uint12;
   SIGNAL o_ihsize,o_ivsize : uint12;
-  
+  SIGNAL o_ihsize_temp, o_ihsize_temp2 : natural RANGE 0 TO 32767;
+
   SIGNAL o_vfrac,o_hfrac,o_hfrac1,o_hfrac2,o_hfrac3,o_hfrac4 : unsigned(11 DOWNTO 0);
   SIGNAL o_hacc,o_hacc_ini,o_hacc_next,o_vacc,o_vacc_next,o_vacc_ini : natural RANGE 0 TO 4*OHRES-1;
   SIGNAL o_hsv,o_vsv,o_dev,o_pev : unsigned(0 TO 5);
@@ -1709,8 +1711,9 @@ BEGIN
         o_format<=o_fb_format;
       END IF;
       
-      o_hburst<=(o_ihsize * (to_integer(o_format(2 DOWNTO 0)) - 2) +
-                 N_BURST - 1) / N_BURST;
+      o_ihsize_temp <= o_ihsize * to_integer(o_format(2 DOWNTO 0) - 2);
+      o_ihsize_temp2 <= (o_ihsize_temp + N_BURST - 1);
+      o_hburst <= o_ihsize_temp2 / N_BURST;
       
       IF o_vsv(1)='1' AND o_vsv(0)='0' AND o_bufup0='1' THEN
         o_obuf0<=buf_next(o_obuf0,o_ibuf0);

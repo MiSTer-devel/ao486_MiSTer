@@ -22,7 +22,7 @@
 module scandoubler #(parameter LENGTH, parameter HALF_DEPTH)
 (
 	// system interface
-	input             clk_sys,
+	input             clk_vid,
 	input             ce_pix,
 	output            ce_pix_out,
 
@@ -59,7 +59,7 @@ wire [7:0] pc_in = pix_in_cnt + 1'b1;
 reg  [7:0] pixsz, pixsz2, pixsz4 = 0;
 
 reg ce_x4i, ce_x1i;
-always @(negedge clk_sys) begin
+always @(posedge clk_vid) begin
 	reg old_ce, valid, hs;
 
 	if(~&pix_len) pix_len <= pl;
@@ -94,7 +94,7 @@ end
 
 reg req_line_reset;
 reg [DWIDTH:0] r_d, g_d, b_d;
-always @(posedge clk_sys) begin
+always @(posedge clk_vid) begin
 	if(ce_x1i) begin
 		req_line_reset <= hb_in;
 		r_d <= r_in;
@@ -105,7 +105,7 @@ end
 
 Hq2x #(.LENGTH(LENGTH), .HALF_DEPTH(HALF_DEPTH)) Hq2x
 (
-	.clk(clk_sys),
+	.clk(clk_vid),
 
 	.ce_in(ce_x4i),
 	.inputpixel({b_d,g_d,r_d}),
@@ -124,7 +124,7 @@ reg  [7:0] pix_out_cnt = 0;
 wire [7:0] pc_out = pix_out_cnt + 1'b1;
 
 reg ce_x4o, ce_x2o;
-always @(negedge clk_sys) begin
+always @(posedge clk_vid) begin
 	reg hs;
 
 	if(~&pix_out_cnt) pix_out_cnt <= pc_out;
@@ -148,7 +148,7 @@ reg [1:0] sd_line;
 reg [3:0] vbo;
 reg [3:0] vso;
 reg [8:0] hbo;
-always @(posedge clk_sys) begin
+always @(posedge clk_vid) begin
 
 	reg [31:0] hcnt;
 	reg [30:0] sd_hcnt;
