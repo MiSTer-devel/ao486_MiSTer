@@ -6,11 +6,6 @@ create_clock -period "100.0 MHz" [get_pins -compatibility_mode *|h2f_user0_clk]
 create_clock -period "100.0 MHz" [get_pins -compatibility_mode spi|sclk_out] -name spi_sck
 
 derive_pll_clocks
-
-create_generated_clock -source [get_pins -compatibility_mode {pll_hdmi|pll_hdmi_inst|altera_pll_i|*[0].*|divclk}] \
-                       -name HDMI_CLK [get_ports HDMI_TX_CLK]
-
-
 derive_clock_uncertainty
 
 # Decouple different clock groups (to simplify routing)
@@ -45,3 +40,10 @@ set_false_path -from {*_osd|h_osd_start*}
 set_false_path -from {*_osd|rot*}
 set_false_path -from {*_osd|dsp_width*}
 set_false_path -to {*_osd|half}
+
+set_false_path -to   {WIDTH[*] HFP[*] HS[*] HBP[*] HEIGHT[*] VFP[*] VS[*] VBP[*]}
+set_false_path -from {WIDTH[*] HFP[*] HS[*] HBP[*] HEIGHT[*] VFP[*] VS[*] VBP[*]}
+set_false_path -to   {FB_BASE[*] FB_BASE[*] FB_WIDTH[*] FB_HEIGHT[*] FB_HMIN[*] FB_HMAX[*] FB_VMIN[*] FB_VMAX[*]}
+set_false_path -from {FB_BASE[*] FB_BASE[*] FB_WIDTH[*] FB_HEIGHT[*] FB_HMIN[*] FB_HMAX[*] FB_VMIN[*] FB_VMAX[*]}
+set_false_path -to   {vol_att[*] scaler_flt[*] led_overtake[*] led_state[*]}
+set_false_path -from {vol_att[*] scaler_flt[*] led_overtake[*] led_state[*]}
