@@ -29,13 +29,16 @@ set_false_path -to {cfg[*]}
 set_false_path -from {cfg[*]}
 set_false_path -from {VSET[*]}
 set_false_path -to {wcalc[*] hcalc[*]}
+set_false_path -to {width[*] height[*]}
 
 set_multicycle_path -to {*_osd|osd_vcnt*} -setup 2
-set_multicycle_path -to {*_osd|osd_vcnt*} -hold 2
+set_multicycle_path -to {*_osd|osd_vcnt*} -hold 1
 set_false_path -to {*_osd|v_cnt*}
 set_false_path -to {*_osd|v_osd_start*}
+set_false_path -to {*_osd|v_info_start*}
 set_false_path -to {*_osd|h_osd_start*}
 set_false_path -from {*_osd|v_osd_start*}
+set_false_path -from {*_osd|v_info_start*}
 set_false_path -from {*_osd|h_osd_start*}
 set_false_path -from {*_osd|rot*}
 set_false_path -from {*_osd|dsp_width*}

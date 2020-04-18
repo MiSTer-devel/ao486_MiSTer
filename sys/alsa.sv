@@ -1,7 +1,7 @@
 //============================================================================
 //
 //  ALSA sound support for MiSTer
-//  (c)2019 Sorgelig
+//  (c)2019,2020 Alexey Melnikov
 //
 //  This program is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU General Public License as published by the Free
@@ -22,111 +22,135 @@
 module alsa
 (
 	input             reset,
-
-	output reg        en_out,
-	input             en_in,
-
-	input             ram_clk,
-	output reg [28:0] ram_address,
-	output reg  [7:0] ram_burstcount,
-	input             ram_waitrequest,
-	input      [63:0] ram_readdata,
-	input             ram_readdatavalid,
-	output reg        ram_read,
+	input             clk,
+	
+	output reg [31:3] ram_address,
+	input      [63:0] ram_data,
+	output reg        ram_req = 0,
+	input             ram_ready,
 
 	input             spi_ss,
 	input             spi_sck,
 	input             spi_mosi,
+	output            spi_miso,
 
 	output reg [15:0] pcm_l,
 	output reg [15:0] pcm_r
 );
 
-reg         spi_new = 0;
-reg [127:0] spi_data;
+reg [60:0] buf_info;
+reg  [6:0] spicnt = 0;
 always @(posedge spi_sck, posedge spi_ss) begin
-	reg [7:0] mosi;
-	reg [6:0] spicnt = 0;
+	reg [95:0] spi_data;
 
 	if(spi_ss) spicnt <= 0;
 	else begin
-		mosi <= {mosi[6:0],spi_mosi};
-
+		spi_data[{spicnt[6:3],~spicnt[2:0]}] <= spi_mosi;
+		if(&spicnt) buf_info <= {spi_data[82:67],spi_data[50:35],spi_data[31:3]};
 		spicnt <= spicnt + 1'd1;
-		if(&spicnt[2:0]) begin
-			spi_data[{spicnt[6:3],3'b000} +:8] <= {mosi[6:0],spi_mosi};
-			spi_new <= &spicnt;
-		end
 	end
 end
 
-reg [31:0] buf_addr;
-reg [31:0] buf_len;
-reg [31:0] buf_wptr = 0;
+assign spi_miso = spi_out[{spicnt[4:3],~spicnt[2:0]}];
 
-always @(posedge ram_clk) begin
-	reg n1,n2,n3;
-	reg [127:0] data1,data2;
+reg [31:0] spi_out = 0;
+always @(posedge clk) if(spi_ss) spi_out <= {buf_rptr, hurryup, 8'h00};
 
-	n1 <= spi_new;
-	n2 <= n1;
-	n3 <= n2;
 
-	data1 <= spi_data;
+reg [31:3] buf_addr;
+reg [18:3] buf_len;
+reg [18:3] buf_wptr = 0;
+
+always @(posedge clk) begin
+	reg [60:0] data1,data2;
+
+	data1 <= buf_info;
 	data2 <= data1;
-
-	if(~n3 & n2) {buf_wptr,buf_len,buf_addr} <= data2[95:0];
+	if(data2 == data1) {buf_wptr,buf_len,buf_addr} <= data2;
 end
 
-reg [31:0] buf_rptr = 0;
-always @(posedge ram_clk) begin
-	reg got_first = 0;
-	reg ready = 0;
-	reg ud = 0;
-	reg [31:0] readdata;
+reg  [2:0] hurryup = 0;
+reg [18:3] buf_rptr = 0;
 
-	if(~ram_waitrequest) ram_read <= 0;
-	if(ram_readdatavalid && ram_burstcount) begin
-		ram_burstcount <= 0;
-		ready <= 1;
-		readdata <= ud ? ram_readdata[63:32] : ram_readdata[31:0];
-		if(buf_rptr[31:2] >= buf_len[31:2]) buf_rptr <= 0;
-	end
+always @(posedge clk) begin
+	reg [18:3] len = 0;
+	reg  [1:0] ready = 0;
+	reg [63:0] readdata;
+	reg        got_first = 0;
+	reg  [7:0] ce_cnt = 0;
+	reg  [1:0] state = 0;
 
-	if(reset) {ready, got_first, ram_burstcount} <= 0;
-	else
-	if(buf_rptr[31:2] != buf_wptr[31:2]) begin
-		if(~got_first) begin
-			buf_rptr <= buf_wptr;
-			got_first <= 1;
-		end
-		else
-		if(!ram_burstcount && ~ram_waitrequest && ~ready && en_out == en_in) begin
-			ram_address <= buf_addr[31:3] + buf_rptr[31:3];
-			ud <= buf_rptr[2];
-			ram_burstcount <= 1;
-			ram_read <= 1;
-			buf_rptr <= buf_rptr + 4;
-		end
+	if(reset) begin
+		ready     <= 0;
+		ce_cnt    <= 0;
+		state     <= 0;
+		got_first <= 0;
+		len       <= 0;
 	end
+	else begin
 
-	if(ready & ce_48k) begin
-		{pcm_r,pcm_l} <= readdata;
-		ready <= 0;
+		//ramp up
+		if(len[18:14] && (hurryup < 1)) hurryup <= 1;
+		if(len[18:16] && (hurryup < 2)) hurryup <= 2;
+		if(len[18:17] && (hurryup < 4)) hurryup <= 4;
+
+		//ramp down
+		if(!len[18:15] && (hurryup > 2)) hurryup <= 2;
+		if(!len[18:13] && (hurryup > 1)) hurryup <= 1;
+		if(!len[18:10]) hurryup <= 0;
+
+		if(ce_sample && ~&ce_cnt) ce_cnt <= ce_cnt + 1'd1;
+
+		case(state)
+		0: if(!ce_sample) begin
+				if(ready) begin
+					if(ce_cnt) begin
+						{readdata[31:0],pcm_r,pcm_l} <= readdata;
+						ready <= ready - 1'd1;
+						ce_cnt <= ce_cnt - 1'd1;
+					end
+				end
+				else if(buf_rptr != buf_wptr) begin
+					if(~got_first) begin
+						buf_rptr <= buf_wptr;
+						got_first <= 1;
+					end
+					else begin
+						ram_address <= buf_addr + buf_rptr;
+						ram_req <= ~ram_req;
+						buf_rptr <= buf_rptr + 1'd1;
+						len <= (buf_wptr < buf_rptr) ? (buf_len + buf_wptr - buf_rptr) : (buf_wptr - buf_rptr);
+						state <= 1;
+					end
+				end
+				else begin
+					len     <= 0;
+					ce_cnt  <= 0;
+					hurryup <= 0;
+				end
+			end
+		1: if(ram_ready) begin
+				ready <= 2;
+				readdata <= ram_data;
+				if(buf_rptr >= buf_len) buf_rptr <= buf_rptr - buf_len;
+				state <= 0;
+			end
+		endcase
 	end
-	
-	if(ce_48k) en_out <= ~en_out;
 end
 
-reg ce_48k;
-always @(posedge ram_clk) begin
-	reg [15:0] acc = 0;
+localparam F48K = 48000;
+localparam F50M = 50000000;
 
-	ce_48k <= 0;
-	acc <= acc + 16'd48;
-	if(acc >= 50000) begin
-		acc <= acc - 16'd50000;
-		ce_48k <= 1;
+reg ce_sample;
+always @(posedge clk) begin
+	reg [31:0] acc = 0;
+
+	ce_sample <= 0;
+	acc <= acc + F48K + {hurryup,6'd0};
+	if(acc >= F50M) begin
+		acc <= acc - F50M;
+		ce_sample <= 1;
 	end
 end
 

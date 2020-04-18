@@ -164,9 +164,9 @@ ENTITY ascal IS
 
     -- Framebuffer palette in 8bpp mode
     pal_clk : IN std_logic :='0';
-    pal_dw  : IN  unsigned(23 DOWNTO 0) :=x"000000"; -- R G B
-    pal_dr  : OUT unsigned(23 DOWNTO 0) :=x"000000";
-    pal_a   : IN  unsigned(7 DOWNTO 0) :=x"00"; -- Colour index
+    pal_dw  : IN  unsigned(47 DOWNTO 0) :=x"000000000000"; -- R1 G1 B1 R0 G0 B0
+    pal_dr  : OUT unsigned(47 DOWNTO 0) :=x"000000000000";
+    pal_a   : IN  unsigned(6 DOWNTO 0)  :="0000000"; -- Colour index/2
     pal_wr  : IN  std_logic :='0';
     
     ------------------------------------
@@ -283,11 +283,11 @@ ARCHITECTURE rtl OF ascal IS
   SUBTYPE uint12 IS natural RANGE 0 TO 4095;
   SUBTYPE uint13 IS natural RANGE 0 TO 8191;
   
-  TYPE arr_uv24 IS ARRAY (natural RANGE <>) OF unsigned(23 DOWNTO 0);
+  TYPE arr_uv48 IS ARRAY (natural RANGE <>) OF unsigned(47 DOWNTO 0);
   TYPE arr_uv36 IS ARRAY (natural RANGE <>) OF unsigned(35 DOWNTO 0);
   TYPE arr_int9 IS ARRAY (natural RANGE <>) OF integer RANGE -256 TO 255;
   TYPE arr_uint12 IS ARRAY (natural RANGE <>) OF uint12;
-  
+
   ----------------------------------------------------------
   -- Input image
   SIGNAL i_pvs,i_pfl,i_pde,i_pce : std_logic;
@@ -386,7 +386,10 @@ ARCHITECTURE rtl OF ascal IS
   SIGNAL o_mode,o_hmode,o_vmode : unsigned(4 DOWNTO 0);
   SIGNAL o_format : unsigned(5 DOWNTO 0);
   SIGNAL o_fb_pal_dr : unsigned(23 DOWNTO 0);
-  SIGNAL pal_mem : arr_uv24(0 TO 255);
+  SIGNAL o_fb_pal_dr_x2 : unsigned(47 DOWNTO 0);
+  SIGNAL pal_idx: unsigned(7 DOWNTO 0);
+  SIGNAL pal_idx_lsb: std_logic;
+  SIGNAL pal_mem : arr_uv48(0 TO 127);
   ATTRIBUTE ramstyle of pal_mem : signal is "no_rw_check";
   SIGNAL o_htotal,o_hsstart,o_hsend : uint12;
   SIGNAL o_hmin,o_hmax,o_hdisp : uint12;
@@ -2046,10 +2049,11 @@ BEGIN
         pal_dr<=pal_mem(to_integer(pal_a));
       END IF;
     END PROCESS;
-    
-    o_fb_pal_dr<=
-      pal_mem(to_integer(shift_opack(o_acpt4,o_shift,o_dr,o_format)(0 TO 7)))
-      WHEN rising_edge(o_clk);
+
+    pal_idx <= shift_opack(o_acpt4,o_shift,o_dr,o_format)(0 TO 7);
+    pal_idx_lsb <= pal_idx(0) WHEN rising_edge(o_clk);
+    o_fb_pal_dr_x2 <= pal_mem(to_integer(pal_idx(7 DOWNTO 1))) WHEN rising_edge(o_clk);
+    o_fb_pal_dr <= o_fb_pal_dr_x2(47 DOWNTO 24) WHEN pal_idx_lsb = '1' ELSE o_fb_pal_dr_x2(23 DOWNTO 0);
   END GENERATE GenPal;
   
   GenNoPal:IF NOT PALETTE GENERATE
