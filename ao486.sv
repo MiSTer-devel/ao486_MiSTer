@@ -197,7 +197,7 @@ wire [15:0] joystick_analog_1;
 
 wire [21:0] gamma_bus;
 
-hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000)) hps_io
+hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000), .PS2WE(1), .WIDE(1)) hps_io
 (
 	.clk_sys(clk_sys),
 	.conf_str(CONF_STR),
@@ -220,8 +220,24 @@ hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000)) hps_io
 	.gamma_bus(gamma_bus),
 
 	.ioctl_wait(ioctl_wait),
-	
+
 	.uart_mode(16'b000_11111_000_11111),
+
+	.joystick_0(joystick_0),
+	.joystick_1(joystick_1),
+	.joystick_analog_0(joystick_analog_0),
+	.joystick_analog_1(joystick_analog_1),
+
+	.EXT_BUS(EXT_BUS)
+);
+
+wire [35:0] EXT_BUS;
+hps_ext hps_ext
+(
+	.clk_sys(clk_sys),
+	.EXT_BUS(EXT_BUS),
+
+	.io_wait(ioctl_wait),
 
 	.dma_din(dma_din),
 	.dma_dout(dma_dout),
@@ -229,14 +245,8 @@ hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000)) hps_io
 	.dma_rd(dma_rd),
 	.dma_wr(dma_wr),
 	.dma_req(dma_req),
-	.dma_status(dma_status),
-
-	.joystick_0(joystick_0),
-	.joystick_1(joystick_1),
-	.joystick_analog_0(joystick_analog_0),
-	.joystick_analog_1(joystick_analog_1)
+	.dma_status(dma_status)
 );
-
 
 //------------------------------------------------------------------------------
 

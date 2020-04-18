@@ -2,7 +2,7 @@
 // hps_io.v
 //
 // Copyright (c) 2014 Till Harbaum <till@harbaum.org>
-// Copyright (c) 2017-2019 Alexey Melnikov
+// Copyright (c) 2017-2020 Alexey Melnikov
 //
 // This source file is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published
@@ -890,95 +890,6 @@ always @(posedge clk_100) begin
 	if(~old_vs2 & old_vs) begin
 		vid_vtime_hdmi <= vtime;
 		vtime <= 0;
-	end
-end
-
-endmodule
-
-
-//
-// Phase shift helper module for better 64MB/128MB modules support.
-//
-// Copyright (c) 2019 Alexey Melnikov
-//
-
-module phase_shift #(parameter M32MB=0, M64MB=0, M128MB=0)
-(
-	input        reset,
-
-	input        clk,
-	input        pll_locked,
-
-	output reg   phase_en,
-	output reg   updn,
-	input        phase_done,
-
-	input [15:0] sdram_sz,
-	output reg   ready
-);
-
-localparam ph32  = ($signed(M32MB ) >= 0) ? M32MB  : (0 - M32MB);
-localparam ph64  = ($signed(M64MB ) >= 0) ? M64MB  : (0 - M64MB);
-localparam ph128 = ($signed(M128MB) >= 0) ? M128MB : (0 - M128MB);
-
-localparam up32  = ($signed(M32MB ) >= 0) ? 1'b1 : 1'b0;
-localparam up64  = ($signed(M64MB ) >= 0) ? 1'b1 : 1'b0;
-localparam up128 = ($signed(M128MB) >= 0) ? 1'b1 : 1'b0;
-
-always @(posedge clk, posedge reset) begin
-	reg [2:0] state = 0;
-	reg [7:0] cnt;
-	reg [8:0] ph;
-	
-	if(reset) begin
-		state <= 0;
-		ready <= 0;
-	end
-	else begin
-		case(state)
-			0: begin
-					ready <= 0;
-					if(pll_locked) state <= state + 1'd1;
-				end
-			1: if(sdram_sz[15]) begin
-					cnt <= 0;
-					if(sdram_sz[14]) ph <= sdram_sz[8:0];
-					else begin
-						case(sdram_sz[1:0])
-							0: ph <= 0;
-							1: ph <= {up32[0],ph32[7:0]};
-							2: ph <= {up64[0],ph64[7:0]};
-							3: ph <= {up128[0],ph128[7:0]};
-						endcase
-					end
-					state <= state + 1'd1;
-				end
-			2: if(ph[7:0]) begin
-					ph[7:0] <= ph[7:0] - 1'd1;
-					updn <= ph[8];
-					state <= state + 1'd1;
-				end
-				else begin
-					state <= 6;
-				end
-			3: begin
-					phase_en <= 1;
-					state <= state + 1'd1;
-				end
-			4: if(~phase_done) begin
-					phase_en <= 0;
-					state <= state + 1'd1;
-				end
-			5: if(phase_done) begin
-					cnt <= cnt + 1'd1;
-					if(cnt == ph[7:0]) state <= state + 1'd1;
-					else state <= 3;
-				end
-			6: begin
-					ready <= 1;
-					if(!sdram_sz[15]) state <= 0;
-				end
-		endcase
 	end
 end
 
