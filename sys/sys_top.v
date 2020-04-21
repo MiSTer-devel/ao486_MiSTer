@@ -235,7 +235,6 @@ wire        io_clk = gp_outr[17];
 wire        io_ss0 = gp_outr[18];
 wire        io_ss1 = gp_outr[19];
 wire        io_ss2 = gp_outr[20];
-//wire        io_sdd    = gp_outr[21]; // used only in ST core
 
 wire io_osd_hdmi = io_ss1 & ~io_ss0;
 wire io_fpga     = ~io_ss1 & io_ss0;
