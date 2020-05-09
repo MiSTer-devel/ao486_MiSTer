@@ -250,7 +250,13 @@ hps_ext hps_ext
 
 //------------------------------------------------------------------------------
 
-wire        clk_sys;
+wire clk_sys, clk_uart;
+pll pll
+(
+	.refclk(CLK_50M),
+	.outclk_0(clk_sys),
+	.outclk_1(clk_uart)
+);
 
 wire        mem_wait;
 wire        mem_valid;
@@ -322,13 +328,13 @@ gamma_fast gamma
 	.RGB_out({VGA_R,VGA_G,VGA_B})
 );
 
-
 system u0
 (
-	.clk_clk              (CLK_50M),
+	.clk_opl_clk          (CLK_50M),
 	.clk_sys_clk          (clk_sys),
+	.clk_uart_clk         (clk_uart),
+
 	.qsys_reset_reset     (sys_reset),
-	.pll_reset_reset      (0),
 
 	.vga_ce               (CE_PIXEL),
 	.vga_mode             (status[4]),
