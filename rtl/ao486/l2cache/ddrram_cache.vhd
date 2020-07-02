@@ -36,9 +36,9 @@ end entity;
 architecture arch of ddrram_cache is
    
    -- cache settings
-   constant LINES             : integer := 32;
-   constant LINESIZE          : integer := 16;
-   constant ASSOCIATIVITY     : integer := 4;
+   constant LINES             : integer := 32; -- setting to 16 will half both logic and memory required, ~10% less performance
+   constant LINESIZE          : integer := 16; -- changes here only reduces BRAMs required, ~5% less performance
+   constant ASSOCIATIVITY     : integer := 4;  -- setting to 2 will half both logic and memory required, ~12% less performance
    constant ADDRBITS          : integer := 25;
    
    -- fifo for incoming reads
