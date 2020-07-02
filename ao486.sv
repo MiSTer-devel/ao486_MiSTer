@@ -373,15 +373,15 @@ system u0
 
 	.cpu_reset_reset      (cpu_reset),
 
-	.ddram_address        (dram_addr),
-	.ddram_read           (DDRAM_RD),
-	.ddram_waitrequest    (DDRAM_BUSY),
-	.ddram_readdata       (DDRAM_DOUT),
-	.ddram_write          (DDRAM_WE),
-	.ddram_writedata      (DDRAM_DIN),
-	.ddram_readdatavalid  (DDRAM_DOUT_READY),
-	.ddram_byteenable     (DDRAM_BE),
-	.ddram_burstcount     (DDRAM_BURSTCNT),
+	.ddram_address        (DDRAM_IN_ADDR),
+	.ddram_read           (DDRAM_IN_RD),
+	.ddram_waitrequest    (DDRAM_IN_BUSY),
+	.ddram_readdata       (DDRAM_IN_DOUT),
+	.ddram_write          (DDRAM_IN_WE),
+	.ddram_writedata      (DDRAM_IN_DIN),
+	.ddram_readdatavalid  (DDRAM_IN_DOUT_READY),
+	.ddram_byteenable     (DDRAM_IN_BE),
+	.ddram_burstcount     (DDRAM_IN_BURSTCNT),
 
 	.mem_waitrequest      (mem_wait),
 	.mem_readdata         (mem_data),
@@ -411,6 +411,42 @@ system u0
 	.uart_s_sout_oe       (),
 	.uart_h_out1_n        (),
 	.uart_h_out2_n        ()
+);
+
+wire        DDRAM_IN_BUSY;      
+wire [63:0] DDRAM_IN_DOUT;      
+wire        DDRAM_IN_DOUT_READY;
+wire  [7:0] DDRAM_IN_BURSTCNT;  
+wire [31:0] DDRAM_IN_ADDR;      
+wire        DDRAM_IN_RD;        
+wire [63:0] DDRAM_IN_DIN;       
+wire  [7:0] DDRAM_IN_BE;        
+wire        DDRAM_IN_WE;        
+
+ddrram_cache cache_0
+   (
+      .DDRAM_CLK            (DDRAM_CLK),
+      .RESET                (sys_reset),
+                            
+      .DDRAM_OUT_BUSY       (DDRAM_BUSY      ),
+      .DDRAM_OUT_DOUT       (DDRAM_DOUT      ),
+      .DDRAM_OUT_DOUT_READY (DDRAM_DOUT_READY),
+      .DDRAM_OUT_BURSTCNT   (DDRAM_BURSTCNT  ),
+      .DDRAM_OUT_ADDR       (dram_addr       ),
+      .DDRAM_OUT_RD         (DDRAM_RD        ),
+      .DDRAM_OUT_DIN        (DDRAM_DIN       ),
+      .DDRAM_OUT_BE         (DDRAM_BE        ),
+      .DDRAM_OUT_WE         (DDRAM_WE        ),
+
+      .DDRAM_IN_BUSY        (DDRAM_IN_BUSY      ),
+      .DDRAM_IN_DOUT        (DDRAM_IN_DOUT      ),
+      .DDRAM_IN_DOUT_READY  (DDRAM_IN_DOUT_READY),
+      .DDRAM_IN_BURSTCNT    (DDRAM_IN_BURSTCNT  ),
+      .DDRAM_IN_ADDR        (DDRAM_IN_ADDR      ),
+      .DDRAM_IN_RD          (DDRAM_IN_RD        ),
+      .DDRAM_IN_DIN         (DDRAM_IN_DIN       ),
+      .DDRAM_IN_BE          (DDRAM_IN_BE        ),
+      .DDRAM_IN_WE          (DDRAM_IN_WE        )
 );
 
 wire       uart_h_dtr_n;
