@@ -3,6 +3,9 @@ use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all; 
 use ieee.math_real.all;  
 
+LIBRARY altera_mf;
+USE altera_mf.altera_mf_components.all;
+
 entity ddrram_cache is
    port 
    (
@@ -53,6 +56,7 @@ architecture arch of ddrram_cache is
    -- cache control
    constant ASSO_BITS     : integer := integer(ceil(log2(real(ASSOCIATIVITY))));
    constant LINESIZE_BITS : integer := integer(ceil(log2(real(LINESIZE))));
+   constant LINE_BITS     : integer := integer(ceil(log2(real(LINES))));
    constant RAMSIZEBITS   : integer := integer(ceil(log2(real(LINESIZE * LINES))));
    
    constant LINEMASKLSB   : integer := integer(ceil(log2(real(LINESIZE))));
@@ -61,12 +65,17 @@ architecture arch of ddrram_cache is
    type t_rrb is array(0 to LINES-1) of unsigned(ASSO_BITS - 1 downto 0);
    signal rrb : t_rrb := (others => (others => '0'));
    
-   type t_tags is array(0 to LINES-1, 0 to ASSOCIATIVITY - 1) of std_logic_vector(ADDRBITS - RAMSIZEBITS + 1 downto 0);
-   signal tags : t_tags := (others => (others =>(others => '1')));
+   signal tag_dirty : std_logic_vector(0 to (LINES * ASSOCIATIVITY) -1) := (others => '1');
+   
+   --type t_tags is array(0 to LINES-1) of std_logic_vector(ADDRBITS - RAMSIZEBITS downto 0);
+   
+   type t_tags_data is array(0 to ASSOCIATIVITY-1) of std_logic_vector(ADDRBITS - RAMSIZEBITS downto 0);
+   signal tags_read : t_tags_data;
   
    type tState is
    (
       IDLE,
+      WRITEONE,
       READONE,
       FILLCACHE,
       READCACHE_OUT
@@ -124,7 +133,7 @@ begin
       Valid    => Fifo_valid
    );
    
-   Fifo_rd <= '1' when (DDRAM_OUT_BUSY = '0' and state = IDLE and Fifo_valid = '0') else '0';
+   Fifo_rd <= '1' when (DDRAM_OUT_BUSY = '0' and Fifo_valid = '0' and (state = IDLE or state = WRITEONE)) else '0';
 
    process (DDRAM_CLK)
    begin
@@ -136,7 +145,7 @@ begin
          if (RESET = '1') then
             
             rrb           <= (others => (others => '0'));
-            tags          <= (others => (others => (others => '1')));
+            tag_dirty     <= (others => '1');
             state         <= IDLE;
             
          else
@@ -165,17 +174,24 @@ begin
                         memory_datain <= Fifo_dout(97 downto 34);
                         memory_we     <= (others => '0');
                         memory_be     <= Fifo_dout(105 downto 98);
-                        for i in 0 to ASSOCIATIVITY - 1 loop
-                           if (tags(to_integer(unsigned(Fifo_dout(LINEMASKMSB downto LINEMASKLSB))), i) = '0' & Fifo_dout(ADDRBITS downto RAMSIZEBITS)) then  
-                              memory_we(i) <= '1';
-                           end if;
-                        end loop;
+                        read_addr     <= Fifo_dout(25 downto 0);
+                        state         <= WRITEONE;
                      end if;
                   elsif (Fifo_empty = '1' and DDRAM_OUT_BUSY = '0' and DDRAM_IN_RD = '1') then
                      state      <= READONE;
                      read_addr  <= DDRAM_IN_ADDR_64;
                      burst_left <= to_integer(unsigned(DDRAM_IN_BURSTCNT));
                   end if;
+                  
+               when WRITEONE =>
+                  state <= IDLE;
+                  for i in 0 to ASSOCIATIVITY - 1 loop
+                     if (tag_dirty(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB))) * ASSOCIATIVITY + i) = '0') then
+                        if (tags_read(i) = read_addr(ADDRBITS downto RAMSIZEBITS)) then  
+                           memory_we(i) <= '1';
+                        end if;
+                     end if;
+                  end loop;
             
                when READONE =>
                   state              <= FILLCACHE;
@@ -189,16 +205,18 @@ begin
                      cache_mux     <= to_integer(rrb(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB)))));
                   end if;
                   for i in 0 to ASSOCIATIVITY - 1 loop
-                     if (tags(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB))), i) = '0' & read_addr(ADDRBITS downto RAMSIZEBITS)) then
-                        DDRAM_OUT_RD         <= '0';
-                        cache_mux            <= i;
-                        DDRAM_IN_DOUT_READY  <= '1';
-                        if (burst_left > 1) then
-                           state      <= READONE;
-                           burst_left <= burst_left - 1;
-                           read_addr  <= std_logic_vector(unsigned(read_addr) + 1);
-                        else
-                           state      <= IDLE;
+                     if (tag_dirty(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB))) * ASSOCIATIVITY + i) = '0') then
+                        if (tags_read(i) = read_addr(ADDRBITS downto RAMSIZEBITS)) then
+                           DDRAM_OUT_RD         <= '0';
+                           cache_mux            <= i;
+                           DDRAM_IN_DOUT_READY  <= '1';
+                           if (burst_left > 1) then
+                              state      <= READONE;
+                              burst_left <= burst_left - 1;
+                              read_addr  <= std_logic_vector(unsigned(read_addr) + 1);
+                           else
+                              state      <= IDLE;
+                           end if;
                         end if;
                      end if;
                   end loop;
@@ -221,8 +239,8 @@ begin
                   
                when READCACHE_OUT =>
                   state <= READONE;
-                  tags(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB))), to_integer(rrb(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB)))))) <= '0' & read_addr(ADDRBITS downto RAMSIZEBITS);
-                  rrb(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB)))) <= rrb(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB)))) + 1;
+                  tag_dirty(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB))) * ASSOCIATIVITY + cache_mux) <= '0';
+                  rrb(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB))))                                   <= rrb(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB)))) + 1;
               
             end case; 
             
@@ -236,7 +254,44 @@ begin
    memory_addr_a <= to_integer(unsigned(read_addr(RAMSIZEBITS - 1 downto 0)));
    
    gcache : for i in 0 to ASSOCIATIVITY-1 generate
+      signal wren : std_logic;
    begin
+   
+      wren <= '1' when (state = READCACHE_OUT and cache_mux = i) else '0';
+      
+      altdpram_component : altdpram
+      GENERIC MAP (
+         indata_aclr => "OFF",
+         indata_reg => "INCLOCK",
+         intended_device_family => "Cyclone V",
+         lpm_type => "altdpram",
+         outdata_aclr => "OFF",
+         outdata_reg => "UNREGISTERED",
+         ram_block_type => "MLAB",
+         rdaddress_aclr => "OFF",
+         rdaddress_reg => "UNREGISTERED",
+         rdcontrol_aclr => "OFF",
+         rdcontrol_reg => "UNREGISTERED",
+         read_during_write_mode_mixed_ports => "CONSTRAINED_DONT_CARE",
+         width => ADDRBITS - RAMSIZEBITS + 1,
+         widthad => LINE_BITS,
+         width_byteena => 1,
+         wraddress_aclr => "OFF",
+         wraddress_reg => "INCLOCK",
+         wrcontrol_aclr => "OFF",
+         wrcontrol_reg => "INCLOCK"
+      )
+      PORT MAP (
+         inclock  => DDRAM_CLK,
+         outclock => DDRAM_CLK,
+      
+         data      => read_addr(ADDRBITS downto RAMSIZEBITS),
+         rdaddress => read_addr(LINEMASKMSB downto LINEMASKLSB),
+         wraddress => read_addr(LINEMASKMSB downto LINEMASKLSB),
+         wren      => wren,
+         q         => tags_read(i)
+      );
+   
       iRamMemory : entity work.SyncRamDualByteEnable
       generic map
       (
