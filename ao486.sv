@@ -232,7 +232,7 @@ hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000), .PS2WE(1), .WIDE(1)) hps_
 );
 
 wire [35:0] EXT_BUS;
-hps_ext hps_ext
+hps_ext #(30000000) hps_ext
 (
 	.clk_sys(clk_sys),
 	.EXT_BUS(EXT_BUS),

@@ -609,6 +609,14 @@
          type = "String";
       }
    }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element uart
    {
       datum _sortIndex
@@ -1070,6 +1078,11 @@
  <connection kind="avalon" version="17.0" start="mm_bridge.m0" end="sound.mgmt">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x9000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection kind="avalon" version="17.0" start="mm_bridge.m0" end="vga.mgmt">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x8900" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection

@@ -60,6 +60,11 @@ module vga
 	 //interrupt (IRQ2)
     output              irq,
 
+    //mgmt slave 
+    input       [3:0]   mgmt_address,
+    input               mgmt_write,
+    input       [31:0]  mgmt_writedata,
+
     //vga
     output              vga_ce,
     input               vga_mode,
@@ -74,7 +79,9 @@ module vga
 //------------------------------------------------------------------------------
 
 wire clk_vga = clk_sys & ce_video;
-localparam CLK_SYS = 30000000; //90500000;
+
+reg [31:0] clk_rate = 90500000;
+always @(posedge clk_sys) if(mgmt_write && !mgmt_address) clk_rate <= mgmt_writedata;
 
 reg ce_video;
 reg [31:0] pixclk = 25175000;
@@ -83,12 +90,11 @@ always @(negedge clk_sys) begin
 	
 	ce_video = 0;
 	sum = sum + pixclk;
-	if(sum >= CLK_SYS) begin
-		sum = sum - CLK_SYS;
+	if(sum >= clk_rate) begin
+		sum = sum - clk_rate;
 		ce_video = 1;
 	end
 end
-
 
 always @(posedge clk_sys) begin
 	reg [31:0] pixcnt = 0, pix60;

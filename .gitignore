@@ -7,6 +7,7 @@ hc_output
 scaler
 hps_isw_handoff
 vip
+system
 *_sim
 .qsys_edit
 PLLJ_PLLSPE_INFO.txt

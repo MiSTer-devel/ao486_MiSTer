@@ -18,7 +18,7 @@
 //
 ///////////////////////////////////////////////////////////////////////
 
-module hps_ext
+module hps_ext #(parameter CLK_RATE)
 (
 	input             clk_sys,
 	inout      [35:0] EXT_BUS,
@@ -79,9 +79,11 @@ always@(posedge clk_sys) begin
 				case(cmd)
 					'h61: if(byte_cnt == 1) begin
 								dma_addr[15:0] <= io_din;
+								io_dout <= CLK_RATE[15:0];
 							end
 							else if(byte_cnt == 2) begin
 								dma_addr[31:16] <= io_din;
+								io_dout <= CLK_RATE[31:16];
 							end
 							else begin
 								if(~dma_hilo) begin
