@@ -74,6 +74,7 @@ module vga
 //------------------------------------------------------------------------------
 
 wire clk_vga = clk_sys & ce_video;
+localparam CLK_SYS = 30000000; //90500000;
 
 reg ce_video;
 reg [31:0] pixclk = 25175000;
@@ -82,8 +83,8 @@ always @(negedge clk_sys) begin
 	
 	ce_video = 0;
 	sum = sum + pixclk;
-	if(sum >= 90500000) begin
-		sum = sum - 90500000;
+	if(sum >= CLK_SYS) begin
+		sum = sum - CLK_SYS;
 		ce_video = 1;
 	end
 end
