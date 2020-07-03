@@ -54,18 +54,6 @@
   <tag2 key="COMPONENT_HIDE_FROM_SOPC" value="true" />
  </component>
  <component
-   name="pc_bus"
-   file="./rtl/soc/pc_bus/pc_bus_hw.tcl"
-   displayName="pc_bus"
-   version="1.0"
-   description=""
-   tags="AUTHORSHIP= /// CONNECTION_TYPES=avalon,clock,reset /// INTERNAL_COMPONENT=false"
-   categories="ao486"
-   factory="TclModuleFactory">
-  <tag2 key="COMPONENT_EDITABLE" value="true" />
-  <tag2 key="COMPONENT_HIDE_FROM_SOPC" value="true" />
- </component>
- <component
    name="pc_dma"
    file="./rtl/soc/pc_dma/pc_dma_hw.tcl"
    displayName="pc_dma"
