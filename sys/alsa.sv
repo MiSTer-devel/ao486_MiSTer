@@ -20,6 +20,9 @@
 //============================================================================
 
 module alsa
+#(
+	parameter CLK_RATE = 24576000
+)
 (
 	input             reset,
 	input             clk,
@@ -139,17 +142,14 @@ always @(posedge clk) begin
 	end
 end
 
-localparam F48K = 48000;
-localparam F50M = 50000000;
-
 reg ce_sample;
 always @(posedge clk) begin
 	reg [31:0] acc = 0;
 
 	ce_sample <= 0;
-	acc <= acc + F48K + {hurryup,6'd0};
-	if(acc >= F50M) begin
-		acc <= acc - F50M;
+	acc <= acc + 48000 + {hurryup,6'd0};
+	if(acc >= CLK_RATE) begin
+		acc <= acc - CLK_RATE;
 		ce_sample <= 1;
 	end
 end

@@ -148,6 +148,7 @@ ENTITY ascal IS
     o_hs  : OUT std_logic; -- H sync
     o_vs  : OUT std_logic; -- V sync
     o_de  : OUT std_logic; -- Display Enable
+    o_vbl : OUT std_logic; -- V blank
     o_ce  : IN  std_logic; -- Clock Enable
     o_clk : IN  std_logic; -- Output clock
     
@@ -161,6 +162,7 @@ ENTITY ascal IS
     o_fb_vsize  : IN natural RANGE 0 TO 4095 :=0;
     o_fb_format : IN unsigned(5 DOWNTO 0) :="000100";
     o_fb_base   : IN unsigned(31 DOWNTO 0) :=x"0000_0000";
+    o_fb_stride : IN unsigned(13 DOWNTO 0) :=(OTHERS =>'0'); -- must be multiple of data bus width in bytes (8 or 16)
 
     -- Framebuffer palette in 8bpp mode
     pal_clk : IN std_logic :='0';
@@ -406,7 +408,8 @@ ARCHITECTURE rtl OF ascal IS
   SIGNAL o_readdataack,o_readdataack_sync,o_readdataack_sync2 : std_logic;
   SIGNAL o_copyv : unsigned(0 TO 8);
   SIGNAL o_adrs : unsigned(31 DOWNTO 0); -- Avalon address
-  SIGNAL o_adrs_pre : natural RANGE 0 TO 32*4096-1;
+  SIGNAL o_adrs_pre : natural RANGE 0 TO 8388607;
+  SIGNAL o_stride : unsigned(13 DOWNTO 0);
   SIGNAL o_adrsa,o_rline : std_logic;
   SIGNAL o_ad,o_ad1,o_ad2,o_ad3 : natural RANGE 0 TO 2*BLEN-1;
   SIGNAL o_adturn : std_logic;
@@ -430,7 +433,7 @@ ARCHITECTURE rtl OF ascal IS
 
   SIGNAL o_vfrac,o_hfrac,o_hfrac1,o_hfrac2,o_hfrac3,o_hfrac4 : unsigned(11 DOWNTO 0);
   SIGNAL o_hacc,o_hacc_ini,o_hacc_next,o_vacc,o_vacc_next,o_vacc_ini : natural RANGE 0 TO 4*OHRES-1;
-  SIGNAL o_hsv,o_vsv,o_dev,o_pev : unsigned(0 TO 5);
+  SIGNAL o_hsv,o_vsv,o_dev,o_pev,o_end : unsigned(0 TO 5);
   SIGNAL o_hsp,o_vss : std_logic;
   SIGNAL o_read,o_read_pre : std_logic;
   SIGNAL o_readlev,o_copylev : natural RANGE 0 TO 2;
@@ -1717,6 +1720,14 @@ BEGIN
       o_ihsize_temp <= o_ihsize * to_integer(o_format(2 DOWNTO 0) - 2);
       o_ihsize_temp2 <= (o_ihsize_temp + N_BURST - 1);
       o_hburst <= o_ihsize_temp2 / N_BURST;
+
+      IF o_fb_ena='1' and o_fb_stride /= 0 THEN
+        o_stride<=o_fb_stride;
+        o_stride(NB_LA-1 downto 0)<=(OTHERS=>'0');
+      ELSE
+        o_stride <= to_unsigned(o_ihsize_temp2,14);
+        o_stride(NB_BURST-1 DOWNTO 0) <= (OTHERS =>'0');
+      END IF;
       
       IF o_vsv(1)='1' AND o_vsv(0)='0' AND o_bufup0='1' THEN
         o_obuf0<=buf_next(o_obuf0,o_ibuf0);
@@ -1855,17 +1866,17 @@ BEGIN
       
       o_read<=o_read_pre AND o_run;
       
-      o_adrs_pre<=to_integer(o_vacpt) * o_hburst;
+      o_adrs_pre<=to_integer(o_vacpt) * to_integer(o_stride);
       o_rline<=o_vacpt(0); -- Even/Odd line for interlaced video
       IF o_adrsa='1' THEN
         IF o_fload=2 THEN
           o_adrs<=to_unsigned(o_hbcpt * N_BURST,32);
           o_alt<="1111";
         ELSIF o_fload=1 THEN
-          o_adrs<=to_unsigned((o_hburst + o_hbcpt) * N_BURST,32);
+          o_adrs<=to_unsigned(o_hbcpt * N_BURST,32) + o_stride;
           o_alt<="0100";
         ELSE
-          o_adrs<=to_unsigned((o_adrs_pre + o_hbcpt) * N_BURST,32);
+          o_adrs<=to_unsigned(o_adrs_pre + (o_hbcpt * N_BURST),32);
           o_alt<=altx(o_vacpt(1 DOWNTO 0) + 1);
         END IF;
       END IF;
@@ -2152,7 +2163,7 @@ BEGIN
       o_copyv(1 TO 8)<=o_copyv(0 TO 7);
       
       o_dcptv(1)<=o_dcpt;
-      IF o_dcptv(1)>o_hsize THEN
+      IF o_dcptv(1)>=o_hsize THEN
         o_copyv(2)<='0';
       END IF;
       o_dcptv(2)<=o_dcptv(1) MOD OHRES;
@@ -2283,6 +2294,7 @@ BEGIN
           o_vcpt<=o_vcpt_pre;
         END IF;
         
+        o_end(0)<=to_std_logic(o_vcpt>=o_vdisp);
         o_dev(0)<=to_std_logic(o_hcpt<o_hdisp AND o_vcpt<o_vdisp);
         o_pev(0)<=to_std_logic(o_hcpt>=o_hmin AND o_hcpt<=o_hmax AND
                                o_vcpt>=o_vmin AND o_vcpt<=o_vmax);
@@ -2296,12 +2308,14 @@ BEGIN
         o_vsv(1 TO 5)<=o_vsv(0 TO 4);
         o_dev(1 TO 5)<=o_dev(0 TO 4);
         o_pev(1 TO 5)<=o_pev(0 TO 4);
+        o_end(1 TO 5)<=o_end(0 TO 4);
         
         IF o_run='0' THEN
           o_hsv(2)<='0';
           o_vsv(2)<='0';
           o_dev(2)<='0';
           o_pev(2)<='0';
+          o_end(2)<='0';
         END IF;
         
       END IF;
@@ -2401,6 +2415,7 @@ BEGIN
         o_hs<=o_hsv(5);
         o_vs<=o_vsv(5);
         o_de<=o_dev(5);
+        o_vbl<=o_end(5);
         o_r<=x"00";
         o_g<=x"00";
         o_b<=x"00";
