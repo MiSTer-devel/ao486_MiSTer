@@ -426,7 +426,7 @@ wire        DDRAM_IN_WE;
 ddrram_cache cache_0
    (
       .DDRAM_CLK            (DDRAM_CLK),
-      .RESET                (sys_reset),
+      .RESET                (cpu_reset),
                             
       .DDRAM_OUT_BUSY       (DDRAM_BUSY      ),
       .DDRAM_OUT_DOUT       (DDRAM_DOUT      ),
