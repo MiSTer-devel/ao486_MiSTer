@@ -1,5 +1,5 @@
 `timescale 1ns/10ps
-module  pll_0002(
+module  pll2_0002(
 
 	// interface 'refclk'
 	input wire refclk,
@@ -22,10 +22,10 @@ module  pll_0002(
 		.reference_clock_frequency("50.0 MHz"),
 		.operation_mode("direct"),
 		.number_of_clocks(2),
-		.output_clock_frequency0("90.500000 MHz"),
+		.output_clock_frequency0("30.000000 MHz"),
 		.phase_shift0("0 ps"),
 		.duty_cycle0(50),
-		.output_clock_frequency1("1.843177 MHz"),
+		.output_clock_frequency1("1.843220 MHz"),
 		.phase_shift1("0 ps"),
 		.duty_cycle1(50),
 		.output_clock_frequency2("0 MHz"),

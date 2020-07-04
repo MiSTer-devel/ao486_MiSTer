@@ -124,6 +124,8 @@ module emu
 	input         OSD_STATUS
 );
 
+//`define DEBUG
+
 assign ADC_BUS  = 'Z;
 assign USER_OUT = '1;
 assign {SDRAM_A, SDRAM_BA, SDRAM_DQ, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
@@ -232,7 +234,15 @@ hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000), .PS2WE(1), .WIDE(1)) hps_
 );
 
 wire [35:0] EXT_BUS;
-hps_ext #(30000000) hps_ext
+hps_ext
+#(
+`ifdef DEBUG
+	30000000
+`else
+	90500000
+`endif
+)
+hps_ext
 (
 	.clk_sys(clk_sys),
 	.EXT_BUS(EXT_BUS),
@@ -251,7 +261,11 @@ hps_ext #(30000000) hps_ext
 //------------------------------------------------------------------------------
 
 wire clk_sys, clk_uart;
-pll pll
+`ifdef DEBUG
+	pll2 pll
+`else
+	pll pll
+`endif
 (
 	.refclk(CLK_50M),
 	.outclk_0(clk_sys),
