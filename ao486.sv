@@ -160,6 +160,7 @@ localparam CONF_STR =
 	"O1,Aspect ratio,4:3,16:9;",
 	"O4,VSync,60Hz,Variable;",
 	"O3,FM mode,OPL2,OPL3;",
+	"O5,Level 2 Cache,On,Off;",
 	"-;",
 	"OX2,Boot order,FDD/HDD,HDD/FDD;",
 	"R0,Reset and apply HDD;",
@@ -443,6 +444,8 @@ ddrram_cache cache_0
    (
       .DDRAM_CLK            (DDRAM_CLK),
       .RESET                (cpu_reset),
+                            
+      .disable_cache        (status[5]),
                             
       .DDRAM_OUT_BUSY       (DDRAM_BUSY      ),
       .DDRAM_OUT_DOUT       (DDRAM_DOUT      ),

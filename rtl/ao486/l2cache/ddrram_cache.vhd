@@ -12,12 +12,14 @@ entity ddrram_cache is
       DDRAM_CLK            : in  std_logic;
       RESET                : in  std_logic;
       
+      disable_cache        : in  std_logic;
+      
       -- ddrram side
       DDRAM_OUT_BUSY       : in  std_logic; 
       DDRAM_OUT_DOUT       : in  std_logic_vector(63 downto 0); 
       DDRAM_OUT_DOUT_READY : in  std_logic; 
       DDRAM_OUT_BURSTCNT   : out std_logic_vector(7 downto 0); 
-      DDRAM_OUT_ADDR       : out std_logic_vector(28 downto 0); 
+      DDRAM_OUT_ADDR       : out std_logic_vector(26 downto 0); 
       DDRAM_OUT_RD         : out std_logic; 
       DDRAM_OUT_DIN        : out std_logic_vector(63 downto 0);
       DDRAM_OUT_BE         : out std_logic_vector(7 downto 0);
@@ -27,8 +29,8 @@ entity ddrram_cache is
       DDRAM_IN_BUSY        : out std_logic; 
       DDRAM_IN_DOUT        : out std_logic_vector(63 downto 0); 
       DDRAM_IN_DOUT_READY  : out std_logic; 
-      DDRAM_IN_BURSTCNT    : in  std_logic_vector(7 downto 0); 
-      DDRAM_IN_ADDR        : in  std_logic_vector(28 downto 0); 
+      DDRAM_IN_BURSTCNT    : in  std_logic_vector(2 downto 0); 
+      DDRAM_IN_ADDR        : in  std_logic_vector(26 downto 0); 
       DDRAM_IN_RD          : in  std_logic; 
       DDRAM_IN_DIN         : in  std_logic_vector(63 downto 0);
       DDRAM_IN_BE          : in  std_logic_vector(7 downto 0);
@@ -42,11 +44,11 @@ architecture arch of ddrram_cache is
    constant LINES             : integer := 32; -- setting to 16 will half both logic and memory required, ~10% less performance
    constant LINESIZE          : integer := 16; -- changes here only reduces BRAMs required, ~5% less performance
    constant ASSOCIATIVITY     : integer := 4;  -- setting to 2 will half both logic and memory required, ~12% less performance
-   constant ADDRBITS          : integer := 25;
+   constant ADDRBITS          : integer := 23;
    
    -- fifo for incoming reads
-   signal Fifo_din         : std_logic_vector(107 downto 0);
-   signal Fifo_dout        : std_logic_vector(107 downto 0);
+   signal Fifo_din         : std_logic_vector(100 downto 0);
+   signal Fifo_dout        : std_logic_vector(100 downto 0);
    signal Fifo_we          : std_logic;
    signal Fifo_nearfull    : std_logic;
    signal Fifo_rd          : std_logic;
@@ -87,8 +89,8 @@ architecture arch of ddrram_cache is
    signal readdata_cache : treaddata_cache;
    signal cache_mux          : integer range 0 to ASSOCIATIVITY-1 := 0;
    
-   signal read_addr          : std_logic_vector(25 downto 0) := (others => '0');
-   signal burst_left         : integer range 0 to 255 := 0;
+   signal read_addr          : std_logic_vector(23 downto 0) := (others => '0');
+   signal burst_left         : integer range 0 to 7 := 0;
    
    signal memory_addr_a      : natural range 0 to (LINESIZE * LINES) - 1;
    signal memory_addr_b      : natural range 0 to (LINESIZE * LINES) - 1;
@@ -99,22 +101,41 @@ architecture arch of ddrram_cache is
    
    signal fillcount          : integer range 0 to LINESIZE - 1;
 
-   signal DDRAM_IN_ADDR_64   : std_logic_vector(25 downto 0);
+   signal DDRAM_IN_ADDR_64   : std_logic_vector(23 downto 0);
+   
+   -- internal mux
+   signal DDRAM_DOUT_READY : std_logic; 
+   signal DDRAM_BURSTCNT   : std_logic_vector(7 downto 0); 
+   signal DDRAM_ADDR       : std_logic_vector(26 downto 0); 
+   signal DDRAM_RD         : std_logic; 
+   signal DDRAM_DIN        : std_logic_vector(63 downto 0);
+   signal DDRAM_BE         : std_logic_vector(7 downto 0);
+   signal DDRAM_WE         : std_logic; 
 
 begin 
 
-   DDRAM_IN_ADDR_64 <= DDRAM_IN_ADDR(28 downto 3);
+   DDRAM_OUT_BURSTCNT   <= "00000" & DDRAM_IN_BURSTCNT  when disable_cache = '1' else DDRAM_BURSTCNT;
+   DDRAM_OUT_ADDR       <= DDRAM_IN_ADDR                when disable_cache = '1' else DDRAM_ADDR;    
+   DDRAM_OUT_RD         <= DDRAM_IN_RD                  when disable_cache = '1' else DDRAM_RD;      
+   DDRAM_OUT_DIN        <= DDRAM_IN_DIN                 when disable_cache = '1' else DDRAM_DIN;     
+   DDRAM_OUT_BE         <= DDRAM_IN_BE                  when disable_cache = '1' else DDRAM_BE;      
+   DDRAM_OUT_WE         <= DDRAM_IN_WE                  when disable_cache = '1' else DDRAM_WE;      
+                                                        
+   DDRAM_IN_BUSY        <= DDRAM_OUT_BUSY               when disable_cache = '1' else Fifo_nearfull;
+   DDRAM_IN_DOUT        <= DDRAM_OUT_DOUT               when disable_cache = '1' else readdata_cache(cache_mux);
+   DDRAM_IN_DOUT_READY  <= DDRAM_OUT_DOUT_READY         when disable_cache = '1' else DDRAM_DOUT_READY;
+
+
+   DDRAM_IN_ADDR_64 <= DDRAM_IN_ADDR(26 downto 3);
    
    Fifo_din <= DDRAM_IN_RD & DDRAM_IN_WE & DDRAM_IN_BE & DDRAM_IN_DIN & DDRAM_IN_BURSTCNT & DDRAM_IN_ADDR_64;
    Fifo_we  <= DDRAM_IN_RD or DDRAM_IN_WE when Fifo_nearfull = '0' else '0';
-   
-   DDRAM_IN_BUSY <= Fifo_nearfull;
    
    iSyncFifo : entity work.SyncFifoBypass
    generic map
    (
       SIZE             => 128,
-      DATAWIDTH        => 108,
+      DATAWIDTH        => 101,
       NEARFULLDISTANCE => 64
    )
    port map
@@ -139,7 +160,7 @@ begin
    begin
       if rising_edge(DDRAM_CLK) then
          
-         DDRAM_IN_DOUT_READY <= '0';
+         DDRAM_DOUT_READY <= '0';
          memory_we           <= (others => '0');
 
          if (RESET = '1') then
@@ -151,30 +172,30 @@ begin
          else
             
             if (DDRAM_OUT_BUSY = '0') then
-               DDRAM_OUT_RD  <= '0';
-               DDRAM_OUT_WE  <= '0';
+               DDRAM_RD  <= '0';
+               DDRAM_WE  <= '0';
             end if;
 
             case(state) is
             
                when IDLE =>
                   if (Fifo_valid = '1') then
-                     if (Fifo_dout(107) = '1') then
+                     if (Fifo_dout(100) = '1') then
                         state      <= READONE;
-                        read_addr  <= Fifo_dout(25 downto 0);
-                        burst_left <= to_integer(unsigned(Fifo_dout(33 downto 26)));
-                     elsif (Fifo_dout(106) = '1') then
-                        DDRAM_OUT_DIN      <= Fifo_dout(97 downto 34);
-                        DDRAM_OUT_WE       <= '1';
-                        DDRAM_OUT_ADDR     <= Fifo_dout(25 downto 0) & "000";
-                        DDRAM_OUT_BE       <= Fifo_dout(105 downto 98);
-                        DDRAM_OUT_BURSTCNT <= x"01";
+                        read_addr  <= Fifo_dout(23 downto 0);
+                        burst_left <= to_integer(unsigned(Fifo_dout(26 downto 24)));
+                     elsif (Fifo_dout(99) = '1') then
+                        DDRAM_DIN      <= Fifo_dout(90 downto 27);
+                        DDRAM_WE       <= '1';
+                        DDRAM_ADDR     <= Fifo_dout(23 downto 0) & "000";
+                        DDRAM_BE       <= Fifo_dout(98 downto 91);
+                        DDRAM_BURSTCNT <= x"01";
                         
                         memory_addr_b <= to_integer(unsigned(Fifo_dout(RAMSIZEBITS - 1 downto 0)));
-                        memory_datain <= Fifo_dout(97 downto 34);
+                        memory_datain <= Fifo_dout(90 downto 27);
                         memory_we     <= (others => '0');
-                        memory_be     <= Fifo_dout(105 downto 98);
-                        read_addr     <= Fifo_dout(25 downto 0);
+                        memory_be     <= Fifo_dout(98 downto 91);
+                        read_addr     <= Fifo_dout(23 downto 0);
                         state         <= WRITEONE;
                      end if;
                   elsif (Fifo_empty = '1' and DDRAM_OUT_BUSY = '0' and DDRAM_IN_RD = '1') then
@@ -194,11 +215,11 @@ begin
                   end loop;
             
                when READONE =>
-                  state              <= FILLCACHE;
-                  DDRAM_OUT_RD       <= '1';
-                  DDRAM_OUT_ADDR     <= read_addr(read_addr'left downto LINESIZE_BITS) & (LINESIZE_BITS - 1 downto 0 => '0') & "000";
-                  DDRAM_OUT_BE       <= x"00";
-                  DDRAM_OUT_BURSTCNT <= std_logic_vector(to_unsigned(LINESIZE, 8));
+                  state          <= FILLCACHE;
+                  DDRAM_RD       <= '1';
+                  DDRAM_ADDR     <= read_addr(read_addr'left downto LINESIZE_BITS) & (LINESIZE_BITS - 1 downto 0 => '0') & "000";
+                  DDRAM_BE       <= x"00";
+                  DDRAM_BURSTCNT <= std_logic_vector(to_unsigned(LINESIZE, 8));
                   fillcount          <= 0;
                   memory_addr_b      <= to_integer(unsigned(read_addr(RAMSIZEBITS - 1 downto LINESIZE_BITS)) & (LINESIZE_BITS - 1 downto 0 => '0'));
                   if (ASSOCIATIVITY > 1) then
@@ -207,9 +228,9 @@ begin
                   for i in 0 to ASSOCIATIVITY - 1 loop
                      if (tag_dirty(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB))) * ASSOCIATIVITY + i) = '0') then
                         if (tags_read(i) = read_addr(ADDRBITS downto RAMSIZEBITS)) then
-                           DDRAM_OUT_RD         <= '0';
-                           cache_mux            <= i;
-                           DDRAM_IN_DOUT_READY  <= '1';
+                           DDRAM_RD          <= '0';
+                           cache_mux         <= i;
+                           DDRAM_DOUT_READY  <= '1';
                            if (burst_left > 1) then
                               state      <= READONE;
                               burst_left <= burst_left - 1;
@@ -248,8 +269,6 @@ begin
 
       end if;
    end process;
-   
-   DDRAM_IN_DOUT <= readdata_cache(cache_mux);
    
    memory_addr_a <= to_integer(unsigned(read_addr(RAMSIZEBITS - 1 downto 0)));
    
