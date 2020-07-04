@@ -1022,6 +1022,15 @@
    kind="avalon"
    version="17.0"
    start="pc_dma.avalon_master"
+   end="vga.mem">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x000a0000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="17.0"
+   start="pc_dma.avalon_master"
    end="address_span_extender.windowed_slave">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x08000000" />
