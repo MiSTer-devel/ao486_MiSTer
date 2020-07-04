@@ -732,10 +732,10 @@
    kind="altera_address_span_extender"
    version="17.0"
    enabled="1">
-  <parameter name="BURSTCOUNT_WIDTH" value="8" />
+  <parameter name="BURSTCOUNT_WIDTH" value="3" />
   <parameter name="DATA_WIDTH" value="64" />
   <parameter name="ENABLE_SLAVE_PORT" value="false" />
-  <parameter name="MASTER_ADDRESS_DEF" value="805306368" />
+  <parameter name="MASTER_ADDRESS_DEF" value="0" />
   <parameter name="MASTER_ADDRESS_WIDTH" value="32" />
   <parameter name="MAX_PENDING_READS" value="8" />
   <parameter name="SLAVE_ADDRESS_WIDTH" value="24" />

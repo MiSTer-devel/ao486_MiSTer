@@ -279,7 +279,7 @@ reg         mem_we = 0;
 reg         mem_rd = 0;
 
 wire [31:0] dram_addr;
-assign      DDRAM_ADDR = dram_addr[31:3];
+assign      DDRAM_ADDR = {4'h3, 1'b0, dram_addr[26:3]};
 assign      DDRAM_CLK = clk_sys;
 
 wire        ps2_reset_n;
@@ -430,12 +430,14 @@ system u0
 wire        DDRAM_IN_BUSY;      
 wire [63:0] DDRAM_IN_DOUT;      
 wire        DDRAM_IN_DOUT_READY;
-wire  [7:0] DDRAM_IN_BURSTCNT;  
-wire [31:0] DDRAM_IN_ADDR;      
+wire  [2:0] DDRAM_IN_BURSTCNT;  
+wire [26:0] DDRAM_IN_ADDR;      
 wire        DDRAM_IN_RD;        
 wire [63:0] DDRAM_IN_DIN;       
 wire  [7:0] DDRAM_IN_BE;        
-wire        DDRAM_IN_WE;        
+wire        DDRAM_IN_WE;
+
+wire rom = DDRAM_IN_ADDR[26:16] == 'hC ||  DDRAM_IN_ADDR[26:16] == 'hF;
 
 ddrram_cache cache_0
    (
@@ -460,7 +462,7 @@ ddrram_cache cache_0
       .DDRAM_IN_RD          (DDRAM_IN_RD        ),
       .DDRAM_IN_DIN         (DDRAM_IN_DIN       ),
       .DDRAM_IN_BE          (DDRAM_IN_BE        ),
-      .DDRAM_IN_WE          (DDRAM_IN_WE        )
+      .DDRAM_IN_WE          (DDRAM_IN_WE & ~rom )
 );
 
 wire       uart_h_dtr_n;
