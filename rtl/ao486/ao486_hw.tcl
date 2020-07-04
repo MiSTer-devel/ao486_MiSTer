@@ -104,9 +104,6 @@ add_fileset_file tlb_regs.v VERILOG PATH memory/tlb_regs.v
 add_fileset_file simple_fifo.v VERILOG PATH ../common/simple_fifo.v
 add_fileset_file simple_ram.v VERILOG PATH ../common/simple_ram.v
 add_fileset_file simple_mult.v VERILOG PATH ../common/simple_mult.v
-add_fileset_file SyncRamDualByteEnable.vhd VHDL PATH l2cache/SyncRamDualByteEnable.vhd
-add_fileset_file SyncFifoBypass.vhd VHDL PATH l2cache/SyncFifoBypass.vhd
-add_fileset_file ddrram_cache.vhd VHDL PATH l2cache/ddrram_cache.vhd
 
 
 # 
