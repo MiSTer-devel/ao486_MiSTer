@@ -72,11 +72,6 @@ reg       was_readdatavalid;
 reg       avalon_io_read_reg;
 reg       avalon_io_write_reg;
 
-assign avalon_io_read  = (address_out_of_bounds)? 1'b0 : avalon_io_read_reg;
-assign avalon_io_write = (address_out_of_bounds)? 1'b0 : avalon_io_write_reg;
-
-//------------------------------------------------------------------------------
-
 wire address_out_of_bounds =
     (avalon_io_address >= 16'h0010 && avalon_io_address < 16'h0020) ||
     (avalon_io_address == 16'h0020 && avalon_io_byteenable[1:0] == 2'b00) ||
@@ -103,6 +98,9 @@ wire [31:0] avalon_io_readdata_final =
     (avalon_io_address == 16'h0070)?    { 16'hFFFF, avalon_io_readdata[15:0] } :
     (avalon_io_address == 16'h00A0)?    { 16'hFFFF, avalon_io_readdata[15:0] } :
                                         avalon_io_readdata;
+
+assign avalon_io_read  = (address_out_of_bounds)? 1'b0 : avalon_io_read_reg;
+assign avalon_io_write = (address_out_of_bounds)? 1'b0 : avalon_io_write_reg;
 
 //------------------------------------------------------------------------------
 

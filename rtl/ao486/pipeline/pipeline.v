@@ -269,10 +269,12 @@ module pipeline(
 //------------------------------------------------------------------------------
 
 // synthesis translate_off
-wire _unused_ok = &{ 1'b0, SW[16:7], 1'b0 };
+//wire _unused_ok = &{ 1'b0, SW[16:7], 1'b0 };
 // synthesis translate_on
 
 //------------------------------------------------------------------------------
+
+wire [1:0]  cpl;
 
 assign prefetch_cpl = cpl;
 
@@ -367,8 +369,6 @@ assign exe_reset   = exc_exe_reset   | wr_req_reset_exe;
 assign wr_reset    = exc_wr_reset;
 
 //------------------------------------------------------------------------------
-
-wire [1:0]  cpl;
 
 wire [31:0] gdtr_base;
 wire [15:0] gdtr_limit;

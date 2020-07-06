@@ -583,7 +583,7 @@ dcache dcache_inst(
     .dcacheread_done            (resp_dcacheread_done),            //output
     
     .dcacheread_length          (resp_dcacheread_length),          //input [3:0]
-    .dcacheread_cache_disable   (resp_dcacheread_cache_disable),   //input
+    .dcacheread_cache_disable   (1'b1),   //input
     .dcacheread_address         (resp_dcacheread_address),         //input [31:0]
     .dcacheread_data            (resp_dcacheread_data),            //output [63:0]
     //END
@@ -593,18 +593,18 @@ dcache dcache_inst(
     .dcachewrite_done               (resp_dcachewrite_done),               //output
     
     .dcachewrite_length             (resp_dcachewrite_length),             //input [2:0]
-    .dcachewrite_cache_disable      (resp_dcachewrite_cache_disable),      //input
+    .dcachewrite_cache_disable      (1'b1),      //input
     .dcachewrite_address            (resp_dcachewrite_address),            //input [31:0]
-    .dcachewrite_write_through      (resp_dcachewrite_write_through),      //input
+    .dcachewrite_write_through      (1'b1),      //input
     .dcachewrite_data               (resp_dcachewrite_data),               //input [31:0]
     //END
     
     //REQ:
-    .readline_do            (req_readline_do),      //output
-    .readline_done          (req_readline_done),    //input
-    
-    .readline_address       (req_readline_address),   //output [31:0]
-    .readline_line          (req_readline_line),      //input [127:0]
+    //.readline_do            (req_readline_do),      //output
+    //.readline_done          (req_readline_done),    //input
+    //
+    //.readline_address       (req_readline_address),   //output [31:0]
+    //.readline_line          (req_readline_line),      //input [127:0]
     //END
     
     //REQ:
@@ -618,11 +618,11 @@ dcache dcache_inst(
     //END
     
     //REQ:
-    .writeline_do               (req_writeline_do),         //output
-    .writeline_done             (req_writeline_done),       //input
-    
-    .writeline_address          (req_writeline_address),    //output [31:0]
-    .writeline_line             (req_writeline_line),       //output [127:0]
+    //.writeline_do               (req_writeline_do),         //output
+    //.writeline_done             (req_writeline_done),       //input
+    //
+    //.writeline_address          (req_writeline_address),    //output [31:0]
+    //.writeline_line             (req_writeline_line),       //output [127:0]
     //END
     
     //REQ:
@@ -641,36 +641,44 @@ dcache dcache_inst(
                    
                    
     //RESP:
-    .invddata_do        (invddata_do),        //input
-    .invddata_done      (invddata_done),      //output
+    .invddata_do        (1'b0),        //input
+    //.invddata_done      (invddata_done),      //output
     //END
     
     //RESP:
-    .wbinvddata_do      (wbinvddata_do),      //input
-    .wbinvddata_done    (wbinvddata_done),    //output
+    .wbinvddata_do      (1'b0),      //input
+    //.wbinvddata_done    (wbinvddata_done),    //output
     //END
     
     .dcache_busy        (dcache_busy)           //output
 );
 
+assign req_readline_do = 1'b0;
+assign req_writeline_do = 1'b0;
+
+assign invddata_done = 1'b1;
+assign wbinvddata_done = 1'b1;
+
 //------------------------------------------------------------------------------
 
-dcache_to_icache_fifo dcache_to_icache_fifo_inst(
-    .clk            (clk),
-    .rst_n          (rst_n),
-    
-    //RESP:
-    .dcachetoicache_write_do        (dcachetoicache_write_do),        //input
-    .dcachetoicache_write_address   (dcachetoicache_write_address),   //input [31:0]
-    //END
-    
-    
-    //RESP:
-    .dcachetoicache_accept_do       (dcachetoicache_accept_do),       //input
-    .dcachetoicache_accept_address  (dcachetoicache_accept_address),  //output [31:0]
-    .dcachetoicache_accept_empty    (dcachetoicache_accept_empty)     //output
-    //END
-);
+// unused without cache
+//dcache_to_icache_fifo dcache_to_icache_fifo_inst(
+//    .clk            (clk),
+//    .rst_n          (rst_n),
+//    
+//    //RESP:
+//    .dcachetoicache_write_do        (dcachetoicache_write_do),        //input
+//    .dcachetoicache_write_address   (dcachetoicache_write_address),   //input [31:0]
+//    //END
+//    
+//    
+//    //RESP:
+//    .dcachetoicache_accept_do       (dcachetoicache_accept_do),       //input
+//    .dcachetoicache_accept_address  (dcachetoicache_accept_address),  //output [31:0]
+//    .dcachetoicache_accept_empty    (dcachetoicache_accept_empty)     //output
+//    //END
+//);
+assign dcachetoicache_accept_empty = 1'b1;
 
 //------------------------------------------------------------------------------
 
@@ -715,10 +723,12 @@ icache icache_inst(
     //END
                    
     //RESP:
-    .invdcode_do        (invdcode_do),    //input
-    .invdcode_done      (invdcode_done)   //output
+    .invdcode_do        (1'b0)    //input
+    //.invdcode_done      (invdcode_done)   //output
     //END
 );
+
+assign invdcode_done = 1'b1;
 
 //------------------------------------------------------------------------------
 

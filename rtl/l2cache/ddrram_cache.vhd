@@ -138,7 +138,7 @@ begin
    port map
    ( 
       clk      => DDRAM_CLK,
-      reset    => RESET,
+      reset    => '0',
                
       Din      => Fifo_din,
       Wr       => Fifo_we,
@@ -161,120 +161,113 @@ begin
          memory_we           <= (others => '0');
          
          data64_high_1 <= data64_high;
-
-         if (RESET = '1') then
             
-            rrb           <= (others => (others => '0'));
-            tag_dirty     <= (others => '1');
-            state         <= IDLE;
-            
-         else
-            
-            if (DDRAM_OUT_BUSY = '0') then
-               DDRAM_RD  <= '0';
-               DDRAM_WE  <= '0';
-            end if;
-
-            case(state) is
-            
-               when IDLE =>
-                  if (Fifo_valid = '1') then
-                     if (Fifo_dout(65) = '1') then
-                        state       <= READONE;
-                        read_addr   <= Fifo_dout(24 downto 1);
-                        data64_high <= Fifo_dout(0);
-                        burst_left  <= to_integer(unsigned(Fifo_dout(27 downto 25)));
-                     elsif (Fifo_dout(64) = '1') then
-                        state          <= WRITEONE;
-                        DDRAM_WE       <= '1';
-                        DDRAM_ADDR     <= Fifo_dout(24 downto 1) & "000";
-                        read_addr      <= Fifo_dout(24 downto 1);
-                        DDRAM_BURSTCNT <= x"01";
-                        memory_addr_b  <= to_integer(unsigned(Fifo_dout(RAMSIZEBITS downto 1)));
-                        if (Fifo_dout(0) = '1') then
-                           DDRAM_DIN      <= Fifo_dout(59 downto 28) & (31 downto 0 => '0');
-                           memory_datain  <= Fifo_dout(59 downto 28) & (31 downto 0 => '0');
-                           DDRAM_BE       <= Fifo_dout(63 downto 60) & ( 3 downto 0 => '0');
-                           memory_be      <= Fifo_dout(63 downto 60) & ( 3 downto 0 => '0');
-                        else
-                           DDRAM_DIN      <= (63 downto 32 => '0') & Fifo_dout(59 downto 28);
-                           memory_datain  <= (63 downto 32 => '0') & Fifo_dout(59 downto 28);
-                           DDRAM_BE       <= ( 7 downto  4 => '0') & Fifo_dout(63 downto 60);
-                           memory_be      <= ( 7 downto  4 => '0') & Fifo_dout(63 downto 60);
-                        end if;
-                     end if;
-                  elsif (Fifo_empty = '1' and DDRAM_OUT_BUSY = '0' and DDRAM_IN_RD = '1') then
-                     state       <= READONE;
-                     read_addr   <= DDRAM_IN_ADDR_32(24 downto 1);
-                     data64_high <= DDRAM_IN_ADDR_32(0);
-                     burst_left  <= to_integer(unsigned(DDRAM_IN_BURSTCNT));
-                  end if;
-                  
-               when WRITEONE =>
-                  state <= IDLE;
-                  for i in 0 to ASSOCIATIVITY - 1 loop
-                     if (tag_dirty(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB))) * ASSOCIATIVITY + i) = '0') then
-                        if (tags_read(i) = read_addr(ADDRBITS downto RAMSIZEBITS)) then  
-                           memory_we(i) <= '1';
-                        end if;
-                     end if;
-                  end loop;
-            
-               when READONE =>
-                  state          <= FILLCACHE;
-                  DDRAM_RD       <= '1';
-                  DDRAM_ADDR     <= read_addr(read_addr'left downto LINESIZE_BITS) & (LINESIZE_BITS - 1 downto 0 => '0') & "000";
-                  DDRAM_BE       <= x"00";
-                  DDRAM_BURSTCNT <= std_logic_vector(to_unsigned(LINESIZE, 8));
-                  fillcount          <= 0;
-                  memory_addr_b      <= to_integer(unsigned(read_addr(RAMSIZEBITS - 1 downto LINESIZE_BITS)) & (LINESIZE_BITS - 1 downto 0 => '0'));
-                  if (ASSOCIATIVITY > 1) then
-                     cache_mux     <= to_integer(rrb(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB)))));
-                  end if;
-                  for i in 0 to ASSOCIATIVITY - 1 loop
-                     if (tag_dirty(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB))) * ASSOCIATIVITY + i) = '0') then
-                        if (tags_read(i) = read_addr(ADDRBITS downto RAMSIZEBITS)) then
-                           DDRAM_RD          <= '0';
-                           cache_mux         <= i;
-                           DDRAM_DOUT_READY  <= '1';
-                           if (burst_left > 1) then
-                              state       <= READONE;
-                              burst_left  <= burst_left - 1;
-                              if (data64_high = '1') then
-                                 read_addr   <= std_logic_vector(unsigned(read_addr) + 1);
-                              end if;
-                              data64_high <= not data64_high;
-                           else
-                              state      <= IDLE;
-                           end if;
-                        end if;
-                     end if;
-                  end loop;
-                  
-               when FILLCACHE => 
-                  if (DDRAM_OUT_DOUT_READY = '1') then
-                     memory_datain        <= DDRAM_OUT_DOUT;
-                     memory_we(cache_mux) <= '1';
-                     memory_be            <= x"FF";
-                     if (fillcount > 0) then
-                        memory_addr_b <= memory_addr_b + 1;
-                     end if;
-                     
-                     if (fillcount < LINESIZE - 1) then
-                        fillcount <= fillcount + 1;
-                     else
-                        state <= READCACHE_OUT;
-                     end if;
-                  end if;
-                  
-               when READCACHE_OUT =>
-                  state <= READONE;
-                  tag_dirty(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB))) * ASSOCIATIVITY + cache_mux) <= '0';
-                  rrb(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB))))                                   <= rrb(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB)))) + 1;
-              
-            end case; 
-            
+         if (DDRAM_OUT_BUSY = '0') then
+            DDRAM_RD  <= '0';
+            DDRAM_WE  <= '0';
          end if;
+
+         case(state) is
+         
+            when IDLE =>
+               if (RESET = '1') then
+                  tag_dirty     <= (others => '1');
+               end if;
+               if (Fifo_valid = '1') then
+                  if (Fifo_dout(65) = '1') then
+                     state       <= READONE;
+                     read_addr   <= Fifo_dout(24 downto 1);
+                     data64_high <= Fifo_dout(0);
+                     burst_left  <= to_integer(unsigned(Fifo_dout(27 downto 25)));
+                  elsif (Fifo_dout(64) = '1') then
+                     state          <= WRITEONE;
+                     DDRAM_WE       <= '1';
+                     DDRAM_ADDR     <= Fifo_dout(24 downto 1) & "000";
+                     read_addr      <= Fifo_dout(24 downto 1);
+                     DDRAM_BURSTCNT <= x"01";
+                     memory_addr_b  <= to_integer(unsigned(Fifo_dout(RAMSIZEBITS downto 1)));
+                     if (Fifo_dout(0) = '1') then
+                        DDRAM_DIN      <= Fifo_dout(59 downto 28) & (31 downto 0 => '0');
+                        memory_datain  <= Fifo_dout(59 downto 28) & (31 downto 0 => '0');
+                        DDRAM_BE       <= Fifo_dout(63 downto 60) & ( 3 downto 0 => '0');
+                        memory_be      <= Fifo_dout(63 downto 60) & ( 3 downto 0 => '0');
+                     else
+                        DDRAM_DIN      <= (63 downto 32 => '0') & Fifo_dout(59 downto 28);
+                        memory_datain  <= (63 downto 32 => '0') & Fifo_dout(59 downto 28);
+                        DDRAM_BE       <= ( 7 downto  4 => '0') & Fifo_dout(63 downto 60);
+                        memory_be      <= ( 7 downto  4 => '0') & Fifo_dout(63 downto 60);
+                     end if;
+                  end if;
+               elsif (Fifo_empty = '1' and DDRAM_OUT_BUSY = '0' and DDRAM_IN_RD = '1') then
+                  state       <= READONE;
+                  read_addr   <= DDRAM_IN_ADDR_32(24 downto 1);
+                  data64_high <= DDRAM_IN_ADDR_32(0);
+                  burst_left  <= to_integer(unsigned(DDRAM_IN_BURSTCNT));
+               end if;
+               
+            when WRITEONE =>
+               state <= IDLE;
+               for i in 0 to ASSOCIATIVITY - 1 loop
+                  if (tag_dirty(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB))) * ASSOCIATIVITY + i) = '0') then
+                     if (tags_read(i) = read_addr(ADDRBITS downto RAMSIZEBITS)) then  
+                        memory_we(i) <= '1';
+                     end if;
+                  end if;
+               end loop;
+         
+            when READONE =>
+               state          <= FILLCACHE;
+               DDRAM_RD       <= '1';
+               DDRAM_ADDR     <= read_addr(read_addr'left downto LINESIZE_BITS) & (LINESIZE_BITS - 1 downto 0 => '0') & "000";
+               DDRAM_BE       <= x"00";
+               DDRAM_BURSTCNT <= std_logic_vector(to_unsigned(LINESIZE, 8));
+               fillcount          <= 0;
+               memory_addr_b      <= to_integer(unsigned(read_addr(RAMSIZEBITS - 1 downto LINESIZE_BITS)) & (LINESIZE_BITS - 1 downto 0 => '0'));
+               if (ASSOCIATIVITY > 1) then
+                  cache_mux     <= to_integer(rrb(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB)))));
+               end if;
+               for i in 0 to ASSOCIATIVITY - 1 loop
+                  if (tag_dirty(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB))) * ASSOCIATIVITY + i) = '0') then
+                     if (tags_read(i) = read_addr(ADDRBITS downto RAMSIZEBITS)) then
+                        DDRAM_RD          <= '0';
+                        cache_mux         <= i;
+                        DDRAM_DOUT_READY  <= '1';
+                        if (burst_left > 1) then
+                           state       <= READONE;
+                           burst_left  <= burst_left - 1;
+                           if (data64_high = '1') then
+                              read_addr   <= std_logic_vector(unsigned(read_addr) + 1);
+                           end if;
+                           data64_high <= not data64_high;
+                        else
+                           state      <= IDLE;
+                        end if;
+                     end if;
+                  end if;
+               end loop;
+               
+            when FILLCACHE => 
+               if (DDRAM_OUT_DOUT_READY = '1') then
+                  memory_datain        <= DDRAM_OUT_DOUT;
+                  memory_we(cache_mux) <= '1';
+                  memory_be            <= x"FF";
+                  if (fillcount > 0) then
+                     memory_addr_b <= memory_addr_b + 1;
+                  end if;
+                  
+                  if (fillcount < LINESIZE - 1) then
+                     fillcount <= fillcount + 1;
+                  else
+                     state <= READCACHE_OUT;
+                  end if;
+               end if;
+               
+            when READCACHE_OUT =>
+               state <= READONE;
+               tag_dirty(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB))) * ASSOCIATIVITY + cache_mux) <= '0';
+               rrb(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB))))                                   <= rrb(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB)))) + 1;
+           
+         end case; 
 
       end if;
    end process;

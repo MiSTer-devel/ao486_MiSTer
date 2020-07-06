@@ -76,14 +76,9 @@ add_fileset_file write_string.v VERILOG PATH pipeline/write_string.v
 add_fileset_file avalon_mem.v VERILOG PATH memory/avalon_mem.v
 add_fileset_file cache_data_ram.v VERILOG PATH memory/cache_data_ram.v
 add_fileset_file dcache.v VERILOG PATH memory/dcache.v
-add_fileset_file dcache_control_ram.v VERILOG PATH memory/dcache_control_ram.v
-add_fileset_file dcache_matched.v VERILOG PATH memory/dcache_matched.v
 add_fileset_file dcache_read.v VERILOG PATH memory/dcache_read.v
-add_fileset_file dcache_to_icache_fifo.v VERILOG PATH memory/dcache_to_icache_fifo.v
 add_fileset_file dcache_write.v VERILOG PATH memory/dcache_write.v
 add_fileset_file icache.v VERILOG PATH memory/icache.v
-add_fileset_file icache_control_ram.v VERILOG PATH memory/icache_control_ram.v
-add_fileset_file icache_matched.v VERILOG PATH memory/icache_matched.v
 add_fileset_file icache_read.v VERILOG PATH memory/icache_read.v
 add_fileset_file link_dcacheread.v VERILOG PATH memory/link_dcacheread.v
 add_fileset_file link_dcachewrite.v VERILOG PATH memory/link_dcachewrite.v

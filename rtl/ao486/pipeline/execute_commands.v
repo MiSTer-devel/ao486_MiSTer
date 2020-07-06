@@ -408,6 +408,9 @@ condition exe_condition_inst(
 
 //------------------------------------------------------------------------------
 
+wire [15:0] e_aaa_sum_ax;
+wire [15:0] e_aas_sub_ax;
+
 // synthesis translate_off
 wire _unused_ok = &{ 1'b0, edx[31:16], tr_cache[63:44], tr_cache[39:0], exe_mutex_current[9], exe_mutex_current[7:5], exe_mutex_current[3], exe_mutex_current[1],
     exe_decoder[7:4], mult_result[65:64], exe_selector[15:3], exe_descriptor[63:48], exe_descriptor[39:0], e_aaa_sum_ax[7:4], e_aas_sub_ax[7:4], 1'b0 };

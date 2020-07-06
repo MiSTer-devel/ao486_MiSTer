@@ -15,46 +15,46 @@ wire cond_9 = shutdown_start;
 wire cond_10 = shutdown;
 wire cond_11 = interrupt_done;
 //======================================================== saves
-wire  exc_soft_int_to_reg =
+assign  exc_soft_int_to_reg =
     (cond_0 && ~cond_7 && cond_8)? (    `FALSE) :
     (cond_11)? (    `FALSE) :
     exc_soft_int;
-wire  exc_push_error_to_reg =
+assign  exc_push_error_to_reg =
     (cond_0 && ~cond_7 && cond_8)? ( push_error) :
     (cond_11)? ( `FALSE) :
     exc_push_error;
-wire [1:0] count_to_reg =
+assign count_to_reg =
     (cond_0 && ~cond_7 && cond_8)? (     count + 2'd1) :
     count;
-wire [31:0] exc_eip_to_reg =
+assign exc_eip_to_reg =
     (cond_0 && ~cond_1)? ( trap_eip) :
     (cond_0 && cond_4 && cond_5)? ( wr_eip) :
     (cond_0 && cond_4 && cond_6)? ( exception_eip_from_wr) :
     (cond_11)? ( (interrupt_string_in_progress)? exception_eip_from_wr : wr_eip) :
     exc_eip;
-wire  external_to_reg =
+assign  external_to_reg =
     (cond_0)? ( `TRUE) :
     (cond_11)? ( `TRUE) :
     external;
-wire [1:0] last_type_to_reg =
+assign last_type_to_reg =
     (cond_0 && ~cond_7 && cond_8)? ( exception_type) :
     last_type;
-wire [8:0] exc_vector_full_to_reg =
+assign exc_vector_full_to_reg =
     (cond_0 && cond_7)? ( { 1'b1, `EXCEPTION_DF }) :
     (cond_0 && ~cond_7 && cond_8)? ( { 1'b0, vector }) :
     (cond_0 && cond_9)? ( { 1'b0, vector }) :
     (cond_11)? ( { 1'b0, interrupt_vector }) :
     exc_vector_full;
-wire [15:0] exc_error_code_to_reg =
+assign exc_error_code_to_reg =
     (cond_0 && cond_7)? ( 16'd0) :
     (cond_0 && ~cond_7 && cond_8)? ( error_code) :
     (cond_11)? ( 16'd0) :
     exc_error_code;
-wire  exc_soft_int_ib_to_reg =
+assign  exc_soft_int_ib_to_reg =
     (cond_0 && ~cond_7 && cond_8)? ( `FALSE) :
     (cond_11)? ( `FALSE) :
     exc_soft_int_ib;
-wire  shutdown_to_reg =
+assign  shutdown_to_reg =
     (cond_0 && cond_9)? ( `TRUE) :
     shutdown;
 //======================================================== always

@@ -155,6 +155,78 @@ wire        exc_pf_check;
 wire [31:2] avm_address_pre;
 assign      avm_address = {avm_address_pre[31:21], avm_address_pre[20] & a20_enable, avm_address_pre[19:2]};
 
+wire        read_do;
+wire        read_done;
+
+wire [1:0]  read_cpl;
+wire [31:0] read_address;
+wire [3:0]  read_length;
+wire        read_lock;
+wire        read_rmw;
+wire [63:0] read_data;
+
+wire        write_do;
+wire        write_done;
+
+wire [1:0]  write_cpl;
+wire [31:0] write_address;
+wire [2:0]  write_length;
+wire        write_lock;
+wire        write_rmw;
+wire [31:0] write_data;
+
+wire        tlbcheck_do;
+wire        tlbcheck_done;
+wire        tlbcheck_page_fault;
+wire [31:0] tlbcheck_address;
+wire        tlbcheck_rw;
+
+wire        dcache_busy;
+
+wire        tlbflushsingle_do;
+wire        tlbflushsingle_done;
+wire [31:0] tlbflushsingle_address;
+
+wire        tlbflushall_do;
+wire        invdcode_do;
+wire        invdcode_done;
+wire        invddata_do;
+wire        invddata_done;
+wire        wbinvddata_do;
+wire        wbinvddata_done;
+
+wire [1:0]  prefetch_cpl;
+wire [31:0] prefetch_eip;
+wire [63:0] cs_cache;
+
+wire        cr0_pg;
+wire        cr0_wp;
+wire        cr0_am;
+wire        cr0_cd;
+wire        cr0_nw;
+
+wire        acflag;
+
+wire [31:0] cr3;
+
+wire        prefetchfifo_accept_do;
+wire [67:0] prefetchfifo_accept_data;
+wire        prefetchfifo_accept_empty;
+
+wire        pipeline_after_read_empty;
+wire        pipeline_after_prefetch_empty;
+
+wire [31:0] tlb_code_pf_cr2;
+wire [31:0] tlb_check_pf_cr2;
+wire [31:0] tlb_write_pf_cr2;
+wire [31:0] tlb_read_pf_cr2;
+
+wire        pr_reset;
+wire        rd_reset;
+wire        exe_reset;
+wire        wr_reset;
+
+
 exception exception_inst(
     .clk                (clk),
     .rst_n              (rst_n),
@@ -377,77 +449,6 @@ global_regs global_regs_inst(
 );
 
 //------------------------------------------------------------------------------
-
-wire        read_do;
-wire        read_done;
-
-wire [1:0]  read_cpl;
-wire [31:0] read_address;
-wire [3:0]  read_length;
-wire        read_lock;
-wire        read_rmw;
-wire [63:0] read_data;
-
-wire        write_do;
-wire        write_done;
-
-wire [1:0]  write_cpl;
-wire [31:0] write_address;
-wire [2:0]  write_length;
-wire        write_lock;
-wire        write_rmw;
-wire [31:0] write_data;
-
-wire        tlbcheck_do;
-wire        tlbcheck_done;
-wire        tlbcheck_page_fault;
-wire [31:0] tlbcheck_address;
-wire        tlbcheck_rw;
-
-wire        dcache_busy;
-
-wire        tlbflushsingle_do;
-wire        tlbflushsingle_done;
-wire [31:0] tlbflushsingle_address;
-
-wire        tlbflushall_do;
-wire        invdcode_do;
-wire        invdcode_done;
-wire        invddata_do;
-wire        invddata_done;
-wire        wbinvddata_do;
-wire        wbinvddata_done;
-
-wire [1:0]  prefetch_cpl;
-wire [31:0] prefetch_eip;
-wire [63:0] cs_cache;
-
-wire        cr0_pg;
-wire        cr0_wp;
-wire        cr0_am;
-wire        cr0_cd;
-wire        cr0_nw;
-
-wire        acflag;
-
-wire [31:0] cr3;
-
-wire        prefetchfifo_accept_do;
-wire [67:0] prefetchfifo_accept_data;
-wire        prefetchfifo_accept_empty;
-
-wire        pipeline_after_read_empty;
-wire        pipeline_after_prefetch_empty;
-
-wire [31:0] tlb_code_pf_cr2;
-wire [31:0] tlb_check_pf_cr2;
-wire [31:0] tlb_write_pf_cr2;
-wire [31:0] tlb_read_pf_cr2;
-
-wire        pr_reset;
-wire        rd_reset;
-wire        exe_reset;
-wire        wr_reset;
 
 
 memory memory_inst(

@@ -309,6 +309,213 @@ wire [31:0] ss_limit;
 
 wire [31:0] ldtr_base;
 
+
+reg [15:0]  wr_decoder;
+reg         wr_operand_32bit;
+reg         wr_address_32bit;
+reg [1:0]   wr_prefix_group_1_rep;
+reg         wr_prefix_group_1_lock;
+reg         wr_is_8bit;
+reg [6:0]   wr_cmd;
+reg [3:0]   wr_cmdex;
+reg         wr_dst_is_reg;
+reg         wr_dst_is_rm;
+reg         wr_dst_is_memory;
+reg         wr_dst_is_eax;
+reg         wr_dst_is_edx_eax;
+reg         wr_dst_is_implicit_reg;
+reg [31:0]  wr_linear;
+
+reg [31:0]  result;
+reg [31:0]  result2;
+reg [4:0]   result_signals;
+reg [31:0]  result_push;
+
+reg [3:0]   wr_arith_index;
+reg [31:0]  wr_src;
+reg [31:0]  wr_dst;
+
+reg         wr_arith_add_carry;
+reg         wr_arith_adc_carry;
+reg         wr_arith_sub_carry;
+reg         wr_arith_sbb_carry;
+reg         wr_mult_overflow;
+
+wire wr_finished;
+
+wire wr_not_finished;
+wire wr_hlt_in_progress;
+wire wr_inhibit_interrupts_and_debug;
+wire wr_inhibit_interrupts;
+wire iflag_to_reg;
+
+wire wr_debug_prepare;
+wire wr_interrupt_possible_prepare;
+
+wire wr_clear_rflag;
+
+wire wr_string_in_progress;
+reg  wr_string_in_progress_last;
+
+reg wr_first_cycle;
+
+wire        write_stack_virtual;
+wire        write_new_stack_virtual;
+wire        wr_push_length_word;
+wire        wr_push_length_dword;
+wire        wr_push_ss_fault_check;
+wire        wr_new_push_ss_fault_check;
+wire        wr_make_esp_speculative;
+wire        wr_make_esp_commit;
+
+wire        wr_validate_seg_regs;
+
+wire [15:0] wr_seg_sel;
+wire        wr_seg_cache_valid;
+wire [1:0]  wr_seg_rpl;
+wire [63:0] wr_seg_cache_mask;
+
+wire        write_seg_cache;
+wire        write_seg_sel;
+wire        write_seg_cache_valid;
+wire        write_seg_rpl;
+
+wire        wr_debug_trap_clear;
+wire        wr_debug_task_trigger;
+
+wire        write_rmw_virtual;
+wire        write_virtual;
+wire        write_rmw_system_dword;
+wire        write_system_word;
+wire        write_system_dword;
+wire        write_system_busy_tss;
+wire        write_system_touch;
+
+wire        write_length_word;
+wire        write_length_dword;
+
+wire [31:0] wr_system_dword;
+wire [31:0] wr_system_linear;
+
+wire        write_regrm;
+wire        write_eax;
+wire        wr_regrm_word;
+wire        wr_regrm_dword;
+
+wire        wr_string_gp_fault_check;
+wire        write_string_es_virtual;
+
+wire        write_io;
+
+//registers
+wire [1:0]  es_rpl;
+wire [1:0]  ds_rpl;
+wire [1:0]  ss_rpl;
+wire [1:0]  fs_rpl;
+wire [1:0]  gs_rpl;
+wire [1:0]  cs_rpl;
+wire [1:0]  ldtr_rpl;
+wire [1:0]  tr_rpl;
+
+wire [31:0] eax_to_reg;
+wire [31:0] ebx_to_reg;
+wire [31:0] ecx_to_reg;
+wire [31:0] edx_to_reg;
+wire [31:0] esi_to_reg;
+wire [31:0] edi_to_reg;
+wire [31:0] ebp_to_reg;
+wire [31:0] esp_to_reg;
+wire        cr0_pe_to_reg;
+wire        cr0_mp_to_reg;
+wire        cr0_em_to_reg;
+wire        cr0_ts_to_reg;
+wire        cr0_ne_to_reg;
+wire        cr0_wp_to_reg;
+wire        cr0_am_to_reg;
+wire        cr0_nw_to_reg;
+wire        cr0_cd_to_reg;
+wire        cr0_pg_to_reg;
+wire [31:0] cr2_to_reg;
+wire [31:0] cr3_to_reg;
+wire        cflag_to_reg;
+wire        pflag_to_reg;
+wire        aflag_to_reg;
+wire        zflag_to_reg;
+wire        sflag_to_reg;
+wire        oflag_to_reg;
+wire        tflag_to_reg;
+//wire        iflag_to_reg; --declared above
+wire        dflag_to_reg;
+wire [1:0]  iopl_to_reg;
+wire        ntflag_to_reg;
+wire        rflag_to_reg;
+wire        vmflag_to_reg;
+wire        acflag_to_reg;
+wire        idflag_to_reg;
+wire [31:0] gdtr_base_to_reg;
+wire [15:0] gdtr_limit_to_reg;
+wire [31:0] idtr_base_to_reg;
+wire [15:0] idtr_limit_to_reg;
+wire [31:0] dr0_to_reg;
+wire [31:0] dr1_to_reg;
+wire [31:0] dr2_to_reg;
+wire [31:0] dr3_to_reg;
+wire [3:0]  dr6_breakpoints_to_reg;
+wire        dr6_b12_to_reg;
+wire        dr6_bd_to_reg;
+wire        dr6_bs_to_reg;
+wire        dr6_bt_to_reg;
+wire [31:0] dr7_to_reg;
+wire [15:0] es_to_reg;
+wire [15:0] ds_to_reg;
+wire [15:0] ss_to_reg;
+wire [15:0] fs_to_reg;
+wire [15:0] gs_to_reg;
+wire [15:0] cs_to_reg;
+wire [15:0] ldtr_to_reg;
+wire [15:0] tr_to_reg;
+wire [63:0] es_cache_to_reg;
+wire [63:0] ds_cache_to_reg;
+wire [63:0] ss_cache_to_reg;
+wire [63:0] fs_cache_to_reg;
+wire [63:0] gs_cache_to_reg;
+wire [63:0] cs_cache_to_reg;
+wire [63:0] ldtr_cache_to_reg;
+wire [63:0] tr_cache_to_reg;
+wire        es_cache_valid_to_reg;
+wire        ds_cache_valid_to_reg;
+wire        ss_cache_valid_to_reg;
+wire        fs_cache_valid_to_reg;
+wire        gs_cache_valid_to_reg;
+wire        cs_cache_valid_to_reg;
+wire        ldtr_cache_valid_to_reg;
+wire [1:0]  es_rpl_to_reg;
+wire [1:0]  ds_rpl_to_reg;
+wire [1:0]  ss_rpl_to_reg;
+wire [1:0]  fs_rpl_to_reg;
+wire [1:0]  gs_rpl_to_reg;
+wire [1:0]  cs_rpl_to_reg;
+wire [1:0]  ldtr_rpl_to_reg;
+wire [1:0]  tr_rpl_to_reg;
+
+//stack
+wire [31:0] wr_stack_esp;
+wire [31:0] wr_push_linear;
+wire [31:0] wr_new_stack_esp;
+wire [31:0] wr_new_push_linear;
+wire [2:0]  wr_push_length;
+
+//string
+wire [31:0] wr_esi_final;
+wire [31:0] wr_edi_final;
+wire [31:0] wr_ecx_final;
+
+wire        wr_string_ignore;
+
+wire        wr_zflag_result;
+wire        wr_string_zf_finish;
+wire        wr_string_finish;
+
 assign tr_base     = {   tr_cache[63:56],   tr_cache[39:16] };
 
 assign cs_base     = { cs_cache[63:56], cs_cache[39:16] };
@@ -321,14 +528,6 @@ assign ss_base     = { ss_cache[63:56], ss_cache[39:16] };
 assign ss_limit    = ss_cache[`DESC_BIT_G]? { ss_cache[51:48], ss_cache[15:0], 12'hFFF } : { 12'd0, ss_cache[51:48], ss_cache[15:0] };
 
 assign ldtr_base   = { ldtr_cache[63:56], ldtr_cache[39:16] };
-
-//------------------------------------------------------------------------------
-
-//------------------------------------------------------------------------------
-
-//------------------------------------------------------------------------------
-
-//------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
 
@@ -350,22 +549,6 @@ assign w_load = exe_ready;
 assign wr_is_front = wr_cmd != `CMD_NULL;
 
 //------------------------------------------------------------------------------
-
-wire wr_finished;
-
-wire wr_not_finished;
-wire wr_hlt_in_progress;
-wire wr_inhibit_interrupts_and_debug;
-wire wr_inhibit_interrupts;
-wire iflag_to_reg;
-
-wire wr_debug_prepare;
-wire wr_interrupt_possible_prepare;
-
-wire wr_clear_rflag;
-
-wire wr_string_in_progress;
-reg  wr_string_in_progress_last;
 
 assign wr_finished =
     wr_ready && (~(wr_not_finished) || (wr_hlt_in_progress && iflag_to_reg && interrupt_do) || wr_string_in_progress);
@@ -398,8 +581,6 @@ assign wr_string_in_progress_final = wr_string_in_progress || ((wr_debug_init ||
 
 //------------------------------------------------------------------------------
 
-reg wr_first_cycle;
-
 always @(posedge clk) begin
     if(rst_n == 1'b0)   wr_first_cycle <= `FALSE;
     else if(wr_reset)   wr_first_cycle <= `FALSE;
@@ -408,37 +589,6 @@ always @(posedge clk) begin
 end
 
 //------------------------------------------------------------------------------
-
-reg [15:0]  wr_decoder;
-reg         wr_operand_32bit;
-reg         wr_address_32bit;
-reg [1:0]   wr_prefix_group_1_rep;
-reg         wr_prefix_group_1_lock;
-reg         wr_is_8bit;
-reg [6:0]   wr_cmd;
-reg [3:0]   wr_cmdex;
-reg         wr_dst_is_reg;
-reg         wr_dst_is_rm;
-reg         wr_dst_is_memory;
-reg         wr_dst_is_eax;
-reg         wr_dst_is_edx_eax;
-reg         wr_dst_is_implicit_reg;
-reg [31:0]  wr_linear;
-
-reg [31:0]  result;
-reg [31:0]  result2;
-reg [4:0]   result_signals;
-reg [31:0]  result_push;
-
-reg [3:0]   wr_arith_index;
-reg [31:0]  wr_src;
-reg [31:0]  wr_dst;
-
-reg         wr_arith_add_carry;
-reg         wr_arith_adc_carry;
-reg         wr_arith_sub_carry;
-reg         wr_arith_sbb_carry;
-reg         wr_mult_overflow;
 
 always @(posedge clk) begin if(rst_n == 1'b0) wr_decoder              <= 16'd0;     else if(w_load) wr_decoder              <= exe_decoder[15:0];        end
 always @(posedge clk) begin if(rst_n == 1'b0) wr_eip                  <= 32'd0;     else if(w_load) wr_eip                  <= exe_eip_final;            end
@@ -605,163 +755,6 @@ wire _unused_ok = &{ 1'b0, glob_descriptor_2[63:47], glob_descriptor_2[44:0], ex
 // synthesis translate_on
 
 //------------------------------------------------------------------------------
-
-wire        write_stack_virtual;
-wire        write_new_stack_virtual;
-wire        wr_push_length_word;
-wire        wr_push_length_dword;
-wire        wr_push_ss_fault_check;
-wire        wr_new_push_ss_fault_check;
-wire        wr_make_esp_speculative;
-wire        wr_make_esp_commit;
-
-wire        wr_validate_seg_regs;
-
-wire [15:0] wr_seg_sel;
-wire        wr_seg_cache_valid;
-wire [1:0]  wr_seg_rpl;
-wire [63:0] wr_seg_cache_mask;
-
-wire        write_seg_cache;
-wire        write_seg_sel;
-wire        write_seg_cache_valid;
-wire        write_seg_rpl;
-
-wire        wr_debug_trap_clear;
-wire        wr_debug_task_trigger;
-
-wire        write_rmw_virtual;
-wire        write_virtual;
-wire        write_rmw_system_dword;
-wire        write_system_word;
-wire        write_system_dword;
-wire        write_system_busy_tss;
-wire        write_system_touch;
-
-wire        write_length_word;
-wire        write_length_dword;
-
-wire [31:0] wr_system_dword;
-wire [31:0] wr_system_linear;
-
-wire        write_regrm;
-wire        write_eax;
-wire        wr_regrm_word;
-wire        wr_regrm_dword;
-
-wire        wr_string_gp_fault_check;
-wire        write_string_es_virtual;
-
-wire        write_io;
-
-//registers
-wire [1:0]  es_rpl;
-wire [1:0]  ds_rpl;
-wire [1:0]  ss_rpl;
-wire [1:0]  fs_rpl;
-wire [1:0]  gs_rpl;
-wire [1:0]  cs_rpl;
-wire [1:0]  ldtr_rpl;
-wire [1:0]  tr_rpl;
-
-wire [31:0] eax_to_reg;
-wire [31:0] ebx_to_reg;
-wire [31:0] ecx_to_reg;
-wire [31:0] edx_to_reg;
-wire [31:0] esi_to_reg;
-wire [31:0] edi_to_reg;
-wire [31:0] ebp_to_reg;
-wire [31:0] esp_to_reg;
-wire        cr0_pe_to_reg;
-wire        cr0_mp_to_reg;
-wire        cr0_em_to_reg;
-wire        cr0_ts_to_reg;
-wire        cr0_ne_to_reg;
-wire        cr0_wp_to_reg;
-wire        cr0_am_to_reg;
-wire        cr0_nw_to_reg;
-wire        cr0_cd_to_reg;
-wire        cr0_pg_to_reg;
-wire [31:0] cr2_to_reg;
-wire [31:0] cr3_to_reg;
-wire        cflag_to_reg;
-wire        pflag_to_reg;
-wire        aflag_to_reg;
-wire        zflag_to_reg;
-wire        sflag_to_reg;
-wire        oflag_to_reg;
-wire        tflag_to_reg;
-//wire        iflag_to_reg; --declared above
-wire        dflag_to_reg;
-wire [1:0]  iopl_to_reg;
-wire        ntflag_to_reg;
-wire        rflag_to_reg;
-wire        vmflag_to_reg;
-wire        acflag_to_reg;
-wire        idflag_to_reg;
-wire [31:0] gdtr_base_to_reg;
-wire [15:0] gdtr_limit_to_reg;
-wire [31:0] idtr_base_to_reg;
-wire [15:0] idtr_limit_to_reg;
-wire [31:0] dr0_to_reg;
-wire [31:0] dr1_to_reg;
-wire [31:0] dr2_to_reg;
-wire [31:0] dr3_to_reg;
-wire [3:0]  dr6_breakpoints_to_reg;
-wire        dr6_b12_to_reg;
-wire        dr6_bd_to_reg;
-wire        dr6_bs_to_reg;
-wire        dr6_bt_to_reg;
-wire [31:0] dr7_to_reg;
-wire [15:0] es_to_reg;
-wire [15:0] ds_to_reg;
-wire [15:0] ss_to_reg;
-wire [15:0] fs_to_reg;
-wire [15:0] gs_to_reg;
-wire [15:0] cs_to_reg;
-wire [15:0] ldtr_to_reg;
-wire [15:0] tr_to_reg;
-wire [63:0] es_cache_to_reg;
-wire [63:0] ds_cache_to_reg;
-wire [63:0] ss_cache_to_reg;
-wire [63:0] fs_cache_to_reg;
-wire [63:0] gs_cache_to_reg;
-wire [63:0] cs_cache_to_reg;
-wire [63:0] ldtr_cache_to_reg;
-wire [63:0] tr_cache_to_reg;
-wire        es_cache_valid_to_reg;
-wire        ds_cache_valid_to_reg;
-wire        ss_cache_valid_to_reg;
-wire        fs_cache_valid_to_reg;
-wire        gs_cache_valid_to_reg;
-wire        cs_cache_valid_to_reg;
-wire        ldtr_cache_valid_to_reg;
-wire [1:0]  es_rpl_to_reg;
-wire [1:0]  ds_rpl_to_reg;
-wire [1:0]  ss_rpl_to_reg;
-wire [1:0]  fs_rpl_to_reg;
-wire [1:0]  gs_rpl_to_reg;
-wire [1:0]  cs_rpl_to_reg;
-wire [1:0]  ldtr_rpl_to_reg;
-wire [1:0]  tr_rpl_to_reg;
-
-//stack
-wire [31:0] wr_stack_esp;
-wire [31:0] wr_push_linear;
-wire [31:0] wr_new_stack_esp;
-wire [31:0] wr_new_push_linear;
-wire [2:0]  wr_push_length;
-
-//string
-wire [31:0] wr_esi_final;
-wire [31:0] wr_edi_final;
-wire [31:0] wr_ecx_final;
-
-wire        wr_string_ignore;
-
-wire        wr_zflag_result;
-wire        wr_string_zf_finish;
-wire        wr_string_finish;
 
 write_commands write_commands_inst(
     .clk                (clk),

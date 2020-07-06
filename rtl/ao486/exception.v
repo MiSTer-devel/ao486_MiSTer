@@ -184,6 +184,17 @@ wire [1:0]  exception_type;
 
 wire        shutdown_start;
 
+wire [8:0] exc_vector_full_to_reg;
+wire [15:0] exc_error_code_to_reg;
+wire  exc_push_error_to_reg;
+wire  exc_soft_int_ib_to_reg;
+wire  exc_soft_int_to_reg;
+wire  external_to_reg;
+wire [1:0] count_to_reg;
+wire [1:0] last_type_to_reg;
+wire [31:0] exc_eip_to_reg;
+wire  shutdown_to_reg;
+
 //------------------------------------------------------------------------------
 
 assign exc_vector = exc_vector_full[7:0];

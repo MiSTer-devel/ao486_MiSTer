@@ -77,9 +77,7 @@ assign exe_new_tss_max = (glob_descriptor[`DESC_BITS_TYPE] <= 4'd3)? 32'h2B : 32
 wire e_bcd_condition_cf;
 wire exe_bcd_condition_af;
 wire exe_bcd_condition_cf;
-wire [15:0] e_aaa_sum_ax;
 wire [15:0] e_aaa_result;
-wire [15:0] e_aas_sub_ax;
 wire [15:0] e_aas_result;
 wire [7:0]  e_daa_sum_low;
 wire [7:0]  e_daa_step1;

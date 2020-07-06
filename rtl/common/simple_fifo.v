@@ -24,7 +24,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-module simple_fifo(
+module simple_fifo
+#(
+   parameter width     = 1,
+   parameter widthu    = 1
+)
+(
     input                       clk,
     input                       rst_n,
     input                       sclr,
@@ -39,8 +44,6 @@ module simple_fifo(
     output reg  [widthu-1:0]    usedw
 );
 
-parameter width     = 1;
-parameter widthu    = 1;
 
 reg [width-1:0] mem [(2**widthu)-1:0];
 

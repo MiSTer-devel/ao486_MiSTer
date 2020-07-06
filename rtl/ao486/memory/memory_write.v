@@ -114,6 +114,10 @@ assign tlbwrite_rmw         = write_rmw;
 
 //------------------------------------------------------------------------------
 
+localparam [1:0] STATE_IDLE        = 2'd0;
+localparam [1:0] STATE_FIRST_WAIT  = 2'd1;
+localparam [1:0] STATE_SECOND      = 2'd2;
+
 always @(posedge clk) begin
     if(rst_n == 1'b0)                           reset_waiting <= `FALSE;
     else if(wr_reset && state != STATE_IDLE)    reset_waiting <= `TRUE;
@@ -132,11 +136,6 @@ always @(posedge clk) begin
     else if(tlbwrite_ac_fault && ~(reset_waiting))  ac_fault <= `TRUE;
 end
 
-//------------------------------------------------------------------------------
-
-localparam [1:0] STATE_IDLE        = 2'd0;
-localparam [1:0] STATE_FIRST_WAIT  = 2'd1;
-localparam [1:0] STATE_SECOND      = 2'd2;
 
 //------------------------------------------------------------------------------
 
