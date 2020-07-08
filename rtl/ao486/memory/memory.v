@@ -456,12 +456,6 @@ wire [31:0] dcachetoicache_write_address;
 
 //------------------------------------------------------------------------------
 
-wire        dcachetoicache_accept_do;
-wire [31:0] dcachetoicache_accept_address;
-wire        dcachetoicache_accept_empty;
-
-//------------------------------------------------------------------------------
-
 wire        icacheread_do;
 wire [31:0] icacheread_address;
 wire [4:0]  icacheread_length; // takes into account: page size and cs segment limit
@@ -661,27 +655,6 @@ assign wbinvddata_done = 1'b1;
 
 //------------------------------------------------------------------------------
 
-// unused without cache
-//dcache_to_icache_fifo dcache_to_icache_fifo_inst(
-//    .clk            (clk),
-//    .rst_n          (rst_n),
-//    
-//    //RESP:
-//    .dcachetoicache_write_do        (dcachetoicache_write_do),        //input
-//    .dcachetoicache_write_address   (dcachetoicache_write_address),   //input [31:0]
-//    //END
-//    
-//    
-//    //RESP:
-//    .dcachetoicache_accept_do       (dcachetoicache_accept_do),       //input
-//    .dcachetoicache_accept_address  (dcachetoicache_accept_address),  //output [31:0]
-//    .dcachetoicache_accept_empty    (dcachetoicache_accept_empty)     //output
-//    //END
-//);
-assign dcachetoicache_accept_empty = 1'b1;
-
-//------------------------------------------------------------------------------
-
 icache icache_inst(
     .clk            (clk),
     .rst_n          (rst_n),
@@ -707,24 +680,13 @@ icache icache_inst(
     //END
     
     //REQ:
-    .dcachetoicache_accept_do       (dcachetoicache_accept_do),       //output
-    .dcachetoicache_accept_address  (dcachetoicache_accept_address),  //input [31:0]
-    .dcachetoicache_accept_empty    (dcachetoicache_accept_empty),    //input
-    //END
-    
-    //REQ:
     .prefetchfifo_write_do      (prefetchfifo_write_do),      //output
     .prefetchfifo_write_data    (prefetchfifo_write_data),    //output [135:0]
     //END
     
     //REQ:
     .prefetched_do      (prefetched_do),      //output
-    .prefetched_length  (prefetched_length),  //output [4:0]
-    //END
-                   
-    //RESP:
-    .invdcode_do        (1'b0)    //input
-    //.invdcode_done      (invdcode_done)   //output
+    .prefetched_length  (prefetched_length)  //output [4:0]
     //END
 );
 

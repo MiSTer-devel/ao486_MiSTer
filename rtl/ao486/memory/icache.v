@@ -52,24 +52,13 @@ module icache(
     //END
     
     //REQ:
-    output              dcachetoicache_accept_do,
-    input [31:0]        dcachetoicache_accept_address,
-    input               dcachetoicache_accept_empty,
-    //END
-    
-    //REQ:
     output              prefetchfifo_write_do,
     output  [135:0]     prefetchfifo_write_data,
     //END
     
     //REQ:
     output              prefetched_do,
-    output [4:0]        prefetched_length,
-    //END
-    
-    //RESP:
-    input               invdcode_do,
-    output              invdcode_done
+    output [4:0]        prefetched_length
     //END
 );
 

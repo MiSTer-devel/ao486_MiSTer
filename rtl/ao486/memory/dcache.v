@@ -144,7 +144,7 @@ assign writeline_do         = dcache_writeline_do || control_ram_writeline_do;
 assign writeline_address    = (dcache_writeline_do)? dcache_writeline_address : control_ram_writeline_address;
 assign writeline_line       = (dcache_writeline_do)? dcache_writeline_line    : control_ram_writeline_line;
 
-assign dcache_busy = state != STATE_IDLE;
+assign dcache_busy = 1'b0;
 
 //------------------------------------------------------------------------------
 

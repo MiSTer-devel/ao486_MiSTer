@@ -141,10 +141,10 @@ module tlb(
     //END
 
     //REQ:
-    output reg          tlbcode_do,
+    output              tlbcode_do,
     output      [31:0]  tlbcode_linear,
-    output reg  [31:0]  tlbcode_physical,
-    output reg          tlbcode_cache_disable,
+    output      [31:0]  tlbcode_physical,
+    output              tlbcode_cache_disable,
     //END
     
     //REQ:
@@ -696,9 +696,10 @@ IF(state == STATE_CODE_CHECK);
             
             SET(memtype_physical, translate_physical);
             
-            SAVE(tlbcode_do, `TRUE);
-            SAVE(tlbcode_physical,        memtype_physical);
-            SAVE(tlbcode_cache_disable,   cr0_cd || translate_pcd || memtype_cache_disable);
+            SET(tlbcode_do, `TRUE);
+            SET(tlbcode_physical,        memtype_physical);
+            //SET(tlbcode_cache_disable,   cr0_cd || translate_pcd || memtype_cache_disable);
+            SET(tlbcode_cache_disable,   `FALSE);
         
         ENDIF();
         
@@ -1218,9 +1219,10 @@ wire [15:0] tlb_write_pf_error_code_to_reg =
 wire [31:0] write_double_linear_to_reg =
     (cond_9 && cond_10)? ( linear) :
     write_double_linear;
-wire  tlbcode_cache_disable_to_reg =
-    (cond_22 && ~cond_23 && cond_17 && ~cond_18)? (   cr0_cd || translate_pcd || memtype_cache_disable) :
-    tlbcode_cache_disable;
+assign tlbcode_cache_disable = 1'b0;
+//wire  tlbcode_cache_disable_to_reg =
+//    (cond_22 && ~cond_23 && cond_17 && ~cond_18)? (   cr0_cd || translate_pcd || memtype_cache_disable) :
+//    tlbcode_cache_disable;
 wire [31:0] linear_to_reg =
     (cond_0 && ~cond_1 && ~cond_2 && ~cond_3 && cond_4)? ( tlbwrite_address) :
     (cond_0 && ~cond_1 && ~cond_2 && ~cond_3 && ~cond_4 && cond_5)? ( tlbcheck_address) :
@@ -1234,10 +1236,11 @@ wire [15:0] tlb_code_pf_error_code_to_reg =
     (cond_24 && cond_14 && cond_25 && cond_26)? ( { 13'd0, su, rw, `FALSE }) :
     (cond_32 && cond_14 && cond_33 && cond_26)? ( { 13'd0, su, rw, dcacheread_data[0] }) :
     tlb_code_pf_error_code;
-wire  tlbcode_do_to_reg =
-    (cond_0)? (    `FALSE) :
-    (cond_22 && ~cond_23 && cond_17 && ~cond_18)? ( `TRUE) :
-    tlbcode_do;
+//wire  tlbcode_do_to_reg =
+//    (cond_0)? (    `FALSE) :
+//    (cond_22 && ~cond_23 && cond_17 && ~cond_18)? ( `TRUE) :
+//    tlbcode_do;
+assign tlbcode_do = (cond_22 && ~cond_23 && cond_17 && ~cond_18)? ( `TRUE) : `FALSE;
 wire  wp_to_reg =
     (cond_0 && ~cond_1 && ~cond_2 && ~cond_3 && cond_4)? (             cr0_wp) :
     (cond_0 && ~cond_1 && ~cond_2 && ~cond_3 && ~cond_4 && cond_5)? (             cr0_wp) :
@@ -1280,9 +1283,13 @@ wire [1:0] write_double_state_to_reg =
 assign  write_ac_to_reg =
     (cond_0 && ~cond_1 && ~cond_2 && cond_3)? ( `TRUE) :
     write_ac;
-wire [31:0] tlbcode_physical_to_reg =
-    (cond_22 && ~cond_23 && cond_17 && ~cond_18)? (        memtype_physical) :
-    tlbcode_physical;
+//wire [31:0] tlbcode_physical_to_reg =
+//    (cond_22 && ~cond_23 && cond_17 && ~cond_18)? (        memtype_physical) :
+//    tlbcode_physical;
+assign tlbcode_physical = memtype_physical;
+//wire [31:0] tlbcode_physical_to_reg =
+//    (cond_22 && ~cond_23 && cond_17 && ~cond_18)? (        memtype_physical) :
+//    tlbcode_physical;
 wire  rw_to_reg =
     (cond_0 && ~cond_1 && ~cond_2 && ~cond_3 && cond_4)? (             `TRUE) :
     (cond_0 && ~cond_1 && ~cond_2 && ~cond_3 && ~cond_4 && cond_5)? (             tlbcheck_rw) :
@@ -1332,10 +1339,10 @@ always @(posedge clk) begin
     if(rst_n == 1'b0) write_double_linear <= 32'd0;
     else              write_double_linear <= write_double_linear_to_reg;
 end
-always @(posedge clk) begin
-    if(rst_n == 1'b0) tlbcode_cache_disable <= 1'd0;
-    else              tlbcode_cache_disable <= tlbcode_cache_disable_to_reg;
-end
+//always @(posedge clk) begin
+//    if(rst_n == 1'b0) tlbcode_cache_disable <= 1'd0;
+//    else              tlbcode_cache_disable <= tlbcode_cache_disable_to_reg;
+//end
 always @(posedge clk) begin
     if(rst_n == 1'b0) linear <= 32'd0;
     else              linear <= linear_to_reg;
@@ -1344,10 +1351,10 @@ always @(posedge clk) begin
     if(rst_n == 1'b0) tlb_code_pf_error_code <= 16'd0;
     else              tlb_code_pf_error_code <= tlb_code_pf_error_code_to_reg;
 end
-always @(posedge clk) begin
-    if(rst_n == 1'b0) tlbcode_do <= 1'd0;
-    else              tlbcode_do <= tlbcode_do_to_reg;
-end
+//always @(posedge clk) begin
+//    if(rst_n == 1'b0) tlbcode_do <= 1'd0;
+//    else              tlbcode_do <= tlbcode_do_to_reg;
+//end
 always @(posedge clk) begin
     if(rst_n == 1'b0) wp <= 1'd0;
     else              wp <= wp_to_reg;
@@ -1376,10 +1383,10 @@ always @(posedge clk) begin
     if(rst_n == 1'b0) write_double_state <= 2'd0;
     else              write_double_state <= write_double_state_to_reg;
 end
-always @(posedge clk) begin
-    if(rst_n == 1'b0) tlbcode_physical <= 32'd0;
-    else              tlbcode_physical <= tlbcode_physical_to_reg;
-end
+//always @(posedge clk) begin
+//    if(rst_n == 1'b0) tlbcode_physical <= 32'd0;
+//    else              tlbcode_physical <= tlbcode_physical_to_reg;
+//end
 always @(posedge clk) begin
     if(rst_n == 1'b0) rw <= 1'd0;
     else              rw <= rw_to_reg;
