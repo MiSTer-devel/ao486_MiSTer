@@ -184,14 +184,6 @@ wire [31:0] status;
 
 reg         ioctl_wait = 0;
 
-wire [31:0] dma_din;
-wire [31:0] dma_dout;
-wire [31:0] dma_addr;
-wire        dma_rd;
-wire        dma_wr;
-wire  [1:0] dma_status;
-wire  [1:0] dma_req;
-
 wire  [5:0] joystick_0;
 wire  [5:0] joystick_1;
 wire [15:0] joystick_analog_0;
@@ -233,6 +225,19 @@ hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000), .PS2WE(1), .WIDE(1)) hps_
 	.EXT_BUS(EXT_BUS)
 );
 
+wire        mgmt_wait;
+wire        mgmt_valid;
+wire [31:0] mgmt_data;
+reg         mgmt_we = 0;
+reg         mgmt_rd = 0;
+wire [31:0] mgmt_din;
+wire [31:0] mgmt_dout;
+wire [31:0] mgmt_addr;
+wire        mgmt_hrd;
+wire        mgmt_hwr;
+wire  [1:0] mgmt_status;
+wire  [1:0] mgmt_req;
+
 wire [35:0] EXT_BUS;
 hps_ext
 #(
@@ -249,13 +254,13 @@ hps_ext
 
 	.io_wait(ioctl_wait),
 
-	.dma_din(dma_din),
-	.dma_dout(dma_dout),
-	.dma_addr(dma_addr),
-	.dma_rd(dma_rd),
-	.dma_wr(dma_wr),
-	.dma_req(dma_req),
-	.dma_status(dma_status)
+	.ext_din(mgmt_din),
+	.ext_dout(mgmt_dout),
+	.ext_addr(mgmt_addr),
+	.ext_rd(mgmt_hrd),
+	.ext_wr(mgmt_hwr),
+	.ext_req(mgmt_req),
+	.ext_status(mgmt_status)
 );
 
 //------------------------------------------------------------------------------
@@ -272,14 +277,7 @@ wire clk_sys, clk_uart;
 	.outclk_1(clk_uart)
 );
 
-wire        mem_wait;
-wire        mem_valid;
-wire [31:0] mem_data;
-reg         mem_we = 0;
-reg         mem_rd = 0;
-
-wire [31:0] dram_addr;
-assign      DDRAM_ADDR = {4'h3, 1'b0, dram_addr[26:3]};
+assign      DDRAM_ADDR[28:24] = {4'h3, 1'b0};
 assign      DDRAM_CLK = clk_sys;
 
 wire        ps2_reset_n;
@@ -350,14 +348,14 @@ system u0
 
 	.qsys_reset_reset     (sys_reset),
 
-	.vga_ce               (CE_PIXEL),
-	.vga_mode             (status[4]),
-	.vga_blank_n          (de),
-	.vga_hsync            (HSync),
-	.vga_vsync            (VSync),
-	.vga_r                (r),
-	.vga_g                (g),
-	.vga_b                (b),
+	.video_ce             (CE_PIXEL),
+	.video_mode           (status[4]),
+	.video_blank_n        (de),
+	.video_hsync          (HSync),
+	.video_vsync          (VSync),
+	.video_r              (r),
+	.video_g              (g),
+	.video_b              (b),
 
 	.sound_sample_l       (sb_out_l),
 	.sound_sample_r       (sb_out_r),
@@ -387,32 +385,46 @@ system u0
 
 	.cpu_reset_reset      (cpu_reset),
 
-	.ddram_address        (DDRAM_IN_ADDR),
-	.ddram_read           (DDRAM_IN_RD),
-	.ddram_waitrequest    (DDRAM_IN_BUSY),
-	.ddram_readdata       (DDRAM_IN_DOUT),
-	.ddram_write          (DDRAM_IN_WE),
-	.ddram_writedata      (DDRAM_IN_DIN),
-	.ddram_readdatavalid  (DDRAM_IN_DOUT_READY),
-	.ddram_byteenable     (DDRAM_IN_BE),
-	.ddram_burstcount     (DDRAM_IN_BURSTCNT),
+	.mem_address          (mem_address),
+	.mem_read             (mem_read),
+	.mem_waitrequest      (mem_waitrequest),
+	.mem_readdata         (mem_readdata),
+	.mem_write            (mem_write),
+	.mem_writedata        (mem_writedata),
+	.mem_readdatavalid    (mem_readdatavalid),
+	.mem_byteenable       (mem_byteenable),
+	.mem_burstcount       (mem_burstcount),
 
-	.mem_waitrequest      (mem_wait),
-	.mem_readdata         (mem_data),
-	.mem_readdatavalid    (mem_valid),
-	.mem_burstcount       (1),
-	.mem_writedata        (dma_dout),
-	.mem_address          (dma_addr),
-	.mem_write            (mem_we),
-	.mem_read             (mem_rd),
-	.mem_byteenable       (4'b1111),
-	.mem_debugaccess      (0),
+	.vga_address          (vga_address),
+	.vga_read             (vga_read),
+	.vga_readdata         (vga_readdata),
+	.vga_write            (vga_write),
+	.vga_writedata        (vga_writedata),
+
+	.dma_address          (dma_address),
+	.dma_waitrequest      (dma_waitrequest),
+	.dma_read             (dma_read),
+	.dma_readdatavalid    (dma_readdatavalid),
+	.dma_readdata         (dma_readdata),
+	.dma_write            (dma_write),
+	.dma_writedata        (dma_writedata),
+
+	.mgmt_waitrequest     (mgmt_wait),
+	.mgmt_readdata        (mgmt_data),
+	.mgmt_readdatavalid   (mgmt_valid),
+	.mgmt_burstcount      (1),
+	.mgmt_writedata       (mgmt_dout),
+	.mgmt_address         (mgmt_addr),
+	.mgmt_write           (mgmt_we),
+	.mgmt_read            (mgmt_rd),
+	.mgmt_byteenable      (4'b1111),
+	.mgmt_debugaccess     (0),
 	
-	.disk_op_read         (dma_req[0]),
-	.disk_op_write        (dma_req[1]),
+	.disk_op_read         (mgmt_req[0]),
+	.disk_op_write        (mgmt_req[1]),
 	.disk_op_device       (device),
-	.disk_result_ok       (dma_status[0]),
-	.disk_result_error    (dma_status[1]),
+	.disk_result_ok       (mgmt_status[0]),
+	.disk_result_error    (mgmt_status[1]),
 	
 	.uart_h_cts_n         (UART_CTS),
 	.uart_h_rts_n         (UART_RTS),
@@ -427,42 +439,72 @@ system u0
 	.uart_h_out2_n        ()
 );
 
-wire        DDRAM_IN_BUSY;      
-wire [63:0] DDRAM_IN_DOUT;      
-wire        DDRAM_IN_DOUT_READY;
-wire  [2:0] DDRAM_IN_BURSTCNT;  
-wire [26:0] DDRAM_IN_ADDR;      
-wire        DDRAM_IN_RD;        
-wire [63:0] DDRAM_IN_DIN;       
-wire  [7:0] DDRAM_IN_BE;        
-wire        DDRAM_IN_WE;
 
-wire rom = DDRAM_IN_ADDR[26:16] == 'hC ||  DDRAM_IN_ADDR[26:16] == 'hF;
+wire [29:0] mem_address;
+wire [31:0] mem_writedata;
+wire [31:0] mem_readdata;
+wire [3:0]  mem_byteenable;
+wire [2:0]  mem_burstcount;
+wire        mem_write;
+wire        mem_read;
+wire        mem_waitrequest;
+wire        mem_readdatavalid;
 
-ddrram_cache cache_0
-   (
-      .DDRAM_CLK            (DDRAM_CLK),
-      .RESET                (cpu_reset),
-                            
-      .DDRAM_OUT_BUSY       (DDRAM_BUSY      ),
-      .DDRAM_OUT_DOUT       (DDRAM_DOUT      ),
-      .DDRAM_OUT_DOUT_READY (DDRAM_DOUT_READY),
-      .DDRAM_OUT_BURSTCNT   (DDRAM_BURSTCNT  ),
-      .DDRAM_OUT_ADDR       (dram_addr       ),
-      .DDRAM_OUT_RD         (DDRAM_RD        ),
-      .DDRAM_OUT_DIN        (DDRAM_DIN       ),
-      .DDRAM_OUT_BE         (DDRAM_BE        ),
-      .DDRAM_OUT_WE         (DDRAM_WE        ),
+wire [16:0] vga_address;
+wire  [7:0] vga_readdata;
+wire  [7:0] vga_writedata;
+wire        vga_read;
+wire        vga_write;
 
-      .DDRAM_IN_BUSY        (DDRAM_IN_BUSY      ),
-      .DDRAM_IN_DOUT        (DDRAM_IN_DOUT      ),
-      .DDRAM_IN_DOUT_READY  (DDRAM_IN_DOUT_READY),
-      .DDRAM_IN_BURSTCNT    (DDRAM_IN_BURSTCNT  ),
-      .DDRAM_IN_ADDR        (DDRAM_IN_ADDR      ),
-      .DDRAM_IN_RD          (DDRAM_IN_RD        ),
-      .DDRAM_IN_DIN         (DDRAM_IN_DIN       ),
-      .DDRAM_IN_BE          (DDRAM_IN_BE        ),
-      .DDRAM_IN_WE          (DDRAM_IN_WE & ~rom )
+wire [23:0] dma_address;
+wire  [7:0] dma_readdata;
+wire  [7:0] dma_writedata;
+wire        dma_waitrequest;
+wire        dma_read;
+wire        dma_readdatavalid;
+wire        dma_write;
+
+wire rom = mem_address[24:14] == 'hC ||  mem_address[24:14] == 'hF;
+wire ram = !mem_address[29:25];
+
+ddrram_cache arbiter_cache
+(
+	.DDRAM_CLK        (DDRAM_CLK),
+	.RESET            (cpu_reset),
+
+	.CPU_ADDR         (mem_address        ),
+	.CPU_DIN          (mem_writedata      ),
+	.CPU_DOUT         (mem_readdata       ),
+	.CPU_DOUT_READY   (mem_readdatavalid  ),
+	.CPU_BE           (mem_byteenable     ),
+	.CPU_BURSTCNT     (mem_burstcount     ),
+	.CPU_BUSY         (mem_waitrequest    ),
+	.CPU_RD           (mem_read & ram     ),
+	.CPU_WE           (mem_write & ram & ~rom ),
+
+	.DMA_ADDR         (dma_address        ),
+	.DMA_DIN          (dma_writedata      ),
+	.DMA_DOUT         (dma_readdata       ),
+	.DMA_DOUT_READY   (dma_readdatavalid  ),
+	.DMA_BUSY         (dma_waitrequest    ),
+	.DMA_RD           (dma_read           ),
+	.DMA_WE           (dma_write          ),
+
+	.DDRAM_ADDR       (DDRAM_ADDR[23:0]   ),
+	.DDRAM_DIN        (DDRAM_DIN          ),
+	.DDRAM_DOUT       (DDRAM_DOUT         ),
+	.DDRAM_DOUT_READY (DDRAM_DOUT_READY   ),
+	.DDRAM_BE         (DDRAM_BE           ),
+	.DDRAM_BURSTCNT   (DDRAM_BURSTCNT     ),
+	.DDRAM_BUSY       (DDRAM_BUSY         ),
+	.DDRAM_RD         (DDRAM_RD           ),
+	.DDRAM_WE         (DDRAM_WE           ),
+
+	.VGA_ADDR         (vga_address        ),
+	.VGA_DIN          (vga_readdata       ),
+	.VGA_DOUT         (vga_writedata      ),
+	.VGA_RD           (vga_read           ),
+	.VGA_WE           (vga_write          )
 );
 
 wire       uart_h_dtr_n;
@@ -495,20 +537,20 @@ always @(posedge clk_sys) begin
 
 	old_reset <= RESET;
 
-	if(~mem_wait) begin
-		{mem_rd, mem_we} <= 0;
+	if(~mgmt_wait) begin
+		{mgmt_rd, mgmt_we} <= 0;
 		case(state)
 			1: begin
-					mem_rd <= 1;
+					mgmt_rd <= 1;
 					state <= state + 1'd1;
 				end
-			2: if(mem_valid) begin
-					dma_din <= mem_data;
+			2: if(mgmt_valid) begin
+					mgmt_din <= mgmt_data;
 					ioctl_wait <= 0;
 					state <= 0;
 				end
 			3: begin
-					mem_we <= 1;
+					mgmt_we <= 1;
 					state <= state + 1'd1;
 				end
 			4: begin
@@ -518,11 +560,11 @@ always @(posedge clk_sys) begin
 		endcase
 	end
 
-	if(dma_rd) begin
+	if(mgmt_hrd) begin
 		ioctl_wait <= 1;
 		state <= 1;
 	end
-	if(dma_wr) begin
+	if(mgmt_hwr) begin
 		ioctl_wait <= 1;
 		state <= 3;
 	end

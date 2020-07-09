@@ -50,7 +50,7 @@ module pc_dma(
     input       [7:0]   master_writedata,
     
     //master
-    output reg  [31:0]  avm_address,
+    output reg  [23:0]  avm_address,
     input               avm_waitrequest,
     output reg          avm_read,
     input               avm_readdatavalid,
@@ -72,12 +72,6 @@ module pc_dma(
     output reg  [7:0]   dma_soundblaster_readdata,
     input       [7:0]   dma_soundblaster_writedata
 );
-
-//------------------------------------------------------------------------------
-
-`define SDRAM_BASE      32'h08000000
-
-//------------------------------------------------------------------------------
 
 reg slave_read_last;
 always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) slave_read_last <= 1'b0; else if(slave_read_last) slave_read_last <= 1'b0; else slave_read_last <= slave_read; end 
@@ -442,9 +436,9 @@ always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) dma_soundblaster_
 //------------------------------------------------------------------------------
 
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                       avm_address <= `SDRAM_BASE | 32'd0;
-    else if(dma_soundblaster_state == 3'd1) avm_address <= `SDRAM_BASE | { 8'd0, sla_page_1, sla_current_address_1 };
-    else if(dma_floppy_state == 3'd1)       avm_address <= `SDRAM_BASE | { 8'd0, sla_page_2, sla_current_address_2 };
+    if(rst_n == 1'b0)                       avm_address <= 24'd0;
+    else if(dma_soundblaster_state == 3'd1) avm_address <= { sla_page_1, sla_current_address_1 };
+    else if(dma_floppy_state == 3'd1)       avm_address <= { sla_page_2, sla_current_address_2 };
 end
 
 

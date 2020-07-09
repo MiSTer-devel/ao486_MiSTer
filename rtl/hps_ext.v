@@ -25,13 +25,13 @@ module hps_ext #(parameter CLK_RATE)
 
 	input             io_wait,
 
-	input      [31:0] dma_din,
-	output reg [31:0] dma_dout,
-	output reg [31:0] dma_addr,
-	output reg        dma_rd,
-	output reg        dma_wr,
-	output reg  [1:0] dma_status,
-	input       [1:0] dma_req
+	input      [31:0] ext_din,
+	output reg [31:0] ext_dout,
+	output reg [31:0] ext_addr,
+	output reg        ext_rd,
+	output reg        ext_wr,
+	output reg  [1:0] ext_status,
+	input       [1:0] ext_req
 );
 
 assign EXT_BUS[15:0] = io_dout;
@@ -49,19 +49,19 @@ reg  [9:0] byte_cnt;
 
 always@(posedge clk_sys) begin
 	reg [15:0] cmd;
-	reg        dma_hilo;
+	reg        ext_hilo;
 	reg        old_wait;
 	reg        pending;
 
-	{dma_rd, dma_wr} <= 0;
-	dma_status <= 0;
+	{ext_rd, ext_wr} <= 0;
+	ext_status <= 0;
 
 	old_wait <= io_wait;
 
 	if(~io_enable) begin
 		byte_cnt <= 0;
 		io_dout <= 0;
-		dma_hilo <= 0;
+		ext_hilo <= 0;
 		old_wait <= 0;
 		pending <= 0;
 		dout_en <= 0;
@@ -73,53 +73,53 @@ always@(posedge clk_sys) begin
 
 			if(byte_cnt == 0) begin
 				cmd <= io_din;
-				dma_hilo <= 0;
+				ext_hilo <= 0;
 				dout_en <= (io_din >= EXT_CMD_MIN && io_din <= EXT_CMD_MAX);
 			end else begin
 				case(cmd)
 					'h61: if(byte_cnt == 1) begin
-								dma_addr[15:0] <= io_din;
+								ext_addr[15:0] <= io_din;
 								io_dout <= CLK_RATE[15:0];
 							end
 							else if(byte_cnt == 2) begin
-								dma_addr[31:16] <= io_din;
+								ext_addr[31:16] <= io_din;
 								io_dout <= CLK_RATE[31:16];
 							end
 							else begin
-								if(~dma_hilo) begin
-									if(byte_cnt>4) dma_addr <= dma_addr + 3'd4;
-									dma_dout[15:0] <= io_din;
+								if(~ext_hilo) begin
+									if(byte_cnt>4) ext_addr <= ext_addr + 3'd4;
+									ext_dout[15:0] <= io_din;
 								end
 								else
 								begin
-									dma_dout[31:16] <= io_din;
-									dma_wr <= 1;
+									ext_dout[31:16] <= io_din;
+									ext_wr <= 1;
 								end
-								dma_hilo <= ~dma_hilo;
+								ext_hilo <= ~ext_hilo;
 							end
 
 					'h62: if(byte_cnt == 1) begin
-								dma_addr[15:0] <= io_din;
+								ext_addr[15:0] <= io_din;
 							end
 							else if(byte_cnt == 2) begin
-								dma_addr[31:16] <= io_din;
+								ext_addr[31:16] <= io_din;
 							end
 							else begin
-								if(~dma_hilo) begin
-									dma_rd <= 1;
+								if(~ext_hilo) begin
+									ext_rd <= 1;
 									pending <= 1;
 								end
 								else
 								begin
-									io_dout <= dma_din[31:16];
-									dma_addr <= dma_addr + 3'd4;
+									io_dout <= ext_din[31:16];
+									ext_addr <= ext_addr + 3'd4;
 								end
-								dma_hilo <= ~dma_hilo;
+								ext_hilo <= ~ext_hilo;
 							end
 
 					'h63: begin
-								io_dout <= dma_req;
-								dma_status <= io_din[1:0];
+								io_dout <= ext_req;
+								ext_status <= io_din[1:0];
 							end
 					default: ;
 				endcase
@@ -130,7 +130,7 @@ always@(posedge clk_sys) begin
 		if(old_wait & ~io_wait & pending) begin
 			pending <= 0;
 			case(cmd)
-				'h62: io_dout <= dma_din[15:0];
+				'h62: io_dout <= ext_din[15:0];
 			endcase
 		end
 	end
