@@ -469,8 +469,8 @@ wire ram = !mem_address[29:25];
 
 ddrram_cache arbiter_cache
 (
-	.DDRAM_CLK        (DDRAM_CLK),
-	.RESET            (cpu_reset),
+	.CLK              (clk_sys            ),
+	.RESET            (cpu_reset          ),
 
 	.CPU_ADDR         (mem_address        ),
 	.CPU_DIN          (mem_writedata      ),
@@ -488,7 +488,7 @@ ddrram_cache arbiter_cache
 	.DMA_DOUT_READY   (dma_readdatavalid  ),
 	.DMA_BUSY         (dma_waitrequest    ),
 	.DMA_RD           (dma_read           ),
-	.DMA_WE           (dma_write          ),
+	.DMA_WE           (dma_write & ~rom   ),
 
 	.DDRAM_ADDR       (DDRAM_ADDR[23:0]   ),
 	.DDRAM_DIN        (DDRAM_DIN          ),

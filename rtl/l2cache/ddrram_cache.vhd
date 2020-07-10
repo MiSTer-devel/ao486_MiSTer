@@ -9,7 +9,7 @@ USE altera_mf.altera_mf_components.all;
 entity ddrram_cache is
    port
    (
-      DDRAM_CLK        : in  std_logic;
+      CLK              : in  std_logic;
       RESET            : in  std_logic;
 
       -- CPU bus, master, 32bit
@@ -59,15 +59,6 @@ architecture arch of ddrram_cache is
    constant LINESIZE       : integer := 16; -- changes here only reduces BRAMs required, ~5% less performance
    constant ASSOCIATIVITY  : integer := 4;  -- setting to 2 will half both logic and memory required, ~12% less performance
    constant ADDRBITS       : integer := 23;
-
-   -- fifo for incoming reads
-   signal Fifo_din         : std_logic_vector(66 downto 0);
-   signal Fifo_dout        : std_logic_vector(66 downto 0);
-   signal Fifo_we          : std_logic;
-   signal Fifo_nearfull    : std_logic;
-   signal Fifo_rd          : std_logic;
-   signal Fifo_empty       : std_logic;
-   signal Fifo_valid       : std_logic := '0';
 
    -- cache control
    constant ASSO_BITS      : integer := integer(ceil(log2(real(ASSOCIATIVITY))));
@@ -119,6 +110,7 @@ architecture arch of ddrram_cache is
    signal data64_high_1    : std_logic := '0';
 
    signal writeburst       : std_logic := '0';
+   signal busy             : std_logic;
 
    -- internal mux
    signal ram_dout_ready   : std_logic;
@@ -133,7 +125,11 @@ architecture arch of ddrram_cache is
    signal ch_run           : std_logic;
    signal ch_rd            : std_logic;
    signal ch_we            : std_logic;
-   signal ch_out           : std_logic_vector(31 downto 0);
+   signal ch_dout          : std_logic_vector(31 downto 0);
+   signal ch_be            : std_logic_vector(3 downto 0);
+   signal ch_burst         : std_logic_vector(2 downto 0);
+   signal ch_din           : std_logic_vector(31 downto 0);
+   signal ch_addr          : std_logic_vector(24 downto 0);
 
    signal dma_be           : std_logic_vector(3 downto 0);
 
@@ -146,7 +142,7 @@ architecture arch of ddrram_cache is
    signal vga_wr           : std_logic;
    signal vga_re           : std_logic;
    signal vga_wa           : std_logic_vector(14 downto 0);
-   constant vga_rgn        : std_logic_vector(9 downto 0) := "00" & x"05";
+   signal vga_rgn          : std_logic;
 begin
 
    DDRAM_BURSTCNT  <= ram_burstcnt;
@@ -156,8 +152,8 @@ begin
    DDRAM_BE        <= ram_be;
    DDRAM_WE        <= ram_we;
 
-   CPU_BUSY        <= Fifo_nearfull;
-   CPU_DOUT        <= ch_out;
+   CPU_BUSY        <= DDRAM_BUSY when state = IDLE else ch_run or busy;
+   CPU_DOUT        <= ch_dout;
    CPU_DOUT_READY  <= not ch_run and ram_dout_ready;
 
    VGA_DOUT        <= vga_data(7 downto 0);
@@ -165,68 +161,45 @@ begin
    VGA_RD          <= vga_re and vga_be(0);
    VGA_ADDR        <= vga_wa & vga_ba;
 
-   DMA_BUSY        <= CPU_RD or CPU_WE or Fifo_nearfull;
+   DMA_BUSY        <= CPU_RD or CPU_WE or DDRAM_BUSY when state = IDLE else not ch_run or busy;
    DMA_DOUT_READY  <= ch_run and ram_dout_ready;
 
-   process (ch_out, DMA_ADDR)
+   process (ch_dout, DMA_ADDR)
    begin
       case(DMA_ADDR(1 downto 0)) is
          when "00" =>
             dma_be   <= "0001";
-            DMA_DOUT <= ch_out(7 downto 0);
+            DMA_DOUT <= ch_dout(7 downto 0);
 
          when "01" =>
             dma_be   <= "0010";
-            DMA_DOUT <= ch_out(15 downto 8);
+            DMA_DOUT <= ch_dout(15 downto 8);
 
          when "10" =>
             dma_be   <= "0100";
-            DMA_DOUT <= ch_out(23 downto 16);
+            DMA_DOUT <= ch_dout(23 downto 16);
 
          when "11" =>
             dma_be   <= "1000";
-            DMA_DOUT <= ch_out(31 downto 24);
+            DMA_DOUT <= ch_dout(31 downto 24);
       end case;
    end process;
 
+   ch_dout  <= vga_data_r when vga_mode = '1' else readdata_cache(cache_mux)(63 downto 32) when data64_high_1 = '1' else readdata_cache(cache_mux)(31 downto 0);
    ch_req   <= not (CPU_RD or CPU_WE);
-   ch_rd    <= CPU_RD when ch_req = '0' else DMA_RD;
-   ch_we    <= CPU_WE when ch_req = '0' else DMA_WE;
-   ch_out   <= vga_data_r when vga_mode = '1' else readdata_cache(cache_mux)(63 downto 32) when data64_high_1 = '1' else readdata_cache(cache_mux)(31 downto 0);
+   ch_rd    <= CPU_RD       when ch_req = '0' else DMA_RD;
+   ch_we    <= CPU_WE       when ch_req = '0' else DMA_WE;
+   ch_be    <= CPU_BE       when ch_req = '0' else dma_be;
+   ch_din   <= CPU_DIN      when ch_req = '0' else DMA_DIN & DMA_DIN & DMA_DIN & DMA_DIN;
+   ch_burst <= CPU_BURSTCNT when ch_req = '0' else "001";
+   ch_addr  <= CPU_ADDR     when ch_req = '0' else "000" & DMA_ADDR(23 downto 2);
 
-   Fifo_din <= '0' & CPU_RD & CPU_WE & CPU_BE & CPU_DIN & CPU_BURSTCNT & CPU_ADDR when ch_req = '0'
-          else '1' & DMA_RD & DMA_WE & dma_be & DMA_DIN & DMA_DIN & DMA_DIN & DMA_DIN & "001" & "000" & DMA_ADDR(23 downto 2);
+   busy     <= vga_wr or ram_we;
+   vga_rgn  <= '1' when ch_addr(24 downto 15) = ("00" & x"05") else '0';
 
-   Fifo_we  <= ch_rd or ch_we when Fifo_nearfull = '0' else '0';
-
-   iSyncFifo : entity work.SyncFifoBypass
-   generic map
-   (
-      SIZE             => 128,
-      DATAWIDTH        => 67,
-      NEARFULLDISTANCE => 64
-   )
-   port map
-   (
-      clk      => DDRAM_CLK,
-      reset    => RESET,
-
-      Din      => Fifo_din,
-      Wr       => Fifo_we,
-      Full     => open,
-      NearFull => Fifo_nearfull,
-
-      Dout     => Fifo_dout,
-      Rd       => Fifo_rd,
-      Empty    => Fifo_empty,
-      Valid    => Fifo_valid
-   );
-
-   Fifo_rd <= '1' when (DDRAM_BUSY = '0' and Fifo_valid = '0' and (state = IDLE or state = WRITEONE)) else '0';
-
-   process (DDRAM_CLK)
+   process (CLK)
    begin
-      if rising_edge(DDRAM_CLK) then
+      if rising_edge(CLK) then
 
          ram_dout_ready   <= '0';
          memory_we        <= (others => '0');
@@ -252,50 +225,50 @@ begin
                when IDLE =>
                   vga_wr  <= '0';
                   vga_re  <= '0';
-                  if (Fifo_valid = '1') then
-                     if (Fifo_dout(65) = '1') then
-                        ch_run               <= Fifo_dout(66);
-                        burst_left           <= to_integer(unsigned(Fifo_dout(27 downto 25)));
-                        if Fifo_dout(24 downto 15) = vga_rgn then
-                           vga_wa            <= Fifo_dout(14 downto 0);
-                           vga_be            <= Fifo_dout(63 downto 60);
+                  if (DDRAM_BUSY = '0') then
+                     if (ch_rd = '1') then
+                        ch_run               <= ch_req;
+                        burst_left           <= to_integer(unsigned(ch_burst));
+                        if vga_rgn = '1' then
+                           vga_wa            <= ch_addr(14 downto 0);
+                           vga_be            <= ch_be;
                            vga_bcnt          <= 3;
                            vga_re            <= '1';
                            vga_ba            <= "00";
                            state             <= VGAWAIT;
                         else
                            state             <= READONE;
-                           read_addr         <= Fifo_dout(24 downto 1);
-                           data64_high       <= Fifo_dout(0);
+                           read_addr         <= ch_addr(24 downto 1);
+                           data64_high       <= ch_addr(0);
                         end if;
-                     elsif (Fifo_dout(64) = '1') then
-                        ch_run               <= Fifo_dout(66);
+                     elsif (ch_we = '1') then
+                        ch_run               <= ch_req;
                         if writeburst = '1' then
                            writeburst        <= '0';
-                        elsif (unsigned(Fifo_dout(27 downto 25)) = 2) then
+                        elsif (unsigned(ch_burst) = 2) then
                            writeburst        <= '1';
                         end if;
-                        if Fifo_dout(24 downto 15) = vga_rgn then
+                        if vga_rgn = '1' then
                            if (writeburst = '1') then
                               vga_wa         <= std_logic_vector(unsigned(vga_wa) + 1);
                            else
-                              vga_wa         <= Fifo_dout(14 downto 0);
+                              vga_wa         <= ch_addr(14 downto 0);
                            end if;
-                           if Fifo_dout(62 downto 60) = "000" then
-                              vga_data       <= x"000000" & Fifo_dout(59 downto 52);
-                              vga_be         <= "000" & Fifo_dout(63);
+                           if ch_be(2 downto 0) = "000" then
+                              vga_data       <= x"000000" & ch_din(31 downto 24);
+                              vga_be         <= "000" & ch_be(3);
                               vga_ba         <= "11";
-                           elsif Fifo_dout(61 downto 60) = "00" then
-                              vga_data       <= x"0000" & Fifo_dout(59 downto 44);
-                              vga_be         <= "00" & Fifo_dout(63 downto 62);
+                           elsif ch_be(1 downto 0) = "00" then
+                              vga_data       <= x"0000" & ch_din(31 downto 16);
+                              vga_be         <= "00" & ch_be(3 downto 2);
                               vga_ba         <= "10";
-                           elsif Fifo_dout(60) = '0' then
-                              vga_data       <= x"00" & Fifo_dout(59 downto 36);
-                              vga_be         <= '0' & Fifo_dout(63 downto 61);
+                           elsif ch_be(0) = '0' then
+                              vga_data       <= x"00" & ch_din(31 downto 8);
+                              vga_be         <= '0' & ch_be(3 downto 1);
                               vga_ba         <= "01";
                            else
-                              vga_data       <= Fifo_dout(59 downto 28);
-                              vga_be         <= Fifo_dout(63 downto 60);
+                              vga_data       <= ch_din;
+                              vga_be         <= ch_be;
                               vga_ba         <= "00";
                            end if;
                            vga_wr            <= '1';
@@ -303,7 +276,7 @@ begin
                         else
                            state             <= WRITEONE;
                            ram_we            <= '1';
-                           data64_high <= Fifo_dout(0);
+                           data64_high       <= ch_addr(0);
                            ram_burstcnt      <= x"01";
                            if (writeburst = '1') then
                               if (data64_high = '1') then
@@ -312,37 +285,22 @@ begin
                                  memory_addr_b<= memory_addr_b + 1;
                               end if;
                            else
-                              ram_addr       <= Fifo_dout(24 downto 1);
-                              read_addr      <= Fifo_dout(24 downto 1);
-                              memory_addr_b  <= to_integer(unsigned(Fifo_dout(RAMSIZEBITS downto 1)));
+                              ram_addr       <= ch_addr(24 downto 1);
+                              read_addr      <= ch_addr(24 downto 1);
+                              memory_addr_b  <= to_integer(unsigned(ch_addr(RAMSIZEBITS downto 1)));
                            end if;
-                           if ((writeburst = '0' and Fifo_dout(0) = '1') or (writeburst = '1' and data64_high = '0')) then
-                              ram_din        <= Fifo_dout(59 downto 28) & (31 downto 0 => '0');
-                              memory_datain  <= Fifo_dout(59 downto 28) & (31 downto 0 => '0');
-                              ram_be         <= Fifo_dout(63 downto 60) & ( 3 downto 0 => '0');
-                              memory_be      <= Fifo_dout(63 downto 60) & ( 3 downto 0 => '0');
+                           if ((writeburst = '0' and ch_addr(0) = '1') or (writeburst = '1' and data64_high = '0')) then
+                              ram_din        <= ch_din & (31 downto 0 => '0');
+                              memory_datain  <= ch_din & (31 downto 0 => '0');
+                              ram_be         <= ch_be & ( 3 downto 0 => '0');
+                              memory_be      <= ch_be & ( 3 downto 0 => '0');
                            else
-                              ram_din        <= (63 downto 32 => '0') & Fifo_dout(59 downto 28);
-                              memory_datain  <= (63 downto 32 => '0') & Fifo_dout(59 downto 28);
-                              ram_be         <= ( 7 downto  4 => '0') & Fifo_dout(63 downto 60);
-                              memory_be      <= ( 7 downto  4 => '0') & Fifo_dout(63 downto 60);
+                              ram_din        <= (63 downto 32 => '0') & ch_din;
+                              memory_datain  <= (63 downto 32 => '0') & ch_din;
+                              ram_be         <= ( 7 downto  4 => '0') & ch_be;
+                              memory_be      <= ( 7 downto  4 => '0') & ch_be;
                            end if;
                         end if;
-                     end if;
-                  elsif (Fifo_empty = '1' and DDRAM_BUSY = '0' and ch_rd = '1') then
-                     ch_run                  <= ch_req;
-                     burst_left              <= to_integer(unsigned(Fifo_din(27 downto 25)));
-                     if Fifo_din(24 downto 15) = vga_rgn then
-                        vga_wa               <= Fifo_din(14 downto 0);
-                        vga_be               <= Fifo_din(63 downto 60);
-                        vga_bcnt             <= 3;
-                        vga_re               <= '1';
-                        vga_ba               <= "00";
-                        state                <= VGAWAIT;
-                     else
-                        state                <= READONE;
-                        read_addr            <= Fifo_din(24 downto 1);
-                        data64_high          <= Fifo_din(0);
                      end if;
                   end if;
 
@@ -351,38 +309,38 @@ begin
                   for i in 0 to ASSOCIATIVITY - 1 loop
                      if (tag_dirty(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB))) * ASSOCIATIVITY + i) = '0') then
                         if (tags_read(i) = read_addr(ADDRBITS downto RAMSIZEBITS)) then
-                           memory_we(i)      <= '1';
+                           memory_we(i)   <= '1';
                         end if;
                      end if;
                   end loop;
 
                when READONE =>
-                  vga_mode                   <= '0';
-                  state                      <= FILLCACHE;
-                  ram_rd                     <= '1';
-                  ram_addr                   <= read_addr(read_addr'left downto LINESIZE_BITS) & (LINESIZE_BITS - 1 downto 0 => '0');
-                  ram_be                     <= x"00";
-                  ram_burstcnt               <= std_logic_vector(to_unsigned(LINESIZE, 8));
-                  fillcount                  <= 0;
-                  memory_addr_b              <= to_integer(unsigned(read_addr(RAMSIZEBITS - 1 downto LINESIZE_BITS)) & (LINESIZE_BITS - 1 downto 0 => '0'));
+                  vga_mode                <= '0';
+                  state                   <= FILLCACHE;
+                  ram_rd                  <= '1';
+                  ram_addr                <= read_addr(read_addr'left downto LINESIZE_BITS) & (LINESIZE_BITS - 1 downto 0 => '0');
+                  ram_be                  <= x"00";
+                  ram_burstcnt            <= std_logic_vector(to_unsigned(LINESIZE, 8));
+                  fillcount               <= 0;
+                  memory_addr_b           <= to_integer(unsigned(read_addr(RAMSIZEBITS - 1 downto LINESIZE_BITS)) & (LINESIZE_BITS - 1 downto 0 => '0'));
                   if (ASSOCIATIVITY > 1) then
-                     cache_mux               <= to_integer(rrb(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB)))));
+                     cache_mux            <= to_integer(rrb(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB)))));
                   end if;
                   for i in 0 to ASSOCIATIVITY - 1 loop
                      if (tag_dirty(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB))) * ASSOCIATIVITY + i) = '0') then
                         if (tags_read(i) = read_addr(ADDRBITS downto RAMSIZEBITS)) then
-                           ram_rd            <= '0';
-                           cache_mux         <= i;
-                           ram_dout_ready    <= '1';
+                           ram_rd         <= '0';
+                           cache_mux      <= i;
+                           ram_dout_ready <= '1';
                            if (burst_left > 1) then
-                              state          <= READONE;
-                              burst_left     <= burst_left - 1;
+                              state       <= READONE;
+                              burst_left  <= burst_left - 1;
                               if (data64_high = '1') then
-                                 read_addr   <= std_logic_vector(unsigned(read_addr) + 1);
+                                 read_addr<= std_logic_vector(unsigned(read_addr) + 1);
                               end if;
-                              data64_high    <= not data64_high;
+                              data64_high <= not data64_high;
                            else
-                              state          <= IDLE;
+                              state       <= IDLE;
                            end if;
                         end if;
                      end if;
@@ -390,51 +348,51 @@ begin
 
                when FILLCACHE =>
                   if (DDRAM_DOUT_READY = '1') then
-                     memory_datain           <= DDRAM_DOUT;
-                     memory_we(cache_mux)    <= '1';
-                     memory_be               <= x"FF";
+                     memory_datain        <= DDRAM_DOUT;
+                     memory_we(cache_mux) <= '1';
+                     memory_be            <= x"FF";
                      if (fillcount > 0) then
-                        memory_addr_b        <= memory_addr_b + 1;
+                        memory_addr_b     <= memory_addr_b + 1;
                      end if;
 
                      if (fillcount < LINESIZE - 1) then
-                        fillcount            <= fillcount + 1;
+                        fillcount         <= fillcount + 1;
                      else
-                        state                <= READCACHE_OUT;
+                        state             <= READCACHE_OUT;
                      end if;
                   end if;
 
                when VGAWAIT =>
-                  state                      <= VGAREAD;
+                  state                   <= VGAREAD;
 
                when VGAREAD =>
-                  vga_mode                   <= '1';
-                  vga_bcnt                   <= vga_bcnt - 1;
-                  vga_be                     <= '0' & vga_be(3 downto 1);
-                  vga_ba                     <= std_logic_vector(unsigned(vga_ba) + 1);
-                  vga_data                   <= VGA_DIN & vga_data(31 downto 8);
-                  state                      <= VGAWAIT;
+                  vga_mode                <= '1';
+                  vga_bcnt                <= vga_bcnt - 1;
+                  vga_be                  <= '0' & vga_be(3 downto 1);
+                  vga_ba                  <= std_logic_vector(unsigned(vga_ba) + 1);
+                  vga_data                <= VGA_DIN & vga_data(31 downto 8);
+                  state                   <= VGAWAIT;
                   if(vga_bcnt = 0) then
-                     ram_dout_ready        <= '1';
-                     vga_data_r              <= VGA_DIN & vga_data(31 downto 8);
+                     ram_dout_ready       <= '1';
+                     vga_data_r           <= VGA_DIN & vga_data(31 downto 8);
                      if(burst_left > 1) then
-                        vga_wa               <= std_logic_vector(unsigned(vga_wa) + 1);
-                        vga_ba               <= "00";
-                        vga_bcnt             <= 3;
-                        vga_be               <= "1111";
-                        burst_left           <= burst_left - 1;
+                        vga_wa            <= std_logic_vector(unsigned(vga_wa) + 1);
+                        vga_ba            <= "00";
+                        vga_bcnt          <= 3;
+                        vga_be            <= "1111";
+                        burst_left        <= burst_left - 1;
                      else
-                        state                <= IDLE;
+                        state             <= IDLE;
                      end if;
                   end if;
 
                when VGAWRITE =>
-                  vga_bcnt                   <= vga_bcnt - 1;
-                  vga_be                     <= '0' & vga_be(3 downto 1);
-                  vga_ba                     <= std_logic_vector(unsigned(vga_ba) + 1);
-                  vga_data                   <= x"00" & vga_data(31 downto 8);
+                  vga_bcnt                <= vga_bcnt - 1;
+                  vga_be                  <= '0' & vga_be(3 downto 1);
+                  vga_ba                  <= std_logic_vector(unsigned(vga_ba) + 1);
+                  vga_data                <= x"00" & vga_data(31 downto 8);
                   if vga_be(3 downto 1) = "000" then
-                     state                   <= IDLE;
+                     state                <= IDLE;
                   end if;
 
                when READCACHE_OUT =>
@@ -480,8 +438,8 @@ begin
          wrcontrol_reg => "INCLOCK"
       )
       PORT MAP (
-         inclock  => DDRAM_CLK,
-         outclock => DDRAM_CLK,
+         inclock  => CLK,
+         outclock => CLK,
 
          data      => read_addr(ADDRBITS downto RAMSIZEBITS),
          rdaddress => read_addr(LINEMASKMSB downto LINEMASKLSB),
@@ -499,7 +457,7 @@ begin
       )
       port map
       (
-         clk        => DDRAM_CLK,
+         clk        => CLK,
 
          addr_a     => memory_addr_a,
          datain_a   => (63 downto 0 => '0'),
