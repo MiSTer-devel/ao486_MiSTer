@@ -89,7 +89,7 @@ wire [7:0] io_readdata_next =
     (io_read_valid && io_address == 3'd4)? {
         status_keyboardparityerror,
         status_timeout,
-        status_mousebufferfull,
+        ~(mouse_fifo_empty),
         1'b1, //keyboard inhibit
         status_lastcommand,
         status_system,
