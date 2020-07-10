@@ -68,6 +68,7 @@ module vga
     //vga
     output              vga_ce,
     input               vga_mode,
+    output      [2:0]   vga_memmode,
     output              vga_blank_n,
     output              vga_horiz_sync,
     output              vga_vert_sync,
@@ -742,6 +743,8 @@ wire [15:0] host_address =
     (seq_access_chain4)?                { host_address_reduced[15:2], 2'b00 } :
     (~(seq_access_odd_even_disabled))?  { host_address_reduced[15:1], 1'b0 } :
                                         host_address_reduced[15:0];
+
+assign vga_memmode = {general_enable_ram, graph_system_memory};
 
 //------------------------------------------------------------------------------ mem read
 

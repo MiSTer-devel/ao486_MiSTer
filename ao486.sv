@@ -356,6 +356,7 @@ system u0
 	.video_r              (r),
 	.video_g              (g),
 	.video_b              (b),
+	.video_memmode        (vga_mode),
 
 	.sound_sample_l       (sb_out_l),
 	.sound_sample_r       (sb_out_r),
@@ -455,6 +456,7 @@ wire  [7:0] vga_readdata;
 wire  [7:0] vga_writedata;
 wire        vga_read;
 wire        vga_write;
+wire  [2:0] vga_mode;
 
 wire [23:0] dma_address;
 wire  [7:0] dma_readdata;
@@ -504,7 +506,8 @@ ddrram_cache arbiter_cache
 	.VGA_DIN          (vga_readdata       ),
 	.VGA_DOUT         (vga_writedata      ),
 	.VGA_RD           (vga_read           ),
-	.VGA_WE           (vga_write          )
+	.VGA_WE           (vga_write          ),
+	.VGA_MODE         (vga_mode           )
 );
 
 wire       uart_h_dtr_n;

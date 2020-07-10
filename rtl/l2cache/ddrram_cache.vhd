@@ -47,6 +47,7 @@ entity ddrram_cache is
       VGA_ADDR         : out std_logic_vector(16 downto 0);
       VGA_DIN          : in  std_logic_vector(7 downto 0);
       VGA_DOUT         : out std_logic_vector(7 downto 0);
+      VGA_MODE         : in  std_logic_vector(2 downto 0);
       VGA_RD           : out std_logic;
       VGA_WE           : out std_logic
    );
@@ -133,7 +134,7 @@ architecture arch of ddrram_cache is
 
    signal dma_be           : std_logic_vector(3 downto 0);
 
-   signal vga_mode         : std_logic;
+   signal vga_ram          : std_logic;
    signal vga_data         : std_logic_vector(31 downto 0);
    signal vga_data_r       : std_logic_vector(31 downto 0);
    signal vga_be           : std_logic_vector(3 downto 0);
@@ -143,6 +144,8 @@ architecture arch of ddrram_cache is
    signal vga_re           : std_logic;
    signal vga_wa           : std_logic_vector(14 downto 0);
    signal vga_rgn          : std_logic;
+   signal vga_mask         : std_logic_vector(1 downto 0);
+   signal vga_cmp          : std_logic_vector(1 downto 0);
 begin
 
    DDRAM_BURSTCNT  <= ram_burstcnt;
@@ -185,7 +188,7 @@ begin
       end case;
    end process;
 
-   ch_dout  <= vga_data_r when vga_mode = '1' else readdata_cache(cache_mux)(63 downto 32) when data64_high_1 = '1' else readdata_cache(cache_mux)(31 downto 0);
+   ch_dout  <= vga_data_r when vga_ram = '1' else readdata_cache(cache_mux)(63 downto 32) when data64_high_1 = '1' else readdata_cache(cache_mux)(31 downto 0);
    ch_req   <= not (CPU_RD or CPU_WE);
    ch_rd    <= CPU_RD       when ch_req = '0' else DMA_RD;
    ch_we    <= CPU_WE       when ch_req = '0' else DMA_WE;
@@ -195,7 +198,34 @@ begin
    ch_addr  <= CPU_ADDR     when ch_req = '0' else "000" & DMA_ADDR(23 downto 2);
 
    busy     <= vga_wr or ram_we;
-   vga_rgn  <= '1' when ch_addr(24 downto 15) = ("00" & x"05") else '0';
+
+   vga_rgn  <= '1' when (ch_addr(24 downto 15) = ("00" & x"05")) and ((ch_addr(14 downto 13) and vga_mask) = vga_cmp) else '0';
+   process (CLK)
+   begin
+      if rising_edge(CLK) then
+         case(VGA_MODE) is
+            when "100" => -- 128K
+               vga_mask <= "00";
+               vga_cmp  <= "00";
+
+            when "101" => -- lower 64K
+               vga_mask <= "10";
+               vga_cmp  <= "00";
+
+            when "110" => -- lower of upper half 32K
+               vga_mask <= "11";
+               vga_cmp  <= "10";
+
+            when "111" => -- top 32K
+               vga_mask <= "11";
+               vga_cmp  <= "11";
+
+            when others => -- disable VGA RAM
+               vga_mask <= "00";
+               vga_cmp  <= "11";
+         end case;
+      end if;
+   end process;
 
    process (CLK)
    begin
@@ -315,7 +345,7 @@ begin
                   end loop;
 
                when READONE =>
-                  vga_mode                <= '0';
+                  vga_ram                 <= '0';
                   state                   <= FILLCACHE;
                   ram_rd                  <= '1';
                   ram_addr                <= read_addr(read_addr'left downto LINESIZE_BITS) & (LINESIZE_BITS - 1 downto 0 => '0');
@@ -366,7 +396,7 @@ begin
                   state                   <= VGAREAD;
 
                when VGAREAD =>
-                  vga_mode                <= '1';
+                  vga_ram                 <= '1';
                   vga_bcnt                <= vga_bcnt - 1;
                   vga_be                  <= '0' & vga_be(3 downto 1);
                   vga_ba                  <= std_logic_vector(unsigned(vga_ba) + 1);
