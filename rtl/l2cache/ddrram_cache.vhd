@@ -201,7 +201,7 @@ begin
 
    busy     <= vga_wr or ram_we;
 
-   rom_rgn  <= '1' when (ch_addr(24 downto 14) = ("00" & x"0C")) or (ch_addr(24 downto 14) = ("00" & x"0F")) else '0';
+   rom_rgn  <= '1' when (ch_addr(24 downto 14) = ("000" & x"0C")) or (ch_addr(24 downto 14) = ("000" & x"0F")) else '0';
    vga_rgn  <= '1' when (ch_addr(24 downto 15) = ("00" & x"05")) and ((ch_addr(14 downto 13) and vga_mask) = vga_cmp) else '0';
 
    process (CLK)
@@ -216,7 +216,7 @@ begin
                vga_mask <= "10";
                vga_cmp  <= "00";
 
-            when "110" => -- lower of upper half 32K
+            when "110" => -- 3rd 32K
                vga_mask <= "11";
                vga_cmp  <= "10";
 
