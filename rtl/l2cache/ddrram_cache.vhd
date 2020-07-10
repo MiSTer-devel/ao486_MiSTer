@@ -132,6 +132,8 @@ architecture arch of ddrram_cache is
    signal ch_din           : std_logic_vector(31 downto 0);
    signal ch_addr          : std_logic_vector(24 downto 0);
 
+   signal rom_rgn          : std_logic;
+
    signal dma_be           : std_logic_vector(3 downto 0);
 
    signal vga_ram          : std_logic;
@@ -199,7 +201,9 @@ begin
 
    busy     <= vga_wr or ram_we;
 
+   rom_rgn  <= '1' when (ch_addr(24 downto 14) = ("00" & x"0C")) or (ch_addr(24 downto 14) = ("00" & x"0F")) else '0';
    vga_rgn  <= '1' when (ch_addr(24 downto 15) = ("00" & x"05")) and ((ch_addr(14 downto 13) and vga_mask) = vga_cmp) else '0';
+
    process (CLK)
    begin
       if rising_edge(CLK) then
@@ -271,7 +275,7 @@ begin
                            read_addr         <= ch_addr(24 downto 1);
                            data64_high       <= ch_addr(0);
                         end if;
-                     elsif (ch_we = '1') then
+                     elsif (ch_we = '1' and rom_rgn = '0') then
                         ch_run               <= ch_req;
                         if writeburst = '1' then
                            writeburst        <= '0';

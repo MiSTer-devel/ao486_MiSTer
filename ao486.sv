@@ -466,7 +466,6 @@ wire        dma_read;
 wire        dma_readdatavalid;
 wire        dma_write;
 
-wire rom = mem_address[24:14] == 'hC ||  mem_address[24:14] == 'hF;
 wire ram = !mem_address[29:25];
 
 ddrram_cache arbiter_cache
@@ -482,7 +481,7 @@ ddrram_cache arbiter_cache
 	.CPU_BURSTCNT     (mem_burstcount     ),
 	.CPU_BUSY         (mem_waitrequest    ),
 	.CPU_RD           (mem_read & ram     ),
-	.CPU_WE           (mem_write & ram & ~rom ),
+	.CPU_WE           (mem_write & ram    ),
 
 	.DMA_ADDR         (dma_address        ),
 	.DMA_DIN          (dma_writedata      ),
@@ -490,7 +489,7 @@ ddrram_cache arbiter_cache
 	.DMA_DOUT_READY   (dma_readdatavalid  ),
 	.DMA_BUSY         (dma_waitrequest    ),
 	.DMA_RD           (dma_read           ),
-	.DMA_WE           (dma_write & ~rom   ),
+	.DMA_WE           (dma_write          ),
 
 	.DDRAM_ADDR       (DDRAM_ADDR[23:0]   ),
 	.DDRAM_DIN        (DDRAM_DIN          ),
