@@ -153,6 +153,9 @@ wire [3:0] read_burst_byteenable =
 
 //------------------------------------------------------------------------------
 
+reg [29:0] writeburst_address_next;
+always @(posedge clk) if(state == STATE_IDLE && writeburst_do) writeburst_address_next <= writeburst_address[31:2] + 1'd1;
+
 
 /*******************************************************************************SCRIPT
 

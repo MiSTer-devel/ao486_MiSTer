@@ -110,7 +110,6 @@ architecture arch of ddrram_cache is
    signal data64_high      : std_logic := '0';
    signal data64_high_1    : std_logic := '0';
 
-   signal writeburst       : std_logic := '0';
    signal busy             : std_logic;
 
    -- internal mux
@@ -245,7 +244,6 @@ begin
             rrb           <= (others => (others => '0'));
             tag_dirty     <= (others => '1');
             state         <= IDLE;
-            writeburst    <= '0';
 
          else
 
@@ -277,17 +275,8 @@ begin
                         end if;
                      elsif (ch_we = '1' and rom_rgn = '0') then
                         ch_run               <= ch_req;
-                        if writeburst = '1' then
-                           writeburst        <= '0';
-                        elsif (unsigned(ch_burst) = 2) then
-                           writeburst        <= '1';
-                        end if;
                         if vga_rgn = '1' then
-                           if (writeburst = '1') then
-                              vga_wa         <= std_logic_vector(unsigned(vga_wa) + 1);
-                           else
-                              vga_wa         <= ch_addr(14 downto 0);
-                           end if;
+                           vga_wa            <= ch_addr(14 downto 0);
                            if ch_be(2 downto 0) = "000" then
                               vga_data       <= x"000000" & ch_din(31 downto 24);
                               vga_be         <= "000" & ch_be(3);
@@ -312,18 +301,10 @@ begin
                            ram_we            <= '1';
                            data64_high       <= ch_addr(0);
                            ram_burstcnt      <= x"01";
-                           if (writeburst = '1') then
-                              if (data64_high = '1') then
-                                 ram_addr    <= std_logic_vector(unsigned(ram_addr) + 1);
-                                 read_addr   <= std_logic_vector(unsigned(read_addr) + 1);
-                                 memory_addr_b<= memory_addr_b + 1;
-                              end if;
-                           else
-                              ram_addr       <= ch_addr(24 downto 1);
-                              read_addr      <= ch_addr(24 downto 1);
-                              memory_addr_b  <= to_integer(unsigned(ch_addr(RAMSIZEBITS downto 1)));
-                           end if;
-                           if ((writeburst = '0' and ch_addr(0) = '1') or (writeburst = '1' and data64_high = '0')) then
+                           ram_addr          <= ch_addr(24 downto 1);
+                           read_addr         <= ch_addr(24 downto 1);
+                           memory_addr_b     <= to_integer(unsigned(ch_addr(RAMSIZEBITS downto 1)));
+                           if (ch_addr(0) = '1') then
                               ram_din        <= ch_din & (31 downto 0 => '0');
                               memory_datain  <= ch_din & (31 downto 0 => '0');
                               ram_be         <= ch_be & ( 3 downto 0 => '0');

@@ -96,6 +96,7 @@ wire [31:2] avm_address_to_reg =
     (cond_0 && ~cond_4 && ~cond_5 && cond_6)? (    { readburst_address[31:2]}) :
     (cond_0 && ~cond_4 && ~cond_5 && ~cond_6 && cond_7)? (    { readline_address[31:4], 2'd0 }) :
     (cond_0 && ~cond_4 && ~cond_5 && ~cond_6 && ~cond_7 && cond_8)? (    { readcode_address[31:2]}) :
+    (cond_9 && cond_11)? writeburst_address_next :
     avm_address;
 wire  avm_write_to_reg =
     (cond_0 && cond_4)? (          `TRUE) :
