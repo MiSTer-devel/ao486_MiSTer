@@ -75,6 +75,7 @@ add_fileset_file write_stack.v VERILOG PATH pipeline/write_stack.v
 add_fileset_file write_string.v VERILOG PATH pipeline/write_string.v
 add_fileset_file avalon_mem.v VERILOG PATH memory/avalon_mem.v
 add_fileset_file dcache.v VERILOG PATH memory/dcache.v
+add_fileset_file icache_read.v VERILOG PATH memory/icache_read.v
 add_fileset_file icache.v VERILOG PATH memory/icache.v
 add_fileset_file link_dcacheread.v VERILOG PATH memory/link_dcacheread.v
 add_fileset_file link_dcachewrite.v VERILOG PATH memory/link_dcachewrite.v
@@ -164,7 +165,7 @@ set_interface_property avalon_memory SVD_ADDRESS_GROUP ""
 add_interface_port avalon_memory avm_address address Output 30
 add_interface_port avalon_memory avm_writedata writedata Output 32
 add_interface_port avalon_memory avm_byteenable byteenable Output 4
-add_interface_port avalon_memory avm_burstcount burstcount Output 3
+add_interface_port avalon_memory avm_burstcount burstcount Output 4
 add_interface_port avalon_memory avm_write write Output 1
 add_interface_port avalon_memory avm_read read Output 1
 add_interface_port avalon_memory avm_waitrequest waitrequest Input 1
@@ -239,4 +240,22 @@ set_interface_property conduit_a20 CMSIS_SVD_VARIABLES ""
 set_interface_property conduit_a20 SVD_ADDRESS_GROUP ""
 
 add_interface_port conduit_a20 a20_enable a20_enable Input 1
+
+
+# 
+# connection point conduit_snoop
+# 
+add_interface conduit_snoop conduit end
+set_interface_property conduit_snoop associatedClock clock
+set_interface_property conduit_snoop associatedReset ""
+set_interface_property conduit_snoop ENABLED true
+set_interface_property conduit_snoop EXPORT_OF ""
+set_interface_property conduit_snoop PORT_NAME_MAP ""
+set_interface_property conduit_snoop CMSIS_SVD_VARIABLES ""
+set_interface_property conduit_snoop SVD_ADDRESS_GROUP ""
+
+add_interface_port conduit_snoop snoop_addr addr Input 28
+add_interface_port conduit_snoop snoop_we we Input 1
+add_interface_port conduit_snoop snoop_be be Input 4
+add_interface_port conduit_snoop snoop_data data Input 32
 

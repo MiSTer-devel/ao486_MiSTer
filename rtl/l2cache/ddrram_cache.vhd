@@ -18,7 +18,7 @@ entity ddrram_cache is
       CPU_DOUT         : out std_logic_vector(31 downto 0);
       CPU_DOUT_READY   : out std_logic;
       CPU_BE           : in  std_logic_vector(3 downto 0);
-      CPU_BURSTCNT     : in  std_logic_vector(2 downto 0);
+      CPU_BURSTCNT     : in  std_logic_vector(3 downto 0);
       CPU_BUSY         : out std_logic;
       CPU_RD           : in  std_logic;
       CPU_WE           : in  std_logic;
@@ -49,7 +49,13 @@ entity ddrram_cache is
       VGA_DOUT         : out std_logic_vector(7 downto 0);
       VGA_MODE         : in  std_logic_vector(2 downto 0);
       VGA_RD           : out std_logic;
-      VGA_WE           : out std_logic
+      VGA_WE           : out std_logic;
+      
+      -- Snoop for Level 1 Cache
+      SNOOP_ADDR       : out std_logic_vector(26 downto 2) := (others => '0');
+      SNOOP_DIN        : out std_logic_vector(31 downto 0) := (others => '0');
+      SNOOP_BE         : out std_logic_vector(3 downto 0) := (others => '0');
+      SNOOP_WE         : out std_logic := '0'
    );
 end entity;
 
@@ -97,7 +103,7 @@ architecture arch of ddrram_cache is
    signal cache_mux        : integer range 0 to ASSOCIATIVITY-1 := 0;
 
    signal read_addr        : std_logic_vector(23 downto 0) := (others => '0');
-   signal burst_left       : integer range 0 to 7 := 0;
+   signal burst_left       : integer range 0 to 15 := 0;
 
    signal memory_addr_a    : natural range 0 to (LINESIZE * LINES) - 1;
    signal memory_addr_b    : natural range 0 to (LINESIZE * LINES) - 1;
@@ -127,7 +133,7 @@ architecture arch of ddrram_cache is
    signal ch_we            : std_logic;
    signal ch_dout          : std_logic_vector(31 downto 0);
    signal ch_be            : std_logic_vector(3 downto 0);
-   signal ch_burst         : std_logic_vector(2 downto 0);
+   signal ch_burst         : std_logic_vector(3 downto 0);
    signal ch_din           : std_logic_vector(31 downto 0);
    signal ch_addr          : std_logic_vector(24 downto 0);
 
@@ -186,6 +192,8 @@ begin
          when "11" =>
             dma_be   <= "1000";
             DMA_DOUT <= ch_dout(31 downto 24);
+            
+         when others => null;
       end case;
    end process;
 
@@ -195,14 +203,14 @@ begin
    ch_we    <= CPU_WE       when ch_req = '0' else DMA_WE;
    ch_be    <= CPU_BE       when ch_req = '0' else dma_be;
    ch_din   <= CPU_DIN      when ch_req = '0' else DMA_DIN & DMA_DIN & DMA_DIN & DMA_DIN;
-   ch_burst <= CPU_BURSTCNT when ch_req = '0' else "001";
+   ch_burst <= CPU_BURSTCNT when ch_req = '0' else "0001";
    ch_addr  <= CPU_ADDR     when ch_req = '0' else "000" & DMA_ADDR(23 downto 2);
 
    busy     <= vga_wr or ram_we;
 
    rom_rgn  <= '1' when (ch_addr(24 downto 14) = ("000" & x"0C")) or (ch_addr(24 downto 14) = ("000" & x"0F")) else '0';
    vga_rgn  <= '1' when (ch_addr(24 downto 15) = ("00" & x"05")) and ((ch_addr(14 downto 13) and vga_mask) = vga_cmp) else '0';
-
+   
    process (CLK)
    begin
       if rising_edge(CLK) then
@@ -236,6 +244,7 @@ begin
 
          ram_dout_ready   <= '0';
          memory_we        <= (others => '0');
+         SNOOP_WE         <= '0';
 
          data64_high_1    <= data64_high;
 
@@ -315,6 +324,10 @@ begin
                               ram_be         <= ( 7 downto  4 => '0') & ch_be;
                               memory_be      <= ( 7 downto  4 => '0') & ch_be;
                            end if;
+                           SNOOP_ADDR <= ch_addr;
+                           SNOOP_DIN  <= ch_din;
+                           SNOOP_BE   <= ch_be;
+                           SNOOP_WE   <= '1';
                         end if;
                      end if;
                   end if;

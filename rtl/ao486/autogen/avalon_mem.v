@@ -13,18 +13,17 @@ wire cond_10 = ~(avm_waitrequest) && counter == 2'd0;
 wire cond_11 = ~(avm_waitrequest) && counter != 2'd0;
 wire cond_12 = state == STATE_READ;
 wire cond_13 = avm_readdatavalid;
-wire cond_14 = avm_burstcount - { 1'b0, counter } == 3'd1;
-wire cond_15 = avm_burstcount - { 1'b0, counter } == 3'd2;
-wire cond_16 = avm_burstcount - { 1'b0, counter } == 3'd3;
-wire cond_17 = avm_burstcount - { 1'b0, counter } == 3'd4;
+wire cond_14 = avm_burstcount - { 1'b0, counter } == 4'd1;
+wire cond_15 = avm_burstcount - { 1'b0, counter } == 4'd2;
+wire cond_16 = avm_burstcount - { 1'b0, counter } == 4'd3;
+wire cond_17 = avm_burstcount - { 1'b0, counter } == 4'd4;
 wire cond_18 = counter == 2'd0;
-wire cond_19 = avm_burstcount == 3'd4;
+wire cond_19 = avm_burstcount == 4'd4;
 wire cond_20 = avm_waitrequest == `FALSE;
 wire cond_21 = state == STATE_READ_CODE;
 wire cond_22 = counter == 2'd3;
 wire cond_23 = counter == 2'd2;
 wire cond_24 = counter == 2'd1;
-wire cond_25 = counter < 2'd3;
 //======================================================== saves
 wire  avm_read_to_reg =
     (cond_0 && ~cond_4 && ~cond_5 && cond_6)? (      `TRUE) :
@@ -39,15 +38,15 @@ wire  read_line_done_trigger_to_reg =
     (cond_0 && cond_2)? ( `FALSE) :
     (cond_12 && cond_13 && cond_18 && cond_19)? ( `TRUE) :
     read_line_done_trigger;
-wire [1:0] counter_to_reg =
-    (cond_0 && cond_4)? (    writeburst_dword_length - 2'd1) :
-    (cond_0 && ~cond_4 && cond_5)? (    2'd3) :
-    (cond_0 && ~cond_4 && ~cond_5 && cond_6)? (    readburst_dword_length - 2'd1) :
-    (cond_0 && ~cond_4 && ~cond_5 && ~cond_6 && cond_7)? (    2'd3) :
-    (cond_0 && ~cond_4 && ~cond_5 && ~cond_6 && ~cond_7 && cond_8)? (    2'd3) :
-    (cond_9 && cond_11)? ( counter - 2'd1) :
-    (cond_12 && cond_13)? ( counter - 2'd1) :
-    (cond_21 && cond_13)? ( counter - 2'd1) :
+wire [2:0] counter_to_reg =
+    (cond_0 && cond_4)? (    writeburst_dword_length - 3'd1) :
+    (cond_0 && ~cond_4 && cond_5)? (    3'd3) :
+    (cond_0 && ~cond_4 && ~cond_5 && cond_6)? (    readburst_dword_length - 3'd1) :
+    (cond_0 && ~cond_4 && ~cond_5 && ~cond_6 && cond_7)? (    3'd3) :
+    (cond_0 && ~cond_4 && ~cond_5 && ~cond_6 && ~cond_7 && cond_8)? (    3'd7) :
+    (cond_9 && cond_11)? ( counter - 3'd1) :
+    (cond_12 && cond_13)? ( counter - 3'd1) :
+    (cond_21 && cond_13)? ( counter - 3'd1) :
     counter;
 wire [1:0] state_to_reg =
     (cond_0 && cond_4)? (      STATE_WRITE) :
@@ -118,12 +117,12 @@ wire [3:0] avm_byteenable_to_reg =
     (cond_0 && ~cond_4 && ~cond_5 && ~cond_6 && ~cond_7 && cond_8)? ( 4'hF) :
     (cond_9 && cond_11)? ( byteenable_next) :
     avm_byteenable;
-wire [2:0] avm_burstcount_to_reg =
-    (cond_0 && cond_4)? (     { 1'b0, writeburst_dword_length }) :
-    (cond_0 && ~cond_4 && cond_5)? (     3'd4) :
-    (cond_0 && ~cond_4 && ~cond_5 && cond_6)? ( { 1'b0, readburst_dword_length }) :
-    (cond_0 && ~cond_4 && ~cond_5 && ~cond_6 && cond_7)? ( 3'd4) :
-    (cond_0 && ~cond_4 && ~cond_5 && ~cond_6 && ~cond_7 && cond_8)? ( 3'd4) :
+wire [3:0] avm_burstcount_to_reg =
+    (cond_0 && cond_4)? (     { 2'b0, writeburst_dword_length }) :
+    (cond_0 && ~cond_4 && cond_5)? (     4'd4) :
+    (cond_0 && ~cond_4 && ~cond_5 && cond_6)? ( { 2'b0, readburst_dword_length }) :
+    (cond_0 && ~cond_4 && ~cond_5 && ~cond_6 && cond_7)? ( 4'd4) :
+    (cond_0 && ~cond_4 && ~cond_5 && ~cond_6 && ~cond_7 && cond_8)? ( 4'd8) :
     avm_burstcount;
 wire  read_code_done_trigger_to_reg =
     (cond_0 && cond_3)? ( `FALSE) :
@@ -139,7 +138,7 @@ always @(posedge clk) begin
     else              read_line_done_trigger <= read_line_done_trigger_to_reg;
 end
 always @(posedge clk) begin
-    if(rst_n == 1'b0) counter <= 2'd0;
+    if(rst_n == 1'b0) counter <= 3'd0;
     else              counter <= counter_to_reg;
 end
 always @(posedge clk) begin
@@ -191,7 +190,7 @@ always @(posedge clk) begin
     else              avm_byteenable <= avm_byteenable_to_reg;
 end
 always @(posedge clk) begin
-    if(rst_n == 1'b0) avm_burstcount <= 3'd0;
+    if(rst_n == 1'b0) avm_burstcount <= 4'd0;
     else              avm_burstcount <= avm_burstcount_to_reg;
 end
 always @(posedge clk) begin
@@ -199,14 +198,8 @@ always @(posedge clk) begin
     else              read_code_done_trigger <= read_code_done_trigger_to_reg;
 end
 //======================================================== sets
-assign readcode_partial_done =
-    (cond_21 && cond_13 && cond_25)? (`TRUE) :
-    1'd0;
 assign writeburst_done =
     (cond_0 && cond_4)? (`TRUE) :
-    1'd0;
-assign readcode_done =
-    (cond_0 && cond_3)? (`TRUE) :
     1'd0;
 assign readburst_done =
     (cond_0 && cond_1)? (`TRUE) :

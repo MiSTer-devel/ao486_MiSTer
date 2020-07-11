@@ -41,7 +41,7 @@ module ao486 (
     output      [29:0]  avm_address,
     output      [31:0]  avm_writedata,
     output      [3:0]   avm_byteenable,
-    output      [2:0]   avm_burstcount,
+    output      [3:0]   avm_burstcount,
     output              avm_write,
     output              avm_read,
     
@@ -60,7 +60,12 @@ module ao486 (
     output              avalon_io_write,
     output  [31:0]      avalon_io_writedata,
     
-    input               avalon_io_waitrequest
+    input               avalon_io_waitrequest,
+    
+    input   [29:2]      snoop_addr,
+    input   [31:0]      snoop_data,
+    input    [3:0]      snoop_be,
+    input               snoop_we
 );
 
 //------------------------------------------------------------------------------
@@ -555,12 +560,17 @@ memory memory_inst(
     .avm_address                   (avm_address_pre),                   //output [31:0]
     .avm_writedata                 (avm_writedata),                 //output [31:0]
     .avm_byteenable                (avm_byteenable),                //output [3:0]
-    .avm_burstcount                (avm_burstcount),                //output [2:0]
+    .avm_burstcount                (avm_burstcount),                //output [3:0]
     .avm_write                     (avm_write),                     //output
     .avm_read                      (avm_read),                      //output
     .avm_waitrequest               (avm_waitrequest),               //input
     .avm_readdatavalid             (avm_readdatavalid),             //input
-    .avm_readdata                  (avm_readdata)                   //input [31:0]
+    .avm_readdata                  (avm_readdata),                  //input [31:0]
+    
+    .snoop_addr                    (snoop_addr),
+    .snoop_data                    (snoop_data),
+    .snoop_be                      (snoop_be),
+    .snoop_we                      (snoop_we)
 );
 
 //------------------------------------------------------------------------------

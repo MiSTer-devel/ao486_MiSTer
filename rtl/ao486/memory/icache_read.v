@@ -26,65 +26,42 @@
 
 `include "defines.v"
 
-//TYPE: full save
-
-module link_readcode(
-    input               clk,
-    input               rst_n,
+module icache_read(
+   
+    input [31:0]            read_data,
+    input [2:0]             read_length,
     
-    // readcode REQ
-    input               req_readcode_do,
-    output              req_readcode_done,
+    input [31:0]            address,
+    input [4:0]             length,
     
-    input       [31:0]  req_readcode_address,
-    output      [127:0] req_readcode_line,
-    output      [31:0]  req_readcode_partial,
-    
-    // readcode RESP
-    output              resp_readcode_do,
-    input               resp_readcode_done,
-    
-    output      [31:0]  resp_readcode_address,
-    input       [127:0] resp_readcode_line,
-    input       [31:0]  resp_readcode_partial
+    output [11:0]           length_burst,
+    output [67:0]           prefetch_line
 );
 
 //------------------------------------------------------------------------------
 
-reg         current_do;
-reg [31:0]  address;
-
 //------------------------------------------------------------------------------
 
-wire save;
-
-//------------------------------------------------------------------------------
-
-assign save  = req_readcode_do && ~(resp_readcode_done);
-
-//------------------------------------------------------------------------------
-
-always @(posedge clk) begin
-    if(rst_n == 1'b0)               current_do <= `FALSE;
-    else if(save)                   current_do <= req_readcode_do;
-    else if(resp_readcode_done)     current_do <= `FALSE;
-end
-
-always @(posedge clk) begin if(rst_n == 1'b0) address <= 32'd0; else if(save) address <= req_readcode_address; end
-
-//------------------------------------------------------------------------------
-
-assign req_readcode_done         = resp_readcode_done;
-assign req_readcode_line         = resp_readcode_line;
-assign req_readcode_partial      = resp_readcode_partial;
-
-assign resp_readcode_do      = (req_readcode_do)? req_readcode_do      : current_do;
-assign resp_readcode_address = (req_readcode_do)? req_readcode_address : address;
+assign length_burst =
+    (address[1:0] == 2'd0)?    { 3'd4, 3'd4, 3'd4, 3'd4 } :
+    (address[1:0] == 2'd1)?    { 3'd4, 3'd4, 3'd4, 3'd3 } :
+    (address[1:0] == 2'd2)?    { 3'd4, 3'd4, 3'd4, 3'd2 } :
+                               { 3'd4, 3'd4, 3'd4, 3'd1 };
+                            
+assign prefetch_line =
+    (read_length[2:0] == 3'd1)?   { 4'd1,                                56'd0, read_data[31:24] } :
+    (read_length[2:0] == 3'd2)?   { (length > 5'd2)? 4'd2 : length[3:0], 48'd0, read_data[31:16] } :
+    (read_length[2:0] == 3'd3)?   { (length > 5'd3)? 4'd3 : length[3:0], 40'd0, read_data[31:8] } :
+                                  { (length > 5'd4)? 4'd4 : length[3:0], 32'd0, read_data[31:0] };
 
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
 
-//------------------------------------------------------------------------------
+// synthesis translate_off
+wire _unused_ok = &{ 1'b0, address[31:4], 1'b0 };
+// synthesis translate_on
 
+//------------------------------------------------------------------------------
+    
 endmodule

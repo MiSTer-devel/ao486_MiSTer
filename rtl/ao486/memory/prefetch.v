@@ -70,7 +70,7 @@ assign prefetch_su = prefetch_cpl == 2'd3; //0=supervisor; 1=user
 
 assign prefetch_address = linear;
 
-assign prefetch_length = (limit > 32'd16)? 5'd16 : limit[4:0];
+assign prefetch_length = (limit > 32'd4)? 5'd4 : limit[4:0];
 
 assign length = (limit < {  27'd0, prefetched_length })? limit[4:0] : prefetched_length;
 

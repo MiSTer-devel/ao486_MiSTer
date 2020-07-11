@@ -572,6 +572,22 @@
          type = "String";
       }
    }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element uart
    {
       datum _sortIndex
@@ -627,6 +643,7 @@
  <instanceScript></instanceScript>
  <interface name="ao486_conduit_dbg" internal="ao486.conduit_dbg" />
  <interface name="ao486_conduit_end" internal="ao486.conduit_end" />
+ <interface name="ao486_conduit_snoop_addr" internal="ao486.conduit_snoop_addr" />
  <interface name="ao486_debug_sw" internal="ao486.debug_sw" />
  <interface name="clk_opl" internal="InClock_OPL.in_clk" type="clock" dir="end" />
  <interface name="clk_sys" internal="InClock_SYS.in_clk" type="clock" dir="end" />
@@ -655,6 +672,7 @@
  <interface name="sd_clk" internal="driver_sd.conduit_clk" />
  <interface name="sd_cmd" internal="driver_sd.conduit_cmd" />
  <interface name="sd_dat" internal="driver_sd.conduit_dat" />
+ <interface name="snoop" internal="ao486.conduit_snoop" type="conduit" dir="end" />
  <interface name="sound" internal="sound.conduit_sound" type="conduit" dir="end" />
  <interface
    name="speaker"

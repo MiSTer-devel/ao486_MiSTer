@@ -41,51 +41,57 @@ module icache(
     //END
     
     //REQ:
-    output          readcode_do,
-    input           readcode_done,
+    output              readcode_do,
+    input               readcode_done,
     
-    output  [31:0]  readcode_address,
-    input   [127:0] readcode_line,
-    input   [31:0]  readcode_partial,
-    input           readcode_partial_done,
+    output      [31:0]  readcode_address,
+    input       [127:0] readcode_line,
+    input       [31:0]  readcode_partial,
     //END
     
     //REQ:
-    output          prefetchfifo_write_do,
-    output  [135:0] prefetchfifo_write_data,
+    output              prefetchfifo_write_do,
+    output  [67:0]      prefetchfifo_write_data,
     //END
     
     //REQ:
-    output          prefetched_do,
-    output [4:0]    prefetched_length
+    output              prefetched_do,
+    output [4:0]        prefetched_length,
     //END
+    
+    input   [29:2]      snoop_addr,
+    input   [31:0]      snoop_data,
+    input    [3:0]      snoop_be,
+    input               snoop_we
 );
 
 //------------------------------------------------------------------------------
 
-//------------------------------------------------------------------------------
+localparam STATE_IDLE = 1'd0;
+localparam STATE_READ = 1'd1;
 
-reg         state;
-reg [31:0]  address;
-reg [4:0]   length;
-reg [11:0]  partial_length;
-reg         reset_waiting;
+reg          state;
+reg [31:0]   address;
+reg [4:0]    length;
+reg [11:0]   partial_length;
+reg          reset_waiting;
+             
+wire [4:0]   partial_length_current;
 
-//------------------------------------------------------------------------------
+wire [11:0]  length_burst;
+wire [67:0]  prefetch_line;
 
-wire [4:0] partial_length_current;
-
-//------------------------------------------------------------------------------
-
-localparam STATE_IDLE             = 1'd0;
-localparam STATE_READ             = 1'd1;
+wire         readcode_cache_do;
+wire [31:0]  readcode_cache_address;
+wire         readcode_cache_done;
+wire [31:0]  readcode_cache_data;
 
 //------------------------------------------------------------------------------
 
 //MIN(partial_length, length_saved)
-assign partial_length_current = ({ 2'b0, partial_length[2:0] } > length)? length : { 2'b0, partial_length[2:0] };
+assign partial_length_current =
+    ({ 2'b0, partial_length[2:0] } > length)? length : { 2'b0, partial_length[2:0] };
     
-
 //------------------------------------------------------------------------------
 
 always @(posedge clk) begin
@@ -96,34 +102,60 @@ end
 
 //------------------------------------------------------------------------------
 
-wire [11:0]     length_burst;
-wire [135:0]    prefetch_partial;
 
-wire [31:0] burst_address = (state == STATE_IDLE)? icacheread_address : address;
-wire  [4:0] burst_length = (state == STATE_IDLE)? icacheread_length : length;
-
-assign length_burst =
-    (burst_address[1:0] == 2'd0)?    { 3'd4, 3'd4, 3'd4, 3'd4 } :
-    (burst_address[1:0] == 2'd1)?    { 3'd4, 3'd4, 3'd4, 3'd3 } :
-    (burst_address[1:0] == 2'd2)?    { 3'd4, 3'd4, 3'd4, 3'd2 } :
-                                     { 3'd4, 3'd4, 3'd4, 3'd1 };
-
-assign prefetch_partial =
-    (partial_length[2:0] == 3'd1)?   { 4'd0, 64'd0, 4'd1,                                            56'd0, readcode_partial[31:24] } :
-    (partial_length[2:0] == 3'd2)?   { 4'd0, 64'd0, (burst_length > 5'd2)? 4'd2 : burst_length[3:0], 48'd0, readcode_partial[31:16] } :
-    (partial_length[2:0] == 3'd3)?   { 4'd0, 64'd0, (burst_length > 5'd3)? 4'd3 : burst_length[3:0], 40'd0, readcode_partial[31:8] } :
-                                     { 4'd0, 64'd0, (burst_length > 5'd4)? 4'd4 : burst_length[3:0], 32'd0, readcode_partial[31:0] };
-
-//------------------------------------------------------------------------------
-
-assign readcode_do = rst_n && (state == STATE_IDLE && ~(pr_reset) && icacheread_do && icacheread_length > 5'd0);
-assign readcode_address = { icacheread_address[31:2], 2'd0 };
+l1_icache l1_icache_inst(
    
-assign prefetchfifo_write_do = rst_n && (state == STATE_READ && pr_reset == `FALSE && reset_waiting == `FALSE && (readcode_partial_done || readcode_done));
-assign prefetchfifo_write_data = prefetch_partial;
+    .CLK             (clk),
+    .RESET           (~rst_n),
 
-assign prefetched_length = partial_length_current;
-assign prefetched_do = rst_n && (state == STATE_READ && pr_reset == `FALSE && reset_waiting == `FALSE && (readcode_partial_done || readcode_done));
+    .CPU_REQ         (readcode_cache_do),
+    .CPU_ADDR        (readcode_cache_address),
+    .CPU_DONE        (readcode_cache_done),
+    .CPU_DATA        (readcode_cache_data),
+    
+    .MEM_REQ         (readcode_do),
+    .MEM_ADDR        (readcode_address),
+    .MEM_DONE        (readcode_done),
+    .MEM_DATA        (readcode_partial),
+    
+    .snoop_addr      (snoop_addr),
+    .snoop_data      (snoop_data),
+    .snoop_be        (snoop_be),
+    .snoop_we        (snoop_we)
+);
+
+icache_read icache_read_inst(
+   
+    .read_data      (readcode_cache_data),         //input [31:0]
+    .read_length    (partial_length[2:0]),      //input [2:0]
+                             
+    .address        ((state == STATE_IDLE)? icacheread_address : address),  //input [31:0]
+    .length         ((state == STATE_IDLE)? icacheread_length : length),    //input [4:0]
+                             
+    .length_burst   (length_burst),     //output [11:0]
+                             
+    .prefetch_line  (prefetch_line)    //output [67:0]
+);
+
+assign readcode_cache_do =
+   (~rst_n) ? (`FALSE) :
+   (state == STATE_IDLE && ~(pr_reset) && icacheread_do && icacheread_length > 5'd0) ? (`TRUE) :
+   `FALSE;
+   
+assign readcode_cache_address = { icacheread_address[31:2], 2'd0 };
+   
+assign prefetchfifo_write_do =
+   (~rst_n) ? (`FALSE) :
+   (state == STATE_READ && pr_reset == `FALSE && reset_waiting == `FALSE && readcode_cache_done) ? (`TRUE) :
+   `FALSE;
+   
+assign prefetchfifo_write_data = prefetch_line;
+assign prefetched_length       = partial_length_current;
+
+assign prefetched_do =
+   (~rst_n) ? (`FALSE) :
+   (state == STATE_READ && pr_reset == `FALSE && reset_waiting == `FALSE && readcode_cache_done) ? (`TRUE) :
+   `FALSE;
    
 always @(posedge clk) begin
    if(rst_n == 1'b0) begin
@@ -139,15 +171,7 @@ always @(posedge clk) begin
          address        <= icacheread_address;
       end
       else if (state == STATE_READ) begin
-         if(pr_reset == `FALSE && reset_waiting == `FALSE) begin
-            if(readcode_partial_done || readcode_done) begin
-               if(partial_length[2:0] > 3'd0 && length > 5'd0) begin
-                  length         <= length - partial_length_current;
-                  partial_length <= { 3'd0, partial_length[11:3] }; 
-               end
-            end
-         end
-         if(readcode_done) state <= STATE_IDLE;
+         if(readcode_cache_done) state <= STATE_IDLE;
       end
    end
 end   

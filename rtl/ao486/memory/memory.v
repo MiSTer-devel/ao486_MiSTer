@@ -141,13 +141,18 @@ module memory(
     output      [31:2]  avm_address,
     output      [31:0]  avm_writedata,
     output      [3:0]   avm_byteenable,
-    output      [2:0]   avm_burstcount,
+    output      [3:0]   avm_burstcount,
     output              avm_write,
     output              avm_read,
     
     input               avm_waitrequest,
     input               avm_readdatavalid,
-    input       [31:0]  avm_readdata
+    input       [31:0]  avm_readdata,
+    
+    input   [29:2]      snoop_addr,
+    input   [31:0]      snoop_data,
+    input    [3:0]      snoop_be,
+    input               snoop_we
 );
 
 
@@ -240,14 +245,12 @@ wire         req_readcode_done;
 wire [31:0]  req_readcode_address;
 wire [127:0] req_readcode_line;
 wire [31:0]  req_readcode_partial;
-wire         req_readcode_partial_done;
     
 wire         resp_readcode_do;
 wire         resp_readcode_done;
 wire [31:0]  resp_readcode_address;
 wire [127:0] resp_readcode_line;
 wire [31:0]  resp_readcode_partial;
-wire         resp_readcode_partial_done;
 
 link_readcode link_readcode_inst(
     .clk                (clk),
@@ -260,7 +263,6 @@ link_readcode link_readcode_inst(
     .req_readcode_address           (req_readcode_address),       //input [31:0]
     .req_readcode_line              (req_readcode_line),          //output [127:0]
     .req_readcode_partial           (req_readcode_partial),       //output [31:0]
-    .req_readcode_partial_done      (req_readcode_partial_done),  //output
     
     // readcode RESP
     .resp_readcode_do               (resp_readcode_do),           //output
@@ -268,8 +270,7 @@ link_readcode link_readcode_inst(
     
     .resp_readcode_address          (resp_readcode_address),      //output [31:0]
     .resp_readcode_line             (resp_readcode_line),         //input [127:0]
-    .resp_readcode_partial          (resp_readcode_partial),      //input [31:0]
-    .resp_readcode_partial_done     (resp_readcode_partial_done)  //input
+    .resp_readcode_partial          (resp_readcode_partial)       //input [31:0]
 );
 
 //------------------------------------------------------------------------------
@@ -395,7 +396,7 @@ wire [4:0]  icacheread_length; // takes into account: page size and cs segment l
 //------------------------------------------------------------------------------
 
 wire            prefetchfifo_write_do;
-wire [135:0]    prefetchfifo_write_data;
+wire [67:0]    prefetchfifo_write_data;
 
 //------------------------------------------------------------------------------
 
@@ -448,11 +449,11 @@ avalon_mem avalon_mem_inst(
     //END
     
     //RESP:
-    .writeline_do               (0),                            //input
+    .writeline_do               (1'b0),                         //input
     .writeline_done             (),                             //output
     
-    .writeline_address          (0),                            //input [31:0]
-    .writeline_line             (0),                            //input [127:0]
+    .writeline_address          (32'd0),                        //input [31:0]
+    .writeline_line             (128'd0),                       //input [127:0]
     //END
     
     //RESP:
@@ -466,10 +467,10 @@ avalon_mem avalon_mem_inst(
     //END
     
     //RESP:
-    .readline_do                (0),                            //input
+    .readline_do                (1'b0),                         //input
     .readline_done              (),                             //output
     
-    .readline_address           (0),                            //input [31:0]
+    .readline_address           (32'd0),                        //input [31:0]
     .readline_line              (),                             //output [127:0]
     //END
     
@@ -480,14 +481,13 @@ avalon_mem avalon_mem_inst(
     .readcode_address           (resp_readcode_address),        //input [31:0]
     .readcode_line              (resp_readcode_line),           //output [127:0]
     .readcode_partial           (resp_readcode_partial),        //output [31:0]
-    .readcode_partial_done      (resp_readcode_partial_done),   //output
     //END
     
     // avalon master
     .avm_address                (avm_address),                  //output [31:0]
     .avm_writedata              (avm_writedata),                //output [31:0]
     .avm_byteenable             (avm_byteenable),               //output [3:0]
-    .avm_burstcount             (avm_burstcount),               //output [2:0]
+    .avm_burstcount             (avm_burstcount),               //output [3:0]
     .avm_write                  (avm_write),                    //output
     .avm_read                   (avm_read),                     //output
     
@@ -549,7 +549,6 @@ assign invddata_done = 1'b1;
 assign wbinvddata_done = 1'b1;
 
 //------------------------------------------------------------------------------
-
 icache icache_inst(
     .clk            (clk),
     .rst_n          (rst_n),
@@ -570,18 +569,22 @@ icache icache_inst(
     .readcode_address           (req_readcode_address),         //output [31:0]
     .readcode_line              (req_readcode_line),            //input [127:0]
     .readcode_partial           (req_readcode_partial),         //input [31:0]
-    .readcode_partial_done      (req_readcode_partial_done),    //input
     //END
     
     //REQ:
     .prefetchfifo_write_do      (prefetchfifo_write_do),      //output
-    .prefetchfifo_write_data    (prefetchfifo_write_data),    //output [135:0]
+    .prefetchfifo_write_data    (prefetchfifo_write_data),    //output [67:0]
     //END
     
     //REQ:
-    .prefetched_do      (prefetched_do),      //output
-    .prefetched_length  (prefetched_length)  //output [4:0]
+    .prefetched_do              (prefetched_do),      //output
+    .prefetched_length          (prefetched_length),  //output [4:0]
     //END
+    
+    .snoop_addr                 (snoop_addr),
+    .snoop_data                 (snoop_data),
+    .snoop_be                   (snoop_be),
+    .snoop_we                   (snoop_we)
 );
 
 assign invdcode_done = 1'b1;
@@ -714,7 +717,7 @@ prefetch_fifo prefetch_fifo_inst(
     
     //RESP:
     .prefetchfifo_write_do      (prefetchfifo_write_do),      //input
-    .prefetchfifo_write_data    (prefetchfifo_write_data),    //input [135:0]
+    .prefetchfifo_write_data    (prefetchfifo_write_data),    //input [67:0]
     //END
     
     .prefetchfifo_used   (prefetchfifo_used),    //output [4:0]

@@ -72,19 +72,18 @@ module avalon_mem(
     
     //RESP:
     input               readcode_do,
-    output              readcode_done,
+    output reg          readcode_done,
     
     input       [31:0]  readcode_address,
     output      [127:0] readcode_line,
     output      [31:0]  readcode_partial,
-    output              readcode_partial_done,
     //END
     
     // avalon master
     output reg  [31:2]  avm_address,
     output reg  [31:0]  avm_writedata,
     output reg  [3:0]   avm_byteenable,
-    output reg  [2:0]   avm_burstcount,
+    output reg  [3:0]   avm_burstcount,
     output reg          avm_write,
     output reg          avm_read,
     
@@ -101,7 +100,7 @@ reg [31:0]  bus_2;
 reg [31:0]  bus_3;
 
 reg [3:0]   byteenable_next;
-reg [1:0]   counter;
+reg [2:0]   counter;
 reg [1:0]   state;
 
 reg         read_burst_done_trigger;
@@ -156,6 +155,8 @@ wire [3:0] read_burst_byteenable =
 reg [29:0] writeburst_address_next;
 always @(posedge clk) if(state == STATE_IDLE && writeburst_do) writeburst_address_next <= writeburst_address[31:2] + 1'd1;
 
+
+always @(posedge clk) if(state == STATE_READ_CODE && avm_readdatavalid) readcode_done <= 1'b1; else readcode_done <= 1'b0;
 
 /*******************************************************************************SCRIPT
 
@@ -303,8 +304,6 @@ IF(state == STATE_READ_CODE);
         IF(counter == 2'd0); SAVE(bus_3, avm_readdata); ENDIF();
         
         SAVE(counter, counter - 2'd1);
-        
-        IF(counter < 2'd3); SET(readcode_partial_done); ENDIF();
         
         IF(counter == 2'd0);
             SAVE(read_code_done_trigger, `TRUE);

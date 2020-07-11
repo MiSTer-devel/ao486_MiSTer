@@ -409,7 +409,12 @@ system u0
 	.dma_readdata         (dma_readdata),
 	.dma_write            (dma_write),
 	.dma_writedata        (dma_writedata),
-
+   
+   .snoop_addr           (SNOOP_ADDR),
+   .snoop_data           (SNOOP_DIN),
+   .snoop_be             (SNOOP_BE),
+   .snoop_we             (SNOOP_WE),
+   
 	.mgmt_waitrequest     (mgmt_wait),
 	.mgmt_readdata        (mgmt_data),
 	.mgmt_readdatavalid   (mgmt_valid),
@@ -445,7 +450,7 @@ wire [29:0] mem_address;
 wire [31:0] mem_writedata;
 wire [31:0] mem_readdata;
 wire [3:0]  mem_byteenable;
-wire [2:0]  mem_burstcount;
+wire [3:0]  mem_burstcount;
 wire        mem_write;
 wire        mem_read;
 wire        mem_waitrequest;
@@ -465,6 +470,11 @@ wire        dma_waitrequest;
 wire        dma_read;
 wire        dma_readdatavalid;
 wire        dma_write;
+
+wire [29:0] SNOOP_ADDR;
+wire [31:0] SNOOP_DIN;
+wire  [3:0] SNOOP_BE;
+wire        SNOOP_WE;
 
 wire ram = !mem_address[29:25];
 
@@ -506,7 +516,12 @@ ddrram_cache arbiter_cache
 	.VGA_DOUT         (vga_writedata      ),
 	.VGA_RD           (vga_read           ),
 	.VGA_WE           (vga_write          ),
-	.VGA_MODE         (vga_mode           )
+	.VGA_MODE         (vga_mode           ),
+   
+   .SNOOP_ADDR       (SNOOP_ADDR         ),
+   .SNOOP_DIN        (SNOOP_DIN          ),
+   .SNOOP_BE         (SNOOP_BE           ),
+   .SNOOP_WE         (SNOOP_WE           )
 );
 
 wire       uart_h_dtr_n;
