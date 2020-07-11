@@ -18,12 +18,14 @@
 //
 ///////////////////////////////////////////////////////////////////////
 
-module hps_ext #(parameter CLK_RATE)
+module hps_ext
 (
 	input             clk_sys,
 	inout      [35:0] EXT_BUS,
 
 	input             io_wait,
+
+	input      [31:0] clk_rate,
 
 	input      [31:0] ext_din,
 	output reg [31:0] ext_dout,
@@ -79,11 +81,11 @@ always@(posedge clk_sys) begin
 				case(cmd)
 					'h61: if(byte_cnt == 1) begin
 								ext_addr[15:0] <= io_din;
-								io_dout <= CLK_RATE[15:0];
+								io_dout <= clk_rate[15:0];
 							end
 							else if(byte_cnt == 2) begin
 								ext_addr[31:16] <= io_din;
-								io_dout <= CLK_RATE[31:16];
+								io_dout <= clk_rate[31:16];
 							end
 							else begin
 								if(~ext_hilo) begin

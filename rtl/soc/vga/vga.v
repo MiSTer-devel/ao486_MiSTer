@@ -101,7 +101,7 @@ always @(posedge clk_sys) begin
 	reg [31:0] pixcnt = 0, pix60;
 	reg old_sync = 0;
 	
-	if(~rst_n || vga_mode) pixclk <= 25175000;
+	if(~rst_n || vga_mode) pixclk <= (clk_rate<25175000) ? clk_rate : 25175000;
 	else if(ce_video) begin
 		old_sync <= vga_vert_sync;
 		pixcnt <= pixcnt + 1;
@@ -111,7 +111,7 @@ always @(posedge clk_sys) begin
 		end
 		
 		if(pix60<15000000) pixclk <= 15000000;
-		else if(pix60>30000000) pixclk <= 30000000;
+		else if(pix60>clk_rate) pixclk <= clk_rate;
 		else pixclk <= pix60;
 	end
 end

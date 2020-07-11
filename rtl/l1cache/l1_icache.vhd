@@ -112,8 +112,8 @@ begin
       
       Dout     => Fifo_dout,
       Rd       => Fifo_rd,
-      Empty    => Fifo_empty,
-      Valid    => Fifo_valid
+      Empty    => Fifo_empty
+      --Valid    => Fifo_valid
    );
    
    Fifo_rd <= '1' when state = IDLE else '0';
@@ -176,9 +176,9 @@ begin
                   MEM_ADDR       <= read_addr(read_addr'left downto LINESIZE_BITS) & (LINESIZE_BITS - 1 downto 0 => '0') & "00";
                   fillcount          <= 0;
                   memory_addr_b      <= to_integer(unsigned(read_addr(RAMSIZEBITS - 1 downto LINESIZE_BITS)) & (LINESIZE_BITS - 1 downto 0 => '0'));
-                  if (ASSOCIATIVITY > 1) then
+                  --if (ASSOCIATIVITY > 1) then
                      cache_mux     <= to_integer(rrb(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB)))));
-                  end if;
+                  --end if;
                   for i in 0 to ASSOCIATIVITY - 1 loop
                      if (tag_dirty(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB))) * ASSOCIATIVITY + i) = '0') then
                         if (tags_read(i) = read_addr(ADDRBITS downto RAMSIZEBITS)) then

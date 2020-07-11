@@ -161,6 +161,10 @@ localparam CONF_STR =
 	"O4,VSync,60Hz,Variable;",
 	"O3,FM mode,OPL2,OPL3;",
 	"-;",
+`ifndef DEBUG
+	"O57,Speed,90MHz,100MHz,15MHz,30MHz,56MHz;",
+`endif
+	"-;",
 	"OX2,Boot order,FDD/HDD,HDD/FDD;",
 	"R0,Reset and apply HDD;",
 	"J,Button 1,Button 2;",
@@ -239,20 +243,20 @@ wire  [1:0] mgmt_status;
 wire  [1:0] mgmt_req;
 
 wire [35:0] EXT_BUS;
-hps_ext
-#(
-`ifdef DEBUG
-	30000000
-`else
-	90500000
-`endif
-)
-hps_ext
+hps_ext hps_ext
 (
 	.clk_sys(clk_sys),
 	.EXT_BUS(EXT_BUS),
 
 	.io_wait(ioctl_wait),
+	
+	.clk_rate(
+`ifdef DEBUG
+	30000000
+`else
+	clk_rate[status[7:5]]
+`endif
+	),
 
 	.ext_din(mgmt_din),
 	.ext_dout(mgmt_dout),
@@ -266,16 +270,94 @@ hps_ext
 //------------------------------------------------------------------------------
 
 wire clk_sys, clk_uart;
+
 `ifdef DEBUG
-	pll2 pll
-`else
-	pll pll
-`endif
+
+pll2 pll
 (
 	.refclk(CLK_50M),
 	.outclk_0(clk_sys),
 	.outclk_1(clk_uart)
 );
+
+`else
+
+pll pll
+(
+	.refclk(CLK_50M),
+	.rst(0),
+	.outclk_0(clk_sys),
+	.outclk_1(clk_uart),
+	.reconfig_to_pll(reconfig_to_pll),
+	.reconfig_from_pll(reconfig_from_pll)
+);
+
+wire [63:0] reconfig_to_pll;
+wire [63:0] reconfig_from_pll;
+wire        cfg_waitrequest;
+reg         cfg_write;
+reg   [5:0] cfg_address;
+reg  [31:0] cfg_data;
+
+pll_cfg pll_cfg
+(
+	.mgmt_clk(CLK_50M),
+	.mgmt_reset(0),
+	.mgmt_waitrequest(cfg_waitrequest),
+	.mgmt_read(0),
+	.mgmt_readdata(),
+	.mgmt_write(cfg_write),
+	.mgmt_address(cfg_address),
+	.mgmt_writedata(cfg_data),
+	.reconfig_to_pll(reconfig_to_pll),
+	.reconfig_from_pll(reconfig_from_pll)
+);
+
+reg [2:0] speed;
+always @(posedge CLK_50M) begin
+	reg [2:0] sp1, sp2;
+	
+	sp1 <= status[7:5];
+	sp2 <= sp1;
+	
+	if(sp2 == sp1) speed <= sp2;
+end
+
+(* romstyle = "logic" *) wire [31:0] clk_rate[5]  = '{90500000, 100555490, 15083323, 30166647, 56562463};
+(* romstyle = "logic" *) wire [15:0] speed_div[5] = '{  'h0505,    'h0504,   'h1e1e,   'h0f0f,   'h0808};
+
+always @(posedge CLK_50M) begin
+	reg [2:0] old_speed = 0;
+	reg [2:0] state = 0;
+
+	old_speed <= speed;
+
+	cfg_write <= 0;
+	if(old_speed != speed) state <= 1;
+
+	if(!cfg_waitrequest) begin
+		if(state) state<=state+1'd1;
+		case(state)
+			1: begin
+					cfg_address <= 0;
+					cfg_data <= 0;
+					cfg_write <= 1;
+				end
+			3: begin
+					cfg_address <= 5;
+					cfg_data <= speed_div[speed];
+					cfg_write <= 1;
+				end
+			5: begin
+					cfg_address <= 2;
+					cfg_data <= 0;
+					cfg_write <= 1;
+				end
+		endcase
+	end
+end
+
+`endif
 
 assign      DDRAM_ADDR[28:24] = {4'h3, 1'b0};
 assign      DDRAM_CLK = clk_sys;
@@ -409,12 +491,12 @@ system u0
 	.dma_readdata         (dma_readdata),
 	.dma_write            (dma_write),
 	.dma_writedata        (dma_writedata),
-   
-   .snoop_addr           (SNOOP_ADDR),
-   .snoop_data           (SNOOP_DIN),
-   .snoop_be             (SNOOP_BE),
-   .snoop_we             (SNOOP_WE),
-   
+	
+	.snoop_addr           (SNOOP_ADDR),
+	.snoop_data           (SNOOP_DIN),
+	.snoop_be             (SNOOP_BE),
+	.snoop_we             (SNOOP_WE),
+	
 	.mgmt_waitrequest     (mgmt_wait),
 	.mgmt_readdata        (mgmt_data),
 	.mgmt_readdatavalid   (mgmt_valid),
@@ -517,11 +599,11 @@ ddrram_cache arbiter_cache
 	.VGA_RD           (vga_read           ),
 	.VGA_WE           (vga_write          ),
 	.VGA_MODE         (vga_mode           ),
-   
-   .SNOOP_ADDR       (SNOOP_ADDR         ),
-   .SNOOP_DIN        (SNOOP_DIN          ),
-   .SNOOP_BE         (SNOOP_BE           ),
-   .SNOOP_WE         (SNOOP_WE           )
+	
+	.SNOOP_ADDR       (SNOOP_ADDR         ),
+	.SNOOP_DIN        (SNOOP_DIN          ),
+	.SNOOP_BE         (SNOOP_BE           ),
+	.SNOOP_WE         (SNOOP_WE           )
 );
 
 wire       uart_h_dtr_n;

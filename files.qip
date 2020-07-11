@@ -1,5 +1,6 @@
 set_global_assignment -name SEARCH_PATH ./rtl/ao486
 set_global_assignment -name QIP_FILE rtl/pll2.qip
+set_global_assignment -name QIP_FILE rtl/l1cache/l1cache.qip
 set_global_assignment -name QIP_FILE rtl/l2cache/l2cache.qip
 set_global_assignment -name QSYS_FILE system.qsys
 set_global_assignment -name VERILOG_FILE rtl/hps_ext.v
