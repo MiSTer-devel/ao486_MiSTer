@@ -38,7 +38,6 @@ module dcache(
     output              dcacheread_done,
     
     input   [3:0]       dcacheread_length,
-    input               dcacheread_cache_disable,
     input   [31:0]      dcacheread_address,
     output  [63:0]      dcacheread_data,
     //END
@@ -48,18 +47,8 @@ module dcache(
     output              dcachewrite_done,
     
     input   [2:0]       dcachewrite_length,
-    input               dcachewrite_cache_disable,
     input   [31:0]      dcachewrite_address,
-    input               dcachewrite_write_through,
     input   [31:0]      dcachewrite_data,
-    //END
-    
-    //REQ:
-    //output              readline_do,
-    //input               readline_done,
-    //
-    //output  [31:0]      readline_address,
-    //input   [127:0]     readline_line,
     //END
     
     //REQ:
@@ -70,14 +59,6 @@ module dcache(
     output  [1:0]       readburst_dword_length,
     output  [3:0]       readburst_byte_length,
     input   [95:0]      readburst_data,
-    //END
-    
-    //REQ: write line
-    //output              writeline_do,
-    //input               writeline_done,
-    //
-    //output      [31:0]  writeline_address,
-    //output      [127:0] writeline_line,
     //END
     
     //REQ:
@@ -91,187 +72,88 @@ module dcache(
     output      [55:0]  writeburst_data,
     //END
     
-    output              dcachetoicache_write_do,
-    output      [31:0]  dcachetoicache_write_address,
-    
-    //RESP:
-    input               invddata_do,
-    output              invddata_done,
-    //END
-    
-    //RESP:
-    input               wbinvddata_do,
-    output              wbinvddata_done,
-    //END
-    
     output              dcache_busy
 );
 
 //------------------------------------------------------------------------------
 
-reg [31:0]  address;
-reg         cache_disable;
-reg [3:0]   length;
-
-reg         write_through;
-reg [31:0]  write_data;
-
-reg         is_write;
-reg [1:0]   state;
-
-//------------------------------------------------------------------------------
-
-localparam [1:0] STATE_IDLE          = 3'd0;
-localparam [1:0] STATE_READ_BURST    = 3'd1;
-localparam [1:0] STATE_WRITE_THROUGH = 3'd2;
-
-//------------------------------------------------------------------------------
-
-wire        wbinvdread_do;
-wire [7:0]  wbinvdread_address;
-
-wire            dcache_writeline_do;
-wire [31:0]     dcache_writeline_address;
-wire [127:0]    dcache_writeline_line;
-
-//------------------------------------------------------------------------------
-
-wire            control_ram_writeline_do;
-wire [31:0]     control_ram_writeline_address;
-wire [127:0]    control_ram_writeline_line;
-
-assign writeline_do         = dcache_writeline_do || control_ram_writeline_do;
-assign writeline_address    = (dcache_writeline_do)? dcache_writeline_address : control_ram_writeline_address;
-assign writeline_line       = (dcache_writeline_do)? dcache_writeline_line    : control_ram_writeline_line;
-
 assign dcache_busy = 1'b0;
 
 //------------------------------------------------------------------------------
 
-wire [31:0] control_ram_address;
-wire        control_ram_read_do;
-wire        control_ram_write_do;
-wire [10:0] control_ram_data;
-wire [10:0] control_ram_q;
+assign readburst_dword_length =
+    (dcacheread_length == 4'd2 && dcacheread_address[1:0] == 2'b11)?   2'd2 :
+    (dcacheread_length == 4'd3 && dcacheread_address[1]   == 1'b1)?    2'd2 :
+    (dcacheread_length == 4'd4 && dcacheread_address[1:0] != 2'b00)?   2'd2 :
+    (dcacheread_length <= 4'd4)?                            2'd1 :
+    (dcacheread_length == 4'd5)?                            2'd2 :
+    (dcacheread_length == 4'd6 && dcacheread_address[1:0] == 2'b11)?   2'd3 :
+    (dcacheread_length == 4'd7 && dcacheread_address[1]   == 1'b1)?    2'd3 :
+    (dcacheread_length == 4'd8 && dcacheread_address[1:0] != 2'b00)?   2'd3 :
+                                                 2'd2;
+
+assign readburst_byte_length = dcacheread_length;
+
+assign dcacheread_data =
+    (dcacheread_address[1:0] == 2'd0)?     readburst_data[63:0] :
+    (dcacheread_address[1:0] == 2'd1)?     readburst_data[71:8] :
+    (dcacheread_address[1:0] == 2'd2)?     readburst_data[79:16] :
+                                readburst_data[87:24];
 
 //------------------------------------------------------------------------------
 
-wire         matched;
-wire [1:0]   matched_index;
-wire [127:0] matched_data_line;
+assign writeburst_dword_length =
+    (dcachewrite_length == 3'd2 && dcachewrite_address[1:0] == 2'b11)?  2'd2 :
+    (dcachewrite_length == 3'd3 && dcachewrite_address[1]   == 1'b1)?   2'd2 :
+    (dcachewrite_length == 3'd4 && dcachewrite_address[1:0] != 2'b00)?  2'd2 :
+                                                2'd1;
+                                                
+assign writeburst_byteenable_0 =
+    (dcachewrite_address[1:0] == 2'd0 && dcachewrite_length == 3'd1)?   4'b0001 :
+    (dcachewrite_address[1:0] == 2'd1 && dcachewrite_length == 3'd1)?   4'b0010 :
+    (dcachewrite_address[1:0] == 2'd2 && dcachewrite_length == 3'd1)?   4'b0100 :
+    (dcachewrite_address[1:0] == 2'd0 && dcachewrite_length == 3'd2)?   4'b0011 :
+    (dcachewrite_address[1:0] == 2'd1 && dcachewrite_length == 3'd2)?   4'b0110 :
+    (dcachewrite_address[1:0] == 2'd0 && dcachewrite_length == 3'd3)?   4'b0111 :
+    (dcachewrite_address[1:0] == 2'd1 && dcachewrite_length >= 3'd3)?   4'b1110 :
+    (dcachewrite_address[1:0] == 2'd2 && dcachewrite_length >= 3'd2)?   4'b1100 :
+    (dcachewrite_address[1:0] == 2'd0 && dcachewrite_length == 3'd4)?   4'b1111 :
+                                                4'b1000; //(dcachewrite_address[1:0] == 2'd3)?
 
-wire [1:0]   plru_index;
-wire [147:0] plru_data_line;
-
-wire [10:0]  control_after_match;
-wire [10:0]  control_after_line_read;
-wire [10:0]  control_after_write_to_existing;
-wire [10:0]  control_after_write_to_new;
-
-wire         writeback_needed;
-
-//------------------------------------------------------------------------------
-
-wire [63:0] read_from_line;
-wire [1:0]  read_burst_dword_length;
-wire [3:0]  read_burst_byte_length;
-wire [63:0] read_from_burst;
-
-//------------------------------------------------------------------------------
-
-wire [127:0] line_merged;
-wire [1:0]   write_burst_dword_length;
-wire [3:0]   write_burst_byteenable_0;
-wire [3:0]   write_burst_byteenable_1;
-wire [55:0]  write_burst_data;
-
-//------------------------------------------------------------------------------
-
-wire            data_ram0_read_do;
-wire [31:0]     data_ram0_address;
-wire            data_ram0_write_do;
-wire [127:0]    data_ram0_data;
-wire [147:0]    data_ram0_q;
-
-wire            data_ram1_read_do;
-wire [31:0]     data_ram1_address;
-wire            data_ram1_write_do;
-wire [127:0]    data_ram1_data;
-wire [147:0]    data_ram1_q;
-
-wire            data_ram2_read_do;
-wire [31:0]     data_ram2_address;
-wire            data_ram2_write_do;
-wire [127:0]    data_ram2_data;
-wire [147:0]    data_ram2_q;
-
-wire            data_ram3_read_do;
-wire [31:0]     data_ram3_address;
-wire            data_ram3_write_do;
-wire [127:0]    data_ram3_data;
-wire [147:0]    data_ram3_q;
+assign writeburst_byteenable_1 =
+   (dcachewrite_address[1:0] == 2'd3 && dcachewrite_length == 3'd2)?   4'b0001 :
+   (dcachewrite_address[1:0] == 2'd2 && dcachewrite_length == 3'd3)?   4'b0001 :
+   (dcachewrite_address[1:0] == 2'd3 && dcachewrite_length == 3'd3)?   4'b0011 :
+   (dcachewrite_address[1:0] == 2'd1 && dcachewrite_length == 3'd4)?   4'b0001 :
+   (dcachewrite_address[1:0] == 2'd2 && dcachewrite_length == 3'd4)?   4'b0011 :
+                                               4'b0111; //(dcachewrite_address[1:0] == 2'd3 && dcachewrite_length == 3'd4)? 
+                                               
+assign writeburst_data =
+    (dcachewrite_address[1:0] == 2'd0)?   { 24'd0, dcachewrite_data[31:0] } :
+    (dcachewrite_address[1:0] == 2'd1)?   { 16'd0, dcachewrite_data[31:0], 8'd0 } :
+    (dcachewrite_address[1:0] == 2'd2)?   { 8'd0,  dcachewrite_data[31:0], 16'd0 } :
+                              {        dcachewrite_data[31:0], 24'd0 };
 
 //------------------------------------------------------------------------------
 
-assign matched = 1'b0;
+localparam [1:0] STATE_IDLE          = 2'd0;
+localparam [1:0] STATE_READ_BURST    = 2'd1;
+localparam [1:0] STATE_WRITE_THROUGH = 2'd2;
 
-dcache_read dcache_read_inst(
-    
-    .line       (128'b0),    //input [127:0]
-    .read_data  (readburst_data),                               //input [95:0]                         
-                             
-    .address    (dcacheread_address),                           //input [31:0]
-    .length     (dcacheread_length),                            //input [3:0]
+reg [1:0]   state;
 
-    .read_from_line             (read_from_line),               //output [63:0]
-    .read_burst_dword_length    (readburst_dword_length),       //output [1:0]
-    .read_burst_byte_length     (readburst_byte_length),        //output [11:0]
-    .read_from_burst            (read_from_burst)               //output [63:0]
-);
-
-dcache_write dcache_write_inst(
-    
-    .line       (128'b0),                                       //input [127:0]
-    .address    (dcachewrite_address),                          //input [31:0]
-    .length     (dcachewrite_length),                           //input [2:0]
-    .write_data (dcachewrite_data),                             //input [31:0]
-                               
-    .write_burst_dword_length   (writeburst_dword_length),      //output [1:0]
-    .write_burst_byteenable_0   (writeburst_byteenable_0),      //output [3:0]
-    .write_burst_byteenable_1   (writeburst_byteenable_1),      //output [3:0]
-    .write_burst_data           (writeburst_data),              //output [55:0]
-    .line_merged                (line_merged)                   //output [127:0]
-);
-
-assign dcacheread_done =
-   (~rst_n) ? (`FALSE) :
-   (state == STATE_READ_BURST && readburst_done) ? (`TRUE) :
-   `FALSE;
-assign dcacheread_data = read_from_burst;
-
-assign dcachewrite_done =
-   (~rst_n) ? (`FALSE) :
-   (state == STATE_IDLE && dcachewrite_do) ? (`TRUE) :
-   `FALSE;   
-
-
-assign readburst_do =
-   (~rst_n) ? (`FALSE) :
-   (state == STATE_IDLE && ~dcachewrite_do && dcacheread_do) ? (`TRUE) :
-   `FALSE;
+assign dcacheread_done = rst_n && (state == STATE_READ_BURST && readburst_done);
+assign readburst_do = rst_n && (state == STATE_IDLE && ~dcachewrite_do && dcacheread_do);
 assign readburst_address = dcacheread_address;
 
-assign writeburst_do =
-   (~rst_n) ? (`FALSE) :
-   (state == STATE_IDLE && dcachewrite_do) ? (`TRUE) :
-   `FALSE;
+assign dcachewrite_done = rst_n && (state == STATE_IDLE && dcachewrite_do);
+assign writeburst_do = rst_n && (state == STATE_IDLE && dcachewrite_do);
 assign writeburst_address = dcachewrite_address;
-
 
 
 always @(posedge clk) begin
    if(rst_n == 1'b0) begin
-      state          <= STATE_IDLE;
+      state <= STATE_IDLE;
    end
    else begin
       if(state == STATE_IDLE) begin

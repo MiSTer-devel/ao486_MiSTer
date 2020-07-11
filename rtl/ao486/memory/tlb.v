@@ -303,6 +303,9 @@ tlb_memtype tlb_memtype_inst(
     .write_transparent  (memtype_write_transparent)     //output
 );
 
+wire tlbregs_tlbflushsingle_do;
+wire tlbregs_tlbflushall_do;
+
 tlb_regs tlb_regs_inst(
     .clk                        (clk),
     .rst_n                      (rst_n),

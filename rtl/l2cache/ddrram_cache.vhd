@@ -357,9 +357,9 @@ begin
                   ram_burstcnt            <= std_logic_vector(to_unsigned(LINESIZE, 8));
                   fillcount               <= 0;
                   memory_addr_b           <= to_integer(unsigned(read_addr(RAMSIZEBITS - 1 downto LINESIZE_BITS)) & (LINESIZE_BITS - 1 downto 0 => '0'));
-                  if (ASSOCIATIVITY > 1) then
+                  --if (ASSOCIATIVITY > 1) then
                      cache_mux            <= to_integer(rrb(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB)))));
-                  end if;
+                  --end if;
                   for i in 0 to ASSOCIATIVITY - 1 loop
                      if (tag_dirty(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB))) * ASSOCIATIVITY + i) = '0') then
                         if (tags_read(i) = read_addr(ADDRBITS downto RAMSIZEBITS)) then
