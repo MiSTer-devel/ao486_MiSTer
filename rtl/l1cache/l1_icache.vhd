@@ -43,6 +43,7 @@ architecture arch of l1_icache is
    signal Fifo_rd          : std_logic;
    signal Fifo_empty       : std_logic;
    signal Fifo_valid       : std_logic := '0';  
+   signal Fifo_usedw       : std_logic_vector(1 downto 0);
    
    -- cache control
    constant ASSO_BITS     : integer := integer(ceil(log2(real(ASSOCIATIVITY))));
@@ -64,7 +65,6 @@ architecture arch of l1_icache is
    type tState is
    (
       IDLE,
-      READFIFO,
       WRITEONE,
       READONE,
       FILLCACHE,
@@ -89,33 +89,55 @@ architecture arch of l1_icache is
    
    signal fillcount          : integer range 0 to LINESIZE - 1;
 
+   component simple_fifo
+   generic 
+   (
+      width  : integer;
+      widthu : integer
+   );
+   port
+   (
+      clk   : in  std_logic;                    
+      rst_n : in  std_logic;                      
+      sclr  : in  std_logic;                       
+              
+      rdreq : in  std_logic;                       
+      wrreq : in  std_logic;                       
+      data  : in  std_logic_vector(width-1 downto 0);    
+           
+      empty : out std_logic;                 
+      full  : out std_logic;                
+      q     : out std_logic_vector(width-1 downto 0); 
+      usedw : out std_logic_vector(widthu-1 downto 0) 
+   );
+   end component;
+
 begin 
 
    Fifo_din <= snoop_be & snoop_data & snoop_addr;
-
-   iSyncFifo : entity work.SyncFifoBypass
+   
+   isimple_fifo : simple_fifo
    generic map
    (
-      SIZE             => 16,
-      DATAWIDTH        => 64,
-      NEARFULLDISTANCE => 8
+      widthu           => 2,
+      width            => 64
    )
    port map
    ( 
       clk      => CLK,
-      reset    => RESET,
+      rst_n    => '1',
+      sclr     => RESET,
                
-      Din      => Fifo_din,
-      Wr       => snoop_we,
-      Full     => open,
-      NearFull => open,
+      data     => Fifo_din,
+      wrreq    => snoop_we,
       
-      Dout     => Fifo_dout,
-      Rd       => Fifo_rd,
-      Empty    => Fifo_empty
-      --Valid    => Fifo_valid
+      q        => Fifo_dout,
+      rdreq    => Fifo_rd,
+      empty    => Fifo_empty,
+      
+      usedw    => Fifo_usedw
    );
-   
+
    Fifo_rd <= '1' when state = IDLE else '0';
    
    CPU_DATA <= readdata_cache(cache_mux);
@@ -125,7 +147,6 @@ begin
       if rising_edge(CLK) then
          
          memory_we     <= (others => '0');
-         MEM_REQ       <= '0';
          CPU_DONE      <= '0';
 
          if (RESET = '1') then
@@ -144,21 +165,17 @@ begin
             case(state) is
 
                when IDLE =>
-                  --tag_dirty   <= (others => '1');
                   if (Fifo_empty = '0' or snoop_we = '1') then
-                     state <= READFIFO;
+                     state          <= WRITEONE;
+                     read_addr      <= (ADDRBITS downto 28 => '0') & Fifo_dout(27 downto 0);
+                     memory_addr_b  <= to_integer(unsigned(Fifo_dout(RAMSIZEBITS - 1 downto 0)));
+                     memory_datain  <= Fifo_dout(59 downto 28);
+                     memory_be      <= Fifo_dout(63 downto 60);
                   elsif (CPU_REQ = '1' or CPU_REQ_hold = '1') then
                      state        <= READONE;
                      read_addr    <= CPU_ADDR(CPU_ADDR'left downto 2);
                      CPU_REQ_hold <= '0';
                   end if;
-                  
-               when READFIFO =>
-                  state          <= WRITEONE;
-                  read_addr      <= (ADDRBITS downto 28 => '0') & Fifo_dout(27 downto 0);
-                  memory_addr_b  <= to_integer(unsigned(Fifo_dout(RAMSIZEBITS - 1 downto 0)));
-                  memory_datain  <= Fifo_dout(59 downto 28);
-                  memory_be      <= Fifo_dout(63 downto 60);
 
                when WRITEONE =>
                   state <= IDLE;
@@ -192,6 +209,7 @@ begin
                   
                when FILLCACHE => 
                   if (MEM_DONE = '1') then
+                     MEM_REQ              <= '0';
                      memory_datain        <= MEM_DATA;
                      memory_we(cache_mux) <= '1';
                      memory_be            <= x"F";

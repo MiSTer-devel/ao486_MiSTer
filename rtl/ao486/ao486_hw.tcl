@@ -80,7 +80,6 @@ add_fileset_file icache.v VERILOG PATH memory/icache.v
 add_fileset_file link_dcacheread.v VERILOG PATH memory/link_dcacheread.v
 add_fileset_file link_dcachewrite.v VERILOG PATH memory/link_dcachewrite.v
 add_fileset_file link_readburst.v VERILOG PATH memory/link_readburst.v
-add_fileset_file link_readcode.v VERILOG PATH memory/link_readcode.v
 add_fileset_file link_writeburst.v VERILOG PATH memory/link_writeburst.v
 add_fileset_file memory.v VERILOG PATH memory/memory.v
 add_fileset_file memory_read.v VERILOG PATH memory/memory_read.v

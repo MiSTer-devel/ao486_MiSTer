@@ -1,2 +1,1 @@
-set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) SyncFifoBypass.vhd ]
 set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) l1_icache.vhd ]

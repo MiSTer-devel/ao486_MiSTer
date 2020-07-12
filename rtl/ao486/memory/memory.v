@@ -245,33 +245,6 @@ wire         req_readcode_done;
 wire [31:0]  req_readcode_address;
 wire [127:0] req_readcode_line;
 wire [31:0]  req_readcode_partial;
-    
-wire         resp_readcode_do;
-wire         resp_readcode_done;
-wire [31:0]  resp_readcode_address;
-wire [127:0] resp_readcode_line;
-wire [31:0]  resp_readcode_partial;
-
-link_readcode link_readcode_inst(
-    .clk                (clk),
-    .rst_n              (rst_n),
-    
-    // readcode REQ
-    .req_readcode_do                (req_readcode_do),            //input
-    .req_readcode_done              (req_readcode_done),          //output
-    
-    .req_readcode_address           (req_readcode_address),       //input [31:0]
-    .req_readcode_line              (req_readcode_line),          //output [127:0]
-    .req_readcode_partial           (req_readcode_partial),       //output [31:0]
-    
-    // readcode RESP
-    .resp_readcode_do               (resp_readcode_do),           //output
-    .resp_readcode_done             (resp_readcode_done),         //input
-    
-    .resp_readcode_address          (resp_readcode_address),      //output [31:0]
-    .resp_readcode_line             (resp_readcode_line),         //input [127:0]
-    .resp_readcode_partial          (resp_readcode_partial)       //input [31:0]
-);
 
 //------------------------------------------------------------------------------
 
@@ -475,12 +448,12 @@ avalon_mem avalon_mem_inst(
     //END
     
     //RESP:
-    .readcode_do                (resp_readcode_do),             //input
-    .readcode_done              (resp_readcode_done),           //output
-
-    .readcode_address           (resp_readcode_address),        //input [31:0]
-    .readcode_line              (resp_readcode_line),           //output [127:0]
-    .readcode_partial           (resp_readcode_partial),        //output [31:0]
+    .readcode_do                (req_readcode_do),             //input
+    .readcode_done              (req_readcode_done),           //output
+                                   
+    .readcode_address           (req_readcode_address),        //input [31:0]
+    .readcode_line              (req_readcode_line),           //output [127:0]
+    .readcode_partial           (req_readcode_partial),        //output [31:0]
     //END
     
     // avalon master
