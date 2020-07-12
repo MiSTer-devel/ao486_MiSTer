@@ -22,7 +22,7 @@ entity l1_icache is
       MEM_DONE   : in  std_logic; 
       MEM_DATA   : in  std_logic_vector(31 downto 0);
       
-      snoop_addr : in std_logic_vector(29 downto 2);
+      snoop_addr : in std_logic_vector(26 downto 2);
       snoop_data : in std_logic_vector(31 downto 0);
       snoop_be   : in std_logic_vector( 3 downto 0);
       snoop_we   : in std_logic
@@ -38,8 +38,8 @@ architecture arch of l1_icache is
    constant ADDRBITS          : integer := 29;
    
    -- fifo for snoop
-   signal Fifo_din         : std_logic_vector(63 downto 0);
-   signal Fifo_dout        : std_logic_vector(63 downto 0);
+   signal Fifo_din         : std_logic_vector(60 downto 0);
+   signal Fifo_dout        : std_logic_vector(60 downto 0);
    signal Fifo_rd          : std_logic;
    signal Fifo_empty       : std_logic;
    signal Fifo_valid       : std_logic := '0';  
@@ -89,7 +89,7 @@ architecture arch of l1_icache is
    
    signal fillcount          : integer range 0 to LINESIZE - 1;
 
-   component simple_fifo
+   component simple_fifo_mlab
    generic 
    (
       width  : integer;
@@ -116,11 +116,11 @@ begin
 
    Fifo_din <= snoop_be & snoop_data & snoop_addr;
    
-   isimple_fifo : simple_fifo
+   isimple_fifo : simple_fifo_mlab
    generic map
    (
       widthu           => 2,
-      width            => 64
+      width            => 61
    )
    port map
    ( 
@@ -167,10 +167,10 @@ begin
                when IDLE =>
                   if (Fifo_empty = '0' or snoop_we = '1') then
                      state          <= WRITEONE;
-                     read_addr      <= (ADDRBITS downto 28 => '0') & Fifo_dout(27 downto 0);
+                     read_addr      <= (ADDRBITS downto 25 => '0') & Fifo_dout(24 downto 0);
                      memory_addr_b  <= to_integer(unsigned(Fifo_dout(RAMSIZEBITS - 1 downto 0)));
-                     memory_datain  <= Fifo_dout(59 downto 28);
-                     memory_be      <= Fifo_dout(63 downto 60);
+                     memory_datain  <= Fifo_dout(56 downto 25);
+                     memory_be      <= Fifo_dout(60 downto 57);
                   elsif (CPU_REQ = '1' or CPU_REQ_hold = '1') then
                      state        <= READONE;
                      read_addr    <= CPU_ADDR(CPU_ADDR'left downto 2);

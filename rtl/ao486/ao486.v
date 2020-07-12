@@ -62,7 +62,7 @@ module ao486 (
     
     input               avalon_io_waitrequest,
     
-    input   [29:2]      snoop_addr,
+    input   [26:2]      snoop_addr,
     input   [31:0]      snoop_data,
     input    [3:0]      snoop_be,
     input               snoop_we

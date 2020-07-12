@@ -149,7 +149,7 @@ module memory(
     input               avm_readdatavalid,
     input       [31:0]  avm_readdata,
     
-    input   [29:2]      snoop_addr,
+    input   [26:2]      snoop_addr,
     input   [31:0]      snoop_data,
     input    [3:0]      snoop_be,
     input               snoop_we
