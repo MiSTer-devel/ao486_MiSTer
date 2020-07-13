@@ -14,7 +14,6 @@ entity l1_icache is
       
       CPU_REQ    : in  std_logic; 
       CPU_ADDR   : in  std_logic_vector(31 downto 0); 
-      CPU_VALID  : out std_logic := '0'; 
       CPU_DONE   : out std_logic := '0'; 
       CPU_DATA   : out std_logic_vector(31 downto 0) := (others => '0');
       
@@ -37,7 +36,6 @@ architecture arch of l1_icache is
    constant LINESIZE          : integer := 8; 
    constant ASSOCIATIVITY     : integer := 2;  
    constant ADDRBITS          : integer := 29;
-   constant CACHEBURST        : integer := 4;
    
    -- fifo for snoop
    signal Fifo_din         : std_logic_vector(60 downto 0);
@@ -90,7 +88,6 @@ architecture arch of l1_icache is
    signal memory_be          : std_logic_vector(3 downto 0);
    
    signal fillcount          : integer range 0 to LINESIZE - 1;
-   signal burstleft          : integer range 0 to CACHEBURST - 1;
 
    component simple_fifo_mlab
    generic 
@@ -151,7 +148,6 @@ begin
          
          memory_we     <= (others => '0');
          CPU_DONE      <= '0';
-         CPU_VALID     <= '0';
 
          if (RESET = '1') then
             
@@ -179,7 +175,6 @@ begin
                      state        <= READONE;
                      read_addr    <= CPU_ADDR(CPU_ADDR'left downto 2);
                      CPU_REQ_hold <= '0';
-                     burstleft    <= CACHEBURST - 1;
                   end if;
 
                when WRITEONE =>
@@ -206,15 +201,8 @@ begin
                         if (tags_read(i) = read_addr(ADDRBITS downto RAMSIZEBITS)) then
                            MEM_REQ    <= '0';
                            cache_mux  <= i;
-                           CPU_VALID  <= '1';
-                           if (burstleft = 0) then
-                              state      <= IDLE;
-                              CPU_DONE   <= '1';
-                           else
-                              state      <= READONE;
-                              burstleft  <= burstleft - 1;
-                              read_addr  <= std_logic_vector(unsigned(read_addr) + 1);
-                           end if;
+                           CPU_DONE   <= '1';
+                           state      <= IDLE;
                         end if;
                      end if;
                   end loop;

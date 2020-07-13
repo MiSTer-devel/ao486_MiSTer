@@ -83,7 +83,6 @@ wire [67:0]  prefetch_line;
 
 wire         readcode_cache_do;
 wire [31:0]  readcode_cache_address;
-wire         readcode_cache_valid;
 wire         readcode_cache_done;
 wire [31:0]  readcode_cache_data;
 
@@ -111,7 +110,6 @@ l1_icache l1_icache_inst(
 
     .CPU_REQ         (readcode_cache_do),
     .CPU_ADDR        (readcode_cache_address),
-    .CPU_VALID       (readcode_cache_valid),
     .CPU_DONE        (readcode_cache_done),
     .CPU_DATA        (readcode_cache_data),
     
@@ -131,8 +129,8 @@ icache_read icache_read_inst(
     .read_data      (readcode_cache_data),         //input [31:0]
     .read_length    (partial_length[2:0]),      //input [2:0]
                              
-    .address    ((state == STATE_IDLE)? icacheread_address : address),  //input [31:0]
-    .length     ((state == STATE_IDLE)? icacheread_length : length),    //input [4:0]
+    .address        ((state == STATE_IDLE)? icacheread_address : address),  //input [31:0]
+    .length         ((state == STATE_IDLE)? icacheread_length : length),    //input [4:0]
                              
     .length_burst   (length_burst),     //output [11:0]
                              
@@ -148,7 +146,7 @@ assign readcode_cache_address = { icacheread_address[31:2], 2'd0 };
    
 assign prefetchfifo_write_do =
    (~rst_n) ? (`FALSE) :
-   (state == STATE_READ && pr_reset == `FALSE && reset_waiting == `FALSE && readcode_cache_valid) ? (`TRUE) :
+   (state == STATE_READ && pr_reset == `FALSE && reset_waiting == `FALSE && readcode_cache_done) ? (`TRUE) :
    `FALSE;
    
 assign prefetchfifo_write_data = prefetch_line;
@@ -156,7 +154,7 @@ assign prefetched_length       = partial_length_current;
 
 assign prefetched_do =
    (~rst_n) ? (`FALSE) :
-   (state == STATE_READ && pr_reset == `FALSE && reset_waiting == `FALSE && readcode_cache_valid) ? (`TRUE) :
+   (state == STATE_READ && pr_reset == `FALSE && reset_waiting == `FALSE && readcode_cache_done) ? (`TRUE) :
    `FALSE;
    
 always @(posedge clk) begin
@@ -173,17 +171,9 @@ always @(posedge clk) begin
          address        <= icacheread_address;
       end
       else if (state == STATE_READ) begin
-         if(pr_reset == `FALSE && reset_waiting == `FALSE) begin
-            if(readcode_cache_valid) begin
-               if(partial_length[2:0] > 3'd0 && length > 5'd0) begin
-                  length         <= length - partial_length_current;
-                  partial_length <= { 3'd0, partial_length[11:3] }; 
-               end
-            end
-         end
          if(readcode_cache_done) state <= STATE_IDLE;
       end
    end
-end     
+end   
 
 endmodule
