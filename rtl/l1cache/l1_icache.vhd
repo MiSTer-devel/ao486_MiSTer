@@ -43,7 +43,7 @@ architecture arch of l1_icache is
    signal Fifo_rd          : std_logic;
    signal Fifo_empty       : std_logic;
    signal Fifo_valid       : std_logic := '0';  
-   signal Fifo_usedw       : std_logic_vector(1 downto 0);
+   signal Fifo_usedw       : std_logic_vector(3 downto 0);
    
    -- cache control
    constant ASSO_BITS     : integer := integer(ceil(log2(real(ASSOCIATIVITY))));
@@ -119,7 +119,7 @@ begin
    isimple_fifo : simple_fifo_mlab
    generic map
    (
-      widthu           => 2,
+      widthu           => 4,
       width            => 61
    )
    port map
@@ -138,7 +138,7 @@ begin
       usedw    => Fifo_usedw
    );
 
-   Fifo_rd <= '1' when state = IDLE else '0';
+   Fifo_rd <= '1' when (state = IDLE and Fifo_empty = '0') else '0';
    
    CPU_DATA <= readdata_cache(cache_mux);
 
@@ -165,7 +165,7 @@ begin
             case(state) is
 
                when IDLE =>
-                  if (Fifo_empty = '0' or snoop_we = '1') then
+                  if (Fifo_empty = '0') then
                      state          <= WRITEONE;
                      read_addr      <= (ADDRBITS downto 25 => '0') & Fifo_dout(24 downto 0);
                      memory_addr_b  <= to_integer(unsigned(Fifo_dout(RAMSIZEBITS - 1 downto 0)));
