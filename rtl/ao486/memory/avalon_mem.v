@@ -45,14 +45,6 @@ module avalon_mem(
     //END
     
     //RESP:
-    input               writeline_do,
-    output              writeline_done,
-    
-    input       [31:0]  writeline_address,
-    input       [127:0] writeline_line,
-    //END
-    
-    //RESP:
     input               readburst_do,
     output              readburst_done,
     
@@ -63,29 +55,20 @@ module avalon_mem(
     //END
     
     //RESP:
-    input               readline_do,
-    output              readline_done,
-    
-    input       [31:0]  readline_address,
-    output      [127:0] readline_line,
-    //END
-    
-    //RESP:
     input               readcode_do,
-    output reg          readcode_done,
+    output              readcode_done,
     
     input       [31:0]  readcode_address,
-    output      [127:0] readcode_line,
     output      [31:0]  readcode_partial,
     //END
     
     // avalon master
-    output reg  [31:2]  avm_address,
-    output reg  [31:0]  avm_writedata,
-    output reg  [3:0]   avm_byteenable,
-    output reg  [3:0]   avm_burstcount,
-    output reg          avm_write,
-    output reg          avm_read,
+    output      [31:2]  avm_address,
+    output      [31:0]  avm_writedata,
+    output      [3:0]   avm_byteenable,
+    output      [3:0]   avm_burstcount,
+    output              avm_write,
+    output              avm_read,
     
     input               avm_waitrequest,
     input               avm_readdatavalid,
@@ -97,17 +80,14 @@ module avalon_mem(
 reg [31:0]  bus_0;
 reg [31:0]  bus_1;
 reg [31:0]  bus_2;
-reg [31:0]  bus_3;
 
 reg [3:0]   byteenable_next;
 reg [2:0]   counter;
 reg [1:0]   state;
 
-reg         read_burst_done_trigger;
-reg         read_line_done_trigger;
-reg         read_code_done_trigger;
-
-reg [31:0]  bus_code_partial;
+reg [31:2]  writeaddr_next;
+reg [31:0]  save_data;
+reg  [1:0]  save_readburst;
 
 //------------------------------------------------------------------------------
 
@@ -115,23 +95,6 @@ localparam [1:0] STATE_IDLE      = 2'd0;
 localparam [1:0] STATE_WRITE     = 2'd1;
 localparam [1:0] STATE_READ      = 2'd2;
 localparam [1:0] STATE_READ_CODE = 2'd3;
-
-
-//------------------------------------------------------------------------------
-
-assign readburst_data   = { bus_2, bus_1, bus_0 };
-
-assign readline_line    = { bus_3, bus_2, bus_1, bus_0 };
-
-assign readcode_line    = { bus_3, bus_2, bus_1, bus_0 };
-
-assign readcode_partial = bus_code_partial;
-
-//------------------------------------------------------------------------------
-
-// synthesis translate_off
-wire _unused_ok = &{ 1'b0, writeburst_address[1:0], writeline_address[3:0], readline_address[3:0], readcode_address[1:0],  1'b0 };
-// synthesis translate_on
 
 //------------------------------------------------------------------------------
 
@@ -152,175 +115,94 @@ wire [3:0] read_burst_byteenable =
 
 //------------------------------------------------------------------------------
 
-reg [29:0] writeburst_address_next;
-always @(posedge clk) if(state == STATE_IDLE && writeburst_do) writeburst_address_next <= writeburst_address[31:2] + 1'd1;
+assign readburst_data = 
+   (save_readburst == 2'd1) ? { avm_readdata, avm_readdata, avm_readdata } :
+   (save_readburst == 2'd2) ? { avm_readdata, avm_readdata, bus_0        } :
+                              { avm_readdata, bus_0       , bus_1        };
 
 
-always @(posedge clk) if(state == STATE_READ_CODE && avm_readdatavalid) readcode_done <= 1'b1; else readcode_done <= 1'b0;
-
-/*******************************************************************************SCRIPT
-
-IF(state == STATE_IDLE);
-    
-    IF(read_burst_done_trigger);
-        SET(readburst_done);
-        SAVE(read_burst_done_trigger, `FALSE);
-    ENDIF();
-    
-    IF(read_line_done_trigger);
-        SET(readline_done);
-        SAVE(read_line_done_trigger, `FALSE);
-    ENDIF();
-    
-    IF(read_code_done_trigger);
-        SET(readcode_done);
-        SAVE(read_code_done_trigger, `FALSE);
-    ENDIF();
-    
-    IF(writeburst_do);
-
-        SAVE(avm_address,        { writeburst_address[31:2], 2'd0 });
-        SAVE(avm_byteenable,     writeburst_byteenable_0);
-        SAVE(byteenable_next,    writeburst_byteenable_1);
-        SAVE(avm_burstcount,     { 1'b0, writeburst_dword_length });
-        SAVE(avm_write,          `TRUE);
-
-        SAVE(avm_writedata,         writeburst_data[31:0]);
-        SAVE(bus_0,         { 8'd0, writeburst_data[55:32] });
-
-        SET(writeburst_done);
-        SAVE(counter,    writeburst_dword_length - 2'd1);
-        SAVE(state,      STATE_WRITE);
-
-    ELSE_IF(writeline_do);
-
-        SAVE(avm_address,        { writeline_address[31:4], 4'd0 });
-        SAVE(avm_byteenable,     4'hF);
-        SAVE(byteenable_next,    4'hF);
-        SAVE(avm_burstcount,     3'd4);
-        SAVE(avm_write,          `TRUE);
-
-        SAVE(avm_writedata, writeline_line[31:0]);
-        SAVE(bus_0,         writeline_line[63:32]);
-        SAVE(bus_1,         writeline_line[95:64]);
-        SAVE(bus_2,         writeline_line[127:96]);
-
-        SET(writeline_done);
-        SAVE(counter,    2'd3);
-        SAVE(state,      STATE_WRITE);
-
-    ELSE_IF(readburst_do && ~(readburst_done));
-
-        SAVE(avm_address,    { readburst_address[31:2], 2'd0 });
-        SAVE(avm_byteenable, read_burst_byteenable);
-        SAVE(avm_burstcount, { 1'b0, readburst_dword_length });
-        SAVE(avm_read,      `TRUE);
-
-        SAVE(counter,    readburst_dword_length - 2'd1);
-        SAVE(state,      STATE_READ);
-
-    ELSE_IF(readline_do && ~(readline_done));
-
-        SAVE(avm_address,    { readline_address[31:4], 4'd0 });
-        SAVE(avm_byteenable, 4'hF);
-        SAVE(avm_burstcount, 3'd4);
-        SAVE(avm_read,      `TRUE);
-
-        SAVE(counter,    2'd3);
-        SAVE(state,      STATE_READ);
-
-    ELSE_IF(readcode_do && ~(readcode_done));
-
-        SAVE(avm_address,    { readcode_address[31:2], 2'd0 });
-        SAVE(avm_byteenable, 4'hF);
-        SAVE(avm_burstcount, 3'd4);
-        SAVE(avm_read,      `TRUE);
-
-        SAVE(counter,    2'd3);
-        SAVE(state,      STATE_READ_CODE);
-    ENDIF();
-ENDIF();
-*/
-
-/*******************************************************************************SCRIPT
-    
-IF(state == STATE_WRITE);    
-
-    IF(~(avm_waitrequest) && counter == 2'd0);
-        SAVE(avm_write,  `FALSE);
-        SAVE(state,      STATE_IDLE);
-    ENDIF();
-    
-    IF(~(avm_waitrequest) && counter != 2'd0);
-        SAVE(avm_writedata, bus_0);
-        SAVE(bus_0,         bus_1);
-        SAVE(bus_1,         bus_2);
-        
-        SAVE(avm_byteenable, byteenable_next);
-        
-        SAVE(counter, counter - 2'd1);
-    ENDIF();
-ENDIF();
-*/
-
-/*******************************************************************************SCRIPT
-
-IF(state == STATE_READ);
-        
-    IF(avm_readdatavalid);
-        IF(avm_burstcount - { 1'b0, counter } == 3'd1); SAVE(bus_0, avm_readdata); ENDIF();
-        IF(avm_burstcount - { 1'b0, counter } == 3'd2); SAVE(bus_1, avm_readdata); ENDIF();
-        IF(avm_burstcount - { 1'b0, counter } == 3'd3); SAVE(bus_2, avm_readdata); ENDIF();
-        IF(avm_burstcount - { 1'b0, counter } == 3'd4); SAVE(bus_3, avm_readdata); ENDIF();
-        
-        SAVE(counter, counter - 2'd1);
-                
-        IF(counter == 2'd0);
-            IF(avm_burstcount == 3'd4); SAVE(read_line_done_trigger, `TRUE);
-            ELSE();                     SAVE(read_burst_done_trigger,`TRUE);
-            ENDIF();
-            
-            SAVE(avm_read, `FALSE);
-            SAVE(state, STATE_IDLE);
-        ENDIF();
-    ENDIF();
-    
-    IF(avm_waitrequest == `FALSE);
-        SAVE(avm_read, `FALSE);
-    ENDIF();
-ENDIF();
-*/
-
-/*******************************************************************************SCRIPT
-    
-IF(state == STATE_READ_CODE);
-
-    IF(avm_readdatavalid);
-        SAVE(bus_code_partial, avm_readdata);
-        
-        IF(counter == 2'd3); SAVE(bus_0, avm_readdata); ENDIF();
-        IF(counter == 2'd2); SAVE(bus_1, avm_readdata); ENDIF();
-        IF(counter == 2'd1); SAVE(bus_2, avm_readdata); ENDIF();
-        IF(counter == 2'd0); SAVE(bus_3, avm_readdata); ENDIF();
-        
-        SAVE(counter, counter - 2'd1);
-        
-        IF(counter == 2'd0);
-            SAVE(read_code_done_trigger, `TRUE);
-            
-            SAVE(avm_read, `FALSE);
-            SAVE(state, STATE_IDLE);
-        ENDIF();
-    ENDIF();
-    
-    IF(avm_waitrequest == `FALSE);
-        SAVE(avm_read, `FALSE);
-    ENDIF();
-ENDIF();
-*/
+assign readcode_partial = avm_readdata;
 
 //------------------------------------------------------------------------------
 
-`include "autogen/avalon_mem.v"
+assign writeburst_done = (rst_n && state == STATE_IDLE && writeburst_do && ~avm_waitrequest) ? `TRUE : `FALSE;
+assign readburst_done  = (rst_n && state == STATE_READ      && counter == 3'd0 && avm_readdatavalid) ? `TRUE : `FALSE;
+assign readcode_done   = (state == STATE_READ_CODE && avm_readdatavalid) ? `TRUE : `FALSE;
+
+assign avm_address = 
+   (state == STATE_IDLE  && writeburst_do)    ? writeburst_address[31:2] :
+   (state == STATE_IDLE  && readburst_do)     ? readburst_address[31:2]  :
+   (state == STATE_WRITE)                     ? writeaddr_next  :
+   readcode_address[31:2];
+
+assign avm_writedata  = (state == STATE_IDLE) ? writeburst_data[31:0]   : save_data;
+assign avm_byteenable = 
+   (state == STATE_IDLE  && writeburst_do) ? writeburst_byteenable_0 : 
+   (state == STATE_IDLE)                   ? read_burst_byteenable : 
+   byteenable_next;
+
+assign avm_burstcount = 
+   // (state == STATE_IDLE && writeburst_do) ? { 1'b0, writeburst_dword_length } : // ignored by L2 cache
+   (state == STATE_IDLE && readburst_do)  ? { 2'b0, readburst_dword_length }  :
+   4'd8;
+
+assign avm_write = (rst_n && ((state == STATE_IDLE && writeburst_do) || state == STATE_WRITE)) ? `TRUE : `FALSE;
+
+assign avm_read  = (rst_n && state == STATE_IDLE && ~writeburst_do && (readburst_do  || readcode_do)) ? `TRUE : `FALSE;
+
+
+
+always @(posedge clk) begin
+   if(rst_n == 1'b0) begin
+      state           <= STATE_IDLE;
+      bus_0           <= 32'd0;
+      bus_1           <= 32'd0;
+      bus_2           <= 32'd0;
+      byteenable_next <= 4'd0;
+      save_readburst  <= 2'd0;
+   end
+   else begin
+      if(state == STATE_IDLE) begin
+         if (~avm_waitrequest) begin
+            if (writeburst_do) begin
+               if (writeburst_dword_length > 2'd1) begin
+                  state           <= STATE_WRITE;
+               end
+               save_data       <= { 8'd0, writeburst_data[55:32] };
+               byteenable_next <= writeburst_byteenable_1;
+               writeaddr_next  <= writeburst_address[31:2] + 30'd1;
+            end
+            else if (readburst_do) begin
+               state          <= STATE_READ;
+               counter        <= readburst_dword_length - 3'd1;
+               save_readburst <= readburst_dword_length;
+            end
+            else if (readcode_do) begin
+               state   <= STATE_READ_CODE;
+               counter <= 3'd7;
+            end
+         end
+      end
+      else if (state == STATE_WRITE) begin
+         if (~avm_waitrequest) begin
+            state <= STATE_IDLE;
+         end
+      end
+      else if (state == STATE_READ) begin
+         if (avm_readdatavalid) begin
+            if(counter == 3'd2) bus_1 <= avm_readdata;
+            if(counter == 3'd1) bus_0 <= avm_readdata;
+            counter <= counter - 3'd1;     
+            if(counter == 3'd0) state <= STATE_IDLE;
+         end
+      end
+      else if (state == STATE_READ_CODE) begin
+         if (avm_readdatavalid) begin
+            counter <= counter - 3'd1;     
+            if(counter == 3'd0) state <= STATE_IDLE;
+         end
+      end
+   end
+end   
 
 endmodule

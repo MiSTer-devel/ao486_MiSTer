@@ -422,14 +422,6 @@ avalon_mem avalon_mem_inst(
     //END
     
     //RESP:
-    .writeline_do               (1'b0),                         //input
-    .writeline_done             (),                             //output
-    
-    .writeline_address          (32'd0),                        //input [31:0]
-    .writeline_line             (128'd0),                       //input [127:0]
-    //END
-    
-    //RESP:
     .readburst_do               (resp_readburst_do),            //input
     .readburst_done             (resp_readburst_done),          //output
     
@@ -438,21 +430,12 @@ avalon_mem avalon_mem_inst(
     .readburst_byte_length      (resp_readburst_byte_length),   //input [3:0]
     .readburst_data             (resp_readburst_data),          //output [95:0]
     //END
-    
-    //RESP:
-    .readline_do                (1'b0),                         //input
-    .readline_done              (),                             //output
-    
-    .readline_address           (32'd0),                        //input [31:0]
-    .readline_line              (),                             //output [127:0]
-    //END
-    
+
     //RESP:
     .readcode_do                (req_readcode_do),             //input
     .readcode_done              (req_readcode_done),           //output
                                    
     .readcode_address           (req_readcode_address),        //input [31:0]
-    .readcode_line              (req_readcode_line),           //output [127:0]
     .readcode_partial           (req_readcode_partial),        //output [31:0]
     //END
     
