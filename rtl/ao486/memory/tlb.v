@@ -1437,14 +1437,7 @@ assign tlbwrite_done =
 assign tlbread_retry =
     (cond_31)? ( current_type == TYPE_READ) :
     1'd0;
-assign dcachewrite_address =
-    (cond_19 && cond_17 && ~cond_18 && ~cond_20)? (         memtype_physical) :
-    (cond_35 && cond_36)? (         memtype_physical) :
-    (cond_35 && ~cond_36 && cond_37)? (         memtype_physical) :
-    (cond_35 && ~cond_36 && ~cond_37 && ~cond_38 && cond_28)? (         memtype_physical) :
-    (cond_41)? (         memtype_physical) :
-    (cond_42 && ~cond_38)? (         memtype_physical) :
-    32'd0;
+assign dcachewrite_address = memtype_physical;
 assign tlbregs_write_pwt =
     (cond_35)? (           pte[3]) :
     1'd0;
@@ -1488,17 +1481,7 @@ assign dcachewrite_write_through =
     (cond_41)? (   cr0_nw || pde[3] || memtype_write_transparent) :
     (cond_42 && ~cond_38)? (   cr0_nw || pte[3] || memtype_write_transparent) :
     1'd0;
-assign dcacheread_address =
-    (cond_15 && cond_17 && ~cond_18)? (          memtype_physical) :
-    (cond_15 && ~cond_17)? (          memtype_physical) :
-    (cond_19 && ~cond_17)? (          memtype_physical) :
-    (cond_21 && ~cond_17)? (          memtype_physical) :
-    (cond_22 && ~cond_23 && ~cond_17)? (          memtype_physical) :
-    (cond_30)? (          memtype_physical) :
-    (cond_39)? (          memtype_physical) :
-    (cond_40 && cond_12 && ~cond_37 && ~cond_28 && cond_29)? (          memtype_physical) :
-    (cond_43 && cond_12 && ~cond_28 && cond_29)? (          memtype_physical) :
-    32'd0;
+assign dcacheread_address = memtype_physical;
 assign dcachewrite_cache_disable =
     (cond_19 && cond_17 && ~cond_18 && ~cond_20)? (   cr0_cd || translate_pcd || memtype_cache_disable) :
     (cond_35 && cond_36)? (   cr0_cd || cr3_pcd || memtype_cache_disable) :

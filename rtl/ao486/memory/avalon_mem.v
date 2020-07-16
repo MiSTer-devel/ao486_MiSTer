@@ -79,7 +79,6 @@ module avalon_mem(
 
 reg [31:0]  bus_0;
 reg [31:0]  bus_1;
-reg [31:0]  bus_2;
 
 reg [3:0]   byteenable_next;
 reg [2:0]   counter;
@@ -155,11 +154,6 @@ assign avm_read  = (rst_n && state == STATE_IDLE && ~writeburst_do && (readburst
 always @(posedge clk) begin
    if(rst_n == 1'b0) begin
       state           <= STATE_IDLE;
-      bus_0           <= 32'd0;
-      bus_1           <= 32'd0;
-      bus_2           <= 32'd0;
-      byteenable_next <= 4'd0;
-      save_readburst  <= 2'd0;
    end
    else begin
       if(state == STATE_IDLE) begin

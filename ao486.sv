@@ -471,7 +471,7 @@ system u0
 	.mem_address          (mem_address),
 	.mem_read             (mem_read),
 	.mem_waitrequest      (mem_waitrequest),
-	.mem_readdata         (mem_readdata & {32{ram}}),
+	.mem_readdata         (mem_readdata),
 	.mem_write            (mem_write),
 	.mem_writedata        (mem_writedata),
 	.mem_readdatavalid    (mem_readdatavalid),
@@ -573,7 +573,8 @@ ddrram_cache arbiter_cache
 	.CPU_BURSTCNT     (mem_burstcount     ),
 	.CPU_BUSY         (mem_waitrequest    ),
 	.CPU_RD           (mem_read           ),
-	.CPU_WE           (mem_write & ram    ),
+	.CPU_WE           (mem_write          ),
+	.CPU_RAMAREA      (ram                ),
 
 	.DMA_ADDR         (dma_address        ),
 	.DMA_DIN          (dma_writedata      ),
