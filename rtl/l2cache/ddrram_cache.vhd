@@ -142,6 +142,7 @@ architecture arch of ddrram_cache is
 
    signal rom_rgn          : std_logic;
    signal shr_rgn          : std_logic;
+   signal shr_rgn_en       : std_logic;
    signal read_behind      : std_logic := '0';
 
    signal dma_be           : std_logic_vector(3 downto 0);
@@ -215,7 +216,7 @@ begin
 
    rom_rgn  <= '1' when (ch_addr(24 downto 14) = ("000" & x"0C")) or (ch_addr(24 downto 14) = ("000" & x"0F")) else '0';
    vga_rgn  <= '1' when (ch_addr(24 downto 15) = ("00"  & x"05")) and ((ch_addr(14 downto 13) and vga_mask) = vga_cmp) else '0';
-   shr_rgn  <= '1' when (ch_addr(24 downto 11) = ("00" & x"067")) else '0';
+   shr_rgn  <= '1' when (ch_addr(24 downto 11) = ("00" & x"067")) and shr_rgn_en = '1' else '0';
 
    process (CLK)
    begin
@@ -259,6 +260,7 @@ begin
             rrb           <= (others => (others => '0'));
             tag_dirty     <= (others => '1');
             state         <= IDLE;
+            shr_rgn_en    <= '0';
 
          else
 
@@ -270,8 +272,8 @@ begin
             case(state) is
 
                when IDLE =>
-                  vga_wr      <= '0';
-                  vga_re      <= '0';
+                  vga_wr               <= '0';
+                  vga_re               <= '0';
                   if (DDRAM_BUSY = '0') then
                   
                      -- for timing purposes, most registers are assigned without region checks
@@ -317,33 +319,35 @@ begin
                         memory_be      <= ( 7 downto  4 => '0') & ch_be;
                      end if;
                      
-                     read_behind <= '0';
-                     if (ch_req = '0' and CPU_RAMAREA = '0') then
-                        read_behind <= '1';
-                     end if;
+                     read_behind       <= not ch_req and not CPU_RAMAREA;
                   
                      if (ch_rd = '1') then
-                        burst_left           <= to_integer(unsigned(ch_burst));
+                        burst_left     <= to_integer(unsigned(ch_burst));
                         if vga_rgn = '1' then
-                           vga_be            <= ch_be;
-                           vga_re            <= '1';
-                           vga_ba            <= "00";
-                           state             <= VGAWAIT;
+                           vga_be      <= ch_be;
+                           vga_re      <= '1';
+                           vga_ba      <= "00";
+                           state       <= VGAWAIT;
                         else
-                           state             <= READONE;
-                           force_fetch       <= shr_rgn;
-                           force_next        <= shr_rgn;
+                           state       <= READONE;
+                           force_fetch <= shr_rgn;
+                           force_next  <= shr_rgn;
                         end if;
                      elsif (ch_we = '1' and (rom_rgn = '0' or shr_rgn ='1') and (ch_req = '1' or CPU_RAMAREA = '1')) then
                         if vga_rgn = '1' then
-                           vga_wr            <= '1';
-                           state             <= VGAWRITE;
+                           vga_wr      <= '1';
+                           state       <= VGAWRITE;
                         else
-                           state             <= WRITEONE;
-                           ram_we            <= '1';
-                           SNOOP_WE   <= '1';
+                           state       <= WRITEONE;
+                           ram_we      <= '1';
+                           SNOOP_WE    <= '1';
                         end if;
                      end if;
+
+                     if(ch_we = '1' and ch_addr = ('0' & x"033800") and ch_din(15 downto 0) = x"A345") then
+                        shr_rgn_en     <= '1';
+                     end if;
+
                   end if;
 
                when WRITEONE =>
