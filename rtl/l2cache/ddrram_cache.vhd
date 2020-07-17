@@ -287,6 +287,7 @@ begin
                      ram_addr          <= ch_addr(24 downto 1);
                      ram_burstcnt      <= x"01";
                      read_addr         <= ch_addr(24 downto 1);
+                     burst_left        <= to_integer(unsigned(ch_burst));
                      data64_high       <= ch_addr(0);
                      SNOOP_ADDR        <= ch_addr;
                      SNOOP_DIN         <= ch_din;
@@ -296,6 +297,8 @@ begin
                      vga_bcnt          <= 3;
                      vga_next_data     <= ch_din;
                      vga_next_be       <= ch_be;
+                     vga_ba            <= "00";
+                     vga_be            <= ch_be;
                      
                      memory_addr_b     <= to_integer(unsigned(ch_addr(RAMSIZEBITS downto 1)));
                      if (ch_addr(0) = '1') then
@@ -311,18 +314,15 @@ begin
                      end if;
                      
                      read_behind       <= not ch_req and not CPU_RAMAREA;
+                     force_fetch       <= shr_rgn;
+                     force_next        <= shr_rgn;
                   
                      if (ch_rd = '1') then
-                        burst_left     <= to_integer(unsigned(ch_burst));
                         if vga_rgn = '1' then
-                           vga_be      <= ch_be;
                            vga_re      <= '1';
-                           vga_ba      <= "00";
                            state       <= VGAWAIT;
                         else
                            state       <= READONE;
-                           force_fetch <= shr_rgn;
-                           force_next  <= shr_rgn;
                         end if;
                      elsif (ch_we = '1' and (rom_rgn = '0' or shr_rgn ='1') and (ch_req = '1' or CPU_RAMAREA = '1')) then
                         if vga_rgn = '1' then
