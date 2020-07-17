@@ -94,6 +94,7 @@ architecture arch of ddrram_cache is
       READCACHE_OUT,
       VGAREAD,
       VGAWAIT,
+      VGABYTECHECK,
       VGAWRITE
    );
    signal state : tstate := IDLE;
@@ -159,6 +160,10 @@ architecture arch of ddrram_cache is
    signal vga_rgn          : std_logic;
    signal vga_mask         : std_logic_vector(1 downto 0);
    signal vga_cmp          : std_logic_vector(1 downto 0);
+   signal vga_next_data    : std_logic_vector(31 downto 0);
+   signal vga_next_be      : std_logic_vector(3 downto 0);
+   signal vgabusy          : std_logic := '0';
+   
 begin
 
    DDRAM_BURSTCNT  <= ram_burstcnt;
@@ -212,7 +217,7 @@ begin
    ch_burst <= CPU_BURSTCNT when ch_req = '0' else "0001";
    ch_addr  <= CPU_ADDR     when ch_req = '0' else "000" & DMA_ADDR(23 downto 2);
 
-   busy     <= vga_wr or ram_we;
+   busy     <= vgabusy or ram_we;
 
    rom_rgn  <= '1' when (ch_addr(24 downto 14) = ("000" & x"0C")) or (ch_addr(24 downto 14) = ("000" & x"0F")) else '0';
    vga_rgn  <= '1' when (ch_addr(24 downto 15) = ("00"  & x"05")) and ((ch_addr(14 downto 13) and vga_mask) = vga_cmp) else '0';
@@ -261,6 +266,7 @@ begin
             tag_dirty     <= (others => '1');
             state         <= IDLE;
             shr_rgn_en    <= '0';
+            vgabusy       <= '0';
 
          else
 
@@ -287,24 +293,9 @@ begin
                      SNOOP_BE          <= ch_be;
                      
                      vga_wa            <= ch_addr(14 downto 0);
-                     if ch_be(2 downto 0) = "000" then
-                        vga_data       <= x"000000" & ch_din(31 downto 24);
-                        vga_be         <= "000" & ch_be(3);
-                        vga_ba         <= "11";
-                     elsif ch_be(1 downto 0) = "00" then
-                        vga_data       <= x"0000" & ch_din(31 downto 16);
-                        vga_be         <= "00" & ch_be(3 downto 2);
-                        vga_ba         <= "10";
-                     elsif ch_be(0) = '0' then
-                        vga_data       <= x"00" & ch_din(31 downto 8);
-                        vga_be         <= '0' & ch_be(3 downto 1);
-                        vga_ba         <= "01";
-                     else
-                        vga_data       <= ch_din;
-                        vga_be         <= ch_be;
-                        vga_ba         <= "00";
-                     end if;
                      vga_bcnt          <= 3;
+                     vga_next_data     <= ch_din;
+                     vga_next_be       <= ch_be;
                      
                      memory_addr_b     <= to_integer(unsigned(ch_addr(RAMSIZEBITS downto 1)));
                      if (ch_addr(0) = '1') then
@@ -335,8 +326,8 @@ begin
                         end if;
                      elsif (ch_we = '1' and (rom_rgn = '0' or shr_rgn ='1') and (ch_req = '1' or CPU_RAMAREA = '1')) then
                         if vga_rgn = '1' then
-                           vga_wr      <= '1';
-                           state       <= VGAWRITE;
+                           state       <= VGABYTECHECK;
+                           vgabusy     <= '1';
                         else
                            state       <= WRITEONE;
                            ram_we      <= '1';
@@ -441,6 +432,27 @@ begin
                         state             <= IDLE;
                      end if;
                   end if;
+               
+               when VGABYTECHECK =>
+                  state   <= VGAWRITE;
+                  vga_wr  <= '1';
+                  if vga_next_be(2 downto 0) = "000" then
+                     vga_data       <= x"000000" & vga_next_data(31 downto 24);
+                     vga_be         <= "000" & vga_next_be(3);
+                     vga_ba         <= "11";
+                  elsif vga_next_be(1 downto 0) = "00" then
+                     vga_data       <= x"0000" & vga_next_data(31 downto 16);
+                     vga_be         <= "00" & vga_next_be(3 downto 2);
+                     vga_ba         <= "10";
+                  elsif vga_next_be(0) = '0' then
+                     vga_data       <= x"00" & vga_next_data(31 downto 8);
+                     vga_be         <= '0' & vga_next_be(3 downto 1);
+                     vga_ba         <= "01";
+                  else
+                     vga_data       <= vga_next_data;
+                     vga_be         <= vga_next_be;
+                     vga_ba         <= "00";
+                  end if;
 
                when VGAWRITE =>
                   vga_bcnt                <= vga_bcnt - 1;
@@ -449,6 +461,7 @@ begin
                   vga_data                <= x"00" & vga_data(31 downto 8);
                   if vga_be(3 downto 1) = "000" then
                      state                <= IDLE;
+                     vgabusy              <= '0';
                   end if;
 
                when READCACHE_OUT =>

@@ -77,6 +77,13 @@ module dcache(
 
 //------------------------------------------------------------------------------
 
+localparam [1:0] STATE_IDLE          = 2'd0;
+localparam [1:0] STATE_READ_BURST    = 2'd1;
+localparam [1:0] STATE_WRITE_THROUGH = 2'd2;
+
+reg [1:0]   state;
+reg [1:0]   readaddrmux;
+
 assign dcache_busy = 1'b0;
 
 //------------------------------------------------------------------------------
@@ -95,10 +102,10 @@ assign readburst_dword_length =
 assign readburst_byte_length = dcacheread_length;
 
 assign dcacheread_data =
-    (dcacheread_address[1:0] == 2'd0)?     readburst_data[63:0] :
-    (dcacheread_address[1:0] == 2'd1)?     readburst_data[71:8] :
-    (dcacheread_address[1:0] == 2'd2)?     readburst_data[79:16] :
-                                readburst_data[87:24];
+    (readaddrmux == 2'd0)?     readburst_data[63:0]  :
+    (readaddrmux == 2'd1)?     readburst_data[71:8]  :
+    (readaddrmux == 2'd2)?     readburst_data[79:16] :
+                               readburst_data[87:24];
 
 //------------------------------------------------------------------------------
 
@@ -136,12 +143,6 @@ assign writeburst_data =
 
 //------------------------------------------------------------------------------
 
-localparam [1:0] STATE_IDLE          = 2'd0;
-localparam [1:0] STATE_READ_BURST    = 2'd1;
-localparam [1:0] STATE_WRITE_THROUGH = 2'd2;
-
-reg [1:0]   state;
-
 assign dcacheread_done = rst_n && (state == STATE_READ_BURST && readburst_done);
 assign readburst_do = rst_n && (state == STATE_IDLE && ~dcachewrite_do && dcacheread_do);
 assign readburst_address = dcacheread_address;
@@ -157,6 +158,7 @@ always @(posedge clk) begin
    end
    else begin
       if(state == STATE_IDLE) begin
+         readaddrmux <= dcacheread_address[1:0];
          if (dcachewrite_do) begin
             state <= STATE_WRITE_THROUGH;
          end
