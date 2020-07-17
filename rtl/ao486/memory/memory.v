@@ -149,10 +149,14 @@ module memory(
     input               avm_readdatavalid,
     input       [31:0]  avm_readdata,
     
-    input   [26:2]      snoop_addr,
-    input   [31:0]      snoop_data,
-    input    [3:0]      snoop_be,
-    input               snoop_we
+    input       [23:0]  dma_address,
+    input               dma_write,
+    input       [31:0]  dma_writedata,
+    input       [3:0]   dma_byteenable,
+    input               dma_read,
+    output      [31:0]  dma_readdata,
+    output              dma_readdatavalid,
+    output              dma_waitrequest
 );
 
 
@@ -446,10 +450,18 @@ avalon_mem avalon_mem_inst(
     .avm_burstcount             (avm_burstcount),               //output [3:0]
     .avm_write                  (avm_write),                    //output
     .avm_read                   (avm_read),                     //output
-    
     .avm_waitrequest            (avm_waitrequest),              //input
     .avm_readdatavalid          (avm_readdatavalid),            //input
-    .avm_readdata               (avm_readdata)                  //input [31:0]
+    .avm_readdata               (avm_readdata),                 //input [31:0]
+
+    .dma_address                (dma_address),
+    .dma_write                  (dma_write),
+    .dma_writedata              (dma_writedata),
+    .dma_byteenable             (dma_byteenable),
+    .dma_read                   (dma_read),
+    .dma_readdata               (dma_readdata),
+    .dma_readdatavalid          (dma_readdatavalid),
+    .dma_waitrequest            (dma_waitrequest)
 );
 
 //------------------------------------------------------------------------------
@@ -537,10 +549,10 @@ icache icache_inst(
     .prefetched_length          (prefetched_length),  //output [4:0]
     //END
     
-    .snoop_addr                 (snoop_addr),
-    .snoop_data                 (snoop_data),
-    .snoop_be                   (snoop_be),
-    .snoop_we                   (snoop_we)
+    .snoop_addr                 (avm_address[26:2]),
+    .snoop_data                 (avm_writedata),
+    .snoop_be                   (avm_byteenable),
+    .snoop_we                   (!avm_address[31:27] && ~avm_waitrequest && avm_write)
 );
 
 assign invdcode_done = 1'b1;

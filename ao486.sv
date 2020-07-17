@@ -359,9 +359,6 @@ end
 
 `endif
 
-assign      DDRAM_ADDR[28:24] = {4'h3, 1'b0};
-assign      DDRAM_CLK = clk_sys;
-
 wire        ps2_reset_n;
 
 wire        speaker_ena, speaker_out;
@@ -484,19 +481,6 @@ system u0
 	.vga_write            (vga_write),
 	.vga_writedata        (vga_writedata),
 
-	.dma_address          (dma_address),
-	.dma_waitrequest      (dma_waitrequest),
-	.dma_read             (dma_read),
-	.dma_readdatavalid    (dma_readdatavalid),
-	.dma_readdata         (dma_readdata),
-	.dma_write            (dma_write),
-	.dma_writedata        (dma_writedata),
-	
-	.snoop_addr           (SNOOP_ADDR),
-	.snoop_data           (SNOOP_DIN),
-	.snoop_be             (SNOOP_BE),
-	.snoop_we             (SNOOP_WE),
-	
 	.mgmt_waitrequest     (mgmt_wait),
 	.mgmt_readdata        (mgmt_data),
 	.mgmt_readdatavalid   (mgmt_valid),
@@ -545,22 +529,10 @@ wire        vga_read;
 wire        vga_write;
 wire  [2:0] vga_mode;
 
-wire [23:0] dma_address;
-wire  [7:0] dma_readdata;
-wire  [7:0] dma_writedata;
-wire        dma_waitrequest;
-wire        dma_read;
-wire        dma_readdatavalid;
-wire        dma_write;
+assign      DDRAM_ADDR[28:24] = {4'h3, 1'b0};
+assign      DDRAM_CLK = clk_sys;
 
-wire [24:0] SNOOP_ADDR;
-wire [31:0] SNOOP_DIN;
-wire  [3:0] SNOOP_BE;
-wire        SNOOP_WE;
-
-wire ram = !mem_address[29:25];
-
-ddrram_cache arbiter_cache
+ddrram_cache cache
 (
 	.CLK              (clk_sys            ),
 	.RESET            (cpu_reset          ),
@@ -574,15 +546,6 @@ ddrram_cache arbiter_cache
 	.CPU_BUSY         (mem_waitrequest    ),
 	.CPU_RD           (mem_read           ),
 	.CPU_WE           (mem_write          ),
-	.CPU_RAMAREA      (ram                ),
-
-	.DMA_ADDR         (dma_address        ),
-	.DMA_DIN          (dma_writedata      ),
-	.DMA_DOUT         (dma_readdata       ),
-	.DMA_DOUT_READY   (dma_readdatavalid  ),
-	.DMA_BUSY         (dma_waitrequest    ),
-	.DMA_RD           (dma_read           ),
-	.DMA_WE           (dma_write          ),
 
 	.DDRAM_ADDR       (DDRAM_ADDR[23:0]   ),
 	.DDRAM_DIN        (DDRAM_DIN          ),
@@ -599,15 +562,8 @@ ddrram_cache arbiter_cache
 	.VGA_DOUT         (vga_writedata      ),
 	.VGA_RD           (vga_read           ),
 	.VGA_WE           (vga_write          ),
-	.VGA_MODE         (vga_mode           ),
-	
-	.SNOOP_ADDR       (SNOOP_ADDR         ),
-	.SNOOP_DIN        (SNOOP_DIN          ),
-	.SNOOP_BE         (SNOOP_BE           ),
-	.SNOOP_WE         (SNOOP_WE           )
+	.VGA_MODE         (vga_mode           )
 );
-
-wire       uart_h_dtr_n;
 
 wire       sys_reset = rst_q[7] | ~init_reset_n | RESET;
 wire       cpu_reset = cpu_rst1 | sys_reset;

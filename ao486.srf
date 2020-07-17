@@ -13,6 +13,7 @@
 { "" "" "" "RST port on the PLL is not properly connected on instance emu:emu\|pll:pll\|pll_0002:pll_inst\|altera_pll:altera_pll_i\|general\[0\].gpll. The reset port on the PLL should be connected. If the PLL loses lock for any reason, you might need to manually reset the PLL in order to re-establish lock to the reference clock." {  } {  } 0 0 "" 0 0 "Design Software" 0 -1 0 ""}
 { "" "" "" "LOCKED port on the PLL is not properly connected on instance \"emu:emu\|pll:pll\|pll_0002:pll_inst\|altera_pll:altera_pll_i\|general\[0\].gpll\". The LOCKED port on the PLL should be connected when the FBOUTCLK port is connected. Although it is unnecessary to connect the LOCKED signal, any logic driven off of an output clock of the PLL will not know when the PLL is locked and ready." {  } {  } 0 21300 "" 0 0 "Design Software" 0 -1 0 ""}
 { "" "" "" "RST port on the PLL is not properly connected on instance emu:emu\|pll:pll\|pll_0002:pll_inst\|altera_pll:altera_pll_i\|general\[1\].gpll. The reset port on the PLL should be connected. If the PLL loses lock for any reason, you might need to manually reset the PLL in order to re-establish lock to the reference clock." {  } {  } 0 0 "" 0 0 "Design Software" 0 -1 0 ""}
+{ "" "" "" "Variable or input pin \"outclock\" is defined but never used." {  } {  } 0 287013 "" 0 0 "Design Software" 0 -1 0 ""}
 { "" "" "" "*" {  } {  } 0 276027 "" 0 0 "Design Software" 0 -1 0 ""}
 { "" "" "" "*" {  } {  } 0 276020 "" 0 0 "Design Software" 0 -1 0 ""}
 { "" "" "" "*" {  } {  } 0 20013 "" 0 0 "Design Software" 0 -1 0 ""}

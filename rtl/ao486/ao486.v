@@ -48,7 +48,17 @@ module ao486 (
     input               avm_waitrequest,
     input               avm_readdatavalid,
     input       [31:0]  avm_readdata,
-    
+
+    //-------------------------------------------------------------------------- Altera Avalon dma bus
+    input       [23:0]  dma_address,
+    input               dma_write,
+    input       [31:0]  dma_writedata,
+    input       [3:0]   dma_byteenable,
+    input               dma_read,
+    output      [31:0]  dma_readdata,
+    output              dma_readdatavalid,
+    output              dma_waitrequest,
+
     //-------------------------------------------------------------------------- Altera Avalon io bus
     output  [15:0]      avalon_io_address,
     output  [3:0]       avalon_io_byteenable,
@@ -60,12 +70,7 @@ module ao486 (
     output              avalon_io_write,
     output  [31:0]      avalon_io_writedata,
     
-    input               avalon_io_waitrequest,
-    
-    input   [26:2]      snoop_addr,
-    input   [31:0]      snoop_data,
-    input    [3:0]      snoop_be,
-    input               snoop_we
+    input               avalon_io_waitrequest
 );
 
 //------------------------------------------------------------------------------
@@ -567,10 +572,14 @@ memory memory_inst(
     .avm_readdatavalid             (avm_readdatavalid),             //input
     .avm_readdata                  (avm_readdata),                  //input [31:0]
     
-    .snoop_addr                    (snoop_addr),
-    .snoop_data                    (snoop_data),
-    .snoop_be                      (snoop_be),
-    .snoop_we                      (snoop_we)
+    .dma_address                   (dma_address),
+    .dma_write                     (dma_write),
+    .dma_writedata                 (dma_writedata),
+    .dma_byteenable                (dma_byteenable),
+    .dma_read                      (dma_read),
+    .dma_readdata                  (dma_readdata),
+    .dma_readdatavalid             (dma_readdatavalid),
+    .dma_waitrequest               (dma_waitrequest)
 );
 
 //------------------------------------------------------------------------------

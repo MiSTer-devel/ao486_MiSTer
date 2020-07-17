@@ -72,7 +72,16 @@ module avalon_mem(
     
     input               avm_waitrequest,
     input               avm_readdatavalid,
-    input       [31:0]  avm_readdata
+    input       [31:0]  avm_readdata,
+
+    input       [23:0]  dma_address,
+    input               dma_write,
+    input       [31:0]  dma_writedata,
+    input       [3:0]   dma_byteenable,
+    input               dma_read,
+    output      [31:0]  dma_readdata,
+    output              dma_readdatavalid,
+    output              dma_waitrequest
 );
 
 //------------------------------------------------------------------------------
@@ -82,7 +91,7 @@ reg [31:0]  bus_1;
 
 reg [3:0]   byteenable_next;
 reg [2:0]   counter;
-reg [1:0]   state;
+reg [2:0]   state;
 
 reg [31:2]  writeaddr_next;
 reg [31:0]  save_data;
@@ -90,10 +99,12 @@ reg  [1:0]  save_readburst;
 
 //------------------------------------------------------------------------------
 
-localparam [1:0] STATE_IDLE      = 2'd0;
-localparam [1:0] STATE_WRITE     = 2'd1;
-localparam [1:0] STATE_READ      = 2'd2;
-localparam [1:0] STATE_READ_CODE = 2'd3;
+localparam [2:0] STATE_IDLE      = 3'd0;
+localparam [2:0] STATE_WRITE     = 3'd1;
+localparam [2:0] STATE_READ      = 3'd2;
+localparam [2:0] STATE_READ_CODE = 3'd3;
+localparam [2:0] STATE_WRITE_DMA = 3'd4;
+localparam [2:0] STATE_READ_DMA  = 3'd5;
 
 //------------------------------------------------------------------------------
 
@@ -124,43 +135,52 @@ assign readcode_partial = avm_readdata;
 
 //------------------------------------------------------------------------------
 
-assign writeburst_done = (rst_n && state == STATE_IDLE && writeburst_do && ~avm_waitrequest) ? `TRUE : `FALSE;
-assign readburst_done  = (rst_n && state == STATE_READ      && counter == 3'd0 && avm_readdatavalid) ? `TRUE : `FALSE;
-assign readcode_done   = (state == STATE_READ_CODE && avm_readdatavalid) ? `TRUE : `FALSE;
+assign dma_readdata      = avm_readdata;
+assign dma_waitrequest   = state != STATE_READ_DMA  && state != STATE_WRITE_DMA;
+assign dma_readdatavalid = state == STATE_READ_DMA  && avm_readdatavalid;
+
+assign writeburst_done   = state == STATE_IDLE      && writeburst_do && ~avm_waitrequest;
+assign readburst_done    = state == STATE_READ      && counter == 3'd0 && avm_readdatavalid;
+assign readcode_done     = state == STATE_READ_CODE && avm_readdatavalid;
 
 assign avm_address = 
-   (state == STATE_IDLE  && writeburst_do)    ? writeburst_address[31:2] :
-   (state == STATE_IDLE  && readburst_do)     ? readburst_address[31:2]  :
-   (state == STATE_WRITE)                     ? writeaddr_next  :
-   readcode_address[31:2];
+   (state != STATE_IDLE) ? writeaddr_next :
+   writeburst_do         ? writeburst_address[31:2] :
+   readburst_do          ? readburst_address[31:2] :
+   readcode_do           ? readcode_address[31:2] :
+                           dma_address[23:2];
 
-assign avm_writedata  = (state == STATE_IDLE) ? writeburst_data[31:0]   : save_data;
+assign avm_writedata  =
+   (state != STATE_IDLE) ? save_data :
+   writeburst_do         ? writeburst_data[31:0] :
+                           dma_writedata;
+	
 assign avm_byteenable = 
-   (state == STATE_IDLE  && writeburst_do) ? writeburst_byteenable_0 : 
-   (state == STATE_IDLE)                   ? read_burst_byteenable : 
-   byteenable_next;
+   (state != STATE_IDLE)         ? byteenable_next :
+   writeburst_do                 ? writeburst_byteenable_0 : 
+   (readburst_do || readcode_do) ? read_burst_byteenable : 
+                                   dma_byteenable;
 
 assign avm_burstcount = 
-   // (state == STATE_IDLE && writeburst_do) ? { 1'b0, writeburst_dword_length } : // ignored by L2 cache
-   (state == STATE_IDLE && readburst_do)  ? { 2'b0, readburst_dword_length }  :
-   4'd8;
+   readburst_do ? { 2'b0, readburst_dword_length }  :
+   readcode_do  ? 4'd8 :
+                  4'd1;
 
-assign avm_write = (rst_n && ((state == STATE_IDLE && writeburst_do) || state == STATE_WRITE)) ? `TRUE : `FALSE;
-
-assign avm_read  = (rst_n && state == STATE_IDLE && ~writeburst_do && (readburst_do  || readcode_do)) ? `TRUE : `FALSE;
-
-
+wire dma_start = ~(writeburst_do | readburst_do | readcode_do);
+assign avm_write = rst_n && ((state == STATE_IDLE && (writeburst_do || (dma_write && dma_start))) || state == STATE_WRITE);
+assign avm_read  = rst_n && state == STATE_IDLE && ~writeburst_do && (readburst_do || readcode_do || dma_read);
 
 always @(posedge clk) begin
-   if(rst_n == 1'b0) begin
+   if(!rst_n) begin
       state           <= STATE_IDLE;
    end
    else begin
-      if(state == STATE_IDLE) begin
+		case(state)
+      STATE_IDLE:
          if (~avm_waitrequest) begin
             if (writeburst_do) begin
                if (writeburst_dword_length > 2'd1) begin
-                  state           <= STATE_WRITE;
+                  state        <= STATE_WRITE;
                end
                save_data       <= { 8'd0, writeburst_data[55:32] };
                byteenable_next <= writeburst_byteenable_1;
@@ -175,28 +195,44 @@ always @(posedge clk) begin
                state   <= STATE_READ_CODE;
                counter <= 3'd7;
             end
+            else if (dma_write) begin
+               state <= STATE_WRITE_DMA;
+            end
+            else if (dma_read) begin
+               state <= STATE_READ_DMA;
+            end
          end
-      end
-      else if (state == STATE_WRITE) begin
+
+		STATE_WRITE:
          if (~avm_waitrequest) begin
             state <= STATE_IDLE;
          end
-      end
-      else if (state == STATE_READ) begin
+
+		STATE_READ:
          if (avm_readdatavalid) begin
             if(counter == 3'd2) bus_1 <= avm_readdata;
             if(counter == 3'd1) bus_0 <= avm_readdata;
             counter <= counter - 3'd1;     
             if(counter == 3'd0) state <= STATE_IDLE;
          end
-      end
-      else if (state == STATE_READ_CODE) begin
+
+		STATE_READ_CODE:
          if (avm_readdatavalid) begin
             counter <= counter - 3'd1;     
             if(counter == 3'd0) state <= STATE_IDLE;
          end
-      end
-   end
-end   
+
+		STATE_WRITE_DMA:
+			begin
+				state <= STATE_IDLE;
+			end
+      
+		STATE_READ_DMA:
+         if (avm_readdatavalid) begin
+				state <= STATE_IDLE;
+			end
+		endcase
+	end
+end
 
 endmodule

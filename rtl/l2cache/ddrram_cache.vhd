@@ -13,7 +13,7 @@ entity ddrram_cache is
       RESET            : in  std_logic;
 
       -- CPU bus, master, 32bit
-      CPU_ADDR         : in  std_logic_vector(26 downto 2);
+      CPU_ADDR         : in  std_logic_vector(29 downto 0);
       CPU_DIN          : in  std_logic_vector(31 downto 0);
       CPU_DOUT         : out std_logic_vector(31 downto 0);
       CPU_DOUT_READY   : out std_logic;
@@ -22,16 +22,6 @@ entity ddrram_cache is
       CPU_BUSY         : out std_logic;
       CPU_RD           : in  std_logic;
       CPU_WE           : in  std_logic;
-      CPU_RAMAREA      : in  std_logic;
-
-      -- DMA bus, master, 8bit
-      DMA_ADDR         : in  std_logic_vector(23 downto 0);
-      DMA_DIN          : in  std_logic_vector(7 downto 0);
-      DMA_DOUT         : out std_logic_vector(7 downto 0);
-      DMA_DOUT_READY   : out std_logic;
-      DMA_BUSY         : out std_logic;
-      DMA_RD           : in  std_logic;
-      DMA_WE           : in  std_logic;
 
       -- DDR3 RAM, slave, 64bit
       DDRAM_ADDR       : out std_logic_vector(26 downto 3);
@@ -50,13 +40,7 @@ entity ddrram_cache is
       VGA_DOUT         : out std_logic_vector(7 downto 0);
       VGA_MODE         : in  std_logic_vector(2 downto 0);
       VGA_RD           : out std_logic;
-      VGA_WE           : out std_logic;
-      
-      -- Snoop for Level 1 Cache
-      SNOOP_ADDR       : out std_logic_vector(26 downto 2) := (others => '0');
-      SNOOP_DIN        : out std_logic_vector(31 downto 0) := (others => '0');
-      SNOOP_BE         : out std_logic_vector(3 downto 0) := (others => '0');
-      SNOOP_WE         : out std_logic := '0'
+      VGA_WE           : out std_logic
    );
 end entity;
 
@@ -120,8 +104,6 @@ architecture arch of ddrram_cache is
    signal data64_high      : std_logic := '0';
    signal data64_high_1    : std_logic := '0';
 
-   signal busy             : std_logic;
-
    -- internal mux
    signal ram_dout_ready   : std_logic;
    signal ram_burstcnt     : std_logic_vector(7 downto 0);
@@ -131,22 +113,11 @@ architecture arch of ddrram_cache is
    signal ram_be           : std_logic_vector(7 downto 0);
    signal ram_we           : std_logic;
 
-   signal ch_req           : std_logic;
-   signal ch_run           : std_logic;
-   signal ch_rd            : std_logic;
-   signal ch_we            : std_logic;
-   signal ch_dout          : std_logic_vector(31 downto 0);
-   signal ch_be            : std_logic_vector(3 downto 0);
-   signal ch_burst         : std_logic_vector(3 downto 0);
-   signal ch_din           : std_logic_vector(31 downto 0);
-   signal ch_addr          : std_logic_vector(24 downto 0);
-
    signal rom_rgn          : std_logic;
    signal shr_rgn          : std_logic;
    signal shr_rgn_en       : std_logic;
    signal read_behind      : std_logic := '0';
-
-   signal dma_be           : std_logic_vector(3 downto 0);
+	signal ram_rgn          : std_logic;
 
    signal vga_ram          : std_logic;
    signal vga_data         : std_logic_vector(31 downto 0);
@@ -173,55 +144,19 @@ begin
    DDRAM_BE        <= ram_be;
    DDRAM_WE        <= ram_we;
 
-   CPU_BUSY        <= DDRAM_BUSY when state = IDLE else ch_run or busy;
-   CPU_DOUT        <= ch_dout;
-   CPU_DOUT_READY  <= not ch_run and ram_dout_ready;
+   CPU_BUSY        <= DDRAM_BUSY when state = IDLE else vgabusy or ram_we;
+   CPU_DOUT        <= vga_data_r when vga_ram = '1' else readdata_cache(cache_mux)(63 downto 32) when data64_high_1 = '1' else readdata_cache(cache_mux)(31 downto 0);
+   CPU_DOUT_READY  <= ram_dout_ready;
 
    VGA_DOUT        <= vga_data(7 downto 0);
    VGA_WE          <= vga_wr and vga_be(0);
    VGA_RD          <= vga_re and vga_be(0);
    VGA_ADDR        <= vga_wa & vga_ba;
 
-   DMA_BUSY        <= CPU_RD or CPU_WE or DDRAM_BUSY when state = IDLE else not ch_run or busy;
-   DMA_DOUT_READY  <= ch_run and ram_dout_ready;
-
-   process (ch_dout, DMA_ADDR)
-   begin
-      case(DMA_ADDR(1 downto 0)) is
-         when "00" =>
-            dma_be   <= "0001";
-            DMA_DOUT <= ch_dout(7 downto 0);
-
-         when "01" =>
-            dma_be   <= "0010";
-            DMA_DOUT <= ch_dout(15 downto 8);
-
-         when "10" =>
-            dma_be   <= "0100";
-            DMA_DOUT <= ch_dout(23 downto 16);
-
-         when "11" =>
-            dma_be   <= "1000";
-            DMA_DOUT <= ch_dout(31 downto 24);
-            
-         when others => null;
-      end case;
-   end process;
-
-   ch_dout  <= vga_data_r when vga_ram = '1' else readdata_cache(cache_mux)(63 downto 32) when data64_high_1 = '1' else readdata_cache(cache_mux)(31 downto 0);
-   ch_req   <= not (CPU_RD or CPU_WE);
-   ch_rd    <= CPU_RD       when ch_req = '0' else DMA_RD;
-   ch_we    <= CPU_WE       when ch_req = '0' else DMA_WE;
-   ch_be    <= CPU_BE       when ch_req = '0' else dma_be;
-   ch_din   <= CPU_DIN      when ch_req = '0' else DMA_DIN & DMA_DIN & DMA_DIN & DMA_DIN;
-   ch_burst <= CPU_BURSTCNT when ch_req = '0' else "0001";
-   ch_addr  <= CPU_ADDR     when ch_req = '0' else "000" & DMA_ADDR(23 downto 2);
-
-   busy     <= vgabusy or ram_we;
-
-   rom_rgn  <= '1' when (ch_addr(24 downto 14) = ("000" & x"0C")) or (ch_addr(24 downto 14) = ("000" & x"0F")) else '0';
-   vga_rgn  <= '1' when (ch_addr(24 downto 15) = ("00"  & x"05")) and ((ch_addr(14 downto 13) and vga_mask) = vga_cmp) else '0';
-   shr_rgn  <= '1' when (ch_addr(24 downto 11) = ("00" & x"067")) and shr_rgn_en = '1' else '0';
+	ram_rgn  <= '1' when (CPU_ADDR(29 downto 25) = "00000") else '0';
+   rom_rgn  <= '1' when (CPU_ADDR(24 downto 14) = ("000" & x"0C")) or (CPU_ADDR(24 downto 14) = ("000" & x"0F")) else '0';
+   vga_rgn  <= '1' when (CPU_ADDR(24 downto 15) = ("00"  & x"05")) and ((CPU_ADDR(14 downto 13) and vga_mask) = vga_cmp) else '0';
+   shr_rgn  <= '1' when (CPU_ADDR(24 downto 11) = ("00" & x"067")) and shr_rgn_en = '1' else '0';
 
    process (CLK)
    begin
@@ -254,19 +189,18 @@ begin
    begin
       if rising_edge(CLK) then
 
-         ram_dout_ready   <= '0';
-         memory_we        <= (others => '0');
-         SNOOP_WE         <= '0';
+         ram_dout_ready <= '0';
+         memory_we      <= (others => '0');
 
-         data64_high_1    <= data64_high;
+         data64_high_1  <= data64_high;
 
          if (RESET = '1') then
 
-            rrb           <= (others => (others => '0'));
-            tag_dirty     <= (others => '1');
-            state         <= IDLE;
-            shr_rgn_en    <= '0';
-            vgabusy       <= '0';
+            rrb         <= (others => (others => '0'));
+            tag_dirty   <= (others => '1');
+            state       <= IDLE;
+            shr_rgn_en  <= '0';
+            vgabusy     <= '0';
 
          else
 
@@ -283,59 +217,54 @@ begin
                   if (DDRAM_BUSY = '0') then
                   
                      -- for timing purposes, most registers are assigned without region checks
-                     ch_run            <= ch_req;
-                     ram_addr          <= ch_addr(24 downto 1);
+                     ram_addr          <= CPU_ADDR(24 downto 1);
                      ram_burstcnt      <= x"01";
-                     read_addr         <= ch_addr(24 downto 1);
-                     burst_left        <= to_integer(unsigned(ch_burst));
-                     data64_high       <= ch_addr(0);
-                     SNOOP_ADDR        <= ch_addr;
-                     SNOOP_DIN         <= ch_din;
-                     SNOOP_BE          <= ch_be;
+                     read_addr         <= CPU_ADDR(24 downto 1);
+                     burst_left        <= to_integer(unsigned(CPU_BURSTCNT));
+                     data64_high       <= CPU_ADDR(0);
                      
-                     vga_wa            <= ch_addr(14 downto 0);
+                     vga_wa            <= CPU_ADDR(14 downto 0);
                      vga_bcnt          <= 3;
-                     vga_next_data     <= ch_din;
-                     vga_next_be       <= ch_be;
+                     vga_next_data     <= CPU_DIN;
+                     vga_next_be       <= CPU_BE;
                      vga_ba            <= "00";
-                     vga_be            <= ch_be;
+                     vga_be            <= CPU_BE;
                      
-                     memory_addr_b     <= to_integer(unsigned(ch_addr(RAMSIZEBITS downto 1)));
-                     if (ch_addr(0) = '1') then
-                        ram_din        <= ch_din & (31 downto 0 => '0');
-                        memory_datain  <= ch_din & (31 downto 0 => '0');
-                        ram_be         <= ch_be & ( 3 downto 0 => '0');
-                        memory_be      <= ch_be & ( 3 downto 0 => '0');
+                     memory_addr_b     <= to_integer(unsigned(CPU_ADDR(RAMSIZEBITS downto 1)));
+                     if (CPU_ADDR(0) = '1') then
+                        ram_din        <= CPU_DIN & (31 downto 0 => '0');
+                        memory_datain  <= CPU_DIN & (31 downto 0 => '0');
+                        ram_be         <= CPU_BE & ( 3 downto 0 => '0');
+                        memory_be      <= CPU_BE & ( 3 downto 0 => '0');
                      else
-                        ram_din        <= (63 downto 32 => '0') & ch_din;
-                        memory_datain  <= (63 downto 32 => '0') & ch_din;
-                        ram_be         <= ( 7 downto  4 => '0') & ch_be;
-                        memory_be      <= ( 7 downto  4 => '0') & ch_be;
+                        ram_din        <= (63 downto 32 => '0') & CPU_DIN;
+                        memory_datain  <= (63 downto 32 => '0') & CPU_DIN;
+                        ram_be         <= ( 7 downto  4 => '0') & CPU_BE;
+                        memory_be      <= ( 7 downto  4 => '0') & CPU_BE;
                      end if;
                      
-                     read_behind       <= not ch_req and not CPU_RAMAREA;
+                     read_behind       <= not ram_rgn;
                      force_fetch       <= shr_rgn;
                      force_next        <= shr_rgn;
                   
-                     if (ch_rd = '1') then
+                     if (CPU_RD = '1') then
                         if vga_rgn = '1' then
                            vga_re      <= '1';
                            state       <= VGAWAIT;
                         else
                            state       <= READONE;
                         end if;
-                     elsif (ch_we = '1' and (rom_rgn = '0' or shr_rgn ='1') and (ch_req = '1' or CPU_RAMAREA = '1')) then
+                     elsif (CPU_WE = '1' and (rom_rgn = '0' or shr_rgn ='1') and ram_rgn = '1') then
                         if vga_rgn = '1' then
                            state       <= VGABYTECHECK;
                            vgabusy     <= '1';
                         else
                            state       <= WRITEONE;
                            ram_we      <= '1';
-                           SNOOP_WE    <= '1';
                         end if;
                      end if;
 
-                     if(ch_we = '1' and ch_addr = ('0' & x"033800") and ch_din(15 downto 0) = x"A345") then
+                     if(CPU_WE = '1' and CPU_ADDR = ("00" & x"0033800") and CPU_DIN(15 downto 0) = x"A345") then
                         shr_rgn_en     <= '1';
                      end if;
 
@@ -346,26 +275,26 @@ begin
                   for i in 0 to ASSOCIATIVITY - 1 loop
                      if (tag_dirty(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB))) * ASSOCIATIVITY + i) = '0') then
                         if (tags_read(i) = read_addr(ADDRBITS downto RAMSIZEBITS)) then
-                           memory_we(i)   <= '1';
+                           memory_we(i) <= '1';
                         end if;
                      end if;
                   end loop;
 
                when READONE =>
-                  vga_ram                 <= read_behind;  -- use fake vga response for reading behind available ram
-                  vga_data_r              <= (others => '0');
-                  state                   <= FILLCACHE;
-                  ram_rd                  <= '1';
-                  ram_addr                <= read_addr(read_addr'left downto LINESIZE_BITS) & (LINESIZE_BITS - 1 downto 0 => '0');
-                  ram_be                  <= x"00";
-                  ram_burstcnt            <= std_logic_vector(to_unsigned(LINESIZE, 8));
-                  fillcount               <= 0;
-                  memory_addr_b           <= to_integer(unsigned(read_addr(RAMSIZEBITS - 1 downto LINESIZE_BITS)) & (LINESIZE_BITS - 1 downto 0 => '0'));
+                  vga_ram                    <= read_behind;  -- use fake vga response for reading behind available ram
+                  vga_data_r                 <= (others => '0');
+                  state                      <= FILLCACHE;
+                  ram_rd                     <= '1';
+                  ram_addr                   <= read_addr(read_addr'left downto LINESIZE_BITS) & (LINESIZE_BITS - 1 downto 0 => '0');
+                  ram_be                     <= x"00";
+                  ram_burstcnt               <= std_logic_vector(to_unsigned(LINESIZE, 8));
+                  fillcount                  <= 0;
+                  memory_addr_b              <= to_integer(unsigned(read_addr(RAMSIZEBITS - 1 downto LINESIZE_BITS)) & (LINESIZE_BITS - 1 downto 0 => '0'));
                   --if (ASSOCIATIVITY > 1) then
-                     cache_mux            <= to_integer(rrb(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB)))));
+                     cache_mux               <= to_integer(rrb(to_integer(unsigned(read_addr(LINEMASKMSB downto LINEMASKLSB)))));
                   --end if;
                   if (force_fetch = '1') then
-                     force_next <= not force_next;
+                     force_next              <= not force_next;
                   end if;
                   if (force_next = '0') then
                      for i in 0 to ASSOCIATIVITY - 1 loop
@@ -395,73 +324,73 @@ begin
 
                when FILLCACHE =>
                   if (DDRAM_DOUT_READY = '1') then
-                     memory_datain        <= DDRAM_DOUT;
+                     memory_datain <= DDRAM_DOUT;
                      memory_we(cache_mux) <= '1';
-                     memory_be            <= x"FF";
+                     memory_be     <= x"FF";
                      if (fillcount > 0) then
-                        memory_addr_b     <= memory_addr_b + 1;
+                        memory_addr_b <= memory_addr_b + 1;
                      end if;
 
                      if (fillcount < LINESIZE - 1) then
-                        fillcount         <= fillcount + 1;
+                        fillcount  <= fillcount + 1;
                      else
-                        state             <= READCACHE_OUT;
+                        state      <= READCACHE_OUT;
                      end if;
                   end if;
 
                when VGAWAIT =>
-                  state                   <= VGAREAD;
+                  state            <= VGAREAD;
 
                when VGAREAD =>
-                  vga_ram                 <= '1';
-                  vga_bcnt                <= vga_bcnt - 1;
-                  vga_be                  <= '0' & vga_be(3 downto 1);
-                  vga_ba                  <= std_logic_vector(unsigned(vga_ba) + 1);
-                  vga_data                <= VGA_DIN & vga_data(31 downto 8);
-                  state                   <= VGAWAIT;
+                  vga_ram          <= '1';
+                  vga_bcnt         <= vga_bcnt - 1;
+                  vga_be           <= '0' & vga_be(3 downto 1);
+                  vga_ba           <= std_logic_vector(unsigned(vga_ba) + 1);
+                  vga_data         <= VGA_DIN & vga_data(31 downto 8);
+                  state            <= VGAWAIT;
                   if(vga_bcnt = 0) then
-                     ram_dout_ready       <= '1';
-                     vga_data_r           <= VGA_DIN & vga_data(31 downto 8);
+                     ram_dout_ready<= '1';
+                     vga_data_r    <= VGA_DIN & vga_data(31 downto 8);
                      if(burst_left > 1) then
-                        vga_wa            <= std_logic_vector(unsigned(vga_wa) + 1);
-                        vga_ba            <= "00";
-                        vga_bcnt          <= 3;
-                        vga_be            <= "1111";
-                        burst_left        <= burst_left - 1;
+                        vga_wa     <= std_logic_vector(unsigned(vga_wa) + 1);
+                        vga_ba     <= "00";
+                        vga_bcnt   <= 3;
+                        vga_be     <= "1111";
+                        burst_left <= burst_left - 1;
                      else
-                        state             <= IDLE;
+                        state      <= IDLE;
                      end if;
                   end if;
                
                when VGABYTECHECK =>
-                  state   <= VGAWRITE;
-                  vga_wr  <= '1';
+                  state            <= VGAWRITE;
+                  vga_wr           <= '1';
                   if vga_next_be(2 downto 0) = "000" then
-                     vga_data       <= x"000000" & vga_next_data(31 downto 24);
-                     vga_be         <= "000" & vga_next_be(3);
-                     vga_ba         <= "11";
+                     vga_data      <= x"000000" & vga_next_data(31 downto 24);
+                     vga_be        <= "000" & vga_next_be(3);
+                     vga_ba        <= "11";
                   elsif vga_next_be(1 downto 0) = "00" then
-                     vga_data       <= x"0000" & vga_next_data(31 downto 16);
-                     vga_be         <= "00" & vga_next_be(3 downto 2);
-                     vga_ba         <= "10";
+                     vga_data      <= x"0000" & vga_next_data(31 downto 16);
+                     vga_be        <= "00" & vga_next_be(3 downto 2);
+                     vga_ba        <= "10";
                   elsif vga_next_be(0) = '0' then
-                     vga_data       <= x"00" & vga_next_data(31 downto 8);
-                     vga_be         <= '0' & vga_next_be(3 downto 1);
-                     vga_ba         <= "01";
+                     vga_data      <= x"00" & vga_next_data(31 downto 8);
+                     vga_be        <= '0' & vga_next_be(3 downto 1);
+                     vga_ba        <= "01";
                   else
-                     vga_data       <= vga_next_data;
-                     vga_be         <= vga_next_be;
-                     vga_ba         <= "00";
+                     vga_data      <= vga_next_data;
+                     vga_be        <= vga_next_be;
+                     vga_ba        <= "00";
                   end if;
 
                when VGAWRITE =>
-                  vga_bcnt                <= vga_bcnt - 1;
-                  vga_be                  <= '0' & vga_be(3 downto 1);
-                  vga_ba                  <= std_logic_vector(unsigned(vga_ba) + 1);
-                  vga_data                <= x"00" & vga_data(31 downto 8);
+                  vga_bcnt         <= vga_bcnt - 1;
+                  vga_be           <= '0' & vga_be(3 downto 1);
+                  vga_ba           <= std_logic_vector(unsigned(vga_ba) + 1);
+                  vga_data         <= x"00" & vga_data(31 downto 8);
                   if vga_be(3 downto 1) = "000" then
-                     state                <= IDLE;
-                     vgabusy              <= '0';
+                     state         <= IDLE;
+                     vgabusy       <= '0';
                   end if;
 
                when READCACHE_OUT =>

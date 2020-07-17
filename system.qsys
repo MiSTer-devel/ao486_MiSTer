@@ -588,6 +588,14 @@
          type = "String";
       }
    }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element uart
    {
       datum _sortIndex
@@ -650,7 +658,6 @@
  <interface name="clk_uart" internal="InClock_UART.in_clk" type="clock" dir="end" />
  <interface name="cpu_reset" internal="reset_cpu.in_reset" type="reset" dir="end" />
  <interface name="disk" internal="driver_sd.conduit_prx" type="conduit" dir="end" />
- <interface name="dma" internal="pc_dma.avalon_master" type="avalon" dir="start" />
  <interface
    name="joystick"
    internal="joystick_0.joystick"
@@ -954,6 +961,15 @@
    end="driver_sd.avalon_slave_0">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0a00" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="17.0"
+   start="pc_dma.avalon_master"
+   end="ao486.dma">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0000" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection

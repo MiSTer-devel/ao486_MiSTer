@@ -45,7 +45,6 @@ architecture arch of l1_icache is
    signal Fifo_rd          : std_logic;
    signal Fifo_empty       : std_logic;
    signal Fifo_valid       : std_logic := '0';  
-   signal Fifo_usedw       : std_logic_vector(3 downto 0);
    
    -- cache control
    constant ASSO_BITS     : integer := integer(ceil(log2(real(ASSOCIATIVITY))));
@@ -136,9 +135,7 @@ begin
       
       q        => Fifo_dout,
       rdreq    => Fifo_rd,
-      empty    => Fifo_empty,
-      
-      usedw    => Fifo_usedw
+      empty    => Fifo_empty
    );
 
    Fifo_rd <= '1' when (state = IDLE and Fifo_empty = '0') else '0';
