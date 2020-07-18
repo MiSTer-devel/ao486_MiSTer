@@ -549,10 +549,10 @@ icache icache_inst(
     .prefetched_length          (prefetched_length),  //output [4:0]
     //END
     
-    .snoop_addr                 (avm_address[26:2]),
+    .snoop_addr                 (avm_address[27:2]),
     .snoop_data                 (avm_writedata),
     .snoop_be                   (avm_byteenable),
-    .snoop_we                   (!avm_address[31:27] && ~avm_waitrequest && avm_write)
+    .snoop_we                   (!avm_address[31:28] && ~avm_waitrequest && avm_write)
 );
 
 assign invdcode_done = 1'b1;

@@ -15,7 +15,7 @@ module l1_icache
    input             MEM_DONE,
    input      [31:0] MEM_DATA,
    
-   input      [26:2] snoop_addr,
+   input      [27:2] snoop_addr,
    input      [31:0] snoop_data,
    input       [3:0] snoop_be,
    input             snoop_we
@@ -66,12 +66,12 @@ reg   [2:0] state;
 reg         CPU_REQ_hold;
 
 // fifo for snoop
-wire [60:0] Fifo_dout;
+wire [61:0] Fifo_dout;
 wire        Fifo_empty;
 
 simple_fifo_mlab #(
 	.widthu(4),
-	.width(61)
+	.width(62)
 )
 isimple_fifo (
 	.clk(CLK),
@@ -107,10 +107,10 @@ always @(posedge CLK) begin
 			IDLE:
 				if (!Fifo_empty) begin
 					state         <= WRITEONE;
-					read_addr     <= Fifo_dout[24:0];
+					read_addr     <= Fifo_dout[25:0];
 					memory_addr_b <= Fifo_dout[RAMSIZEBITS - 1:0];
-					memory_datain <= Fifo_dout[56:25];
-					memory_be     <= Fifo_dout[60:57];
+					memory_datain <= Fifo_dout[57:26];
+					memory_be     <= Fifo_dout[61:58];
 				end
 				else if (CPU_REQ || CPU_REQ_hold) begin
 					state         <= READONE;

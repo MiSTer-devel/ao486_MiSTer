@@ -1,5 +1,5 @@
 
-module l2_cache
+module l2_cache #(parameter ADDRBITS = 23)
 (
    input         CLK,
    input         RESET,
@@ -9,14 +9,14 @@ module l2_cache
    input  [31:0] CPU_DIN,
    output [31:0] CPU_DOUT,
    output        CPU_DOUT_READY,
-   input  [3:0]  CPU_BE,
-   input  [3:0]  CPU_BURSTCNT,
+   input   [3:0] CPU_BE,
+   input   [3:0] CPU_BURSTCNT,
    output        CPU_BUSY,
    input         CPU_RD,
    input         CPU_WE,
    
    // DDR3 RAM, slave, 64bit
-   output [26:3] DDRAM_ADDR,
+   output [ADDRBITS:0] DDRAM_ADDR,
    output [63:0] DDRAM_DIN,
    input  [63:0] DDRAM_DOUT,
    input         DDRAM_DOUT_READY,
@@ -40,7 +40,6 @@ module l2_cache
 localparam LINES         = 32;	// setting to 16 will half both logic and memory required, ~10% less performance
 localparam LINESIZE      = 16;	// changes here only reduces BRAMs required, ~5% less performance
 localparam ASSOCIATIVITY = 4;		// setting to 2 will half both logic and memory required, ~12% less performance
-localparam ADDRBITS      = 23;
 
 // cache control
 localparam ASSO_BITS     = $clog2(ASSOCIATIVITY);
@@ -78,8 +77,8 @@ reg  [LINESIZE_BITS-1:0] fillcount;
 
 reg   [3:0] state;
 
-reg  [23:0] read_addr;
-reg   [3:0] burst_left;
+reg  [ADDRBITS:0] read_addr;
+reg         [3:0] burst_left;
 
 reg         force_fetch;
 reg         force_next;
@@ -89,7 +88,7 @@ reg         data64_high;
 // internal mux
 reg         ram_dout_ready;
 reg   [7:0] ram_burstcnt;
-reg  [26:3] ram_addr;
+reg [ADDRBITS:0] ram_addr;
 reg         ram_rd;
 reg  [63:0] ram_din;
 reg   [7:0] ram_be;
@@ -163,10 +162,10 @@ always @(posedge CLK) begin
 	endcase
 end
    
-wire ram_rgn = !CPU_ADDR[29:25];
-wire rom_rgn = (CPU_ADDR[24:14] == 'hC)  || (CPU_ADDR[24:14] == 'hF);
-wire vga_rgn = (CPU_ADDR[24:15] == 'h5)  && ((CPU_ADDR[14:13] & vga_mask) == vga_cmp);
-wire shr_rgn = (CPU_ADDR[24:11] == 'h67) && shr_rgn_en;
+wire ram_rgn = !CPU_ADDR[29:ADDRBITS+2];
+wire rom_rgn = (CPU_ADDR[ADDRBITS+1:14] == 'hC)  || (CPU_ADDR[ADDRBITS+1:14] == 'hF);
+wire vga_rgn = (CPU_ADDR[ADDRBITS+1:15] == 'h5)  && ((CPU_ADDR[14:13] & vga_mask) == vga_cmp);
+wire shr_rgn = (CPU_ADDR[ADDRBITS+1:11] == 'h67) && shr_rgn_en;
 
 wire [7:0] be64 = CPU_ADDR[0] ? {CPU_BE, 4'h0} : {4'h0, CPU_BE};
 
@@ -198,9 +197,9 @@ always @(posedge CLK) begin
 					if (!DDRAM_BUSY) begin
 						
 						// for timing purposes, most registers are assigned without region checks
-						ram_addr      <= CPU_ADDR[24:1];
+						ram_addr      <= CPU_ADDR[ADDRBITS+1:1];
 						ram_burstcnt  <= 8'h01;
-						read_addr     <= CPU_ADDR[24:1];
+						read_addr     <= CPU_ADDR[ADDRBITS+1:1];
 						burst_left    <= CPU_BURSTCNT;
 						data64_high   <= CPU_ADDR[0];
 
@@ -262,7 +261,7 @@ always @(posedge CLK) begin
 					vga_data_r    <= 32'd0;
 					state         <= FILLCACHE;
 					ram_rd        <= 1'b1;
-					ram_addr      <= {read_addr[23:LINESIZE_BITS], {LINESIZE_BITS{1'b0}}};
+					ram_addr      <= {read_addr[ADDRBITS:LINESIZE_BITS], {LINESIZE_BITS{1'b0}}};
 					ram_be        <= 8'h00;
 					ram_burstcnt  <= LINESIZE[7:0];
 					fillcount     <= 0;

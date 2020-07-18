@@ -529,7 +529,7 @@ wire        vga_read;
 wire        vga_write;
 wire  [2:0] vga_mode;
 
-assign      DDRAM_ADDR[28:24] = {4'h3, 1'b0};
+assign      DDRAM_ADDR[28:25] = 4'h3;
 assign      DDRAM_CLK = clk_sys;
 
 l2_cache cache
@@ -547,7 +547,7 @@ l2_cache cache
 	.CPU_RD           (mem_read           ),
 	.CPU_WE           (mem_write          ),
 
-	.DDRAM_ADDR       (DDRAM_ADDR[23:0]   ),
+	.DDRAM_ADDR       (DDRAM_ADDR[24:0]   ),
 	.DDRAM_DIN        (DDRAM_DIN          ),
 	.DDRAM_DOUT       (DDRAM_DOUT         ),
 	.DDRAM_DOUT_READY (DDRAM_DOUT_READY   ),
