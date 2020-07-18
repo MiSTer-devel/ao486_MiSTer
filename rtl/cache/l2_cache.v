@@ -1,5 +1,5 @@
 
-module l2_cache #(parameter ADDRBITS = 23)
+module l2_cache #(parameter ADDRBITS = 24)
 (
    input         CLK,
    input         RESET,

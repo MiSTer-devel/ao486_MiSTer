@@ -59,7 +59,7 @@ module icache(
     output [4:0]        prefetched_length,
     //END
     
-    input   [26:2]      snoop_addr,
+    input   [27:2]      snoop_addr,
     input   [31:0]      snoop_data,
     input    [3:0]      snoop_be,
     input               snoop_we
