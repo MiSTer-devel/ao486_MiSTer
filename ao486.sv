@@ -532,7 +532,7 @@ wire  [2:0] vga_mode;
 assign      DDRAM_ADDR[28:24] = {4'h3, 1'b0};
 assign      DDRAM_CLK = clk_sys;
 
-ddrram_cache cache
+l2_cache cache
 (
 	.CLK              (clk_sys            ),
 	.RESET            (cpu_reset          ),
