@@ -1,0 +1,10 @@
+*.bak
+*.obj
+*.exe
+*.map
+_rombiosl_.c
+rombiosl.txt
+rombiosl.s
+*.rom
+*.o
+biossums

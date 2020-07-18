@@ -1,0 +1,10 @@
+*.bak
+*.obj
+*.exe
+*.map
+*.rom
+*.o
+biossums
+vbetables.h
+vbetables-gen
+vgabios.txt
