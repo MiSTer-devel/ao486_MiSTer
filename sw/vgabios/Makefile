@@ -23,7 +23,7 @@ all: bios
 bios: vgabios.bin
 
 clean:
-	rm -f  biossums vbetables-gen vbetables.h *.o *.s *.ld86 \
+	rm -f  biossums biossums.exe vbetables-gen vbetables-gen.exe vbetables.h *.o *.s *.ld86 \
           temp.awk.* vgabios*.orig _vgabios_* _vgabios-debug_* core vgabios*.bin vgabios*.txt *.bin *.bak *.rom
 
 # source files

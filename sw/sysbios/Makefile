@@ -58,7 +58,7 @@ bios: biossums boot0.rom
 
 clean:
 	rm -f  *.o *.a *.s *.rom _rombios*_.c rombios*.txt rombios*.sym
-	rm -f  biossums
+	rm -f  biossums biossums.exe
 
 boot0.rom: rombios.c apmbios.S biossums rombios.h
 	$(GCC32) $(BIOS_BUILD_DATE) -DLEGACY -E -P $< > _rombiosl_.c
