@@ -101,7 +101,7 @@ always @(posedge clk_sys) begin
 	reg [31:0] pixcnt = 0, pix60;
 	reg old_sync = 0;
 	
-	if(~rst_n || vga_mode) pixclk <= (clk_rate<25175000) ? clk_rate : 25175000;
+	if(~rst_n || vga_mode) pixclk <= (clk_rate<25175000) ? clk_rate : (general_clock_select == 1) ? 28322000 : 25175000;
 	else if(ce_video) begin
 		old_sync <= vga_vert_sync;
 		pixcnt <= pixcnt + 1;
@@ -535,7 +535,7 @@ reg general_enable_ram;
 reg general_io_space;
 
 //not implemented external regs:
-reg [1:0] general_not_impl_clock_select;
+reg [1:0] general_clock_select;
 reg       general_not_impl_odd_even_page;
 
 //------------------------------------------------------------------------------
@@ -545,7 +545,7 @@ always @(posedge clk_sys) begin if(general_io_write_misc) general_hsync <= io_wr
 
 always @(posedge clk_sys) begin if(general_io_write_misc) general_not_impl_odd_even_page <= io_writedata[5]; end
 
-always @(posedge clk_sys) begin if(general_io_write_misc) general_not_impl_clock_select <= io_writedata[3:2]; end
+always @(posedge clk_sys) begin if(general_io_write_misc) general_clock_select <= io_writedata[3:2]; end
 
 always @(posedge clk_sys) begin if(general_io_write_misc) general_enable_ram <= io_writedata[1]; end
 always @(posedge clk_sys) begin if(general_io_write_misc) general_io_space   <= io_writedata[0]; end
@@ -674,7 +674,7 @@ always @(*) begin
 			 })
 
 		17'b1XXXXXXXXXXXXXXXX: host_io_read_wire = 8'hFF;
-		17'b01XXXXXXXXXXXXXXX: host_io_read_wire = { general_vsync, general_hsync, general_not_impl_odd_even_page, 1'b0, general_not_impl_clock_select, general_enable_ram, general_io_space }; //misc output reg
+		17'b01XXXXXXXXXXXXXXX: host_io_read_wire = { general_vsync, general_hsync, general_not_impl_odd_even_page, 1'b0, general_clock_select, general_enable_ram, general_io_space }; //misc output reg
 		17'b001XXXXXXXXXXXXXX: host_io_read_wire = { interrupt, 2'b0, 1'b1, 4'b0 }; //input status 0
 		17'b0001XXXXXXXXXXXXX: host_io_read_wire = { 4'b0, host_io_vertical_retrace, 2'b0, host_io_not_displaying }; //input status 1
 		17'b00001XXXXXXXXXXXX: host_io_read_wire = 8'h00; //attrib index in write mode
