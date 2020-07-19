@@ -89,13 +89,13 @@ module avalon_mem(
 reg [31:0]  bus_0;
 reg [31:0]  bus_1;
 
-reg [3:0]   byteenable_next;
+reg [1:0]   save_readburst;
 reg [2:0]   counter;
 reg [2:0]   state;
 
+reg [3:0]   byteenable_next;
 reg [31:2]  writeaddr_next;
-reg [31:0]  save_data;
-reg  [1:0]  save_readburst;
+reg [31:0]  writedata_next;
 
 //------------------------------------------------------------------------------
 
@@ -108,29 +108,21 @@ localparam [2:0] STATE_READ_DMA  = 3'd5;
 
 //------------------------------------------------------------------------------
 
-wire [3:0] read_burst_byteenable =
-    (readburst_byte_length == 4'd1 && readburst_address[1:0] == 2'd0)?  4'b0001 :
-    (readburst_byte_length == 4'd1 && readburst_address[1:0] == 2'd1)?  4'b0010 :
-    (readburst_byte_length == 4'd1 && readburst_address[1:0] == 2'd2)?  4'b0100 :
-    (readburst_byte_length == 4'd1 && readburst_address[1:0] == 2'd3)?  4'b1000 :
-    
-    (readburst_byte_length == 4'd2 && readburst_address[1:0] == 2'd0)?  4'b0011 :
-    (readburst_byte_length == 4'd2 && readburst_address[1:0] == 2'd1)?  4'b0110 :
-    (readburst_byte_length == 4'd2 && readburst_address[1:0] == 2'd2)?  4'b1100 :
-    
-    (readburst_byte_length == 4'd3 && readburst_address[1:0] == 2'd0)?  4'b0111 :
-    (readburst_byte_length == 4'd3 && readburst_address[1:0] == 2'd1)?  4'b1110 :
-    
-                                                                        4'b1111;
+reg [0:6] len_be;
+always @* begin
+	case(readburst_byte_length)
+            1: len_be = 7'b0001000;
+            2: len_be = 7'b0011000;
+            3: len_be = 7'b0111000;
+		default: len_be = 7'b1111000;
+   endcase
+end
+
+wire [3:0] read_burst_byteenable = len_be[readburst_address[1:0] +:4];
 
 //------------------------------------------------------------------------------
 
-assign readburst_data = 
-   (save_readburst == 2'd1) ? { avm_readdata, avm_readdata, avm_readdata } :
-   (save_readburst == 2'd2) ? { avm_readdata, avm_readdata, bus_0        } :
-                              { avm_readdata, bus_0       , bus_1        };
-
-
+assign readburst_data = {avm_readdata, ~&save_readburst ? avm_readdata : bus_0, ~save_readburst[1] ? avm_readdata : bus_1};
 assign readcode_partial = avm_readdata;
 
 //------------------------------------------------------------------------------
@@ -151,7 +143,7 @@ assign avm_address =
                            dma_address[23:2];
 
 assign avm_writedata  =
-   (state != STATE_IDLE) ? save_data :
+   (state != STATE_IDLE) ? writedata_next :
    writeburst_do         ? writeburst_data[31:0] :
                            dma_writedata;
 	
@@ -182,7 +174,7 @@ always @(posedge clk) begin
                if (writeburst_dword_length > 2'd1) begin
                   state        <= STATE_WRITE;
                end
-               save_data       <= { 8'd0, writeburst_data[55:32] };
+               writedata_next  <= { 8'd0, writeburst_data[55:32] };
                byteenable_next <= writeburst_byteenable_1;
                writeaddr_next  <= writeburst_address[31:2] + 30'd1;
             end
@@ -210,10 +202,12 @@ always @(posedge clk) begin
 
 		STATE_READ:
          if (avm_readdatavalid) begin
-            if(counter == 3'd2) bus_1 <= avm_readdata;
-            if(counter == 3'd1) bus_0 <= avm_readdata;
-            counter <= counter - 3'd1;     
-            if(counter == 3'd0) state <= STATE_IDLE;
+            counter <= counter - 3'd1;
+            if(!counter) state <= STATE_IDLE;
+            else begin
+               if(counter == 3'd2 || save_readburst == 2'd2) bus_1 <= avm_readdata;
+               bus_0 <= avm_readdata;
+            end
          end
 
 		STATE_READ_CODE:
