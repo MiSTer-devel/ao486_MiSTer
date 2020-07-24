@@ -53,9 +53,9 @@ module read_debug(
 
 //------------------------------------------------------------------------------
 
-wire        rd_debug_trigger;
-wire [31:0] rd_debug_linear;
-wire [3:0]  rd_debug_length;
+reg        rd_debug_trigger;
+reg [31:0] rd_debug_linear;
+reg [3:0]  rd_debug_length;
 
 wire [31:0] rd_debug_linear_last;
 
@@ -73,9 +73,9 @@ reg rd_debug_b3_reg;
 
 //------------------------------------------------------------------------------
 
-assign rd_debug_trigger = read_do; //can be many cycles
-assign rd_debug_linear  = read_address;
-assign rd_debug_length  = read_length;
+always @(posedge clk) rd_debug_trigger <= read_do; //must be 2 cycles or more
+always @(posedge clk) rd_debug_linear  <= read_address;
+always @(posedge clk) rd_debug_length  <= read_length;
 
 assign rd_debug_linear_last = rd_debug_linear + { 28'd0, rd_debug_length } - 32'd1;
 
