@@ -180,6 +180,9 @@ always @(posedge CLK) begin
 		state      <= IDLE;
 		shr_rgn_en <= 1'b0;
 		vgabusy    <= 1'b0;
+		// synthesis translate_off
+		rrb[0:LINES-1] <= '{default:'0};
+		// synthesis translate_on
 	end
 	else begin
 		

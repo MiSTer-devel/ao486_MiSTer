@@ -247,7 +247,6 @@ link_readburst link_readburst_inst(
 wire         req_readcode_do;
 wire         req_readcode_done;
 wire [31:0]  req_readcode_address;
-wire [127:0] req_readcode_line;
 wire [31:0]  req_readcode_partial;
 
 //------------------------------------------------------------------------------
@@ -368,7 +367,7 @@ wire [31:0]  tlbwrite_data;
 
 wire        icacheread_do;
 wire [31:0] icacheread_address;
-wire [4:0]  icacheread_length; // takes into account: page size and cs segment limit
+wire [5:0]  icacheread_length; // takes into account: page size and cs segment limit
 
 //------------------------------------------------------------------------------
 
@@ -383,7 +382,7 @@ wire [4:0]      prefetched_length;
 //------------------------------------------------------------------------------
 
 wire [31:0]     prefetch_address;
-wire [4:0]      prefetch_length;
+wire [5:0]      prefetch_length;
 wire            prefetch_su;
 
 //------------------------------------------------------------------------------
@@ -528,14 +527,13 @@ icache icache_inst(
     //RESP:
     .icacheread_do              (icacheread_do),              //input
     .icacheread_address         (icacheread_address),         //input [31:0]
-    .icacheread_length          (icacheread_length),          //input [4:0] // takes into account: page size and cs segment limit
+    .icacheread_length          (icacheread_length),          //input [5:0] // takes into account: page size and cs segment limit
     
     //REQ:
     .readcode_do                (req_readcode_do),              //output
     .readcode_done              (req_readcode_done),            //input
     
     .readcode_address           (req_readcode_address),         //output [31:0]
-    .readcode_line              (req_readcode_line),            //input [127:0]
     .readcode_partial           (req_readcode_partial),         //input [31:0]
     //END
     
@@ -654,7 +652,7 @@ prefetch prefetch_inst(
     
     //to prefetch_control
     .prefetch_address   (prefetch_address),   //output [31:0]
-    .prefetch_length    (prefetch_length),    //output [4:0]
+    .prefetch_length    (prefetch_length),    //output [5:0]
     .prefetch_su        (prefetch_su),        //output
     
     //RESP:
@@ -721,7 +719,7 @@ prefetch_control prefetch_control_inst(
     
     //from prefetch
     .prefetch_address   (prefetch_address),   //input [31:0]
-    .prefetch_length    (prefetch_length),    //input [4:0]
+    .prefetch_length    (prefetch_length),    //input [5:0]
     .prefetch_su        (prefetch_su),        //input
     
     //from prefetchfifo
@@ -730,7 +728,7 @@ prefetch_control prefetch_control_inst(
     //REQ
     .icacheread_do              (icacheread_do),              //output
     .icacheread_address         (icacheread_address),         //output [31:0]
-    .icacheread_length          (icacheread_length),          //output [4:0] // takes into account: page size and cs segment limit
+    .icacheread_length          (icacheread_length),          //output [5:0] // takes into account: page size and cs segment limit
     .icacheread_cache_disable   ()                            //output
     //END
 );

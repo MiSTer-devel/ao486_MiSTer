@@ -36,7 +36,7 @@ module prefetch_control(
     
     //from prefetch
     input   [31:0]  prefetch_address,
-    input   [4:0]   prefetch_length,
+    input   [5:0]   prefetch_length,
     input           prefetch_su,
     
     //from prefetchfifo
@@ -58,7 +58,7 @@ module prefetch_control(
     //REQ:
     output          icacheread_do,
     output  [31:0]  icacheread_address,
-    output  [4:0]   icacheread_length, // takes into account: page size and cs segment limit
+    output  [5:0]   icacheread_length, // takes into account: page size and cs segment limit
     output          icacheread_cache_disable
     //END
 );
@@ -78,7 +78,7 @@ localparam [1:0] STATE_ICACHE      = 2'd1;
 //------------------------------------------------------------------------------
 
 wire [12:0] left_in_page;
-wire [4:0]  length;
+wire [5:0]  length;
 
 wire        offset_update;
 wire        page_cross;
@@ -89,7 +89,7 @@ assign tlbcoderequest_address = prefetch_address;
 assign tlbcoderequest_su      = prefetch_su;
 
 assign left_in_page = 13'd4096 - { 1'b0, prefetch_address[11:0] };
-assign length       = (left_in_page < { 8'd0, prefetch_length })?  left_in_page[4:0] : prefetch_length;
+assign length       = (left_in_page < { 8'd0, prefetch_length })?  left_in_page[5:0] : prefetch_length;
 
 assign offset_update = prefetch_address[31:12] == linear[31:12] && prefetch_address[11:0] != linear[11:0];
 assign page_cross    = prefetch_address[31:12] != linear[31:12];
@@ -106,7 +106,7 @@ assign page_cross    = prefetch_address[31:12] != linear[31:12];
 
 IF(state == STATE_TLB_REQUEST);
 
-    IF(~(pr_reset) && prefetch_length > 5'd0 && prefetchfifo_used < 5'd3);
+    IF(~(pr_reset) && prefetch_length > 5'd0 && prefetchfifo_used < 5'd2);
 
         SET(tlbcoderequest_do);
     

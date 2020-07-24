@@ -8,7 +8,7 @@ module l1_icache
    input      [31:0] CPU_ADDR,
    output reg        CPU_VALID,
    output reg        CPU_DONE,
-   output     [31:0] CPU_DATA,
+   output     [63:0] CPU_DATA,
    
    output reg        MEM_REQ,
    output reg [31:0] MEM_ADDR,
@@ -49,12 +49,12 @@ localparam [2:0]
 	READCACHE_OUT = 4;
 	
 // memory
-wire             [31:0] readdata_cache[0:ASSOCIATIVITY-1];
+wire             [63:0] readdata_cache[0:ASSOCIATIVITY-1];
 reg     [ASSO_BITS-1:0] cache_mux;
 
 reg        [ADDRBITS:0] read_addr;
 
-reg   [RAMSIZEBITS-1:0] memory_addr_b;
+reg   [RAMSIZEBITS-1:0] memory_addr_a;
 reg              [31:0] memory_datain;
 reg [0:ASSOCIATIVITY-1] memory_we;
 reg               [3:0] memory_be;
@@ -88,7 +88,7 @@ isimple_fifo (
    
 assign CPU_DATA = readdata_cache[cache_mux];
    
-always @(posedge CLK) begin
+always @(posedge CLK) begin : mainfsm
 	reg [ASSO_BITS:0] i;
 	
 	memory_we <= {ASSOCIATIVITY{1'b0}};
@@ -98,7 +98,11 @@ always @(posedge CLK) begin
 	if (RESET) begin
 		tag_dirty    <= {(LINES*ASSOCIATIVITY){1'b1}};
 		state        <= IDLE;
+		MEM_REQ      <= 1'b0;
 		CPU_REQ_hold <= 1'b0;
+		// synthesis translate_off
+		rrb[0:LINES-1] <= '{default:'0};
+		// synthesis translate_on
 	end
 	else begin
 		if (CPU_REQ) CPU_REQ_hold <= 1'b1;
@@ -108,7 +112,7 @@ always @(posedge CLK) begin
 				if (!Fifo_empty) begin
 					state         <= WRITEONE;
 					read_addr     <= Fifo_dout[25:0];
-					memory_addr_b <= Fifo_dout[RAMSIZEBITS - 1:0];
+					memory_addr_a <= Fifo_dout[RAMSIZEBITS - 1:0];
 					memory_datain <= Fifo_dout[57:26];
 					memory_be     <= Fifo_dout[61:58];
 				end
@@ -135,7 +139,7 @@ always @(posedge CLK) begin
 					MEM_REQ       <= 1'b1;
 					MEM_ADDR      <= {read_addr[ADDRBITS:LINESIZE_BITS], {LINESIZE_BITS{1'b0}}, 2'b00};
 					fillcount     <= 0;
-					memory_addr_b <= {read_addr[RAMSIZEBITS - 1:LINESIZE_BITS], {LINESIZE_BITS{1'b0}}};
+					memory_addr_a <= {read_addr[RAMSIZEBITS - 1:LINESIZE_BITS], {LINESIZE_BITS{1'b0}}};
 					cache_mux     <= rrb[read_addr[LINEMASKMSB:LINEMASKLSB]];
 					for (i = 0; i < ASSOCIATIVITY; i = i + 1'd1) begin
 						if (~tag_dirty[read_addr[LINEMASKMSB:LINEMASKLSB] * ASSOCIATIVITY + i]) begin
@@ -150,7 +154,7 @@ always @(posedge CLK) begin
 								else begin
 									state     <= READONE;
 									burstleft <= burstleft - 1'd1;
-									read_addr <= read_addr + 1'd1;
+									read_addr <= read_addr + 2'd2;
 								end
 							end
 						end
@@ -164,7 +168,7 @@ always @(posedge CLK) begin
 					memory_we[cache_mux] <= 1'b1;
 					memory_be            <= 4'hF;
 
-					if (fillcount > 0) memory_addr_b <= memory_addr_b + 1'd1;
+					if (fillcount > 0) memory_addr_a <= memory_addr_a + 1'd1;
 					if (fillcount < LINESIZE - 1) fillcount <= fillcount + 1'd1;
 					else state <= READCACHE_OUT;
 				end
@@ -224,27 +228,27 @@ generate
 			.intended_device_family("Cyclone V"),
 			.lpm_type("altsyncram"),
 			.numwords_a(2**RAMSIZEBITS),
-			.numwords_b(2**RAMSIZEBITS),
+			.numwords_b(2**(RAMSIZEBITS - 1)),
 			.operation_mode("DUAL_PORT"),
 			.outdata_aclr_b("NONE"),
 			.outdata_reg_b("UNREGISTERED"),
 			.power_up_uninitialized("FALSE"),
 			.read_during_write_mode_mixed_ports("DONT_CARE"),
 			.widthad_a(RAMSIZEBITS),
-			.widthad_b(RAMSIZEBITS),
+			.widthad_b(RAMSIZEBITS - 1),
 			.width_a(32),
-			.width_b(32),
+			.width_b(64),
 			.width_byteena_a(4)
 		)
 		ram (
 			.clock0 (CLK),
 
-			.address_a(memory_addr_b),
+			.address_a(memory_addr_a),
 			.byteena_a(memory_be),
 			.data_a(memory_datain),
 			.wren_a(memory_we[i]),
 
-			.address_b(read_addr[RAMSIZEBITS - 1:0]),
+			.address_b(read_addr[RAMSIZEBITS - 1:1]),
 			.q_b(readdata_cache[i]),
 
 			.aclr0(1'b0),
@@ -257,7 +261,7 @@ generate
 			.clocken1(1'b1),
 			.clocken2(1'b1),
 			.clocken3(1'b1),
-			.data_b(32'b0),
+			.data_b(64'b0),
 			.eccstatus(),
 			.q_a(),
 			.rden_a(1'b1),
