@@ -50,6 +50,8 @@ set_global_assignment -name PHYSICAL_SYNTHESIS_ASYNCHRONOUS_SIGNAL_PIPELINING ON
 set_global_assignment -name ALM_REGISTER_PACKING_EFFORT LOW
 set_global_assignment -name SEED 1
 
+set_global_assignment -name VERILOG_MACRO "USE_FB=1"
+
 source sys/sys.tcl
 source sys/sys_analog.tcl
 source files.qip

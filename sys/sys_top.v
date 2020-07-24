@@ -633,6 +633,9 @@ wire clk_hdmi  = hdmi_clk_out;
 ascal 
 #(
 	.RAMBASE(32'h20000000),
+`ifndef USE_FB	
+	.PALETTE2("false"),
+`endif
 	.N_DW(128),
 	.N_AW(28)
 )
@@ -686,10 +689,19 @@ ascal
 	.poly_dw  (coef_data),
 	.poly_wr  (coef_wr),
 
-	.pal_clk  (clk_pal),
-	.pal_dw   (pal_d),
-	.pal_a    (pal_a),
-	.pal_wr   (pal_wr),
+	.pal1_clk (clk_pal),
+	.pal1_dw  (pal_d),
+	.pal1_a   (pal_a),
+	.pal1_wr  (pal_wr),
+
+`ifdef USE_FB	
+	.pal2_clk (fb_pal_clk),
+	.pal2_dw  (fb_pal_d),
+	.pal2_dr  (fb_pal_q),
+	.pal2_a   (fb_pal_a),
+	.pal2_wr  (fb_pal_wr),
+	.pal_n    (fb_en),
+`endif
 
 	.o_fb_ena         (FB_EN),
 	.o_fb_hsize       (FB_WIDTH),
@@ -832,7 +844,7 @@ reg         pal_req = 0;
 always @(posedge clk_pal) begin
 	reg old_vs;
 
-	pal_addr <= FB_BASE[31:3] - 29'd512;
+	pal_addr <= LFB_BASE[31:3] - 29'd512;
 
 	old_vs <= hdmi_vs;
 	if(~old_vs & hdmi_vs & ~FB_FMT[2] & FB_FMT[1] & FB_FMT[0] & FB_EN) pal_req <= ~pal_req;
@@ -952,12 +964,24 @@ hdmi_config hdmi_config
 `ifndef DEBUG_NOHDMI
 wire [23:0] hdmi_data_sl;
 wire        hdmi_de_sl, hdmi_vs_sl, hdmi_hs_sl;
+
+`ifdef USE_FB
+reg dis_output;
+always @(posedge clk_hdmi) begin
+	reg dis;
+	dis <= fb_force_blank;
+	dis_output <= dis;
+end
+`else
+wire dis_output = 0;
+`endif
+
 scanlines #(1) HDMI_scanlines
 (
 	.clk(clk_hdmi),
 
 	.scanlines(scanlines),
-	.din(hdmi_data),
+	.din(dis_output ? 24'd0 : hdmi_data),
 	.hs_in(hdmi_hs),
 	.vs_in(hdmi_vs),
 	.de_in(hdmi_de),
@@ -1366,7 +1390,14 @@ wire [11:0] fb_height;
 wire [31:0] fb_base;
 wire [13:0] fb_stride;
 
-`ifndef USE_FB
+`ifdef USE_FB
+	wire        fb_pal_clk;
+	wire  [7:0] fb_pal_a;
+	wire [23:0] fb_pal_d;
+	wire [23:0] fb_pal_q;
+	wire        fb_pal_wr;
+	wire        fb_force_blank;
+`else
 	assign fb_en = 0;
 	assign fb_fmt = 0;
 	assign fb_width = 0;
@@ -1404,6 +1435,13 @@ emu emu
 	.FB_STRIDE(fb_stride),
 	.FB_VBL(fb_vbl),
 	.FB_LL(lowlat),
+	.FB_FORCE_BLANK(fb_force_blank),
+
+	.FB_PAL_CLK (fb_pal_clk),
+	.FB_PAL_ADDR(fb_pal_a),
+	.FB_PAL_DOUT(fb_pal_d),
+	.FB_PAL_DIN (fb_pal_q),
+	.FB_PAL_WR  (fb_pal_wr),
 `endif
 
 	.LED_USER(led_user),
