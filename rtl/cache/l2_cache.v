@@ -206,9 +206,9 @@ always @(posedge CLK) begin
 					if (!DDRAM_BUSY) begin
 						
 						// for timing purposes, most registers are assigned without region checks
-						CPU_ADDR_1    <= CPU_ADDR_1;
-						CPU_DIN_1     <= CPU_DIN_1;
-						CPU_WE_1      <= CPU_WE_1;
+						CPU_ADDR_1    <= CPU_ADDR;
+						CPU_DIN_1     <= CPU_DIN;
+						CPU_WE_1      <= CPU_WE;
 
 						ram_addr      <= CPU_ADDR[ADDRBITS+1:1];
 						ram_burstcnt  <= 8'h01;
