@@ -258,78 +258,17 @@ wire             req_dcacheread_cache_disable;
 wire [31:0]      req_dcacheread_address;
 wire [63:0]      req_dcacheread_data;
 
-wire             resp_dcacheread_do;
-wire             resp_dcacheread_done;
-wire [3:0]       resp_dcacheread_length;
-wire             resp_dcacheread_cache_disable;
-wire [31:0]      resp_dcacheread_address;
-wire [63:0]      resp_dcacheread_data;
-
-link_dcacheread link_dcacheread_inst(
-    .clk                (clk),
-    .rst_n              (rst_n),
-    
-    // dcacheread REQ
-    .req_dcacheread_do                  (req_dcacheread_do),              //input
-    .req_dcacheread_done                (req_dcacheread_done),            //output
-    
-    .req_dcacheread_length              (req_dcacheread_length),          //input [3:0]
-    .req_dcacheread_cache_disable       (req_dcacheread_cache_disable),   //input
-    .req_dcacheread_address             (req_dcacheread_address),         //input [31:0]
-    .req_dcacheread_data                (req_dcacheread_data),            //output [63:0]
-    
-    // dcacheread RESP
-    .resp_dcacheread_do                 (resp_dcacheread_do),             //output
-    .resp_dcacheread_done               (resp_dcacheread_done),           //input
-    
-    .resp_dcacheread_length             (resp_dcacheread_length),         //output [3:0]
-    .resp_dcacheread_cache_disable      (resp_dcacheread_cache_disable),  //output
-    .resp_dcacheread_address            (resp_dcacheread_address),        //output [31:0]
-    .resp_dcacheread_data               (resp_dcacheread_data)            //input [63:0]
-);
-
 //------------------------------------------------------------------------------
 
-wire               req_dcachewrite_do;
-wire               req_dcachewrite_done;
-wire   [2:0]       req_dcachewrite_length;
-wire               req_dcachewrite_cache_disable;
-wire   [31:0]      req_dcachewrite_address;
-wire               req_dcachewrite_write_through;
-wire   [31:0]      req_dcachewrite_data;
+wire              dcache_canaccept;
 
-wire              resp_dcachewrite_do;
-wire              resp_dcachewrite_done;
-wire  [2:0]       resp_dcachewrite_length;
-wire              resp_dcachewrite_cache_disable;
-wire  [31:0]      resp_dcachewrite_address;
-wire              resp_dcachewrite_write_through;
-wire  [31:0]      resp_dcachewrite_data;
-
-link_dcachewrite link_dcachewrite_inst(
-    .clk                (clk),
-    .rst_n              (rst_n),
-    
-    // dcachewrite REQ
-    .req_dcachewrite_do                 (req_dcachewrite_do),             //input
-    .req_dcachewrite_done               (req_dcachewrite_done),           //output
-    
-    .req_dcachewrite_length             (req_dcachewrite_length),         //input [2:0]
-    .req_dcachewrite_cache_disable      (req_dcachewrite_cache_disable),  //input
-    .req_dcachewrite_address            (req_dcachewrite_address),        //input [31:0]
-    .req_dcachewrite_write_through      (req_dcachewrite_write_through),  //input
-    .req_dcachewrite_data               (req_dcachewrite_data),           //input [31:0]
-    
-    // dcachewrite RESP
-    .resp_dcachewrite_do                (resp_dcachewrite_do),            //output
-    .resp_dcachewrite_done              (resp_dcachewrite_done),          //input
-    
-    .resp_dcachewrite_length            (resp_dcachewrite_length),        //output [2:0]
-    .resp_dcachewrite_cache_disable     (resp_dcachewrite_cache_disable), //output
-    .resp_dcachewrite_address           (resp_dcachewrite_address),       //output [31:0]
-    .resp_dcachewrite_write_through     (resp_dcachewrite_write_through), //output
-    .resp_dcachewrite_data              (resp_dcachewrite_data)           //output [31:0]
-);
+wire              req_dcachewrite_do;
+wire              req_dcachewrite_done;
+wire   [2:0]      req_dcachewrite_length;
+wire              req_dcachewrite_cache_disable;
+wire   [31:0]     req_dcachewrite_address;
+wire              req_dcachewrite_write_through;
+wire   [31:0]     req_dcachewrite_data;
 
 //------------------------------------------------------------------------------
 
@@ -481,21 +420,21 @@ dcache dcache_inst(
     .rst_n              (rst_n),
     
     //RESP:
-    .dcacheread_do              (resp_dcacheread_do),              //input
-    .dcacheread_done            (resp_dcacheread_done),            //output
-    
-    .dcacheread_length          (resp_dcacheread_length),          //input [3:0]
-    .dcacheread_address         (resp_dcacheread_address),         //input [31:0]
-    .dcacheread_data            (resp_dcacheread_data),            //output [63:0]
+    .dcacheread_do              (req_dcacheread_do),           //input
+    .dcacheread_done            (req_dcacheread_done),         //output
+                                                        
+    .dcacheread_length          (req_dcacheread_length),       //input [3:0]
+    .dcacheread_address         (req_dcacheread_address),      //input [31:0]
+    .dcacheread_data            (req_dcacheread_data),         //output [63:0]
     //END
     
     //RESP:
-    .dcachewrite_do             (resp_dcachewrite_do),                 //input
-    .dcachewrite_done           (resp_dcachewrite_done),               //output
-    
-    .dcachewrite_length         (resp_dcachewrite_length),             //input [2:0]
-    .dcachewrite_address        (resp_dcachewrite_address),            //input [31:0]
-    .dcachewrite_data           (resp_dcachewrite_data),               //input [31:0]
+    .dcachewrite_do             (req_dcachewrite_do),          //input
+    .dcachewrite_done           (req_dcachewrite_done),        //output
+                                  
+    .dcachewrite_length         (req_dcachewrite_length),      //input [2:0]
+    .dcachewrite_address        (req_dcachewrite_address),     //input [31:0]
+    .dcachewrite_data           (req_dcachewrite_data),        //input [31:0]
     //END
     
     //REQ:
@@ -519,7 +458,8 @@ dcache dcache_inst(
     .writeburst_data            (req_writeburst_data),          //output [55:0]
     //END
     
-    .dcache_busy        (dcache_busy)           //output
+    .dcache_busy                (dcache_busy),                  //output
+    .dcache_canaccept           (dcache_canaccept)              //output
 );
 
 assign invddata_done = 1'b1;
@@ -846,6 +786,7 @@ tlb tlb_inst(
     //REQ:
     .dcachewrite_do                 (req_dcachewrite_do),                 //output
     .dcachewrite_done               (req_dcachewrite_done),               //input
+    .dcache_canaccept               (dcache_canaccept),                   //input
 
     .dcachewrite_length             (req_dcachewrite_length),             //output [2:0]
     .dcachewrite_cache_disable      (req_dcachewrite_cache_disable),      //output

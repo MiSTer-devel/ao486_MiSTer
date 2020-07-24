@@ -44,7 +44,7 @@ module dcache(
     
     //RESP:
     input               dcachewrite_do,
-    output              dcachewrite_done,
+    output   reg        dcachewrite_done,
     
     input   [2:0]       dcachewrite_length,
     input   [31:0]      dcachewrite_address,
@@ -72,7 +72,8 @@ module dcache(
     output      [55:0]  writeburst_data,
     //END
     
-    output              dcache_busy
+    output              dcache_busy,
+    output              dcache_canaccept
 );
 
 //------------------------------------------------------------------------------
@@ -147,20 +148,22 @@ assign dcacheread_done = rst_n && (state == STATE_READ_BURST && readburst_done);
 assign readburst_do = rst_n && (state == STATE_IDLE && ~dcachewrite_do && dcacheread_do);
 assign readburst_address = dcacheread_address;
 
-assign dcachewrite_done = rst_n && (state == STATE_IDLE && dcachewrite_do);
 assign writeburst_do = rst_n && (state == STATE_IDLE && dcachewrite_do);
 assign writeburst_address = dcachewrite_address;
 
+assign dcache_canaccept = (state == STATE_IDLE) ? 1'b1 : 1'b0;
 
 always @(posedge clk) begin
    if(rst_n == 1'b0) begin
       state <= STATE_IDLE;
    end
    else begin
+      dcachewrite_done <= 1'b0;
       if(state == STATE_IDLE) begin
          readaddrmux <= dcacheread_address[1:0];
          if (dcachewrite_do) begin
-            state <= STATE_WRITE_THROUGH;
+            state            <= STATE_WRITE_THROUGH;
+            dcachewrite_done <= 1'b1;
          end
          else if (dcacheread_do) begin
             state  <= STATE_READ_BURST;
