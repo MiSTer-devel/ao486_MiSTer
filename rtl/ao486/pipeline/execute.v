@@ -323,6 +323,14 @@ assign e_load = rd_ready;
 
 //------------------------------------------------------------------------------
 
+wire [31:0] rd_eip_next_sum;
+reg  [31:0] exe_eip_next_sum;
+    
+assign rd_eip_next_sum =
+    (rd_is_8bit)?          rd_eip + { {24{rd_decoder[15]}}, rd_decoder[15:8] } :
+    (~rd_operand_32bit)?   rd_eip + { {16{rd_decoder[23]}}, rd_decoder[23:8] } :
+                           rd_eip + rd_decoder[39:8];
+
 reg         exe_is_8bit;
 reg [7:0]   exe_modregrm_imm;
 reg [31:0]  exe_extra;
@@ -354,6 +362,7 @@ always @(posedge clk) begin if(rst_n == 1'b0) exe_debug_read           <= 4'd0; 
 always @(posedge clk) begin if(rst_n == 1'b0) src                      <= 32'd0;     else if(e_load) src                      <= src_wire;                end
 always @(posedge clk) begin if(rst_n == 1'b0) dst                      <= 32'd0;     else if(e_load) dst                      <= dst_wire;                end
 always @(posedge clk) begin if(rst_n == 1'b0) exe_address_effective    <= 32'd0;     else if(e_load) exe_address_effective    <= rd_address_effective;    end
+always @(posedge clk) begin if(rst_n == 1'b0) exe_eip_next_sum         <= 32'd0;     else if(e_load) exe_eip_next_sum         <= rd_eip_next_sum;         end
 
 always @(posedge clk) begin
     if(rst_n == 1'b0)   exe_mutex <= 11'd0;
@@ -662,6 +671,7 @@ execute_commands execute_commands_inst(
     .exe_mutex_current                  (exe_mutex_current),                //input [10:0]
     
     .exe_eip                            (exe_eip),                          //input [31:0]
+    .e_eip_next_sum                     (exe_eip_next_sum),                 //input [31:0]
     .exe_extra                          (exe_extra),                        //input [31:0]
     .exe_linear                         (exe_linear),                       //input [31:0]
     .exe_cmd                            (exe_cmd),                          //input [6:0]
