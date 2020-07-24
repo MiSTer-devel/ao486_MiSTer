@@ -406,6 +406,11 @@ wire            tlbcode_cache_disable;
 
 //------------------------------------------------------------------------------
 
+wire [27:2]     snoop_addr;
+wire [31:0]     snoop_data;
+wire  [3:0]     snoop_be;
+wire            snoop_we;
+
 //------------------------------------------------------------------------------
 
 avalon_mem avalon_mem_inst(
@@ -441,6 +446,11 @@ avalon_mem avalon_mem_inst(
     .readcode_address           (req_readcode_address),        //input [31:0]
     .readcode_partial           (req_readcode_partial),        //output [31:0]
     //END
+    
+    .snoop_addr                 (snoop_addr),
+    .snoop_data                 (snoop_data),
+    .snoop_be                   (snoop_be),  
+    .snoop_we                   (snoop_we),
     
     // avalon master
     .avm_address                (avm_address),                  //output [31:0]
@@ -547,10 +557,10 @@ icache icache_inst(
     .prefetched_length          (prefetched_length),  //output [4:0]
     //END
     
-    .snoop_addr                 (avm_address[27:2]),
-    .snoop_data                 (avm_writedata),
-    .snoop_be                   (avm_byteenable),
-    .snoop_we                   (!avm_address[31:28] && ~avm_waitrequest && avm_write)
+    .snoop_addr                 (snoop_addr),
+    .snoop_data                 (snoop_data),
+    .snoop_be                   (snoop_be),  
+    .snoop_we                   (snoop_we)
 );
 
 assign invdcode_done = 1'b1;

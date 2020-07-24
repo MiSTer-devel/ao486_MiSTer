@@ -62,6 +62,11 @@ module avalon_mem(
     output      [31:0]  readcode_partial,
     //END
     
+    output      [27:2]  snoop_addr,
+    output      [31:0]  snoop_data,
+    output       [3:0]  snoop_be,
+    output              snoop_we,
+
     // avalon master
     output      [31:2]  avm_address,
     output      [31:0]  avm_writedata,
@@ -161,6 +166,15 @@ assign avm_burstcount =
 wire dma_start = ~(writeburst_do | readburst_do | readcode_do);
 assign avm_write = rst_n && ((state == STATE_IDLE && (writeburst_do || (dma_write && dma_start))) || state == STATE_WRITE);
 assign avm_read  = rst_n && state == STATE_IDLE && ~writeburst_do && (readburst_do || readcode_do || dma_read);
+
+assign snoop_addr = avm_address[27:2];
+assign snoop_data = avm_writedata;
+assign snoop_be   =  // does never need read_byte enable
+   (state != STATE_IDLE)         ? byteenable_next :
+   writeburst_do                 ? writeburst_byteenable_0 : 
+                                   dma_byteenable;
+
+assign snoop_we   = (!avm_address[31:28] && ~avm_waitrequest && avm_write);
 
 always @(posedge clk) begin
    if(!rst_n) begin
