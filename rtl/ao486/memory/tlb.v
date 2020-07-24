@@ -126,7 +126,6 @@ module tlb(
     //REQ:
     output              dcachewrite_do,
     input               dcachewrite_done,
-    input               dcache_canaccept,
     
     output  [2:0]       dcachewrite_length,
     output              dcachewrite_cache_disable,
@@ -562,7 +561,7 @@ IF(state == STATE_READ_CHECK);
             SET(dcacheread_length,           tlbread_length);
             SET(dcacheread_cache_disable,    cr0_cd || translate_pcd || memtype_cache_disable);
             
-            IF (dcache_canaccept); SAVE(state, STATE_READ_WAIT);
+            SAVE(state, STATE_READ_WAIT);
         ENDIF();
 
     ELSE();
@@ -575,7 +574,7 @@ IF(state == STATE_READ_CHECK);
         SET(dcacheread_cache_disable,    cr0_cd || cr3_pcd || memtype_cache_disable);
         
         SAVE(current_type,   TYPE_READ);
-        IF (dcache_canaccept); SAVE(state,          STATE_LOAD_PDE);
+        SAVE(state,          STATE_LOAD_PDE);
     
     ENDIF();
     
@@ -615,9 +614,7 @@ IF(state == STATE_WRITE_CHECK);
             SET(dcachewrite_write_through,   cr0_nw || translate_pwt || memtype_write_transparent);
             SET(dcachewrite_data,            tlbwrite_data);
             
-            IF (dcache_canaccept);
-               SAVE(state, STATE_WRITE_WAIT);
-            ENDIF();
+            SAVE(state, STATE_WRITE_WAIT);
         ENDIF();
 
     ELSE();
@@ -630,7 +627,7 @@ IF(state == STATE_WRITE_CHECK);
         SET(dcacheread_cache_disable,    cr0_cd || cr3_pcd || memtype_cache_disable);
         
         SAVE(current_type,   TYPE_WRITE);
-        IF (dcache_canaccept); SAVE(state,          STATE_LOAD_PDE);
+        SAVE(state,          STATE_LOAD_PDE);
     
     ENDIF();
     
@@ -669,7 +666,7 @@ IF(state == STATE_CHECK_CHECK);
         SET(dcacheread_cache_disable,    cr0_cd || cr3_pcd || memtype_cache_disable);
         
         SAVE(current_type,   TYPE_CHECK);
-        IF (dcache_canaccept); SAVE(state,          STATE_LOAD_PDE);
+        SAVE(state,          STATE_LOAD_PDE);
     
     ENDIF();
     
@@ -722,7 +719,7 @@ IF(state == STATE_CODE_CHECK);
         SET(dcacheread_cache_disable,    cr0_cd || cr3_pcd || memtype_cache_disable);
         
         SAVE(current_type,   TYPE_CODE);
-        IF (dcache_canaccept); SAVE(state,          STATE_LOAD_PDE);
+        SAVE(state,          STATE_LOAD_PDE);
     ENDIF();
 ENDIF();
 */
@@ -786,7 +783,7 @@ IF(state == STATE_LOAD_PTE_START);
     SET(dcacheread_length,           4'd4);
     SET(dcacheread_cache_disable,    cr0_cd || pde[4] || memtype_cache_disable);
     
-    IF (dcache_canaccept); SAVE(state, STATE_LOAD_PTE);
+    SAVE(state, STATE_LOAD_PTE);
 
 ENDIF();
 */
@@ -881,9 +878,7 @@ IF(state == STATE_LOAD_PTE_END);
         SET(dcachewrite_write_through,   cr0_nw || cr3_pwt || memtype_write_transparent);
         SET(dcachewrite_data,            pde | 32'h00000020);
         
-        IF (dcache_canaccept);
-           SAVE(state, STATE_SAVE_PDE);
-        ENDIF();
+        SAVE(state, STATE_SAVE_PDE);
         
     // PTE not accessed or has to become dirty
     ELSE_IF(pte[5] == `FALSE || (pte[6] == `FALSE && rw));
@@ -897,9 +892,7 @@ IF(state == STATE_LOAD_PTE_END);
         SET(dcachewrite_write_through,   cr0_nw || pde[3] || memtype_write_transparent);
         SET(dcachewrite_data,            pte[31:0] | 32'h00000020 | ((pte[6] == `FALSE && rw)? 32'h00000040 : 32'h00000000));
     
-        IF (dcache_canaccept);
-           SAVE(state, STATE_SAVE_PTE);
-        ENDIF();
+        SAVE(state, STATE_SAVE_PTE);
         
     ELSE();
         
@@ -918,9 +911,7 @@ IF(state == STATE_LOAD_PTE_END);
             SET(dcachewrite_write_through,   cr0_nw || pte[3] || memtype_write_transparent);
             SET(dcachewrite_data,            tlbwrite_data);
         
-            IF (dcache_canaccept);
-               SAVE(state, STATE_WRITE_WAIT);
-            ENDIF();
+            SAVE(state, STATE_WRITE_WAIT);
         
         ELSE_IF(current_type == TYPE_READ);
         
@@ -949,7 +940,7 @@ IF(state == STATE_READ_WAIT_START);
     SET(dcacheread_length,           tlbread_length);
     SET(dcacheread_cache_disable,    cr0_cd || pte[4] || memtype_cache_disable);
 
-    IF (dcache_canaccept); SAVE(state, STATE_READ_WAIT);
+    SAVE(state, STATE_READ_WAIT);
     
 ENDIF();
 */
@@ -980,7 +971,7 @@ IF(state == STATE_SAVE_PDE);
                 SET(dcacheread_length,           tlbread_length);
                 SET(dcacheread_cache_disable,    cr0_cd || pte[4] || memtype_cache_disable);
 
-                IF (dcache_canaccept); SAVE(state, STATE_READ_WAIT);
+                SAVE(state, STATE_READ_WAIT);
                 
 //AO-notlb: ELSE_IF(current_type == TYPE_CODE && pr_reset == 1'b0 && pr_reset_waiting == 1'b0);
 //AO-notlb: SAVE(tlbcode_do, `TRUE);
@@ -1012,9 +1003,7 @@ IF(state == STATE_SAVE_PTE_START);
     SET(dcachewrite_write_through,   cr0_nw || pde[3] || memtype_write_transparent);
     SET(dcachewrite_data,            pte[31:0] | 32'h00000020 | ((pte[6] == `FALSE && rw)? 32'h00000040 : 32'h00000000));
 
-    IF (dcache_canaccept);
-       SAVE(state, STATE_SAVE_PTE);
-    ENDIF();
+    SAVE(state, STATE_SAVE_PTE);
 
 ENDIF();
 */
@@ -1038,9 +1027,7 @@ IF(state == STATE_WRITE_WAIT_START);
         SET(dcachewrite_write_through,   cr0_nw || pte[3] || memtype_write_transparent);
         SET(dcachewrite_data,            tlbwrite_data);
 
-        IF (dcache_canaccept);
-           SAVE(state, STATE_WRITE_WAIT);
-        ENDIF();
+        SAVE(state, STATE_WRITE_WAIT);
     ENDIF();
 ENDIF();
 */
@@ -1064,7 +1051,7 @@ IF(state == STATE_SAVE_PTE);
             SET(dcacheread_length,           tlbread_length);
             SET(dcacheread_cache_disable,    cr0_cd || pte[4] || memtype_cache_disable);
 
-            IF (dcache_canaccept); SAVE(state, STATE_READ_WAIT);
+            SAVE(state, STATE_READ_WAIT);
             
 //AO-notlb: ELSE_IF(current_type == TYPE_CODE && pr_reset == 1'b0 && pr_reset_waiting == 1'b0);
 //AO-notlb: SAVE(tlbcode_do, `TRUE);
@@ -1165,40 +1152,40 @@ wire [4:0] state_to_reg =
     (cond_11 && cond_12)? ( STATE_IDLE) :
     (cond_13 && cond_14)? ( STATE_IDLE) :
     (cond_15 && cond_17 && cond_18)? ( STATE_IDLE) :
-    (cond_15 && cond_17 && ~cond_18 && dcache_canaccept)? ( STATE_READ_WAIT) :
-    (cond_15 && ~cond_17 && dcache_canaccept)? (          STATE_LOAD_PDE) :
+    (cond_15 && cond_17 && ~cond_18)? ( STATE_READ_WAIT) :
+    (cond_15 && ~cond_17)? (          STATE_LOAD_PDE) :
     (cond_19 && cond_17 && cond_18)? ( STATE_IDLE) :
     (cond_19 && cond_17 && ~cond_18 && cond_20)? ( STATE_WRITE_DOUBLE) :
-    (cond_19 && cond_17 && ~cond_18 && ~cond_20 && dcache_canaccept)? ( STATE_WRITE_WAIT) :
-    (cond_19 && ~cond_17 && dcache_canaccept)? (          STATE_LOAD_PDE) :
+    (cond_19 && cond_17 && ~cond_18 && ~cond_20)? ( STATE_WRITE_WAIT) :
+    (cond_19 && ~cond_17)? (          STATE_LOAD_PDE) :
     (cond_21 && cond_17)? ( STATE_IDLE) :
-    (cond_21 && ~cond_17 && dcache_canaccept)? (          STATE_LOAD_PDE) :
+    (cond_21 && ~cond_17)? (          STATE_LOAD_PDE) :
     (cond_22 && cond_23)? ( STATE_IDLE) :
     (cond_22 && ~cond_23 && cond_17)? ( STATE_IDLE) :
-    (cond_22 && ~cond_23 && ~cond_17 && dcache_canaccept)? (          STATE_LOAD_PDE) :
+    (cond_22 && ~cond_23 && ~cond_17)? (          STATE_LOAD_PDE) :
     (cond_24 && cond_14 && cond_25)? ( STATE_IDLE) :
     (cond_24 && cond_14 && ~cond_25)? ( STATE_LOAD_PTE_START) :
-    (cond_30 && dcache_canaccept)? ( STATE_LOAD_PTE) :
+    (cond_30)? ( STATE_LOAD_PTE) :
     (cond_31)? ( STATE_IDLE) :
     (cond_32 && cond_14 && cond_33)? ( STATE_IDLE) :
     (cond_32 && cond_14 && ~cond_33 && cond_34)? ( STATE_RETRY) :
     (cond_32 && cond_14 && ~cond_33 && ~cond_34)? ( STATE_LOAD_PTE_END) :
-    (cond_35 && cond_36 && dcache_canaccept)? ( STATE_SAVE_PDE) :
-    (cond_35 && ~cond_36 && cond_37 && dcache_canaccept)? ( STATE_SAVE_PTE) :
+    (cond_35 && cond_36)? ( STATE_SAVE_PDE) :
+    (cond_35 && ~cond_36 && cond_37)? ( STATE_SAVE_PTE) :
     (cond_35 && ~cond_36 && ~cond_37 && cond_38)? ( STATE_WRITE_DOUBLE) :
-    (cond_35 && ~cond_36 && ~cond_37 && ~cond_38 && cond_28 && dcache_canaccept)? ( STATE_WRITE_WAIT) :
+    (cond_35 && ~cond_36 && ~cond_37 && ~cond_38 && cond_28)? ( STATE_WRITE_WAIT) :
     (cond_35 && ~cond_36 && ~cond_37 && ~cond_38 && ~cond_28 && cond_29)? ( STATE_READ_WAIT_START) :
     (cond_35 && ~cond_36 && ~cond_37 && ~cond_38 && ~cond_28 && ~cond_29)? ( STATE_IDLE) :
-    (cond_39 && dcache_canaccept)? ( STATE_READ_WAIT) :
+    (cond_39)? ( STATE_READ_WAIT) :
     (cond_40 && cond_12 && cond_37)? ( STATE_SAVE_PTE_START) :
     (cond_40 && cond_12 && ~cond_37 && cond_28)? ( STATE_WRITE_WAIT_START) :
-    (cond_40 && cond_12 && ~cond_37 && ~cond_28 && cond_29 && dcache_canaccept)? ( STATE_READ_WAIT) :
+    (cond_40 && cond_12 && ~cond_37 && ~cond_28 && cond_29)? ( STATE_READ_WAIT) :
     (cond_40 && cond_12 && ~cond_37 && ~cond_28 && ~cond_29)? ( STATE_IDLE) :
-    (cond_41 && dcache_canaccept)? ( STATE_SAVE_PTE) :
+    (cond_41)? ( STATE_SAVE_PTE) :
     (cond_42 && cond_38)? ( STATE_WRITE_DOUBLE) :
-    (cond_42 && ~cond_38 && dcache_canaccept)? ( STATE_WRITE_WAIT) :
+    (cond_42 && ~cond_38)? ( STATE_WRITE_WAIT) :
     (cond_43 && cond_12 && cond_28)? ( STATE_WRITE_WAIT_START) :
-    (cond_43 && cond_12 && ~cond_28 && cond_29 && dcache_canaccept)? ( STATE_READ_WAIT) :
+    (cond_43 && cond_12 && ~cond_28 && cond_29)? ( STATE_READ_WAIT) :
     (cond_43 && cond_12 && ~cond_28 && ~cond_29)? ( STATE_IDLE) :
     state;
 wire [31:0] tlb_read_pf_cr2_to_reg =

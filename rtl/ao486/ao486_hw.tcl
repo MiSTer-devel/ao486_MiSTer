@@ -77,6 +77,8 @@ add_fileset_file avalon_mem.v VERILOG PATH memory/avalon_mem.v
 add_fileset_file dcache.v VERILOG PATH memory/dcache.v
 add_fileset_file icache_read.v VERILOG PATH memory/icache_read.v
 add_fileset_file icache.v VERILOG PATH memory/icache.v
+add_fileset_file link_dcacheread.v VERILOG PATH memory/link_dcacheread.v
+add_fileset_file link_dcachewrite.v VERILOG PATH memory/link_dcachewrite.v
 add_fileset_file link_readburst.v VERILOG PATH memory/link_readburst.v
 add_fileset_file link_writeburst.v VERILOG PATH memory/link_writeburst.v
 add_fileset_file memory.v VERILOG PATH memory/memory.v
