@@ -114,14 +114,17 @@ assign tlbread_rmw         = read_rmw;
 
 //------------------------------------------------------------------------------
 
+reg [3:0]  length_1_save;
+always @(posedge clk) length_1_save <= length_1;
+
 assign merged =
-    (length_1 == 4'd1)? { tlbread_data[55:0], buffer[7:0] } :
-    (length_1 == 4'd2)? { tlbread_data[47:0], buffer[15:0] } :
-    (length_1 == 4'd3)? { tlbread_data[39:0], buffer[23:0] } :
-    (length_1 == 4'd4)? { tlbread_data[31:0], buffer[31:0] } :
-    (length_1 == 4'd5)? { tlbread_data[23:0], buffer[39:0] } :
-    (length_1 == 4'd6)? { tlbread_data[15:0], buffer[47:0] } :
-                        { tlbread_data[7:0],  buffer[55:0] };
+    (length_1_save == 4'd1)? { tlbread_data[55:0], buffer[7:0] } :
+    (length_1_save == 4'd2)? { tlbread_data[47:0], buffer[15:0] } :
+    (length_1_save == 4'd3)? { tlbread_data[39:0], buffer[23:0] } :
+    (length_1_save == 4'd4)? { tlbread_data[31:0], buffer[31:0] } :
+    (length_1_save == 4'd5)? { tlbread_data[23:0], buffer[39:0] } :
+    (length_1_save == 4'd6)? { tlbread_data[15:0], buffer[47:0] } :
+                            { tlbread_data[7:0],  buffer[55:0] };
 
 //------------------------------------------------------------------------------
 

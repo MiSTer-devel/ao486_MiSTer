@@ -112,6 +112,10 @@ reg  [31:0] vga_next_data;
 reg   [3:0] vga_next_be;
 reg         vgabusy;
 
+reg  [29:0] CPU_ADDR_1;
+reg  [31:0] CPU_DIN_1;
+reg         CPU_WE_1;
+
 assign DDRAM_BURSTCNT = ram_burstcnt;
 assign DDRAM_ADDR     = ram_addr;
 assign DDRAM_RD       = ram_rd;
@@ -190,6 +194,8 @@ always @(posedge CLK) begin
 			ram_rd <= 1'b0;
 			ram_we <= 1'b0;
 		end
+
+		if (CPU_WE_1 && (CPU_ADDR_1 == 'h33800) && (CPU_DIN_1[15:0] == 'hA345)) shr_rgn_en <= 1'b1;
 		
 		case (state)
 			
@@ -200,6 +206,10 @@ always @(posedge CLK) begin
 					if (!DDRAM_BUSY) begin
 						
 						// for timing purposes, most registers are assigned without region checks
+						CPU_ADDR_1    <= CPU_ADDR_1;
+						CPU_DIN_1     <= CPU_DIN_1;
+						CPU_WE_1      <= CPU_WE_1;
+
 						ram_addr      <= CPU_ADDR[ADDRBITS+1:1];
 						ram_burstcnt  <= 8'h01;
 						read_addr     <= CPU_ADDR[ADDRBITS+1:1];
@@ -244,7 +254,6 @@ always @(posedge CLK) begin
 							end
 						end
 						
-						if (CPU_WE && (CPU_ADDR == 'h33800) && (CPU_DIN[15:0] == 'hA345)) shr_rgn_en <= 1'b1;
 					end
 				end
 			
