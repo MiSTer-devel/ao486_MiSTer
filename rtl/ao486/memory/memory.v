@@ -159,89 +159,6 @@ module memory(
     output              dma_waitrequest
 );
 
-
-//------------------------------------------------------------------------------
-
-wire        req_writeburst_do;
-wire        req_writeburst_done;
-wire [31:0] req_writeburst_address;
-wire [1:0]  req_writeburst_dword_length;
-wire [3:0]  req_writeburst_byteenable_0;
-wire [3:0]  req_writeburst_byteenable_1;
-wire [55:0] req_writeburst_data;
-
-wire        resp_writeburst_do;
-wire        resp_writeburst_done;
-wire [31:0] resp_writeburst_address;
-wire [1:0]  resp_writeburst_dword_length;
-wire [3:0]  resp_writeburst_byteenable_0;
-wire [3:0]  resp_writeburst_byteenable_1;
-wire [55:0] resp_writeburst_data;
-
-link_writeburst link_writeburst_inst(
-    .clk                            (clk),
-    .rst_n                          (rst_n),
-    
-    // writeburst REQ
-    .req_writeburst_do              (req_writeburst_do),            //input
-    .req_writeburst_done            (req_writeburst_done),          //output
-    
-    .req_writeburst_address         (req_writeburst_address),       //input [31:0]
-    .req_writeburst_dword_length    (req_writeburst_dword_length),  //input [1:0]
-    .req_writeburst_byteenable_0    (req_writeburst_byteenable_0),  //input [3:0]
-    .req_writeburst_byteenable_1    (req_writeburst_byteenable_1),  //input [3:0]
-    .req_writeburst_data            (req_writeburst_data),          //input [55:0]
-    
-    // writeburst RESP
-    .resp_writeburst_do             (resp_writeburst_do),           //output
-    .resp_writeburst_done           (resp_writeburst_done),         //input
-    
-    .resp_writeburst_address        (resp_writeburst_address),      //output [31:0]
-    .resp_writeburst_dword_length   (resp_writeburst_dword_length), //output [1:0]
-    .resp_writeburst_byteenable_0   (resp_writeburst_byteenable_0), //output [3:0]
-    .resp_writeburst_byteenable_1   (resp_writeburst_byteenable_1), //output [3:0]
-    .resp_writeburst_data           (resp_writeburst_data)          //output [55:0]
-);
-
-//------------------------------------------------------------------------------
-
-wire         req_readburst_do;
-wire         req_readburst_done;
-wire [31:0]  req_readburst_address;
-wire [1:0]   req_readburst_dword_length;
-wire [3:0]   req_readburst_byte_length;
-wire [95:0]  req_readburst_data;
-
-wire         resp_readburst_do;
-wire         resp_readburst_done;
-wire [31:0]  resp_readburst_address;
-wire [1:0]   resp_readburst_dword_length;
-wire [3:0]   resp_readburst_byte_length;
-wire [95:0]  resp_readburst_data;
-
-link_readburst link_readburst_inst(
-    .clk                    (clk),
-    .rst_n                  (rst_n),
-    
-    // readburst REQ
-    .req_readburst_do               (req_readburst_do),             //input
-    .req_readburst_done             (req_readburst_done),           //output
-    
-    .req_readburst_address          (req_readburst_address),        //input [31:0]
-    .req_readburst_dword_length     (req_readburst_dword_length),   //input [1:0]
-    .req_readburst_byte_length      (req_readburst_byte_length),    //input [11:0]
-    .req_readburst_data             (req_readburst_data),           //output [95:0]
-    
-    // readburst RESP
-    .resp_readburst_do              (resp_readburst_do),            //output
-    .resp_readburst_done            (resp_readburst_done),          //input
-    
-    .resp_readburst_address         (resp_readburst_address),       //output [31:0]
-    .resp_readburst_dword_length    (resp_readburst_dword_length),  //output [1:0]
-    .resp_readburst_byte_length     (resp_readburst_byte_length),   //output [3:0]
-    .resp_readburst_data            (resp_readburst_data)           //input [95:0]
-);
-
 //------------------------------------------------------------------------------
 
 wire         req_readcode_do;
@@ -419,24 +336,21 @@ avalon_mem avalon_mem_inst(
     .rst_n                      (rst_n),
     
     //RESP:
-    .writeburst_do              (resp_writeburst_do),           //input
-    .writeburst_done            (resp_writeburst_done),         //output
+    .writeburst_do              (resp_dcachewrite_do),          //input
+    .writeburst_done            (resp_dcachewrite_done),        //output
     
-    .writeburst_address         (resp_writeburst_address),      //input [31:0]
-    .writeburst_dword_length    (resp_writeburst_dword_length), //input [1:0]
-    .writeburst_byteenable_0    (resp_writeburst_byteenable_0), //input [3:0]
-    .writeburst_byteenable_1    (resp_writeburst_byteenable_1), //input [3:0]
-    .writeburst_data            (resp_writeburst_data),         //input [55:0]
+    .writeburst_address         (resp_dcachewrite_address),     //input [31:0]
+    .writeburst_length          (resp_dcachewrite_length),      //input [2:0]
+    .writeburst_data_in         (resp_dcachewrite_data),        //input [31:0]
     //END
     
     //RESP:
-    .readburst_do               (resp_readburst_do),            //input
-    .readburst_done             (resp_readburst_done),          //output
+    .readburst_do               (resp_dcacheread_do),           //input
+    .readburst_done             (resp_dcacheread_done),         //output
     
-    .readburst_address          (resp_readburst_address),       //input  [31:0]
-    .readburst_dword_length     (resp_readburst_dword_length),  //input  [1:0]
-    .readburst_byte_length      (resp_readburst_byte_length),   //input [3:0]
-    .readburst_data             (resp_readburst_data),          //output [95:0]
+    .readburst_address          (resp_dcacheread_address),      //input  [31:0]
+    .readburst_length           (resp_dcacheread_length),       //input  [3:0]
+    .readburst_data_out         (resp_dcacheread_data),         //output [63:0]
     //END
 
     //RESP:
@@ -475,55 +389,9 @@ avalon_mem avalon_mem_inst(
 
 //------------------------------------------------------------------------------
 
-dcache dcache_inst(
-    // global
-    .clk                (clk),
-    .rst_n              (rst_n),
-    
-    //RESP:
-    .dcacheread_do              (resp_dcacheread_do),              //input
-    .dcacheread_done            (resp_dcacheread_done),            //output
-    
-    .dcacheread_length          (resp_dcacheread_length),          //input [3:0]
-    .dcacheread_address         (resp_dcacheread_address),         //input [31:0]
-    .dcacheread_data            (resp_dcacheread_data),            //output [63:0]
-    //END
-    
-    //RESP:
-    .dcachewrite_do             (resp_dcachewrite_do),                 //input
-    .dcachewrite_done           (resp_dcachewrite_done),               //output
-    
-    .dcachewrite_length         (resp_dcachewrite_length),             //input [2:0]
-    .dcachewrite_address        (resp_dcachewrite_address),            //input [31:0]
-    .dcachewrite_data           (resp_dcachewrite_data),               //input [31:0]
-    //END
-    
-    //REQ:
-    .readburst_do               (req_readburst_do),             //output
-    .readburst_done             (req_readburst_done),           //input
-    
-    .readburst_address          (req_readburst_address),        //output [31:0]
-    .readburst_dword_length     (req_readburst_dword_length),   //output [1:0]
-    .readburst_byte_length      (req_readburst_byte_length),    //output [3:0]
-    .readburst_data             (req_readburst_data),           //input [95:0]
-    //END
-    
-    //REQ:
-    .writeburst_do              (req_writeburst_do),            //output
-    .writeburst_done            (req_writeburst_done),          //input
-    
-    .writeburst_address         (req_writeburst_address),       //output [31:0]
-    .writeburst_dword_length    (req_writeburst_dword_length),  //output [1:0]
-    .writeburst_byteenable_0    (req_writeburst_byteenable_0),  //output [3:0]
-    .writeburst_byteenable_1    (req_writeburst_byteenable_1),  //output [3:0]
-    .writeburst_data            (req_writeburst_data),          //output [55:0]
-    //END
-    
-    .dcache_busy        (dcache_busy)           //output
-);
-
 assign invddata_done = 1'b1;
 assign wbinvddata_done = 1'b1;
+assign dcache_busy = 1'b0;
 
 //------------------------------------------------------------------------------
 icache icache_inst(

@@ -38,10 +38,8 @@ module avalon_mem(
     output              writeburst_done,
     
     input       [31:0]  writeburst_address,
-    input       [1:0]   writeburst_dword_length,
-    input       [3:0]   writeburst_byteenable_0,
-    input       [3:0]   writeburst_byteenable_1,
-    input       [55:0]  writeburst_data,
+    input       [2:0]   writeburst_length,
+    input       [31:0]  writeburst_data_in,
     //END
     
     //RESP:
@@ -49,9 +47,8 @@ module avalon_mem(
     output              readburst_done,
     
     input       [31:0]  readburst_address,
-    input       [1:0]   readburst_dword_length,
-    input       [3:0]   readburst_byte_length,
-    output      [95:0]  readburst_data,
+    input       [3:0]   readburst_length,
+    output      [95:0]  readburst_data_out,
     //END
     
     //RESP:
@@ -112,10 +109,30 @@ localparam [2:0] STATE_WRITE_DMA = 3'd4;
 localparam [2:0] STATE_READ_DMA  = 3'd5;
 
 //------------------------------------------------------------------------------
+wire    [1:0]   readburst_dword_length;
+wire    [95:0]  readburst_data;
+reg     [1:0]   readaddrmux;
+
+assign readburst_dword_length =
+    (readburst_length == 4'd2 && readburst_address[1:0] == 2'b11)?   2'd2 :
+    (readburst_length == 4'd3 && readburst_address[1]   == 1'b1)?    2'd2 :
+    (readburst_length == 4'd4 && readburst_address[1:0] != 2'b00)?   2'd2 :
+    (readburst_length <= 4'd4)?                                      2'd1 :
+    (readburst_length == 4'd5)?                                      2'd2 :
+    (readburst_length == 4'd6 && readburst_address[1:0] == 2'b11)?   2'd3 :
+    (readburst_length == 4'd7 && readburst_address[1]   == 1'b1)?    2'd3 :
+    (readburst_length == 4'd8 && readburst_address[1:0] != 2'b00)?   2'd3 :
+                                                                     2'd2;
+
+assign readburst_data_out =
+    (readaddrmux == 2'd0)?     readburst_data[63:0]  :
+    (readaddrmux == 2'd1)?     readburst_data[71:8]  :
+    (readaddrmux == 2'd2)?     readburst_data[79:16] :
+                               readburst_data[87:24];
 
 reg [0:6] len_be;
 always @* begin
-	case(readburst_byte_length)
+	case(readburst_length)
             1: len_be = 7'b0001000;
             2: len_be = 7'b0011000;
             3: len_be = 7'b0111000;
@@ -129,6 +146,45 @@ wire [3:0] read_burst_byteenable = len_be[readburst_address[1:0] +:4];
 
 assign readburst_data = {avm_readdata, ~&save_readburst ? avm_readdata : bus_0, ~save_readburst[1] ? avm_readdata : bus_1};
 assign readcode_partial = avm_readdata;
+
+//------------------------------------------------------------------------------
+
+wire    [1:0]   writeburst_dword_length;
+wire    [3:0]   writeburst_byteenable_0;
+wire    [3:0]   writeburst_byteenable_1;
+wire    [55:0]  writeburst_data;
+
+assign writeburst_dword_length =
+    (writeburst_length == 3'd2 && writeburst_address[1:0] == 2'b11)?  2'd2 :
+    (writeburst_length == 3'd3 && writeburst_address[1]   == 1'b1)?   2'd2 :
+    (writeburst_length == 3'd4 && writeburst_address[1:0] != 2'b00)?  2'd2 :
+                                                                      2'd1;
+                                                
+assign writeburst_byteenable_0 =
+    (writeburst_address[1:0] == 2'd0 && writeburst_length == 3'd1)?   4'b0001 :
+    (writeburst_address[1:0] == 2'd1 && writeburst_length == 3'd1)?   4'b0010 :
+    (writeburst_address[1:0] == 2'd2 && writeburst_length == 3'd1)?   4'b0100 :
+    (writeburst_address[1:0] == 2'd0 && writeburst_length == 3'd2)?   4'b0011 :
+    (writeburst_address[1:0] == 2'd1 && writeburst_length == 3'd2)?   4'b0110 :
+    (writeburst_address[1:0] == 2'd0 && writeburst_length == 3'd3)?   4'b0111 :
+    (writeburst_address[1:0] == 2'd1 && writeburst_length >= 3'd3)?   4'b1110 :
+    (writeburst_address[1:0] == 2'd2 && writeburst_length >= 3'd2)?   4'b1100 :
+    (writeburst_address[1:0] == 2'd0 && writeburst_length == 3'd4)?   4'b1111 :
+                                                                       4'b1000; //(writeburst_address[1:0] == 2'd3)?
+
+assign writeburst_byteenable_1 =
+   (writeburst_address[1:0] == 2'd3 && writeburst_length == 3'd2)?   4'b0001 :
+   (writeburst_address[1:0] == 2'd2 && writeburst_length == 3'd3)?   4'b0001 :
+   (writeburst_address[1:0] == 2'd3 && writeburst_length == 3'd3)?   4'b0011 :
+   (writeburst_address[1:0] == 2'd1 && writeburst_length == 3'd4)?   4'b0001 :
+   (writeburst_address[1:0] == 2'd2 && writeburst_length == 3'd4)?   4'b0011 :
+                                                                     4'b0111; //(writeburst_address[1:0] == 2'd3 && writeburst_length == 3'd4)? 
+                                               
+assign writeburst_data =
+    (writeburst_address[1:0] == 2'd0)?   { 24'd0, writeburst_data_in[31:0] } :
+    (writeburst_address[1:0] == 2'd1)?   { 16'd0, writeburst_data_in[31:0], 8'd0 } :
+    (writeburst_address[1:0] == 2'd2)?   { 8'd0,  writeburst_data_in[31:0], 16'd0 } :
+                                         {        writeburst_data_in[31:0], 24'd0 };
 
 //------------------------------------------------------------------------------
 
@@ -183,29 +239,32 @@ always @(posedge clk) begin
    else begin
 		case(state)
       STATE_IDLE:
-         if (~avm_waitrequest) begin
-            if (writeburst_do) begin
-               if (writeburst_dword_length > 2'd1) begin
-                  state        <= STATE_WRITE;
+         begin
+            readaddrmux <= readburst_address[1:0];
+            if (~avm_waitrequest) begin
+               if (writeburst_do) begin
+                  if (writeburst_dword_length > 2'd1) begin
+                     state        <= STATE_WRITE;
+                  end
+                  writedata_next  <= { 8'd0, writeburst_data[55:32] };
+                  byteenable_next <= writeburst_byteenable_1;
+                  writeaddr_next  <= writeburst_address[31:2] + 30'd1;
                end
-               writedata_next  <= { 8'd0, writeburst_data[55:32] };
-               byteenable_next <= writeburst_byteenable_1;
-               writeaddr_next  <= writeburst_address[31:2] + 30'd1;
-            end
-            else if (readburst_do) begin
-               state          <= STATE_READ;
-               counter        <= readburst_dword_length - 3'd1;
-               save_readburst <= readburst_dword_length;
-            end
-            else if (readcode_do) begin
-               state   <= STATE_READ_CODE;
-               counter <= 3'd7;
-            end
-            else if (dma_write) begin
-               state <= STATE_WRITE_DMA;
-            end
-            else if (dma_read) begin
-               state <= STATE_READ_DMA;
+               else if (readburst_do) begin
+                  state          <= STATE_READ;
+                  counter        <= readburst_dword_length - 3'd1;
+                  save_readburst <= readburst_dword_length;
+               end
+               else if (readcode_do) begin
+                  state   <= STATE_READ_CODE;
+                  counter <= 3'd7;
+               end
+               else if (dma_write) begin
+                  state <= STATE_WRITE_DMA;
+               end
+               else if (dma_read) begin
+                  state <= STATE_READ_DMA;
+               end
             end
          end
 
