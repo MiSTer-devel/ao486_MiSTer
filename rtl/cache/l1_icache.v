@@ -8,7 +8,7 @@ module l1_icache
    input      [31:0] CPU_ADDR,
    output reg        CPU_VALID,
    output reg        CPU_DONE,
-   output     [63:0] CPU_DATA,
+   output     [31:0] CPU_DATA,
    
    output reg        MEM_REQ,
    output reg [31:0] MEM_ADDR,
@@ -49,7 +49,7 @@ localparam [2:0]
 	READCACHE_OUT = 4;
 	
 // memory
-wire             [63:0] readdata_cache[0:ASSOCIATIVITY-1];
+wire             [31:0] readdata_cache[0:ASSOCIATIVITY-1];
 reg     [ASSO_BITS-1:0] cache_mux;
 
 reg        [ADDRBITS:0] read_addr;
@@ -154,7 +154,7 @@ always @(posedge CLK) begin : mainfsm
 								else begin
 									state     <= READONE;
 									burstleft <= burstleft - 1'd1;
-									read_addr <= read_addr + 2'd2;
+									read_addr <= read_addr + 1'd1;
 								end
 							end
 						end
@@ -228,16 +228,16 @@ generate
 			.intended_device_family("Cyclone V"),
 			.lpm_type("altsyncram"),
 			.numwords_a(2**RAMSIZEBITS),
-			.numwords_b(2**(RAMSIZEBITS - 1)),
+			.numwords_b(2**RAMSIZEBITS),
 			.operation_mode("DUAL_PORT"),
 			.outdata_aclr_b("NONE"),
 			.outdata_reg_b("UNREGISTERED"),
 			.power_up_uninitialized("FALSE"),
 			.read_during_write_mode_mixed_ports("DONT_CARE"),
 			.widthad_a(RAMSIZEBITS),
-			.widthad_b(RAMSIZEBITS - 1),
+			.widthad_b(RAMSIZEBITS),
 			.width_a(32),
-			.width_b(64),
+			.width_b(32),
 			.width_byteena_a(4)
 		)
 		ram (
@@ -248,7 +248,7 @@ generate
 			.data_a(memory_datain),
 			.wren_a(memory_we[i]),
 
-			.address_b(read_addr[RAMSIZEBITS - 1:1]),
+			.address_b(read_addr[RAMSIZEBITS - 1:0]),
 			.q_b(readdata_cache[i]),
 
 			.aclr0(1'b0),
@@ -261,7 +261,7 @@ generate
 			.clocken1(1'b1),
 			.clocken2(1'b1),
 			.clocken3(1'b1),
-			.data_b(64'b0),
+			.data_b(32'b0),
 			.eccstatus(),
 			.q_a(),
 			.rden_a(1'b1),

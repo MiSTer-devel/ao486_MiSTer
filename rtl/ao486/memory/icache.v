@@ -37,7 +37,7 @@ module icache(
     //RESP:
     input           icacheread_do,
     input   [31:0]  icacheread_address,
-    input   [5:0]   icacheread_length, // takes into account: page size and cs segment limit
+    input   [4:0]   icacheread_length, // takes into account: page size and cs segment limit
     //END
     
     //REQ:
@@ -71,26 +71,26 @@ localparam STATE_READ = 1'd1;
 
 reg          state;
 reg [31:0]   address;
-reg [5:0]    length;
-reg [15:0]   partial_length;
+reg [4:0]    length;
+reg [11:0]   partial_length;
 reg          reset_waiting;
              
 wire [4:0]   partial_length_current;
 
-wire [15:0]  length_burst;
+wire [11:0]  length_burst;
 wire [67:0]  prefetch_line;
 
 wire         readcode_cache_do;
 wire [31:0]  readcode_cache_address;
 wire         readcode_cache_valid;
 wire         readcode_cache_done;
-wire [63:0]  readcode_cache_data;
+wire [31:0]  readcode_cache_data;
 
 //------------------------------------------------------------------------------
 
 //MIN(partial_length, length_saved)
 assign partial_length_current =
-    ({ 2'b0, partial_length[3:0] } > length)? length : { 2'b0, partial_length[3:0] };
+    ({ 2'b0, partial_length[2:0] } > length)? length : { 2'b0, partial_length[2:0] };
     
 //------------------------------------------------------------------------------
 
@@ -127,20 +127,20 @@ l1_icache l1_icache_inst(
 
 icache_read icache_read_inst(
    
-    .read_data      (readcode_cache_data),         //input [63:0]
+    .read_data      (readcode_cache_data),         //input [31:0]
+    .read_length    (partial_length[2:0]),      //input [2:0]
                              
-    .address        ((state == STATE_IDLE)? icacheread_address : address),  //input [31:0]
-    .current_length (partial_length_current),                               //input [4:0]
-    .length         ((state == STATE_IDLE)? icacheread_length : length),    //input [5:0]
+    .address    ((state == STATE_IDLE)? icacheread_address : address),  //input [31:0]
+    .length     ((state == STATE_IDLE)? icacheread_length : length),    //input [4:0]
                              
-    .length_burst   (length_burst),     //output [15:0]
+    .length_burst   (length_burst),     //output [11:0]
                              
     .prefetch_line  (prefetch_line)    //output [67:0]
 );
 
 assign readcode_cache_do =
    (~rst_n) ? (`FALSE) :
-   (state == STATE_IDLE && ~(pr_reset) && icacheread_do && icacheread_length > 6'd0) ? (`TRUE) :
+   (state == STATE_IDLE && ~(pr_reset) && icacheread_do && icacheread_length > 5'd0) ? (`TRUE) :
    `FALSE;
    
 assign readcode_cache_address = { icacheread_address[31:2], 2'd0 };
@@ -162,7 +162,7 @@ always @(posedge clk) begin
    if(rst_n == 1'b0) begin
       state          <= STATE_IDLE;
       length         <= 5'b0;
-      partial_length <= 16'b0;
+      partial_length <= 12'b0;
    end
    else begin
       if(state == STATE_IDLE && ~(pr_reset) && icacheread_do && icacheread_length > 5'd0) begin
@@ -174,9 +174,9 @@ always @(posedge clk) begin
       else if (state == STATE_READ) begin
          if(pr_reset == `FALSE && reset_waiting == `FALSE) begin
             if(readcode_cache_valid) begin
-               if(partial_length[3:0] > 4'd0 && length > 6'd0) begin
+               if(partial_length[2:0] > 3'd0 && length > 5'd0) begin
                   length         <= length - partial_length_current;
-                  partial_length <= { 4'd0, partial_length[15:4] }; 
+                  partial_length <= { 3'd0, partial_length[11:3] }; 
                end
             end
          end

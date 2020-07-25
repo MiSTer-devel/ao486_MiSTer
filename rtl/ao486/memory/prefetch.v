@@ -38,7 +38,7 @@ module prefetch(
     
     //to tlb
     output      [31:0]  prefetch_address,
-    output      [5:0]   prefetch_length,
+    output      [4:0]   prefetch_length,
     output              prefetch_su,
     
     //RESP:
@@ -70,7 +70,7 @@ assign prefetch_su = prefetch_cpl == 2'd3; //0=supervisor; 1=user
 
 assign prefetch_address = linear;
 
-assign prefetch_length = (limit > 32'd32)? 6'd32 : limit[5:0];
+assign prefetch_length = (limit > 32'd16)? 5'd16 : limit[4:0];
 
 assign length = (limit < {  27'd0, prefetched_length })? limit[4:0] : prefetched_length;
 
