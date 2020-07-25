@@ -489,7 +489,7 @@ assign FB_FORMAT      = fb_fmt;
 assign FB_WIDTH       = fb_width;
 assign FB_HEIGHT      = fb_height;
 assign FB_STRIDE      = fb_stride;
-assign FB_FORCE_BLANK = fb_en & fb_off;
+assign FB_FORCE_BLANK = fb_off;
 
 system u0
 (
@@ -500,7 +500,7 @@ system u0
 	.qsys_reset_reset     (sys_reset),
 
 	.video_ce             (CE_PIXEL),
-	.video_mode           (status[4] & ~fb_en),
+	.video_mode           (status[4]),
 	.video_blank_n        (de),
 	.video_hsync          (HSync),
 	.video_vsync          (VSync),
