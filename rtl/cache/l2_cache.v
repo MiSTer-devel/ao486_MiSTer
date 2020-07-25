@@ -32,7 +32,11 @@ module l2_cache #(parameter ADDRBITS = 24)
    output  [7:0] VGA_DOUT,
    input   [2:0] VGA_MODE,
    output        VGA_RD,
-   output        VGA_WE
+   output        VGA_WE,
+
+	input   [5:0] VGA_WR_SEG,
+	input   [5:0] VGA_RD_SEG,
+	input         VGA_FB_EN
 );
    
 
@@ -235,25 +239,36 @@ always @(posedge CLK) begin
 						force_next    <= shr_rgn;
 
 						if (CPU_RD) begin
+							state     <= READONE;
 							if (vga_rgn) begin
-								vga_re  <= 1'b1;
-								state   <= VGAWAIT;
-							end
-							else begin
-								state   <= READONE;
+								if(VGA_FB_EN) begin
+									ram_addr[24:13]  <= {6'b111110, VGA_RD_SEG};
+									read_addr[24:13] <= {6'b111110, VGA_RD_SEG};
+								end
+								else begin
+									vga_re  <= 1'b1;
+									state   <= VGAWAIT;
+								end
 							end
 						end
 						else if (CPU_WE & (~rom_rgn | shr_rgn) & ram_rgn) begin
 							if (vga_rgn) begin
-								vgabusy <= 1'b1;
-								state   <= VGABYTECHECK;
+								if(VGA_FB_EN) begin
+									ram_addr[24:13]  <= {6'b111110, VGA_WR_SEG};
+									read_addr[24:13] <= {6'b111110, VGA_WR_SEG};
+									ram_we  <= 1'b1;
+									state   <= WRITEONE;
+								end
+								else begin
+									vgabusy <= 1'b1;
+									state   <= VGABYTECHECK;
+								end
 							end
 							else begin
 								ram_we  <= 1'b1;
 								state   <= WRITEONE;
 							end
 						end
-						
 					end
 				end
 			

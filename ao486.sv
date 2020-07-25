@@ -184,6 +184,9 @@ localparam CONF_STR =
 	"-;",
 	"O1,Aspect ratio,4:3,16:9;",
 	"O4,VSync,60Hz,Variable;",
+	"O8,16/24bit mode,BGR,RGB;",
+	"O9,16bit format,1555,565;",
+	"-;",
 	"O3,FM mode,OPL2,OPL3;",
 	"-;",
 `ifndef DEBUG
@@ -444,6 +447,50 @@ gamma_fast gamma
 	.RGB_out({VGA_R,VGA_G,VGA_B})
 );
 
+wire  [7:0] vga_pal_a;
+wire [17:0] vga_pal_d;
+wire        vga_pal_we;
+
+wire [19:0] vga_start_addr;
+wire  [5:0] vga_wr_seg;
+wire  [5:0] vga_rd_seg;
+wire  [8:0] vga_width;
+wire  [8:0] vga_stride;
+wire [10:0] vga_height;
+wire  [3:0] vga_flags;
+wire        vga_off;
+
+reg         fb_en;
+reg  [31:0] fb_base;
+reg  [11:0] fb_height;
+reg  [11:0] fb_width;
+reg  [13:0] fb_stride;
+reg   [4:0] fb_fmt;
+reg         fb_off;
+
+always @(posedge clk_sys) begin
+	fb_en       <= ~vga_flags[2] && |vga_flags[1:0];
+	fb_base     <= {4'h3, 6'b111110, vga_start_addr, 2'b00};
+	fb_width    <= (vga_flags[1:0] == 3) ? 12'd640 /*({vga_width, 3'b000}/3)*/ : vga_flags[2] ? {1'b0, vga_width, 2'b00} : {vga_width, 3'b000};
+	fb_stride   <= {vga_stride, 3'b000};
+	fb_height   <= vga_flags[3] ? vga_height[10:1] : vga_height;
+	fb_fmt[2:0] <= (vga_flags[1:0] == 3) ? 3'b101 : (vga_flags[1:0] == 2) ? 3'b100 : 3'b011;
+	fb_fmt[4:3] <= {~status[8],~status[9]};
+	fb_off      <= vga_off;
+end
+
+assign FB_PAL_CLK     = clk_sys;
+assign FB_PAL_ADDR    = vga_pal_a;
+assign FB_PAL_DOUT    = {vga_pal_d[17:12], vga_pal_d[17:16], vga_pal_d[11:6], vga_pal_d[11:10], vga_pal_d[5:0], vga_pal_d[5:4]};
+assign FB_PAL_WR      = vga_pal_we;
+assign FB_EN          = fb_en;
+assign FB_BASE        = fb_base;
+assign FB_FORMAT      = fb_fmt;
+assign FB_WIDTH       = fb_width;
+assign FB_HEIGHT      = fb_height;
+assign FB_STRIDE      = fb_stride;
+assign FB_FORCE_BLANK = fb_en & fb_off;
+
 system u0
 (
 	.clk_opl_clk          (CLK_50M),
@@ -453,7 +500,7 @@ system u0
 	.qsys_reset_reset     (sys_reset),
 
 	.video_ce             (CE_PIXEL),
-	.video_mode           (status[4]),
+	.video_mode           (status[4] & ~fb_en),
 	.video_blank_n        (de),
 	.video_hsync          (HSync),
 	.video_vsync          (VSync),
@@ -461,6 +508,18 @@ system u0
 	.video_g              (g),
 	.video_b              (b),
 	.video_memmode        (vga_mode),
+
+	.video_pal_a          (vga_pal_a),
+	.video_pal_d          (vga_pal_d),
+	.video_pal_we         (vga_pal_we),
+	.video_start_addr     (vga_start_addr),
+	.video_wr_seg         (vga_wr_seg),
+	.video_rd_seg         (vga_rd_seg),
+	.video_width          (vga_width),
+	.video_stride         (vga_stride),
+	.video_height         (vga_height),
+	.video_flags          (vga_flags),
+	.video_off            (vga_off),
 
 	.sound_sample_l       (sb_out_l),
 	.sound_sample_r       (sb_out_r),
@@ -587,7 +646,11 @@ l2_cache cache
 	.VGA_DOUT         (vga_writedata      ),
 	.VGA_RD           (vga_read           ),
 	.VGA_WE           (vga_write          ),
-	.VGA_MODE         (vga_mode           )
+	.VGA_MODE         (vga_mode           ),
+
+	.VGA_WR_SEG       (vga_wr_seg         ),
+	.VGA_RD_SEG       (vga_rd_seg         ),
+	.VGA_FB_EN        (fb_en              )
 );
 
 wire       sys_reset = rst_q[7] | ~init_reset_n | RESET;

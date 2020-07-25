@@ -287,6 +287,17 @@ add_interface_port export_vga vga_g g Output 8
 add_interface_port export_vga vga_b b Output 8
 add_interface_port export_vga vga_mode mode Input 1
 add_interface_port export_vga vga_memmode memmode Output 3
+add_interface_port export_vga vga_pal_a pal_a Output 8
+add_interface_port export_vga vga_pal_d pal_d Output 18
+add_interface_port export_vga vga_pal_we pal_we Output 1
+add_interface_port export_vga vga_start_addr start_addr Output 20
+add_interface_port export_vga vga_wr_seg wr_seg Output 6
+add_interface_port export_vga vga_rd_seg rd_seg Output 6
+add_interface_port export_vga vga_width width Output 9
+add_interface_port export_vga vga_height height Output 11
+add_interface_port export_vga vga_flags flags Output 4
+add_interface_port export_vga vga_stride stride Output 9
+add_interface_port export_vga vga_off off Output 1
 
 
 # 
