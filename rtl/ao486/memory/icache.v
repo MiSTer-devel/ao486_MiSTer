@@ -50,7 +50,7 @@ module icache(
     
     //REQ:
     output              prefetchfifo_write_do,
-    output  [67:0]      prefetchfifo_write_data,
+    output  [35:0]      prefetchfifo_write_data,
     //END
     
     //REQ:
@@ -78,7 +78,7 @@ reg          reset_waiting;
 wire [4:0]   partial_length_current;
 
 wire [11:0]  length_burst;
-wire [67:0]  prefetch_line;
+wire [35:0]  prefetch_line;
 
 wire         readcode_cache_do;
 wire [31:0]  readcode_cache_address;
@@ -102,6 +102,25 @@ end
 
 //------------------------------------------------------------------------------
 
+wire [31:0] mux_address;
+wire  [4:0] mux_length;
+
+assign mux_address = (state == STATE_IDLE)? icacheread_address : address;
+assign mux_length  = (state == STATE_IDLE)? icacheread_length : length;
+
+assign length_burst =
+    (mux_address[1:0] == 2'd0)?    { 3'd4, 3'd4, 3'd4, 3'd4 } :
+    (mux_address[1:0] == 2'd1)?    { 3'd4, 3'd4, 3'd4, 3'd3 } :
+    (mux_address[1:0] == 2'd2)?    { 3'd4, 3'd4, 3'd4, 3'd2 } :
+                                   { 3'd4, 3'd4, 3'd4, 3'd1 };
+                            
+assign prefetch_line =
+    (partial_length[2:0] == 3'd1)?   {                      4'd1 ,                  24'd0, readcode_cache_data[31:24] } :
+    (partial_length[2:0] == 3'd2)?   { (mux_length > 5'd2)? 4'd2 : mux_length[3:0], 16'd0, readcode_cache_data[31:16] } :
+    (partial_length[2:0] == 3'd3)?   { (mux_length > 5'd3)? 4'd3 : mux_length[3:0],  8'd0, readcode_cache_data[31:8] } :
+                                     { (mux_length > 5'd4)? 4'd4 : mux_length[3:0],        readcode_cache_data[31:0] };
+
+//------------------------------------------------------------------------------
 
 l1_icache l1_icache_inst(
    
@@ -123,19 +142,6 @@ l1_icache l1_icache_inst(
     .snoop_data      (snoop_data),
     .snoop_be        (snoop_be),
     .snoop_we        (snoop_we)
-);
-
-icache_read icache_read_inst(
-   
-    .read_data      (readcode_cache_data),         //input [31:0]
-    .read_length    (partial_length[2:0]),      //input [2:0]
-                             
-    .address    ((state == STATE_IDLE)? icacheread_address : address),  //input [31:0]
-    .length     ((state == STATE_IDLE)? icacheread_length : length),    //input [4:0]
-                             
-    .length_burst   (length_burst),     //output [11:0]
-                             
-    .prefetch_line  (prefetch_line)    //output [67:0]
 );
 
 assign readcode_cache_do =

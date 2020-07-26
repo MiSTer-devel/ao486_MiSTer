@@ -54,7 +54,7 @@ localparam RAMSIZEBITS   = $clog2(LINESIZE * LINES);
 localparam LINEMASKLSB   = $clog2(LINESIZE);
 localparam LINEMASKMSB   = LINEMASKLSB + $clog2(LINES) - 1;
 
-reg             [ASSO_BITS-1:0] rrb[0:LINES-1];
+(* ramstyle = "MLAB" *) reg [ASSO_BITS-1:0] rrb[0:LINES-1];
 reg [(LINES*ASSOCIATIVITY)-1:0] tag_dirty;
 wire   [ADDRBITS-RAMSIZEBITS:0] tags_read[0:ASSOCIATIVITY-1];
 

@@ -289,7 +289,7 @@ wire [4:0]  icacheread_length; // takes into account: page size and cs segment l
 //------------------------------------------------------------------------------
 
 wire            prefetchfifo_write_do;
-wire [67:0]    prefetchfifo_write_data;
+wire [35:0]    prefetchfifo_write_data;
 
 //------------------------------------------------------------------------------
 
@@ -417,7 +417,7 @@ icache icache_inst(
     
     //REQ:
     .prefetchfifo_write_do      (prefetchfifo_write_do),      //output
-    .prefetchfifo_write_data    (prefetchfifo_write_data),    //output [67:0]
+    .prefetchfifo_write_data    (prefetchfifo_write_data),    //output [35:0]
     //END
     
     //REQ:
@@ -561,7 +561,7 @@ prefetch_fifo prefetch_fifo_inst(
     
     //RESP:
     .prefetchfifo_write_do      (prefetchfifo_write_do),      //input
-    .prefetchfifo_write_data    (prefetchfifo_write_data),    //input [67:0]
+    .prefetchfifo_write_data    (prefetchfifo_write_data),    //input [35:0]
     //END
     
     .prefetchfifo_used   (prefetchfifo_used),    //output [4:0]
