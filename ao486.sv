@@ -193,6 +193,7 @@ localparam CONF_STR =
 	"O57,Speed,90MHz,100MHz,15MHz,30MHz,56MHz;",
 	"OA,UART Speed,Normal,10x;",
 `endif
+	"OB,RAM Size,256MB,16MB;",
 	"-;",
 	"OX2,Boot order,FDD/HDD,HDD/FDD;",
 	"R0,Reset and apply HDD;",
@@ -591,6 +592,8 @@ system u0
 	.vga_write            (vga_write),
 	.vga_writedata        (vga_writedata),
 
+	.rtc_memcfg           (memcfg),
+
 	.mgmt_waitrequest     (mgmt_wait),
 	.mgmt_readdata        (mgmt_data),
 	.mgmt_readdatavalid   (mgmt_valid),
@@ -678,6 +681,9 @@ l2_cache cache
 	.VGA_RD_SEG       (vga_rd_seg         ),
 	.VGA_FB_EN        (fb_en              )
 );
+
+reg memcfg = 0;
+always @(posedge clk_sys) if(cpu_reset) memcfg <= status[11];
 
 wire       sys_reset = rst_q[7] | ~init_reset_n | RESET;
 wire       cpu_reset = cpu_rst1 | sys_reset;

@@ -37,6 +37,7 @@ module rtc(
     input               io_write,
     input       [7:0]   io_writedata,
     
+	 input               rtc_memcfg,
     //mgmt slave
     /*
     128.[26:0]: cycles in second
@@ -86,6 +87,8 @@ wire [7:0] io_readdata_next =
                                   1'b0, crb_binarymode, crb_24hour, crb_daylightsaving } :
     (ram_address == 7'h0C)?     { irq, periodic_interrupt, alarm_interrupt, update_interrupt, 4'd0 } :
     (ram_address == 7'h0D)?     8'h80 :
+	 (ram_address == 7'h34 & rtc_memcfg) ? 8'h00 :
+	 (ram_address == 7'h35 & rtc_memcfg) ? 8'h00 :
     (ram_address == 7'h32)?     rtc_century :
     (ram_address == 7'h37)?     rtc_century :
                                 ram_q;

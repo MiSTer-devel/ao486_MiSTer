@@ -596,6 +596,14 @@
          type = "String";
       }
    }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element uart
    {
       datum _sortIndex
@@ -676,10 +684,11 @@
    internal="reset_sys.reset_in0"
    type="reset"
    dir="end" />
+ <interface name="rtc" internal="rtc.rtc" type="conduit" dir="end" />
  <interface name="sd_clk" internal="driver_sd.conduit_clk" />
  <interface name="sd_cmd" internal="driver_sd.conduit_cmd" />
  <interface name="sd_dat" internal="driver_sd.conduit_dat" />
- <interface name="snoop" internal="ao486.conduit_snoop" type="conduit" dir="end" />
+ <interface name="snoop" internal="ao486.conduit_snoop" />
  <interface name="sound" internal="sound.conduit_sound" type="conduit" dir="end" />
  <interface
    name="speaker"
