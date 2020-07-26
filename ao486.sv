@@ -191,6 +191,7 @@ localparam CONF_STR =
 	"-;",
 `ifndef DEBUG
 	"O57,Speed,90MHz,100MHz,15MHz,30MHz,56MHz;",
+	"OA,UART Speed,Normal,10x;",
 `endif
 	"-;",
 	"OX2,Boot order,FDD/HDD,HDD/FDD;",
@@ -297,25 +298,29 @@ hps_ext hps_ext
 
 //------------------------------------------------------------------------------
 
-wire clk_sys, clk_uart;
+wire clk_sys, clk_uart, clk_opl;
 
 `ifdef DEBUG
 
 pll2 pll
 (
 	.refclk(CLK_50M),
-	.outclk_0(clk_sys),
-	.outclk_1(clk_uart)
+	.outclk_0(clk_sys)
+	.outclk_1(clk_uart),
+	.outclk_2(clk_opl)
 );
 
 `else
 
+wire pll_locked;
 pll pll
 (
 	.refclk(CLK_50M),
 	.rst(0),
 	.outclk_0(clk_sys),
 	.outclk_1(clk_uart),
+	.outclk_2(clk_opl),
+	.locked(pll_locked),
 	.reconfig_to_pll(reconfig_to_pll),
 	.reconfig_from_pll(reconfig_from_pll)
 );
@@ -351,37 +356,58 @@ always @(posedge CLK_50M) begin
 	if(sp2 == sp1) speed <= sp2;
 end
 
-(* romstyle = "logic" *) wire [31:0] clk_rate[5]  = '{90500000, 100555490, 15083323, 30166647, 56562463};
-(* romstyle = "logic" *) wire [15:0] speed_div[5] = '{  'h0505,    'h0504,   'h1e1e,   'h0f0f,   'h0808};
+reg uspeed;
+always @(posedge CLK_50M) begin
+	reg sp1, sp2;
+	
+	sp1 <= ~status[10];
+	sp2 <= sp1;
+	
+	if(sp2 == sp1) uspeed <= sp2;
+end
+
+(* romstyle = "logic" *) wire [31:0] clk_rate[5]  = '{90000000, 100000000, 15000000, 30000000, 56250000};
+(* romstyle = "logic" *) wire [17:0] speed_div[5] = '{  'h0505,   'h20504,   'h1e1e,   'h0f0f,   'h0808};
 
 always @(posedge CLK_50M) begin
 	reg [2:0] old_speed = 0;
 	reg [2:0] state = 0;
-
-	old_speed <= speed;
-
-	cfg_write <= 0;
-	if(old_speed != speed) state <= 1;
+	reg       old_uspeed = 0;
 
 	if(!cfg_waitrequest) begin
-		if(state) state<=state+1'd1;
-		case(state)
-			1: begin
-					cfg_address <= 0;
-					cfg_data <= 0;
-					cfg_write <= 1;
-				end
-			3: begin
-					cfg_address <= 5;
-					cfg_data <= speed_div[speed];
-					cfg_write <= 1;
-				end
-			5: begin
-					cfg_address <= 2;
-					cfg_data <= 0;
-					cfg_write <= 1;
-				end
-		endcase
+		
+		cfg_write <= 0;
+		
+		if(pll_locked) begin
+			if(state) state<=state+1'd1;
+			case(state)
+				0: begin
+						old_speed <= speed;
+						old_uspeed <= uspeed;
+						if(old_speed != speed || old_uspeed != uspeed) state <= 1;
+					end
+				1: begin
+						cfg_address <= 0;
+						cfg_data <= 0;
+						cfg_write <= 1;
+					end
+				3: begin
+						cfg_address <= 5;
+						cfg_data <= speed_div[speed];
+						cfg_write <= 1;
+					end
+				5: begin
+						cfg_address <= 5;
+						cfg_data <= uspeed ? 32'h4F4F4 : 32'h61716;
+						cfg_write <= 1;
+					end
+				7: begin
+						cfg_address <= 2;
+						cfg_data <= 0;
+						cfg_write <= 1;
+					end
+			endcase
+		end
 	end
 end
 
@@ -493,9 +519,9 @@ assign FB_FORCE_BLANK = fb_off;
 
 system u0
 (
-	.clk_opl_clk          (CLK_50M),
 	.clk_sys_clk          (clk_sys),
 	.clk_uart_clk         (clk_uart),
+	.clk_opl_clk          (clk_opl),
 
 	.qsys_reset_reset     (sys_reset),
 
