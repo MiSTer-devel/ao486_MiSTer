@@ -25,7 +25,8 @@
  */
 
 module hdd #(
-	parameter BufAddress
+	parameter BufAddress,
+	parameter MutexNum
 )(
     input               clk,
     input               rst_n,
@@ -658,7 +659,7 @@ always @(posedge clk or negedge rst_n) begin
     else if(state == S_COUNT_DECISION && count_decision_immediate_error)                                            state <= S_IDLE;
      
     //sd read/write
-    else if(state == S_SD_MUTEX && sd_master_readdatavalid && sd_master_readdata[2:0] == 3'd2)                      state <= S_SD_AVALON_BASE;
+    else if(state == S_SD_MUTEX && sd_master_readdatavalid && sd_master_readdata[2:0] == (MutexNum ? 3'd3 : 3'd2))  state <= S_SD_AVALON_BASE;
     else if(state == S_SD_AVALON_BASE && sd_master_waitrequest == 1'b0)                                             state <= S_SD_ADDRESS;
     else if(state == S_SD_ADDRESS     && sd_master_waitrequest == 1'b0)                                             state <= S_SD_BLOCK_COUNT;
     else if(state == S_SD_BLOCK_COUNT && sd_master_waitrequest == 1'b0)                                             state <= S_SD_CONTROL;
@@ -809,7 +810,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 assign sd_master_address =
-    (state == S_SD_MUTEX)?          32'hA08 :
+    (state == S_SD_MUTEX)?          (MutexNum ? 32'hA0C : 32'hA08) :
     (state == S_SD_AVALON_BASE)?    32'hA00 :
     (state == S_SD_ADDRESS)?        32'hA04 :
     (state == S_SD_BLOCK_COUNT)?    32'hA08 :

@@ -604,6 +604,14 @@
          type = "String";
       }
    }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element uart
    {
       datum _sortIndex
@@ -734,9 +742,11 @@
  </module>
  <module name="hdd0" kind="hdd" version="1.0" enabled="1">
   <parameter name="BufAddress" value="0" />
+  <parameter name="MutexNum" value="0" />
  </module>
  <module name="hdd1" kind="hdd" version="1.0" enabled="1">
   <parameter name="BufAddress" value="4096" />
+  <parameter name="MutexNum" value="1" />
  </module>
  <module name="hddext_0x370" kind="hddext" version="1.0" enabled="1" />
  <module name="joystick_0" kind="joystick" version="1.0" enabled="1" />
