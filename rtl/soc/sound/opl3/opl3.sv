@@ -32,7 +32,7 @@ module opl3
 	input                clk,
 	input                clk_opl,
 	input                rst_n,
-	output reg           irq_n,
+	output               irq_n,
 
 	input         [12:0] period_80us, // from clk
 
@@ -40,6 +40,7 @@ module opl3
 	output         [7:0] dout,
 	input          [7:0] din,
 	input                we,
+	input                rd,
 
 	output signed [15:0] sample_l,
 	output signed [15:0] sample_r
@@ -47,8 +48,8 @@ module opl3
 
 //------------------------------------------------------------------------------
 
-wire [7:0] io_readdata = { timer1_overflow | timer2_overflow, timer1_overflow, timer2_overflow, 5'd0 };
-assign dout = !addr ? io_readdata : 8'hFF;
+assign dout  = { timer1_overflow | timer2_overflow, timer1_overflow, timer2_overflow, 5'd0 };
+assign irq_n = ~(timer1_overflow | timer2_overflow);
 
 //------------------------------------------------------------------------------
 
@@ -86,10 +87,10 @@ timer timer1( clk, period_80us, timer1_preset, timer1_active, timer1_pulse );
 
 reg timer1_overflow;
 always @(posedge clk or negedge rst_n) begin
-	if(rst_n == 0)                                   timer1_overflow <= 0;
+	if(rst_n == 0)                                          timer1_overflow <= 0;
 	else begin
-		if(io_write && index == 4 && io_writedata[7]) timer1_overflow <= 0;
-		if(timer1_pulse)             						 timer1_overflow <= 1;
+		if(io_write && index == 4 && io_writedata[7])        timer1_overflow <= 0;
+		if((timer1_pulse || force_overflow) && ~timer1_mask) timer1_overflow <= 1;
 	end
 end
 
@@ -114,24 +115,38 @@ timer timer2( clk, {period_80us, 2'b00}, timer2_preset, timer2_active, timer2_pu
 
 reg timer2_overflow;
 always @(posedge clk or negedge rst_n) begin
-	if(rst_n == 0)                                   timer2_overflow <= 0;
+	if(rst_n == 0)                                          timer2_overflow <= 0;
 	else begin
-		if(io_write && index == 4 && io_writedata[7]) timer2_overflow <= 0;
-		if(timer2_pulse)                  				 timer2_overflow <= 1;
+		if(io_write && index == 4 && io_writedata[7])        timer2_overflow <= 0;
+		if((timer2_pulse || force_overflow) && ~timer2_mask) timer2_overflow <= 1;
 	end
 end
 
+reg force_overflow;
+always @(posedge clk) begin
+	reg [22:0] cnt;
+	reg  [5:0] rdcnt;
+	reg old_rd;
 
-//------------------------------------------------------------------------------ IRQ
+	force_overflow <= 0;
 
-always @(posedge clk or negedge rst_n) begin
-	if(rst_n == 0)                                   irq_n <= 1;
-	else begin
-		if(io_write && index == 4 && io_writedata[7]) irq_n <= 1;
-		if(~timer1_mask && timer1_pulse)              irq_n <= 0;
-		if(~timer2_mask && timer2_pulse)              irq_n <= 0;
+	cnt <= cnt + 1'd1;
+	old_rd <= rd;
+
+	if(~old_rd && rd) begin
+		cnt <= 0;
+		if(~&rdcnt) begin
+			rdcnt <= rdcnt + 1'd1;
+			if(rdcnt == 20) force_overflow <= 1;
+		end
+	end
+	else if((cnt[22:10] >= period_80us) || (io_write && index == 4)) begin
+		rdcnt <= 0;
+		cnt <= 0;
 	end
 end
+
+//------------------------------------------------------------------------------
 
 opl3sw #(OPLCLK) opl3
 (

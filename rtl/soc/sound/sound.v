@@ -145,6 +145,7 @@ opl3 #(50000000) opl
 	.din(io_write  ? io_writedata    : fm_writedata),
 	.dout(opl_dout),
 	.we(opl_we),
+	.rd((io_read && (io_address == 8)) || (fm_read && !fm_address)),
 
 	.sample_l(sample_from_opl_l),
 	.sample_r(sample_from_opl_r)
