@@ -1829,68 +1829,69 @@ keyboard_init()
     // cause a panic a few lines below.  See sourceforge bug report :
     // [ 642031 ] FATAL: Keyboard RESET error:993
 
-    /* ------------------- controller side ----------------------*/
-    /* send cmd = 0xAA, self test 8042 */
+	 /*
+    // ------------------- controller side ----------------------
+    // send cmd = 0xAA, self test 8042
     outb(PORT_PS2_STATUS, 0xaa);
 
-    /* Wait until buffer is empty */
+    // Wait until buffer is empty
     max=0xffff;
     while ( (inb(PORT_PS2_STATUS) & 0x02) && (--max>0)) outb(PORT_DIAG, 0x00);
     if (max==0x0) keyboard_panic(00);
 
-    /* Wait for data */
+    // Wait for data
     max=0xffff;
     while ( ((inb(PORT_PS2_STATUS) & 0x01) == 0) && (--max>0) ) outb(PORT_DIAG, 0x01);
     if (max==0x0) keyboard_panic(01);
 
-    /* read self-test result, 0x55 should be returned from 0x60 */
+    // read self-test result, 0x55 should be returned from 0x60
     if ((inb(PORT_PS2_DATA) != 0x55)){
         keyboard_panic(991);
     }
 
-    /* send cmd = 0xAB, keyboard interface test */
+    // send cmd = 0xAB, keyboard interface test
     outb(PORT_PS2_STATUS,0xab);
 
-    /* Wait until buffer is empty */
+    // Wait until buffer is empty 
     max=0xffff;
     while ((inb(PORT_PS2_STATUS) & 0x02) && (--max>0)) outb(PORT_DIAG, 0x10);
     if (max==0x0) keyboard_panic(10);
 
-    /* Wait for data */
+    // Wait for data
     max=0xffff;
     while ( ((inb(PORT_PS2_STATUS) & 0x01) == 0) && (--max>0) ) outb(PORT_DIAG, 0x11);
     if (max==0x0) keyboard_panic(11);
 
-    /* read keyboard interface test result, */
-    /* 0x00 should be returned form 0x60 */
+    // read keyboard interface test result,
+    // 0x00 should be returned form 0x60
     if ((inb(PORT_PS2_DATA) != 0x00)) {
         keyboard_panic(992);
     }
 
-    /* Enable Keyboard clock */
+    // Enable Keyboard clock
     outb(PORT_PS2_STATUS,0xae);
     outb(PORT_PS2_STATUS,0xa8);
 
-    /* ------------------- keyboard side ------------------------*/
-    /* reset keyboard and self test  (keyboard side) */
+    // ------------------- keyboard side ------------------------
+    // reset keyboard and self test  (keyboard side)
     outb(PORT_PS2_DATA, 0xff);
 
-    /* Wait until buffer is empty */
+    // Wait until buffer is empty
     max=0xffff;
     while ((inb(PORT_PS2_STATUS) & 0x02) && (--max>0)) outb(PORT_DIAG, 0x20);
     if (max==0x0) keyboard_panic(20);
 
-    /* Wait for data */
+    // Wait for data
     max=0xffff;
     while ( ((inb(PORT_PS2_STATUS) & 0x01) == 0) && (--max>0) ) outb(PORT_DIAG, 0x21);
     if (max==0x0) keyboard_panic(21);
 
-    /* keyboard should return ACK */
+    // keyboard should return ACK
     if ((inb(PORT_PS2_DATA) != 0xfa)) {
         keyboard_panic(993);
     }
 
-    /* Wait for data */
+    // Wait for data
     max=0xffff;
     while ( ((inb(PORT_PS2_STATUS) & 0x01) == 0) && (--max>0) ) outb(PORT_DIAG, 0x31);
     if (max==0x0) keyboard_panic(31);
@@ -1899,57 +1900,58 @@ keyboard_init()
         keyboard_panic(994);
     }
 
-    /* Disable keyboard */
+    // Disable keyboard
     outb(PORT_PS2_DATA, 0xf5);
 
-    /* Wait until buffer is empty */
+    // Wait until buffer is empty
     max=0xffff;
     while ((inb(PORT_PS2_STATUS) & 0x02) && (--max>0)) outb(PORT_DIAG, 0x40);
     if (max==0x0) keyboard_panic(40);
 
-    /* Wait for data */
+    // Wait for data
     max=0xffff;
     while ( ((inb(PORT_PS2_STATUS) & 0x01) == 0) && (--max>0) ) outb(PORT_DIAG, 0x41);
     if (max==0x0) keyboard_panic(41);
 
-    /* keyboard should return ACK */
+    // keyboard should return ACK
     if ((inb(PORT_PS2_DATA) != 0xfa)) {
         keyboard_panic(995);
     }
 
-    /* Write Keyboard Mode */
+    // Write Keyboard Mode
     outb(PORT_PS2_STATUS, 0x60);
 
-    /* Wait until buffer is empty */
+    // Wait until buffer is empty
     max=0xffff;
     while ((inb(PORT_PS2_STATUS) & 0x02) && (--max>0)) outb(PORT_DIAG, 0x50);
     if (max==0x0) keyboard_panic(50);
 
-    /* send cmd: scan code convert, disable mouse, enable IRQ 1 */
+    /* send cmd: scan code convert, disable mouse, enable IRQ 1
     outb(PORT_PS2_DATA, 0x61);
 
-    /* Wait until buffer is empty */
+    // Wait until buffer is empty
     max=0xffff;
     while ((inb(PORT_PS2_STATUS) & 0x02) && (--max>0)) outb(PORT_DIAG, 0x60);
     if (max==0x0) keyboard_panic(60);
 
-    /* Enable keyboard */
+    // Enable keyboard
     outb(PORT_PS2_DATA, 0xf4);
 
-    /* Wait until buffer is empty */
+    // Wait until buffer is empty
     max=0xffff;
     while ((inb(PORT_PS2_STATUS) & 0x02) && (--max>0)) outb(PORT_DIAG, 0x70);
     if (max==0x0) keyboard_panic(70);
 
-    /* Wait for data */
+    // Wait for data
     max=0xffff;
     while ( ((inb(PORT_PS2_STATUS) & 0x01) == 0) && (--max>0) ) outb(PORT_DIAG, 0x71);
     if (max==0x0) keyboard_panic(70);
 
-    /* keyboard should return ACK */
+    // keyboard should return ACK
     if ((inb(PORT_PS2_DATA) != 0xfa)) {
         keyboard_panic(996);
     }
+	 */
 
     outb(PORT_DIAG, 0x77);
 }
@@ -4979,14 +4981,14 @@ inhibit_mouse_int_and_events()
   Bit8u command_byte, prev_command_byte;
 
   // Turn off IRQ generation and aux data line
-  if ( inb(PORT_PS2_STATUS) & 0x02 ) delay_ticks(2);
+  while ( inb(PORT_PS2_STATUS) & 0x02 ) delay_ticks(2);
   if ( inb(PORT_PS2_STATUS) & 0x02 ) BX_PANIC(panic_msg_keyb_buffer_full,"inhibmouse1");
   outb(PORT_PS2_STATUS, 0x20); // get command byte
   while ( (inb(PORT_PS2_STATUS) & 0x01) != 0x01 );
   prev_command_byte = inb(PORT_PS2_DATA);
   command_byte = prev_command_byte;
   //while ( (inb(PORT_PS2_STATUS) & 0x02) );
-  if ( inb(PORT_PS2_STATUS) & 0x02 ) delay_ticks(2);
+  while ( inb(PORT_PS2_STATUS) & 0x02 ) delay_ticks(2);
   if ( inb(PORT_PS2_STATUS) & 0x02 )
     BX_PANIC(panic_msg_keyb_buffer_full,"inhibmouse2");
   command_byte &= 0xfd; // turn off IRQ 12 generation
@@ -5002,14 +5004,14 @@ enable_mouse_int_and_events()
   Bit8u command_byte;
 
   // Turn on IRQ generation and aux data line
-  if ( inb(PORT_PS2_STATUS) & 0x02 ) delay_ticks(2);
+  while ( inb(PORT_PS2_STATUS) & 0x02 ) delay_ticks(2);
   if ( inb(PORT_PS2_STATUS) & 0x02 )
     BX_PANIC(panic_msg_keyb_buffer_full,"enabmouse");
   outb(PORT_PS2_STATUS, 0x20); // get command byte
   while ( (inb(PORT_PS2_STATUS) & 0x01) != 0x01 );
   command_byte = inb(PORT_PS2_DATA);
   //while ( (inb(PORT_PS2_STATUS) & 0x02) );
-  if ( inb(PORT_PS2_STATUS) & 0x02 ) delay_ticks(2);
+  while ( inb(PORT_PS2_STATUS) & 0x02 ) delay_ticks(2);
   if ( inb(PORT_PS2_STATUS) & 0x02 )
     BX_PANIC(panic_msg_keyb_buffer_full,"enabmouse");
   command_byte |= 0x02; // turn on IRQ 12 generation
@@ -5025,7 +5027,7 @@ send_to_mouse_ctrl(sendbyte)
   Bit8u response;
 
   // wait for chance to write to ctrl
-  if ( inb(PORT_PS2_STATUS) & 0x02 ) delay_ticks(2);
+  while ( inb(PORT_PS2_STATUS) & 0x02 ) delay_ticks(2);
   if ( inb(PORT_PS2_STATUS) & 0x02 )
     BX_PANIC(panic_msg_keyb_buffer_full,"sendmouse");
   outb(PORT_PS2_STATUS, 0xD4);
@@ -5052,7 +5054,7 @@ get_mouse_data(data)
 set_kbd_command_byte(command_byte)
   Bit8u command_byte;
 {
-  if ( inb(PORT_PS2_STATUS) & 0x02 ) delay_ticks(2);
+  while ( inb(PORT_PS2_STATUS) & 0x02 ) delay_ticks(2);
   if ( inb(PORT_PS2_STATUS) & 0x02 )
     BX_PANIC(panic_msg_keyb_buffer_full,"setkbdcomm");
   outb(PORT_PS2_STATUS, 0xD4);
