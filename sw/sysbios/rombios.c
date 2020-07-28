@@ -1823,6 +1823,21 @@ keyboard_init()
             max = 0x2000;
         }
     }
+	 
+    // Write Keyboard Mode
+    outb(PORT_PS2_STATUS, 0x60);
+
+    // Wait until buffer is empty
+    max=0xffff;
+    while ((inb(PORT_PS2_STATUS) & 0x02) && (--max>0)) outb(PORT_DIAG, 0x50);
+    if (max==0x0) keyboard_panic(50);
+
+    // send cmd: scan code convert, disable mouse, enable IRQ 1
+    outb(PORT_PS2_DATA, 0x65);
+
+    // Wait until buffer is empty
+    max=0xffff;
+    while ((inb(PORT_PS2_STATUS) & 0x02) && (--max>0)) outb(PORT_DIAG, 0x60);
 
     // Due to timer issues, and if the IPS setting is > 15000000,
     // the incoming keys might not be flushed here. That will
@@ -4287,21 +4302,9 @@ BX_DEBUG_INT15("case 0:\n");
             case 0: // Disable Mouse
 BX_DEBUG_INT15("case 0: disable mouse\n");
               inhibit_mouse_int_and_events(); // disable IRQ12 and packets
-              ret = send_to_mouse_ctrl(0xF5); // disable mouse command
-              if (ret == 0) {
-                ret = get_mouse_data(&mouse_data1);
-                if ( (ret == 0) || (mouse_data1 == 0xFA) ) {
-                  CLEAR_CF();
-                  regs.u.r8.ah = 0;
-                  return;
-                }
-              }
-
-              // error
-              SET_CF();
-              regs.u.r8.ah = ret;
+              CLEAR_CF();
+              regs.u.r8.ah = 0;
               return;
-              break;
 
             case 1: // Enable Mouse
 BX_DEBUG_INT15("case 1: enable mouse\n");
@@ -4352,36 +4355,10 @@ BX_DEBUG_INT15("case 1 or 5:\n");
           }
 
           inhibit_mouse_int_and_events(); // disable IRQ12 and packets
-          ret = send_to_mouse_ctrl(0xFF); // reset mouse command
-          if (ret == 0) {
-            ret = get_mouse_data(&mouse_data3);
-            // if no mouse attached, it will return RESEND
-            if (mouse_data3 == 0xfe) {
-              SET_CF();
-              return;
-            }
-            if (mouse_data3 != 0xfa)
-              BX_PANIC("Mouse reset returned %02x (should be ack)\n", (unsigned)mouse_data3);
-            if ( ret == 0 ) {
-              ret = get_mouse_data(&mouse_data1);
-              if ( ret == 0 ) {
-                ret = get_mouse_data(&mouse_data2);
-                if ( ret == 0 ) {
-                  // turn IRQ12 and packet generation on
-                  enable_mouse_int_and_events();
-                  CLEAR_CF();
-                  regs.u.r8.ah = 0;
-                  regs.u.r8.bl = mouse_data1;
-                  regs.u.r8.bh = mouse_data2;
-                  return;
-                }
-              }
-            }
-          }
-
-          // error
-          SET_CF();
-          regs.u.r8.ah = ret;
+          CLEAR_CF();
+          regs.u.r8.ah = 0;
+          regs.u.r8.bl = 0xAA;
+          regs.u.r8.bh = 0;
           return;
 
         case 2: // Set Sample Rate
@@ -4425,6 +4402,7 @@ BX_DEBUG_INT15("case 3:\n");
           //      3 = 200 dpi, 8 counts per millimeter
           comm_byte = inhibit_mouse_int_and_events(); // disable IRQ12 and packets
           if (regs.u.r8.bh < 4) {
+				 /*
             ret = send_to_mouse_ctrl(0xE8); // set resolution command
             if (ret == 0) {
               ret = get_mouse_data(&mouse_data1);
@@ -4441,6 +4419,9 @@ BX_DEBUG_INT15("case 3:\n");
               SET_CF();
               regs.u.r8.ah = UNSUPPORTED_FUNCTION;
             }
+				*/
+            CLEAR_CF();
+            regs.u.r8.ah = 0;
           } else {
             // error
             SET_CF();
@@ -4470,36 +4451,11 @@ BX_DEBUG_INT15("case 4:\n");
 BX_DEBUG_INT15("case 6:\n");
           switch (regs.u.r8.bh) {
             case 0: // Return Status
-              comm_byte = inhibit_mouse_int_and_events(); // disable IRQ12 and packets
-              ret = send_to_mouse_ctrl(0xE9); // get mouse info command
-              if (ret == 0) {
-                ret = get_mouse_data(&mouse_data1);
-                if (mouse_data1 != 0xfa)
-                  BX_PANIC("Mouse status returned %02x (should be ack)\n", (unsigned)mouse_data1);
-                if (ret == 0) {
-                  ret = get_mouse_data(&mouse_data1);
-                  if (ret == 0) {
-                    ret = get_mouse_data(&mouse_data2);
-                    if (ret == 0) {
-                      ret = get_mouse_data(&mouse_data3);
-                      if (ret == 0) {
-                        CLEAR_CF();
-                        regs.u.r8.ah = 0;
-                        regs.u.r8.bl = mouse_data1;
-                        regs.u.r8.cl = mouse_data2;
-                        regs.u.r8.dl = mouse_data3;
-                        set_kbd_command_byte(comm_byte); // restore IRQ12 and serial enable
-                        return;
-                      }
-                    }
-                  }
-                }
-              }
-
-              // error
-              SET_CF();
-              regs.u.r8.ah = ret;
-              set_kbd_command_byte(comm_byte); // restore IRQ12 and serial enable
+              CLEAR_CF();
+              regs.u.r8.ah = 0;
+              regs.u.r8.bl = 0;
+              regs.u.r8.cl = 0;
+              regs.u.r8.dl = 0;
               return;
 
             case 1: // Set Scaling Factor to 1:1
@@ -4823,8 +4779,12 @@ ASM_END
   switch (GET_AH()) {
     case 0x00: /* read keyboard input */
 
-      if ( !dequeue_key(&scan_code, &ascii_code, 1) ) {
-        BX_PANIC("KBD: int16h: out of keyboard input\n");
+      if ( !dequeue_key(&scan_code, &ascii_code, 1) )
+      {
+        AX = 0;
+        SET_ZF();
+        return;
+        //BX_PANIC("KBD: int16h: out of keyboard input\n");
       }
       if (scan_code !=0 && ascii_code == 0xF0) ascii_code = 0;
       else if (ascii_code == 0xE0) ascii_code = 0;
@@ -4894,8 +4854,12 @@ ASM_END
 
     case 0x10: /* read MF-II keyboard input */
 
-      if ( !dequeue_key(&scan_code, &ascii_code, 1) ) {
-        BX_PANIC("KBD: int16h: out of keyboard input\n");
+      if ( !dequeue_key(&scan_code, &ascii_code, 1) )
+		{
+        AX = 0;
+        SET_ZF();
+        return;
+        //BX_PANIC("KBD: int16h: out of keyboard input\n");
       }
       if (scan_code !=0 && ascii_code == 0xF0) ascii_code = 0;
       AX = (scan_code << 8) | ascii_code;
@@ -5057,8 +5021,6 @@ set_kbd_command_byte(command_byte)
   while ( inb(PORT_PS2_STATUS) & 0x02 ) delay_ticks(2);
   if ( inb(PORT_PS2_STATUS) & 0x02 )
     BX_PANIC(panic_msg_keyb_buffer_full,"setkbdcomm");
-  outb(PORT_PS2_STATUS, 0xD4);
-
   outb(PORT_PS2_STATUS, 0x60); // write command byte
   outb(PORT_PS2_DATA, command_byte);
 }
@@ -5078,7 +5040,7 @@ int09_function(DI, SI, BP, SP, BX, DX, CX, AX)
   scancode = GET_AL();
 
   if (scancode == 0) {
-    BX_INFO("KBD: int09 handler: AL=0\n");
+    //BX_INFO("KBD: int09 handler: AL=0\n");
     return;
   }
 
@@ -5221,7 +5183,7 @@ int09_function(DI, SI, BP, SP, BX, DX, CX, AX)
         break; /* toss key releases ... */
       }
       if (scancode > MAX_SCAN_CODE) {
-        BX_INFO("KBD: int09h_handler(): unknown scancode read: 0x%02x!\n", scancode);
+        //BX_INFO("KBD: int09h_handler(): unknown scancode read: 0x%02x!\n", scancode);
         return;
       }
       if (scancode == 0x53) { /* DEL */
@@ -5276,7 +5238,8 @@ ASM_END
 
       set_DS(0x40);
       if (scancode==0 && asciicode==0) {
-        BX_INFO("KBD: int09h_handler(): scancode & asciicode are zero?\n");
+        //BX_INFO("KBD: int09h_handler(): scancode & asciicode are zero?\n");
+		  return;
       }
       enqueue_key(scancode, asciicode);
       break;
