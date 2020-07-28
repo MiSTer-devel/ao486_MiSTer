@@ -73,8 +73,12 @@ module ps2(
 //------------------------------------------------------------------------------
 
 reg io_read_last;
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) io_read_last <= 1'b0; else if(io_read_last) io_read_last <= 1'b0; else io_read_last <= io_read; end 
-wire io_read_valid = io_read && io_read_last == 1'b0;
+always @(posedge clk or negedge rst_n) begin
+	if(rst_n == 1'b0)     io_read_last <= 1'b0;
+	else if(io_read_last) io_read_last <= 1'b0;
+	else                  io_read_last <= io_read;
+end
+wire io_read_valid = io_read && ~io_read_last;
 
 //------------------------------------------------------------------------------
 
