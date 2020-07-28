@@ -11201,13 +11201,15 @@ int09_handler:
   out PORT_PIC1_CMD, al
   in  al, PORT_PIC1_CMD
   and al, #0x02
-  jz  int09_finish
 
   in  al, PORT_PS2_DATA             ;;read key from keyboard controller
   sti
+
+  jz  int09_finish
+
   push  ds
   pusha
-#ifdef BX_CALL_INT15_4F
+#if BX_CALL_INT15_4F
   mov  ah, #0x4f     ;; allow for keyboard intercept
   stc
   int  #0x15
