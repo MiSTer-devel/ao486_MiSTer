@@ -1,30 +1,30 @@
 
 module l1_icache
 (
-   input             CLK,
-   input             RESET,
-   
-   input             CPU_REQ,
-   input      [31:0] CPU_ADDR,
-   output reg        CPU_VALID,
-   output reg        CPU_DONE,
-   output     [31:0] CPU_DATA,
-   
-   output reg        MEM_REQ,
-   output reg [31:0] MEM_ADDR,
-   input             MEM_DONE,
-   input      [31:0] MEM_DATA,
-   
-   input      [27:2] snoop_addr,
-   input      [31:0] snoop_data,
-   input       [3:0] snoop_be,
-   input             snoop_we
+	input             CLK,
+	input             RESET,
+	
+	input             CPU_REQ,
+	input      [31:0] CPU_ADDR,
+	output reg        CPU_VALID,
+	output reg        CPU_DONE,
+	output     [31:0] CPU_DATA,
+	
+	output reg        MEM_REQ,
+	output reg [31:0] MEM_ADDR,
+	input             MEM_DONE,
+	input      [31:0] MEM_DATA,
+	
+	input      [27:2] snoop_addr,
+	input      [31:0] snoop_data,
+	input       [3:0] snoop_be,
+	input             snoop_we
 );
 
 // cache settings
-localparam LINES         = 64;
+localparam LINES         = 128;
 localparam LINESIZE      = 8;
-localparam ASSOCIATIVITY = 2;
+localparam ASSOCIATIVITY = 4;
 localparam ADDRBITS      = 29;
 localparam CACHEBURST    = 4;
 
@@ -37,16 +37,24 @@ localparam RAMSIZEBITS     = $clog2(LINESIZE * LINES);
 localparam LINEMASKLSB     = $clog2(LINESIZE);
 localparam LINEMASKMSB     = LINEMASKLSB + $clog2(LINES) - 1;
 
-(* ramstyle = "MLAB" *) reg [ASSO_BITS-1:0] rrb[0:LINES-1];
-reg [(LINES*ASSOCIATIVITY)-1:0] tag_dirty;
+reg    [ASSOCIATIVITY-1:0]      tags_dirty_in;
+reg    [ASSOCIATIVITY-1:0]      tags_dirty_out;
 wire   [ADDRBITS-RAMSIZEBITS:0] tags_read[0:ASSOCIATIVITY-1];
+reg                             update_tag_we;
+reg    [LINE_BITS-1:0]          update_tag_addr;
+
+reg    [ASSO_BITS-1:0] LRU_in [0:ASSOCIATIVITY-1];
+reg    [ASSO_BITS-1:0] LRU_out[0:ASSOCIATIVITY-1];
+reg                             LRU_we;
+reg    [LINE_BITS-1:0]          LRU_addr;
 
 localparam [2:0]
-	IDLE          = 0,
-	WRITEONE      = 1,
-	READONE       = 2,
-	FILLCACHE     = 3,
-	READCACHE_OUT = 4;
+	START         = 0,
+	IDLE          = 1,
+	WRITEONE      = 2,
+	READONE       = 3,
+	FILLCACHE     = 4,
+	READCACHE_OUT = 5;
 	
 // memory
 wire             [31:0] readdata_cache[0:ASSOCIATIVITY-1];
@@ -85,49 +93,83 @@ isimple_fifo (
 	.rdreq((state == IDLE) && !Fifo_empty),
 	.empty(Fifo_empty)
 );
-   
+	
 assign CPU_DATA = readdata_cache[cache_mux];
-   
+	
 always @(posedge CLK) begin : mainfsm
-	reg [ASSO_BITS:0] i;
+	reg [ASSO_BITS:0]   i;
+	reg [ASSO_BITS-1:0] match;
 	
 	memory_we <= {ASSOCIATIVITY{1'b0}};
 	CPU_DONE  <= 1'b0;
 	CPU_VALID <= 1'b0;
 	
 	if (RESET) begin
-		tag_dirty    <= {(LINES*ASSOCIATIVITY){1'b1}};
-		state        <= IDLE;
-		MEM_REQ      <= 1'b0;
-		CPU_REQ_hold <= 1'b0;
-		// synthesis translate_off
-		rrb[0:LINES-1] <= '{default:'0};
-		// synthesis translate_on
+		state           <= START;
+		update_tag_addr <= {LINE_BITS{1'b0}};
+		update_tag_we   <= 1'b1;
+		tags_dirty_in   <= {ASSOCIATIVITY{1'b1}};
+
+		MEM_REQ         <= 1'b0;
+		CPU_REQ_hold    <= 1'b0;
 	end
 	else begin
 		if (CPU_REQ) CPU_REQ_hold <= 1'b1;
 
+		// LRU update after read
+		LRU_we <= CPU_VALID && ~LRU_we;
+		for (i = 0; i < ASSOCIATIVITY; i = i + 1'd1) begin
+			LRU_in[i] <= LRU_out[i];
+			if (cache_mux == i[ASSO_BITS-1:0]) begin
+				match     = LRU_out[i];
+				LRU_in[i] <= {ASSO_BITS{1'b0}};
+			end
+		end
+		for (i = 0; i < ASSOCIATIVITY; i = i + 1'd1) begin
+			if (LRU_out[i] < match) begin
+				LRU_in[i] <= LRU_out[i] + 1;
+			end
+		end
+
 		case (state)
-			IDLE:
-				if (!Fifo_empty) begin
-					state         <= WRITEONE;
-					read_addr     <= Fifo_dout[25:0];
-					memory_addr_a <= Fifo_dout[RAMSIZEBITS - 1:0];
-					memory_datain <= Fifo_dout[57:26];
-					memory_be     <= Fifo_dout[61:58];
+			START:
+			begin
+				update_tag_addr <= update_tag_addr + 1'd1;
+				
+				for (i = 0; i < ASSOCIATIVITY; i = i + 1'd1) begin
+					LRU_in[i]    <= i[ASSO_BITS-1:0]; 
 				end
-				else if (CPU_REQ || CPU_REQ_hold) begin
-					state         <= READONE;
-					read_addr     <= CPU_ADDR[31:2];
-					CPU_REQ_hold  <= 1'b0;
-					burstleft     <= CACHEBURST[CACHEBURST_BITS-1:0] - 1'd1;
+				LRU_addr        <= update_tag_addr;
+				LRU_we          <= 1'b1; 
+				
+				if (update_tag_addr == {LINE_BITS{1'b1}}) begin
+					state         <= IDLE;
+					update_tag_we <= 1'b0;
+				end
+			end
+		
+			IDLE:
+				begin
+					if (!Fifo_empty) begin
+						state         <= WRITEONE;
+						read_addr     <= Fifo_dout[25:0];
+						memory_addr_a <= Fifo_dout[RAMSIZEBITS - 1:0];
+						memory_datain <= Fifo_dout[57:26];
+						memory_be     <= Fifo_dout[61:58];
+					end
+					else if (CPU_REQ || CPU_REQ_hold) begin
+						state         <= READONE;
+						read_addr     <= CPU_ADDR[31:2];
+						CPU_REQ_hold  <= 1'b0;
+						burstleft     <= CACHEBURST[CACHEBURST_BITS-1:0] - 1'd1;
+					end
 				end
 			
 			WRITEONE:
 				begin
 					state <= IDLE;
 					for (i = 0; i < ASSOCIATIVITY; i = i + 1'd1) begin
-						if (~tag_dirty[read_addr[LINEMASKMSB:LINEMASKLSB] * ASSOCIATIVITY + i]) begin
+						if (~tags_dirty_out[i]) begin
 							if (tags_read[i] == read_addr[ADDRBITS:RAMSIZEBITS]) memory_we[i] <= 1'b1;
 						end
 					end
@@ -135,14 +177,16 @@ always @(posedge CLK) begin : mainfsm
 
 			READONE:
 				begin
-					state         <= FILLCACHE;
-					MEM_REQ       <= 1'b1;
-					MEM_ADDR      <= {read_addr[ADDRBITS:LINESIZE_BITS], {LINESIZE_BITS{1'b0}}, 2'b00};
-					fillcount     <= 0;
-					memory_addr_a <= {read_addr[RAMSIZEBITS - 1:LINESIZE_BITS], {LINESIZE_BITS{1'b0}}};
-					cache_mux     <= rrb[read_addr[LINEMASKMSB:LINEMASKLSB]];
+					state           <= FILLCACHE;
+					MEM_REQ         <= 1'b1;
+					MEM_ADDR        <= {read_addr[ADDRBITS:LINESIZE_BITS], {LINESIZE_BITS{1'b0}}, 2'b00};
+					fillcount       <= 0;
+					memory_addr_a   <= {read_addr[RAMSIZEBITS - 1:LINESIZE_BITS], {LINESIZE_BITS{1'b0}}};
+					tags_dirty_in   <= tags_dirty_out;
+					update_tag_addr <= read_addr[LINEMASKMSB:LINEMASKLSB];
+					LRU_addr        <= read_addr[LINEMASKMSB:LINEMASKLSB];
 					for (i = 0; i < ASSOCIATIVITY; i = i + 1'd1) begin
-						if (~tag_dirty[read_addr[LINEMASKMSB:LINEMASKLSB] * ASSOCIATIVITY + i]) begin
+						if (~tags_dirty_out[i]) begin
 							if (tags_read[i] == read_addr[ADDRBITS:RAMSIZEBITS]) begin
 								MEM_REQ   <= 1'b0;
 								cache_mux <= i[ASSO_BITS-1:0];
@@ -162,26 +206,68 @@ always @(posedge CLK) begin : mainfsm
 				end
 			
 			FILLCACHE:
-				if (MEM_DONE) begin
-					MEM_REQ              <= 1'b0;
-					memory_datain        <= MEM_DATA;
-					memory_we[cache_mux] <= 1'b1;
-					memory_be            <= 4'hF;
+				begin
+					for (i = 0; i < ASSOCIATIVITY; i = i + 1'd1) begin
+						if (LRU_out[i] == {ASSO_BITS{1'b1}} ) cache_mux <= i[ASSO_BITS-1:0]; 
+					end
 
-					if (fillcount > 0) memory_addr_a <= memory_addr_a + 1'd1;
-					if (fillcount < LINESIZE - 1) fillcount <= fillcount + 1'd1;
-					else state <= READCACHE_OUT;
+					if (MEM_DONE) begin
+						MEM_REQ              <= 1'b0;
+						memory_datain        <= MEM_DATA;
+						memory_we[cache_mux] <= 1'b1;
+						memory_be            <= 4'hF;
+						
+						tags_dirty_in[cache_mux] <= 1'b0;
+
+						if (fillcount > 0) memory_addr_a <= memory_addr_a + 1'd1;
+						if (fillcount < LINESIZE - 1) fillcount <= fillcount + 1'd1;
+						else begin 
+						   state         <= READCACHE_OUT;
+						   update_tag_we <= 1'b1;
+						end
+					end
 				end
 			
 			READCACHE_OUT :
 				begin
-					state <= READONE;
-					tag_dirty[read_addr[LINEMASKMSB:LINEMASKLSB] * ASSOCIATIVITY + cache_mux] <= 1'b0;
-					rrb[read_addr[LINEMASKMSB:LINEMASKLSB]] <= rrb[read_addr[LINEMASKMSB:LINEMASKLSB]] + 1'd1;
+					state         <= READONE;
+					update_tag_we <= 1'b0;
 				end
 		endcase
 	end
 end
+
+altdpram #(
+	.indata_aclr("OFF"),
+	.indata_reg("INCLOCK"),
+	.intended_device_family("Cyclone V"),
+	.lpm_type("altdpram"),
+	.outdata_aclr("OFF"),
+	.outdata_reg("UNREGISTERED"),
+	.ram_block_type("MLAB"),
+	.rdaddress_aclr("OFF"),
+	.rdaddress_reg("UNREGISTERED"),
+	.rdcontrol_aclr("OFF"),
+	.rdcontrol_reg("UNREGISTERED"),
+	.read_during_write_mode_mixed_ports("CONSTRAINED_DONT_CARE"),
+	.width(ASSOCIATIVITY),
+	.widthad(LINE_BITS),
+	.width_byteena(1),
+	.wraddress_aclr("OFF"),
+	.wraddress_reg("INCLOCK"),
+	.wrcontrol_aclr("OFF"),
+	.wrcontrol_reg("INCLOCK")
+)
+dirtyram (
+	.inclock(CLK),
+	.outclock(CLK),
+	
+	.data(tags_dirty_in),
+	.rdaddress(read_addr[LINEMASKMSB:LINEMASKLSB]),
+	.wraddress(update_tag_addr),
+	.wren(update_tag_we),
+	.q(tags_dirty_out)
+);
 
 generate
 	genvar i;
@@ -216,6 +302,38 @@ generate
 			.wraddress(read_addr[LINEMASKMSB:LINEMASKLSB]),
 			.wren((state == READCACHE_OUT) && (cache_mux == i)),
 			.q(tags_read[i])
+		);
+		
+		altdpram #(
+			.indata_aclr("OFF"),
+			.indata_reg("INCLOCK"),
+			.intended_device_family("Cyclone V"),
+			.lpm_type("altdpram"),
+			.outdata_aclr("OFF"),
+			.outdata_reg("UNREGISTERED"),
+			.ram_block_type("MLAB"),
+			.rdaddress_aclr("OFF"),
+			.rdaddress_reg("UNREGISTERED"),
+			.rdcontrol_aclr("OFF"),
+			.rdcontrol_reg("UNREGISTERED"),
+			.read_during_write_mode_mixed_ports("CONSTRAINED_DONT_CARE"),
+			.width(ASSO_BITS),
+			.widthad(LINE_BITS),
+			.width_byteena(1),
+			.wraddress_aclr("OFF"),
+			.wraddress_reg("INCLOCK"),
+			.wrcontrol_aclr("OFF"),
+			.wrcontrol_reg("INCLOCK")
+		)
+		LRUram (
+			.inclock(CLK),
+			.outclock(CLK),
+			
+			.data(LRU_in[i]),
+			.rdaddress(LRU_addr),
+			.wraddress(LRU_addr),
+			.wren(LRU_we),
+			.q(LRU_out[i])
 		);
 		
 		altsyncram #(
@@ -270,5 +388,5 @@ generate
 		);
 	end
 endgenerate
-   
+	
 endmodule
