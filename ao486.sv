@@ -182,6 +182,8 @@ localparam CONF_STR =
 	"S2,VHD,Mount Primary HDD;",
 	"S3,VHD,Mount Secondary HDD;",
 	"-;",
+	"OX2,Boot order,FDD/HDD,HDD/FDD;",
+	"-;",
 	"O1,Aspect ratio,4:3,16:9;",
 	"O4,VSync,60Hz,Variable;",
 	"O8,16/24bit mode,BGR,RGB;",
@@ -189,15 +191,17 @@ localparam CONF_STR =
 	"-;",
 	"O3,FM mode,OPL2,OPL3;",
 	"-;",
+	"OCD,Joystick type,2 Buttons,4 Buttons,Gravis Pro;",
+	"-;",
+	"OB,RAM Size,256MB,16MB;",
 `ifndef DEBUG
 	"O57,Speed,90MHz,100MHz,15MHz,30MHz,56MHz;",
 	"OA,UART Speed,Normal,10x;",
 `endif
-	"OB,RAM Size,256MB,16MB;",
 	"-;",
-	"OX2,Boot order,FDD/HDD,HDD/FDD;",
 	"R0,Reset and apply HDD;",
-	"J,Button 1,Button 2;",
+	"J,Button 1,Button 2,Button 3,Button 4,Start,Select,R1,L1,R2,L2;",
+	"jn,A,B,X,Y,Start,Select,R,L;",
 	"V,v",`BUILD_DATE
 };
 
@@ -218,8 +222,8 @@ wire [31:0] status;
 
 reg         ioctl_wait = 0;
 
-wire  [5:0] joystick_0;
-wire  [5:0] joystick_1;
+wire [13:0] joystick_0;
+wire [13:0] joystick_1;
 wire [15:0] joystick_analog_0;
 wire [15:0] joystick_analog_1;
 
@@ -573,6 +577,7 @@ system u0
 	.joystick_dig_2       (joystick_1),
 	.joystick_ana_1       (joystick_analog_0),
 	.joystick_ana_2       (joystick_analog_1),
+	.joystick_mode        (status[13:12]),
 
 	.cpu_reset_reset      (cpu_reset),
 
