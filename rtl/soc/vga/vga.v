@@ -150,17 +150,17 @@ always @(posedge clk_sys) begin
 	end
 end
 
-reg io_b_read_last;
+reg io_b_read_last, io_b_read_valid;
 always @(posedge clk_sys or negedge rst_n) if(~rst_n) io_b_read_last <= 1'b0; else if(io_b_read_last) io_b_read_last <= 1'b0; else io_b_read_last <= io_b_read;
-wire io_b_read_valid = io_b_read && ~io_b_read_last;
+always @(posedge clk_sys) io_b_read_valid <= io_b_read && ~io_b_read_last;
 
-reg io_c_read_last;
+reg io_c_read_last, io_c_read_valid;
 always @(posedge clk_sys or negedge rst_n) if(~rst_n) io_c_read_last <= 1'b0; else if(io_c_read_last) io_c_read_last <= 1'b0; else io_c_read_last <= io_c_read;
-wire io_c_read_valid = io_c_read && ~io_c_read_last;
+always @(posedge clk_sys) io_c_read_valid <= io_c_read && ~io_c_read_last;
 
-reg io_d_read_last;
+reg io_d_read_last, io_d_read_valid;
 always @(posedge clk_sys or negedge rst_n) if(~rst_n) io_d_read_last <= 1'b0; else if(io_d_read_last) io_d_read_last <= 1'b0; else io_d_read_last <= io_d_read;
-wire io_d_read_valid = io_d_read && ~io_d_read_last;
+always @(posedge clk_sys) io_d_read_valid <= io_d_read && ~io_d_read_last;
 
 reg mem_read_last;
 always @(posedge clk_sys or negedge rst_n) if(~rst_n) mem_read_last <= 1'b0; else if(mem_read_last) mem_read_last <= 1'b0; else mem_read_last <= mem_read;
@@ -673,7 +673,7 @@ wire        seq_io_write = io_c_write && io_c_address == 4'h5;
 
 reg [5:0]   crtc_io_index;
 always @(posedge clk_sys or negedge rst_n) begin
-    if(~rst_n)                                                   crtc_io_index <= 6'd0;
+    if(~rst_n)                                                          crtc_io_index <= 6'd0;
     else if(io_b_write && io_b_address == 4'h4 && ~(host_io_ignored))   crtc_io_index <= io_b_writedata[5:0];
     else if(io_d_write && io_d_address == 4'h4 && ~(host_io_ignored))   crtc_io_index <= io_d_writedata[5:0];
 end
@@ -702,7 +702,7 @@ end
 always @(posedge clk_sys or negedge rst_n) if(~rst_n) attrib_io_index <= 5'd0; else if(io_c_write && io_c_address == 4'h0 && ~(attrib_flip_flop)) attrib_io_index <= io_c_writedata[4:0];
 
 always @(posedge clk_sys or negedge rst_n) begin
-    if(~rst_n)                                                                                                       attrib_flip_flop <= 1'b0;
+    if(~rst_n)                                                                                                              attrib_flip_flop <= 1'b0;
     else if(((io_b_read_valid && io_b_address == 4'hA) || (io_d_read_valid && io_d_address == 4'hA)) && ~(host_io_ignored)) attrib_flip_flop <= 1'b0;
     else if(io_c_write && io_c_address == 4'h0)                                                                             attrib_flip_flop <= ~attrib_flip_flop;
 end
@@ -744,13 +744,13 @@ end
 
 reg [11:0] dac_write_buffer;
 always @(posedge clk_sys or negedge rst_n) begin
-    if(~rst_n)                           dac_write_buffer <= 12'd0;
+    if(~rst_n)                                  dac_write_buffer <= 12'd0;
     else if(io_c_write && io_c_address == 4'h9) dac_write_buffer <= { dac_write_buffer[5:0], io_c_writedata[5:0] };
 end
 
 reg [7:0] dac_write_index;
 always @(posedge clk_sys or negedge rst_n) begin
-    if(~rst_n)                                               dac_write_index <= 8'd0;
+    if(~rst_n)                                                      dac_write_index <= 8'd0;
     else if(io_c_write && io_c_address == 4'h8)                     dac_write_index <= io_c_writedata[7:0];
     else if(io_c_write && io_c_address == 4'h9 && dac_cnt == 2'd2)  dac_write_index <= dac_write_index + 8'd1;
 end
@@ -763,14 +763,14 @@ end
 
 reg [7:0] dac_read_index;
 always @(posedge clk_sys or negedge rst_n) begin
-    if(~rst_n)                                                       dac_read_index <= 8'd0;
+    if(~rst_n)                                                              dac_read_index <= 8'd0;
     else if(io_c_write && io_c_address == 4'h7)                             dac_read_index <= io_c_writedata[7:0];
     else if(io_c_read_valid  && io_c_address == 4'h9 && dac_cnt == 2'd2)    dac_read_index <= dac_read_index + 8'd1;
 end
 
 reg [1:0] dac_cnt;
 always @(posedge clk_sys or negedge rst_n) begin
-    if(~rst_n)                                                                   dac_cnt <= 2'd0;
+    if(~rst_n)                                                                          dac_cnt <= 2'd0;
     else if(io_c_write && io_c_address == 4'h7)                                         dac_cnt <= 2'd0;
     else if(io_c_write && io_c_address == 4'h8)                                         dac_cnt <= 2'd0;
     else if((io_c_read_valid || io_c_write) && io_c_address == 4'h9 && dac_cnt == 2'd2) dac_cnt <= 2'd0;
@@ -835,7 +835,7 @@ end
 reg [7:0] host_io_read_reg;
 always @(posedge clk_sys or negedge rst_n) begin
 	if(~rst_n) host_io_read_reg <= 8'd0;
-	else              host_io_read_reg <= host_io_read_wire;
+	else       host_io_read_reg <= host_io_read_wire;
 end
 
 wire [5:0]  host_palette_q;
@@ -1059,8 +1059,8 @@ always @(posedge clk_sys) if (ce_video) if(memory_address_load) memory_row_scan_
 reg memory_row_scan_double;
 always @(posedge clk_sys) if (ce_video) begin
     if(crtc_vertical_doublescan && (dot_memory_load_first_in_frame || dot_memory_load_first_in_line_matched))  memory_row_scan_double <= 1'b1;
-    else if(crtc_vertical_doublescan && dot_memory_load_first_in_line)                                              memory_row_scan_double <= ~memory_row_scan_double;
-    else if(~(crtc_vertical_doublescan) || dot_memory_load_vertical_retrace_start)                                  memory_row_scan_double <= 1'b0;
+    else if(crtc_vertical_doublescan && dot_memory_load_first_in_line)                                         memory_row_scan_double <= ~memory_row_scan_double;
+    else if(~(crtc_vertical_doublescan) || dot_memory_load_vertical_retrace_start)                             memory_row_scan_double <= 1'b0;
 end
 
 //do not change charmap in the middle of a character row scan
@@ -1078,7 +1078,7 @@ end
 reg [3:0] memory_panning_reg;
 always @(posedge clk_sys) if (ce_video) begin
     if(dot_memory_load_first_in_line_matched && attrib_panning_after_compare_match)    memory_panning_reg <= 4'd0;
-    else if(dot_memory_load_first_in_frame)                                                 memory_panning_reg <= attrib_panning_value;
+    else if(dot_memory_load_first_in_frame)                                            memory_panning_reg <= attrib_panning_value;
 end
 
 reg memory_load_step_a;
