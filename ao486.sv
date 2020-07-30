@@ -281,16 +281,8 @@ hps_ext hps_ext
 (
 	.clk_sys(clk_sys),
 	.EXT_BUS(EXT_BUS),
-
 	.io_wait(ioctl_wait),
-	
-	.clk_rate(
-`ifdef DEBUG
-	30000000
-`else
-	clk_rate[status[7:5]]
-`endif
-	),
+	.clk_rate(cur_rate),
 
 	.ext_din(mgmt_din),
 	.ext_dout(mgmt_dout),
@@ -304,6 +296,7 @@ hps_ext hps_ext
 //------------------------------------------------------------------------------
 
 wire clk_sys, clk_uart, clk_opl;
+wire [31:0] cur_rate;
 
 `ifdef DEBUG
 
@@ -314,6 +307,8 @@ pll2 pll
 	.outclk_1(clk_uart),
 	.outclk_2(clk_opl)
 );
+
+assign cur_rate = 30000000;
 
 `else
 
@@ -416,7 +411,20 @@ always @(posedge CLK_50M) begin
 	end
 end
 
+assign cur_rate = clk_rate[status[7:5]];
+
 `endif
+
+reg joystick_clk_grav;
+always @(posedge clk_sys) begin
+	reg [31:0] sum = 0;
+
+	sum = sum + 40000;
+	if(sum >= cur_rate) begin
+		sum = sum - cur_rate;
+		joystick_clk_grav = ~joystick_clk_grav;
+	end
+end
 
 wire        ps2_reset_n;
 
@@ -573,6 +581,7 @@ system u0
 	.ps2_mouseclk_out     (ps2_mouse_clk_in),
 	.ps2_mousedat_out     (ps2_mouse_data_in),
 
+	.joystick_clk_grav    (joystick_clk_grav),
 	.joystick_dig_1       (joystick_0),
 	.joystick_dig_2       (joystick_1),
 	.joystick_ana_1       (joystick_analog_0),
