@@ -31,7 +31,7 @@ VGA_FILES := vgabios.c vgabios.h vgafonts.h vgatables.h
 VBE_FILES := vbe.h vbe.c vbetables.h
 
 # build flags
-vgabios.bin              : VGAFLAGS := -DVBE
+#vgabios.bin              : VGAFLAGS := -DVBE
 
 # dist names
 vgabios.bin              : DISTNAME := boot1.rom

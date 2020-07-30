@@ -53,7 +53,7 @@
 #include "vbe.h"
 #endif
 
-#define USE_BX_INFO
+//#define USE_BX_INFO
 
 /* Declares */
 static Bit8u          read_byte();
