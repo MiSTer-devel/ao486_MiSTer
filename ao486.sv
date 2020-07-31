@@ -533,7 +533,6 @@ assign FB_FORCE_BLANK = fb_off;
 system u0
 (
 	.clk_sys_clk          (clk_sys),
-	.clk_uart_clk         (clk_uart),
 	.clk_opl_clk          (clk_opl),
 
 	.qsys_reset_reset     (sys_reset),
@@ -625,17 +624,16 @@ system u0
 	.disk_result_ok       (mgmt_status[0]),
 	.disk_result_error    (mgmt_status[1]),
 	
-	.uart_h_cts_n         (UART_CTS),
-	.uart_h_rts_n         (UART_RTS),
-	.uart_s_sin           (UART_RXD),
-	.uart_s_sout          (UART_TXD),
-	.uart_h_dsr_n         (UART_DSR),
-	.uart_h_dtr_n         (UART_DTR),
-	.uart_h_dcd_n         (UART_DSR),
-	.uart_h_ri_n          (1),
-	.uart_s_sout_oe       (),
-	.uart_h_out1_n        (),
-	.uart_h_out2_n        ()
+	.serial_br_clk        (clk_uart),
+	.serial_rx            (UART_RXD),
+	.serial_tx            (UART_TXD),
+	.serial_cts_n         (UART_CTS),
+	.serial_dcd_n         (UART_DSR),
+	.serial_dsr_n         (UART_DSR),
+	.serial_rts_n         (UART_RTS),
+	.serial_dtr_n         (UART_DTR),
+	.serial_ri_n          (1),
+	.serial_br_out        ()
 );
 
 

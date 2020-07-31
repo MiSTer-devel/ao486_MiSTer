@@ -162,9 +162,9 @@
   <tag2 key="COMPONENT_HIDE_FROM_SOPC" value="true" />
  </component>
  <component
-   name="width_trans"
-   file="./rtl/soc/width_trans/width_trans_hw.tcl"
-   displayName="width_trans"
+   name="uart"
+   file="./rtl/soc/uart/uart_hw.tcl"
+   displayName="uart"
    version="17.0"
    description=""
    tags="AUTHORSHIP= /// CONNECTION_TYPES=avalon,clock,conduit,reset /// INTERNAL_COMPONENT=false"
