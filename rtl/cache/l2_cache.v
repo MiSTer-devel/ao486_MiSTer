@@ -366,7 +366,7 @@ always @(posedge CLK) begin
 						end
 					end
 					else begin
-						tags_dirty_in <= {ASSO_BITS{1'b1}};
+						tags_dirty_in <= {ASSOCIATIVITY{1'b1}};
 						update_tag_we <= 1'b1;
 					end
 				end
