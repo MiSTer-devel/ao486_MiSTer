@@ -24,60 +24,58 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-module hdd #(
-	parameter BufAddress,
-	parameter MutexNum
-)(
-    input               clk,
-    input               rst_n,
-    
-    //irq
-    output reg          irq,
-    
-    //avalon slave
-    input               io_address,
-    input       [3:0]   io_byteenable,
-    input               io_read,
-    output reg  [31:0]  io_readdata,
-    input               io_write,
-    input       [31:0]  io_writedata, 
-    
-    //ide shared port 0x3F6
-    input               ide_3f6_read,
-    output reg  [7:0]   ide_3f6_readdata,
-    input               ide_3f6_write,
-    input       [7:0]   ide_3f6_writedata,
-    
-    //master to control sd
-    output      [31:0]  sd_master_address,
-    input               sd_master_waitrequest,
-    output              sd_master_read,
-    input               sd_master_readdatavalid,
-    input       [31:0]  sd_master_readdata,
-    output              sd_master_write,
-    output      [31:0]  sd_master_writedata,
-    
-    //slave with data from/to sd
-    input       [8:0]   sd_slave_address,
-    input               sd_slave_read,
-    output reg  [31:0]  sd_slave_readdata,
-    input               sd_slave_write,
-    input       [31:0]  sd_slave_writedata,
+module hdd
+(
+	input               clk,
+	input               rst_n,
 
-    //management slave
-    /*
-    0x00.[31:0]:    identify write
-    0x01.[16:0]:    media cylinders
-    0x02.[4:0]:     media heads
-    0x03.[8:0]:     media spt
-    0x04.[13:0]:    media sectors per cylinder = spt * heads
-    0x05.[31:0]:    media sectors total
-    0x06.[31:0]:    media sd base
-    */
-    input       [2:0]   mgmt_address,
-    input               mgmt_write,
-    input       [31:0]  mgmt_writedata
+	//irq
+	output reg          irq,
+
+	//avalon slave
+	input               io_address,
+	input       [3:0]   io_byteenable,
+	input               io_read,
+	output reg  [31:0]  io_readdata,
+	input               io_write,
+	input       [31:0]  io_writedata, 
+
+	//ide shared port 0x3F6
+	input               ide_3f6_read,
+	output reg  [7:0]   ide_3f6_readdata,
+	input               ide_3f6_write,
+	input       [7:0]   ide_3f6_writedata,
+
+	//slave with data from/to sd
+	input       [8:0]   sd_slave_address,
+	input               sd_slave_read,
+	output reg  [31:0]  sd_slave_readdata,
+	input               sd_slave_write,
+	input       [31:0]  sd_slave_writedata,
+
+	//management slave
+	/*
+	0x00.[31:0]:    identify write
+	0x01.[16:0]:    media cylinders
+	0x02.[4:0]:     media heads
+	0x03.[8:0]:     media spt
+	0x04.[13:0]:    media sectors per cylinder = spt * heads
+	0x05.[31:0]:    media sectors total
+	0x06.[31:0]:    media sd base
+	*/
+	input        [2:0]  mgmt_address,
+	input               mgmt_write,
+	input       [31:0]  mgmt_writedata,
+	input               mgmt_read,
+	output      [31:0]  mgmt_readdata,
+
+	output       [1:0]  request
 );
+
+//------------------------------------------------------------------------------
+
+assign mgmt_readdata = (mgmt_address == 0) ? sd_sector : { 27'd0, logical_sector_count };
+assign request = (state == S_SD_CONTROL) ? {cmd_write_in_progress, cmd_read_in_progress} : 2'b00;
 
 //------------------------------------------------------------------------------
 
@@ -573,7 +571,7 @@ wire cmd_unknown_start = cmd_start &&
     ~(cmd_identify_start) &&
     ~(cmd_features_prepare) &&
     ~(cmd_verify_start) &&
-    ~(cmd_multiple_prepare) &&
+    //~(cmd_multiple_prepare) &&
     ~(cmd_power_start) &&
     ~(cmd_checkpower_start) &&
     ~(cmd_seek_start) &&
@@ -601,10 +599,7 @@ localparam [3:0] S_COUNT_LOGICAL            = 4'd2;
 localparam [3:0] S_COUNT_FINAL              = 4'd3;
 localparam [3:0] S_COUNT_DECISION           = 4'd4;
 
-localparam [3:0] S_SD_MUTEX                 = 4'd5;
-localparam [3:0] S_SD_AVALON_BASE           = 4'd6;
-localparam [3:0] S_SD_ADDRESS               = 4'd7;
-localparam [3:0] S_SD_BLOCK_COUNT           = 4'd8;
+localparam [3:0] S_PREPARE                  = 4'd5;
 
 localparam [3:0] S_SD_CONTROL               = 4'd9;
 localparam [3:0] S_SD_READ_WAIT_FOR_DATA    = 4'd10;
@@ -620,49 +615,46 @@ localparam [3:0] S_IDENTIFY_FILL            = 4'd15;
 
 reg [3:0] state;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                                                                       state <= S_IDLE;
+    if(rst_n == 1'b0)                                                                                                    state <= S_IDLE;
     
     //read
-    else if(state == S_IDLE && cmd_read_start)                                                                              state <= S_PREPARE_COUNT;
+    else if(state == S_IDLE && cmd_read_start)                                                                           state <= S_PREPARE_COUNT;
         //count
-    else if(state == S_COUNT_DECISION && ~(count_decision_immediate_error) && cmd_read_in_progress)                         state <= S_SD_MUTEX;
+    else if(state == S_COUNT_DECISION && ~(count_decision_immediate_error) && cmd_read_in_progress)                      state <= S_PREPARE;
         //sd
-    else if(state == S_SD_CONTROL && sd_master_waitrequest == 1'b0 && cmd_read_in_progress)                                 state <= S_SD_READ_WAIT_FOR_DATA;
-    else if(state == S_SD_READ_WAIT_FOR_DATA && logical_sector_count == 5'd0)                                               state <= S_WAIT_FOR_EMPTY_READ_FIFO;
-    else if(state == S_WAIT_FOR_EMPTY_READ_FIFO && from_hdd_empty_valid && num_sectors == 17'd0 && cmd_read_in_progress)    state <= S_IDLE;
-    else if(state == S_WAIT_FOR_EMPTY_READ_FIFO && from_hdd_empty_valid && cmd_read_in_progress)                            state <= S_PREPARE_COUNT;
-    
+    else if(state == S_SD_CONTROL && mgmt_write && mgmt_address == 7 && cmd_read_in_progress)                            state <= S_SD_READ_WAIT_FOR_DATA;
+    else if(state == S_SD_READ_WAIT_FOR_DATA && logical_sector_count == 5'd0)                                            state <= S_WAIT_FOR_EMPTY_READ_FIFO;
+    else if(state == S_WAIT_FOR_EMPTY_READ_FIFO && from_hdd_empty_valid && num_sectors == 17'd0 && cmd_read_in_progress) state <= S_IDLE;
+    else if(state == S_WAIT_FOR_EMPTY_READ_FIFO && from_hdd_empty_valid && cmd_read_in_progress)                         state <= S_PREPARE_COUNT;
+
     //seek
-    else if(state == S_IDLE && cmd_seek_start)                                                                      state <= S_PREPARE_COUNT;
-        //count
-    else if(state == S_COUNT_DECISION && ~(count_decision_immediate_error) && cmd_seek_in_progress)                 state <= S_IDLE;
-    
-    //identify
-    else if(state == S_IDLE && cmd_identify_start)                                                                  state <= S_IDENTIFY_FILL;
-    else if(state == S_IDENTIFY_FILL && identify_counter == 7'd127)                                                 state <= S_WAIT_FOR_EMPTY_READ_FIFO;
-    else if(state == S_WAIT_FOR_EMPTY_READ_FIFO && from_hdd_empty_valid && cmd_identify_in_progress)                state <= S_IDLE;
-    
-    //write
-    else if(state == S_IDLE && cmd_write_start)                                                                     state <= S_WAIT_FOR_FULL_WRITE_FIFO;
-    else if(state == S_WAIT_FOR_FULL_WRITE_FIFO && write_data_ready)                                                state <= S_PREPARE_COUNT;
-        //count
-    else if(state == S_COUNT_DECISION && ~(count_decision_immediate_error) && cmd_write_in_progress)                state <= S_SD_MUTEX;
-        //sd
-    else if(state == S_SD_CONTROL && sd_master_waitrequest == 1'b0 && cmd_write_in_progress)                        state <= S_SD_WRITE_WAIT_FOR_DATA;
-    else if(state == S_SD_WRITE_WAIT_FOR_DATA && logical_sector_count == 5'd0 && num_sectors == 17'd0)              state <= S_IDLE;
-    else if(state == S_SD_WRITE_WAIT_FOR_DATA && logical_sector_count == 5'd0)                                      state <= S_WAIT_FOR_FULL_WRITE_FIFO;
-    
-    //count
-    else if(state == S_PREPARE_COUNT)                                                                               state <= S_COUNT_LOGICAL;
-    else if(state == S_COUNT_LOGICAL && mult1_b == 14'd0 && mult2_b == 9'd0)                                        state <= S_COUNT_FINAL;
-    else if(state == S_COUNT_FINAL)                                                                                 state <= S_COUNT_DECISION;
-    else if(state == S_COUNT_DECISION && count_decision_immediate_error)                                            state <= S_IDLE;
-     
-    //sd read/write
-    else if(state == S_SD_MUTEX && sd_master_readdatavalid && sd_master_readdata[2:0] == (MutexNum ? 3'd3 : 3'd2))  state <= S_SD_AVALON_BASE;
-    else if(state == S_SD_AVALON_BASE && sd_master_waitrequest == 1'b0)                                             state <= S_SD_ADDRESS;
-    else if(state == S_SD_ADDRESS     && sd_master_waitrequest == 1'b0)                                             state <= S_SD_BLOCK_COUNT;
-    else if(state == S_SD_BLOCK_COUNT && sd_master_waitrequest == 1'b0)                                             state <= S_SD_CONTROL;
+    else if(state == S_IDLE && cmd_seek_start)                                                                           state <= S_PREPARE_COUNT;
+    //count                                                                                                              
+    else if(state == S_COUNT_DECISION && ~(count_decision_immediate_error) && cmd_seek_in_progress)                      state <= S_IDLE;
+
+    //identify                                                                                                           
+    else if(state == S_IDLE && cmd_identify_start)                                                                       state <= S_IDENTIFY_FILL;
+    else if(state == S_IDENTIFY_FILL && identify_counter == 7'd127)                                                      state <= S_WAIT_FOR_EMPTY_READ_FIFO;
+    else if(state == S_WAIT_FOR_EMPTY_READ_FIFO && from_hdd_empty_valid && cmd_identify_in_progress)                     state <= S_IDLE;
+
+    //write                                                                                                              
+    else if(state == S_IDLE && cmd_write_start)                                                                          state <= S_WAIT_FOR_FULL_WRITE_FIFO;
+    else if(state == S_WAIT_FOR_FULL_WRITE_FIFO && write_data_ready)                                                     state <= S_PREPARE_COUNT;
+    //count                                                                                                              
+    else if(state == S_COUNT_DECISION && ~(count_decision_immediate_error) && cmd_write_in_progress)                     state <= S_PREPARE;
+    //sd                                                                                                                 
+    else if(state == S_SD_CONTROL && mgmt_write && mgmt_address == 7 && cmd_write_in_progress)                           state <= S_SD_WRITE_WAIT_FOR_DATA;
+    else if(state == S_SD_WRITE_WAIT_FOR_DATA && logical_sector_count == 5'd0 && num_sectors == 17'd0)                   state <= S_IDLE;
+    else if(state == S_SD_WRITE_WAIT_FOR_DATA && logical_sector_count == 5'd0)                                           state <= S_WAIT_FOR_FULL_WRITE_FIFO;
+
+    //count                                                                                                              
+    else if(state == S_PREPARE_COUNT)                                                                                    state <= S_COUNT_LOGICAL;
+    else if(state == S_COUNT_LOGICAL && mult1_b == 14'd0 && mult2_b == 9'd0)                                             state <= S_COUNT_FINAL;
+    else if(state == S_COUNT_FINAL)                                                                                      state <= S_COUNT_DECISION;
+    else if(state == S_COUNT_DECISION && count_decision_immediate_error)                                                 state <= S_IDLE;
+
+    //sd read/write                                                                                                      
+    else if(state == S_PREPARE)                                                                                          state <= S_SD_CONTROL;
 end
 
 //------------------------------------------------------------------------------
@@ -729,9 +721,9 @@ wire [4:0] multiple_final_read =
 reg [4:0] logical_sector_count;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                                                                                                           logical_sector_count <= 5'd0;
-    else if(state == S_SD_AVALON_BASE && current_command_read_multiple)                                                         logical_sector_count <= multiple_final_read;
-    else if(state == S_SD_AVALON_BASE && current_command_write_multiple)                                                        logical_sector_count <= multiple_final_write;
-    else if(state == S_SD_AVALON_BASE)                                                                                          logical_sector_count <= 5'd1;
+    else if(state == S_PREPARE && current_command_read_multiple)                                                                logical_sector_count <= multiple_final_read;
+    else if(state == S_PREPARE && current_command_write_multiple)                                                               logical_sector_count <= multiple_final_write;
+    else if(state == S_PREPARE)                                                                                                 logical_sector_count <= 5'd1;
     
     else if(state == S_SD_READ_WAIT_FOR_DATA  && sd_slave_write       && sd_counter == 7'd127 && logical_sector_count > 5'd0)   logical_sector_count <= logical_sector_count - 5'd1;
     else if(state == S_SD_WRITE_WAIT_FOR_DATA && sd_slave_read_valid  && sd_counter == 7'd127 && logical_sector_count > 5'd0)   logical_sector_count <= logical_sector_count - 5'd1;
@@ -805,42 +797,9 @@ end
 
 reg [31:0] sd_sector;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                   sd_sector <= 32'd0;
-    else if(state == S_SD_AVALON_BASE)  sd_sector <= (logical_sector >= { 16'd0, media_sectors })? media_sd_base + media_sectors - 32'd1 : media_sd_base + logical_sector[31:0];
+    if(rst_n == 1'b0)           sd_sector <= 32'd0;
+    else if(state == S_PREPARE) sd_sector <= (logical_sector >= { 16'd0, media_sectors })? media_sd_base + media_sectors - 32'd1 : media_sd_base + logical_sector[31:0];
 end
-
-assign sd_master_address =
-    (state == S_SD_MUTEX)?          (MutexNum ? 32'hA0C : 32'hA08) :
-    (state == S_SD_AVALON_BASE)?    32'hA00 :
-    (state == S_SD_ADDRESS)?        32'hA04 :
-    (state == S_SD_BLOCK_COUNT)?    32'hA08 :
-    (state == S_SD_CONTROL)?        32'hA0C :
-                                    32'hA00;
-
-reg sd_read_done;
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                           sd_read_done <= 1'b0;
-    else if(sd_master_read && sd_master_waitrequest == 1'b0)    sd_read_done <= 1'b1;
-    else if(sd_master_readdatavalid)                            sd_read_done <= 1'b0;
-end
-
-reg [3:0] sd_mutex_wait;
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                       sd_mutex_wait <= 4'd0;
-    else if(state == S_SD_MUTEX && sd_master_read == 1'b0)  sd_mutex_wait <= sd_mutex_wait + 4'd1;
-end
-
-assign sd_master_read = state == S_SD_MUTEX && sd_mutex_wait == 4'd9 && ~(sd_read_done);
-
-assign sd_master_write = state == S_SD_AVALON_BASE || state == S_SD_ADDRESS || state == S_SD_BLOCK_COUNT || state == S_SD_CONTROL;
-
-assign sd_master_writedata =
-    (state == S_SD_AVALON_BASE)?                        BufAddress                      :
-    (state == S_SD_ADDRESS)?                            sd_sector                       :
-    (state == S_SD_BLOCK_COUNT)?                        { 27'd0, logical_sector_count } :
-    (state == S_SD_CONTROL && cmd_read_in_progress)?    32'd2 : //CONTROL_READ
-    (state == S_SD_CONTROL && cmd_write_in_progress)?   32'd3 : //CONTROL_WRITE
-                                                        32'd0;
 
 //------------------------------------------------------------------------------ fifo for identify
 
@@ -995,15 +954,5 @@ fifo_to_hdd_inst(
     .empty      ()                                                             //output
     /* verilator lint_on PINNOCONNECT */
 );
-
-//------------------------------------------------------------------------------
-
-// synthesis translate_off
-wire _unused_ok = &{ 1'b0, ide_3f6_writedata[7:3], ide_3f6_writedata[0],
-                           sd_master_readdata[31:3], sd_slave_address[8:0],
-                           media_cylinders_minus_1[16], from_hdd_stored_index_next[2], 1'b0 };
-// synthesis translate_on
-
-//------------------------------------------------------------------------------
 
 endmodule

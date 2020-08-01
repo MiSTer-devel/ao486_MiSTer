@@ -32,8 +32,7 @@ module hps_ext
 	output reg [31:0] ext_addr,
 	output reg        ext_rd,
 	output reg        ext_wr,
-	output reg  [1:0] ext_status,
-	input       [1:0] ext_req
+	input       [7:0] ext_req
 );
 
 assign EXT_BUS[15:0] = io_dout;
@@ -56,7 +55,6 @@ always@(posedge clk_sys) begin
 	reg        pending;
 
 	{ext_rd, ext_wr} <= 0;
-	ext_status <= 0;
 
 	old_wait <= io_wait;
 
@@ -120,8 +118,7 @@ always@(posedge clk_sys) begin
 							end
 
 					'h63: begin
-								io_dout <= ext_req;
-								ext_status <= io_din[1:0];
+								io_dout <= {8'h80, ext_req};
 							end
 					default: ;
 				endcase

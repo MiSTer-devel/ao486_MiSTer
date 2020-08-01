@@ -168,8 +168,8 @@ assign LED_DISK[1] = 1;
 assign LED_POWER   = 0;
 assign BUTTONS   = 0;
 
-led hdd_led(clk_sys,  device & ioctl_wait, LED_DISK[0]);
-led fdd_led(clk_sys, ~device & ioctl_wait, LED_USER);
+led hdd_led(clk_sys, |mgmt_req[3:0], LED_DISK[0]);
+led fdd_led(clk_sys, |mgmt_req[5:4], LED_USER);
 
 
 `include "build_id.v"
@@ -273,8 +273,7 @@ wire [31:0] mgmt_dout;
 wire [31:0] mgmt_addr;
 wire        mgmt_hrd;
 wire        mgmt_hwr;
-wire  [1:0] mgmt_status;
-wire  [1:0] mgmt_req;
+wire  [5:0] mgmt_req;
 
 wire [35:0] EXT_BUS;
 hps_ext hps_ext
@@ -289,8 +288,7 @@ hps_ext hps_ext
 	.ext_addr(mgmt_addr),
 	.ext_rd(mgmt_hrd),
 	.ext_wr(mgmt_hwr),
-	.ext_req(mgmt_req),
-	.ext_status(mgmt_status)
+	.ext_req(mgmt_req)
 );
 
 //------------------------------------------------------------------------------
@@ -566,7 +564,6 @@ system u0
 	.speaker_enable       (speaker_ena),
 	.speaker_out          (speaker_out),
 
-
 	.ps2_misc_a20_enable  (),
 	.ps2_misc_reset_n     (ps2_reset_n),
 
@@ -617,13 +614,11 @@ system u0
 	.mgmt_read            (mgmt_rd),
 	.mgmt_byteenable      (4'b1111),
 	.mgmt_debugaccess     (0),
-	
-	.disk_op_read         (mgmt_req[0]),
-	.disk_op_write        (mgmt_req[1]),
-	.disk_op_device       (device),
-	.disk_result_ok       (mgmt_status[0]),
-	.disk_result_error    (mgmt_status[1]),
-	
+
+	.hdd0_request         (mgmt_req[1:0]),
+	.hdd1_request         (mgmt_req[3:2]),
+	.fdd0_request         (mgmt_req[5:4]),
+
 	.serial_br_clk        (clk_uart),
 	.serial_rx            (UART_RXD),
 	.serial_tx            (UART_TXD),

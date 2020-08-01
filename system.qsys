@@ -33,22 +33,6 @@
          type = "int";
       }
    }
-   element driver_sd
-   {
-      datum _sortIndex
-      {
-         value = "17";
-         type = "int";
-      }
-   }
-   element driver_sd.avalon_slave_0
-   {
-      datum baseAddress
-      {
-         value = "2560";
-         type = "String";
-      }
-   }
    element floppy0
    {
       datum _sortIndex
@@ -165,7 +149,7 @@
    {
       datum _sortIndex
       {
-         value = "18";
+         value = "17";
          type = "int";
       }
    }
@@ -660,11 +644,27 @@
          type = "String";
       }
    }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element uart
    {
       datum _sortIndex
       {
-         value = "19";
+         value = "18";
          type = "int";
       }
    }
@@ -712,7 +712,9 @@
  <interface name="clk_opl" internal="InClock_OPL.in_clk" type="clock" dir="end" />
  <interface name="clk_sys" internal="InClock_SYS.in_clk" type="clock" dir="end" />
  <interface name="cpu_reset" internal="reset_cpu.in_reset" type="reset" dir="end" />
- <interface name="disk" internal="driver_sd.conduit_prx" type="conduit" dir="end" />
+ <interface name="fdd0" internal="floppy0.req" type="conduit" dir="end" />
+ <interface name="hdd0" internal="hdd0.req" type="conduit" dir="end" />
+ <interface name="hdd1" internal="hdd1.req" type="conduit" dir="end" />
  <interface
    name="joystick"
    internal="joystick_0.joystick"
@@ -732,9 +734,6 @@
    type="reset"
    dir="end" />
  <interface name="rtc" internal="rtc.rtc" type="conduit" dir="end" />
- <interface name="sd_clk" internal="driver_sd.conduit_clk" />
- <interface name="sd_cmd" internal="driver_sd.conduit_cmd" />
- <interface name="sd_dat" internal="driver_sd.conduit_dat" />
  <interface name="serial" internal="uart.serial" type="conduit" dir="end" />
  <interface name="snoop" internal="ao486.conduit_snoop" />
  <interface name="sound" internal="sound.conduit_sound" type="conduit" dir="end" />
@@ -765,7 +764,6 @@
   <parameter name="NUM_CLOCK_OUTPUTS" value="1" />
  </module>
  <module name="ao486" kind="ao486" version="1.0" enabled="1" />
- <module name="driver_sd" kind="driver_sd" version="2.0" enabled="1" />
  <module name="floppy0" kind="floppy" version="1.0" enabled="1">
   <parameter name="BufAddress" value="2048" />
  </module>
@@ -971,46 +969,10 @@
  <connection
    kind="avalon"
    version="17.0"
-   start="floppy0.avalon_master"
-   end="driver_sd.avalon_slave_0">
-  <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x0a00" />
-  <parameter name="defaultConnection" value="false" />
- </connection>
- <connection
-   kind="avalon"
-   version="17.0"
-   start="hdd0.avalon_master"
-   end="driver_sd.avalon_slave_0">
-  <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x0a00" />
-  <parameter name="defaultConnection" value="false" />
- </connection>
- <connection
-   kind="avalon"
-   version="17.0"
-   start="hdd1.avalon_master"
-   end="driver_sd.avalon_slave_0">
-  <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x0a00" />
-  <parameter name="defaultConnection" value="false" />
- </connection>
- <connection
-   kind="avalon"
-   version="17.0"
    start="pc_dma.avalon_master"
    end="ao486.dma">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0000" />
-  <parameter name="defaultConnection" value="false" />
- </connection>
- <connection
-   kind="avalon"
-   version="17.0"
-   start="mgmt_bridge.m0"
-   end="driver_sd.avalon_slave_0">
-  <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x0a00" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
@@ -1129,11 +1091,6 @@
    version="17.0"
    start="InClock_SYS.out_clk"
    end="pic.clock" />
- <connection
-   kind="clock"
-   version="17.0"
-   start="InClock_SYS.out_clk"
-   end="driver_sd.clock" />
  <connection
    kind="clock"
    version="17.0"
@@ -1371,11 +1328,6 @@
    version="17.0"
    start="reset_sys.reset_out"
    end="floppy0.reset_sink" />
- <connection
-   kind="reset"
-   version="17.0"
-   start="reset_sys.reset_out"
-   end="driver_sd.reset_sink" />
  <connection
    kind="reset"
    version="17.0"

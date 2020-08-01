@@ -24,75 +24,70 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-module floppy #(
-	parameter BufAddress
-)(
-    input               clk,
-    input               rst_n,
-    
-    //dma
-    output              dma_floppy_req,
-    input               dma_floppy_ack,
-    input               dma_floppy_terminal,
-    input       [7:0]   dma_floppy_readdata,
-    output      [7:0]   dma_floppy_writedata,
-    
-    //irq
-    output reg          irq,
-    
-    //avalon slave
-    input       [2:0]   io_address,
-    input               io_read,
-    output reg  [7:0]   io_readdata,
-    input               io_write,
-    input       [7:0]   io_writedata,
-    
-    //ide shared port 0x3F6
-    output              ide_3f6_read,
-    input       [7:0]   ide_3f6_readdata,
-    output              ide_3f6_write,
-    output      [7:0]   ide_3f6_writedata,
-    
-    //master to control sd
-    output      [31:0]  sd_master_address,
-    input               sd_master_waitrequest,
-    output              sd_master_read,
-    input               sd_master_readdatavalid,
-    input       [31:0]  sd_master_readdata,
-    output              sd_master_write,
-    output      [31:0]  sd_master_writedata,
-    
-    //slave for sd
-    input       [8:0]   sd_slave_address,
-    input               sd_slave_read,
-    output reg  [7:0]   sd_slave_readdata,
-    input               sd_slave_write,
-    input       [7:0]   sd_slave_writedata,
-    
-    //slave for management
-    /*
-     0x00.[0]:      media present
-     0x01.[0]:      media writeprotect
-     0x02.[7:0]:    media cylinders
-     0x03.[7:0]:    media sectors per track
-     0x04.[31:0]:   media total sector count
-     0x05.[1:0]:    media heads
-     0x06.[31:0]:   media sd base
-     0x07.[15:0]:   media wait cycles: 200000 us / spt
-     0x08.[15:0]:   media wait rate 0: 1000 us
-     0x09.[15:0]:   media wait rate 1: 1666 us
-     0x0A.[15:0]:   media wait rate 2: 2000 us
-     0x0B.[15:0]:   media wait rate 3: 500 us
-     0x0C.[7:0]:    media type: 8'h20 none; 8'h00 old; 8'hC0 720k; 8'h80 1_44M; 8'h40 2_88M
-    */
-    input       [3:0]   mgmt_address,
-    input               mgmt_write,
-    input       [31:0]  mgmt_writedata
+module floppy
+(
+	input               clk,
+	input               rst_n,
+
+	//dma
+	output              dma_floppy_req,
+	input               dma_floppy_ack,
+	input               dma_floppy_terminal,
+	input       [7:0]   dma_floppy_readdata,
+	output      [7:0]   dma_floppy_writedata,
+
+	//irq
+	output reg          irq,
+
+	//avalon slave
+	input       [2:0]   io_address,
+	input               io_read,
+	output reg  [7:0]   io_readdata,
+	input               io_write,
+	input       [7:0]   io_writedata,
+
+	//ide shared port 0x3F6
+	output              ide_3f6_read,
+	input       [7:0]   ide_3f6_readdata,
+	output              ide_3f6_write,
+	output      [7:0]   ide_3f6_writedata,
+
+	//slave for sd
+	input       [8:0]   sd_slave_address,
+	input               sd_slave_read,
+	output reg  [7:0]   sd_slave_readdata,
+	input               sd_slave_write,
+	input       [7:0]   sd_slave_writedata,
+
+	//slave for management
+	/*
+	0x00.[0]:      media present
+	0x01.[0]:      media writeprotect
+	0x02.[7:0]:    media cylinders
+	0x03.[7:0]:    media sectors per track
+	0x04.[31:0]:   media total sector count
+	0x05.[1:0]:    media heads
+	0x06.[31:0]:   media sd base
+	0x07.[15:0]:   media wait cycles: 200000 us / spt
+	0x08.[15:0]:   media wait rate 0: 1000 us
+	0x09.[15:0]:   media wait rate 1: 1666 us
+	0x0A.[15:0]:   media wait rate 2: 2000 us
+	0x0B.[15:0]:   media wait rate 3: 500 us
+	0x0C.[7:0]:    media type: 8'h20 none; 8'h00 old; 8'hC0 720k; 8'h80 1_44M; 8'h40 2_88M
+	*/
+	input       [3:0]   mgmt_address,
+	input               mgmt_write,
+	input       [31:0]  mgmt_writedata,
+	input               mgmt_read,
+	output      [31:0]  mgmt_readdata,
+
+	output       [1:0]  request
 );
 
-//------------------------------------------------------------------------------
+assign mgmt_readdata = (mgmt_address == 0) ? sd_sector : 32'd1;
+assign request = (state == S_SD_CONTROL) ? {cmd_write_normal_in_progress | cmd_format_in_progress, cmd_read_normal_in_progress} : 2'b00;
 
-`define SD_AVALON_BASE_ADDRESS_FOR_FDD 32'h00000800
+//------------------------------------------------------------------------------
 
 //TODO: in execute_ndma -- send irq after every byte
 
@@ -706,10 +701,7 @@ localparam [4:0] S_IDLE                         = 5'd0;
 localparam [4:0] S_PREPARE_COUNT                = 5'd1;
 localparam [4:0] S_COUNT_LOGICAL                = 5'd2;
 
-localparam [4:0] S_SD_MUTEX                     = 5'd3;
-localparam [4:0] S_SD_AVALON_BASE               = 5'd4;
-localparam [4:0] S_SD_ADDRESS                   = 5'd5;
-localparam [4:0] S_SD_BLOCK_COUNT               = 5'd6;
+localparam [4:0] S_PREPARE                      = 5'd3;
 
 localparam [4:0] S_SD_CONTROL                   = 5'd7;
 localparam [4:0] S_SD_READ_WAIT_FOR_DATA        = 5'd8;
@@ -733,27 +725,27 @@ always @(posedge clk or negedge rst_n) begin
     else if(state == S_IDLE && cmd_read_write_ok_at_start)                                              state <= S_PREPARE_COUNT;
     
     //read
-    else if(state == S_COUNT_LOGICAL && mult_b == 8'd0 && cmd_read_normal_in_progress)                  state <= S_SD_MUTEX;
-        //sd
-    else if(state == S_SD_CONTROL && sd_master_waitrequest == 1'b0 && cmd_read_normal_in_progress)      state <= S_SD_READ_WAIT_FOR_DATA;
+    else if(state == S_COUNT_LOGICAL && mult_b == 8'd0 && cmd_read_normal_in_progress)                  state <= S_PREPARE;
+    //sd
+    else if(state == S_SD_CONTROL && mgmt_write && mgmt_address == 15 && cmd_read_normal_in_progress)   state <= S_SD_READ_WAIT_FOR_DATA;
     else if(state == S_SD_READ_WAIT_FOR_DATA && sd_slave_write && sd_write_counter == 9'd511)           state <= S_WAIT_FOR_EMPTY_READ_FIFO;
     else if(state == S_WAIT_FOR_EMPTY_READ_FIFO && from_floppy_empty)                                   state <= S_UPDATE_SECTOR;
     
     //write
     else if(state == S_COUNT_LOGICAL && mult_b == 8'd0 && cmd_write_normal_in_progress)                 state <= S_WAIT_FOR_FULL_WRITE_FIFO;
-    else if(state == S_WAIT_FOR_FULL_WRITE_FIFO && to_floppy_count == 11'd512)                          state <= S_SD_MUTEX;
-        //sd
-    else if(state == S_SD_CONTROL && sd_master_waitrequest == 1'b0 && cmd_write_normal_in_progress)     state <= S_SD_WRITE_WAIT_FOR_EMPTY_FIFO;
+    else if(state == S_WAIT_FOR_FULL_WRITE_FIFO && to_floppy_count == 11'd512)                          state <= S_PREPARE;
+    //sd
+    else if(state == S_SD_CONTROL && mgmt_write && mgmt_address == 15 && cmd_write_normal_in_progress)  state <= S_SD_WRITE_WAIT_FOR_EMPTY_FIFO;
     else if(state == S_SD_WRITE_WAIT_FOR_EMPTY_FIFO && to_floppy_empty)                                 state <= S_UPDATE_SECTOR;
     
     //format
     else if(state == S_IDLE && cmd_format_ok_at_start)                                                  state <= S_WAIT_FOR_FORMAT_INPUT;
     else if(state == S_WAIT_FOR_FORMAT_INPUT && cmd_format_in_input_finish)                             state <= S_IDLE;
     else if(state == S_WAIT_FOR_FORMAT_INPUT && format_data_count == 3'd4)                              state <= S_PREPARE_COUNT;
-        //count
-    else if(state == S_COUNT_LOGICAL && mult_b == 8'd0 && cmd_format_in_progress)                       state <= S_SD_MUTEX;
-        //sd
-    else if(state == S_SD_CONTROL && sd_master_waitrequest == 1'b0 && cmd_format_in_progress)           state <= S_SD_FORMAT_WAIT_FOR_FILL;
+    //count
+    else if(state == S_COUNT_LOGICAL && mult_b == 8'd0 && cmd_format_in_progress)                       state <= S_PREPARE;
+    //sd
+    else if(state == S_SD_CONTROL && mgmt_write && mgmt_address == 15 && cmd_format_in_progress)        state <= S_SD_FORMAT_WAIT_FOR_FILL;
     else if(state == S_SD_FORMAT_WAIT_FOR_FILL && sd_read_counter == 9'd511 && sd_slave_read_valid)     state <= S_WAIT;
     
     //read id
@@ -764,10 +756,7 @@ always @(posedge clk or negedge rst_n) begin
     else if(state == S_PREPARE_COUNT)                                                                   state <= S_COUNT_LOGICAL;
     
     //sd read/write
-    else if(state == S_SD_MUTEX && sd_master_readdatavalid && sd_master_readdata[2:0] == 3'd1)          state <= S_SD_AVALON_BASE;
-    else if(state == S_SD_AVALON_BASE && sd_master_waitrequest == 1'b0)                                 state <= S_SD_ADDRESS;
-    else if(state == S_SD_ADDRESS     && sd_master_waitrequest == 1'b0)                                 state <= S_SD_BLOCK_COUNT;
-    else if(state == S_SD_BLOCK_COUNT && sd_master_waitrequest == 1'b0)                                 state <= S_SD_CONTROL;
+    else if(state == S_PREPARE)                                                                         state <= S_SD_CONTROL;
     
     //update read/write/format
     else if(state == S_UPDATE_SECTOR)                                                                   state <= S_WAIT;
@@ -858,56 +847,22 @@ end
 
 //------------------------------------------------------------------------------ sd
 
-assign sd_master_address =
-    (state == S_SD_MUTEX)?          32'hA04 :
-    (state == S_SD_AVALON_BASE)?    32'hA00 :
-    (state == S_SD_ADDRESS)?        32'hA04 :
-    (state == S_SD_BLOCK_COUNT)?    32'hA08 :
-    (state == S_SD_CONTROL)?        32'hA0C :
-                                    32'hA00;
-
-reg [2:0] sd_mutex_wait;
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                       sd_mutex_wait <= 3'd0;
-    else if(state == S_SD_MUTEX && sd_master_read == 1'b0)  sd_mutex_wait <= sd_mutex_wait + 3'd1;
-end
-
-reg sd_read_done;
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                           sd_read_done <= 1'b0;
-    else if(sd_master_read && sd_master_waitrequest == 1'b0)    sd_read_done <= 1'b1;
-    else if(sd_master_readdatavalid)                            sd_read_done <= 1'b0;
-end
-
-assign sd_master_read = state == S_SD_MUTEX && sd_mutex_wait == 3'd5 && ~(sd_read_done);
-
-assign sd_master_write = state == S_SD_AVALON_BASE || state == S_SD_ADDRESS || state == S_SD_BLOCK_COUNT || state == S_SD_CONTROL;
-
-assign sd_master_writedata =
-    (state == S_SD_AVALON_BASE)?                                BufAddress :
-    (state == S_SD_ADDRESS)?                                    sd_sector :
-    (state == S_SD_BLOCK_COUNT)?                                32'd1 :
-    (state == S_SD_CONTROL && cmd_read_normal_in_progress)?     32'd2 : //CONTROL_READ
-    (state == S_SD_CONTROL && cmd_write_normal_in_progress)?    32'd3 : //CONTROL_WRITE
-    (state == S_SD_CONTROL && cmd_format_in_progress)?          32'd3 : //CONTROL_WRITE
-                                                                32'd0;
-
 reg [8:0] sd_write_counter;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)           sd_write_counter <= 9'd0;
-    else if(sd_slave_write)     sd_write_counter <= sd_write_counter + 9'd1;
+    if(rst_n == 1'b0)            sd_write_counter <= 9'd0;
+    else if(sd_slave_write)      sd_write_counter <= sd_write_counter + 9'd1;
 end
 
 reg [8:0] sd_read_counter;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)               sd_read_counter <= 9'd0;
-    else if(sd_slave_read_valid)    sd_read_counter <= sd_read_counter + 9'd1;
+    if(rst_n == 1'b0)            sd_read_counter <= 9'd0;
+    else if(sd_slave_read_valid) sd_read_counter <= sd_read_counter + 9'd1;
 end
 
 reg [31:0] sd_sector;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                   sd_sector <= 32'd0;
-    else if(state == S_SD_AVALON_BASE)  sd_sector <= ({ 16'd0, logical_sector } >= media_sector_count)? media_sd_base + media_sector_count - 32'd1 : media_sd_base + { 16'd0, logical_sector };
+    if(rst_n == 1'b0)            sd_sector <= 32'd0;
+    else if(state == S_PREPARE)  sd_sector <= ({ 16'd0, logical_sector } >= media_sector_count)? media_sd_base + media_sector_count - 32'd1 : media_sd_base + { 16'd0, logical_sector };
 end
 
 //------------------------------------------------------------------------------ dma
@@ -987,12 +942,6 @@ fifo_from_floppy_inst(
     .usedw      ()                      //output [9:0]
     /* verilator lint_on PINNOCONNECT */
 );
-
-//------------------------------------------------------------------------------
-
-// synthesis translate_off
-wire _unused_ok = &{ 1'b0, sd_master_readdata[31:3], sd_slave_address, command[71:64], perp_mode[7], 1'b0 };
-// synthesis translate_on
 
 //------------------------------------------------------------------------------
 

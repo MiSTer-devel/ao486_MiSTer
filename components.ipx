@@ -114,18 +114,6 @@
   <tag2 key="COMPONENT_HIDE_FROM_SOPC" value="true" />
  </component>
  <component
-   name="driver_sd"
-   file="./rtl/soc/driver_sd/driver_sd_hw.tcl"
-   displayName="driver_sd"
-   version="2.0"
-   description=""
-   tags="AUTHORSHIP= /// CONNECTION_TYPES=avalon,clock,conduit,reset /// INTERNAL_COMPONENT=false"
-   categories="ao486"
-   factory="TclModuleFactory">
-  <tag2 key="COMPONENT_EDITABLE" value="true" />
-  <tag2 key="COMPONENT_HIDE_FROM_SOPC" value="true" />
- </component>
- <component
    name="sound"
    file="./rtl/soc/sound/sound_hw.tcl"
    displayName="sound"
