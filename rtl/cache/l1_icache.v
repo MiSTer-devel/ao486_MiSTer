@@ -127,7 +127,7 @@ always @(posedge CLK) begin : mainfsm
 		end
 		for (i = 0; i < ASSOCIATIVITY; i = i + 1'd1) begin
 			if (LRU_out[i] < match) begin
-				LRU_in[i] <= LRU_out[i] + 1;
+				LRU_in[i] <= LRU_out[i] + 1'd1;
 			end
 		end
 

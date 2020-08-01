@@ -569,7 +569,7 @@ end
 assign read_do = 
     ~(rd_reset) &&
     ((rd_address_effective_ready && (read_rmw_virtual || read_virtual)) || memory_read_system) &&
-    ~(rd_one_mem_read) && ~(read_done) && ~(read_page_fault) && ~(read_ac_fault) &&
+    ~(rd_one_mem_read) && ~(read_page_fault) && ~(read_ac_fault) &&
     ~(rd_seg_gp_fault_init) && ~(rd_seg_gp_fault) && ~(rd_descriptor_gp_fault) && ~(rd_seg_ss_fault_init) && ~(rd_seg_ss_fault) && ~(rd_io_allow_fault) && ~(rd_ss_esp_from_tss_fault);
         
 assign read_for_rd_ready = rd_one_mem_read || (read_done && ~(read_page_fault) && ~(read_ac_fault));

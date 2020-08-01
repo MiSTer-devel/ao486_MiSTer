@@ -38,7 +38,7 @@ module memory_read(
     
     //RESP:
     input               read_do,
-    output reg          read_done,
+    output              read_done,
     output reg          read_page_fault,
     output reg          read_ac_fault,
     
@@ -47,7 +47,7 @@ module memory_read(
     input       [3:0]   read_length,
     input               read_lock,
     input               read_rmw,
-    output reg  [63:0]  read_data,
+    output      [63:0]  read_data,
     //END
     
     //REQ:
@@ -70,32 +70,28 @@ module memory_read(
 //------------------------------------------------------------------------------
 
 reg [1:0]   state;
-
 reg [55:0]  buffer;
-
 reg [3:0]   length_2_reg;
-
 reg [31:0]  address_2_reg;
-
 reg         reset_waiting;
+
+reg         read_done_next;
+reg [63:0]  read_data_next;
 
 //------------------------------------------------------------------------------
 
 wire [63:0] merged;
-
 wire [4:0]  left_in_line;
-
 wire [3:0]  length_1;
-
 wire [3:0]  length_2;
-
 wire [31:0] address_2;
 
 //------------------------------------------------------------------------------
 
 localparam [1:0] STATE_IDLE        = 2'd0;
-localparam [1:0] STATE_FIRST_WAIT  = 2'd1;
-localparam [1:0] STATE_SECOND      = 2'd2;
+localparam [1:0] STATE_WAIT        = 2'd1;
+localparam [1:0] STATE_FIRST       = 2'd2;
+localparam [1:0] STATE_SECOND      = 2'd3;
 
 //------------------------------------------------------------------------------
 
@@ -124,7 +120,7 @@ assign merged =
     (length_1_save == 4'd4)? { tlbread_data[31:0], buffer[31:0] } :
     (length_1_save == 4'd5)? { tlbread_data[23:0], buffer[39:0] } :
     (length_1_save == 4'd6)? { tlbread_data[15:0], buffer[47:0] } :
-                            { tlbread_data[7:0],  buffer[55:0] };
+                             { tlbread_data[7:0],  buffer[55:0] };
 
 //------------------------------------------------------------------------------
 
@@ -148,93 +144,76 @@ end
 
 //------------------------------------------------------------------------------
 
-// synthesis translate_off
-wire _unused_ok = &{ 1'b0, address_2[3:0], 1'b0 };
-// synthesis translate_on
+assign tlbread_address = (state == STATE_SECOND) ? address_2_reg : read_address;
+assign tlbread_length  = (state == STATE_SECOND) ? length_2_reg : length_1;
 
-//------------------------------------------------------------------------------
+assign tlbread_do =
+    (state == STATE_IDLE && read_do && ~(read_done_next) && ~(rd_reset) && ~(read_page_fault) && ~(read_ac_fault))? 1'b1 :
+    (state == STATE_WAIT)?   1'b1 :
+    (state == STATE_FIRST)?  1'b1 :
+    (state == STATE_SECOND)? 1'b1 :
+    1'b0;
 
-/*
-tlbread_cpl             -- constant assign from read
-tlbread_address         -- set
-tlbread_length          -- set
-tlbread_length_full     -- constant assign from read
-tlbread_lock            -- constant assign from read
-tlbread_rmw             -- constant assign from read
-*/  
 
-/*******************************************************************************SCRIPT
+assign read_done = (state == STATE_WAIT && ~(tlbread_page_fault || tlbread_ac_fault || (tlbread_retry && reset_waiting)) && tlbread_done && ~rd_reset && ~reset_waiting)? 1'b1 : read_done_next;
+assign read_data = (state == STATE_WAIT) ? tlbread_data : read_data_next;
 
-IF(state == STATE_IDLE);
-    
-    SAVE(read_done, `FALSE);
-    
-    SAVE(length_2_reg,  length_2);
-    SAVE(address_2_reg, { address_2[31:4], 4'd0 });
-    
-    SET(tlbread_address, read_address);
-    SET(tlbread_length,  length_1);
-    
-    IF(read_do && ~(read_done) && ~(rd_reset) && ~(read_page_fault) && ~(read_ac_fault));
-        
-        SET(tlbread_do);
-        
-        SAVE(state, STATE_FIRST_WAIT);
-    ENDIF();
-ENDIF();
-*/
 
-/*******************************************************************************SCRIPT
+always @(posedge clk) begin
+   if(!rst_n) begin
+      state <= STATE_IDLE;
+   end
+   else begin
+      read_done_next <= 1'b0;
+   
+		case(state)
+         STATE_IDLE:
+            begin
+               length_2_reg  <= length_2;
+               address_2_reg <= { address_2[31:4], 4'd0 };
+               if(read_do && ~(read_done_next) && ~(rd_reset) && ~(read_page_fault) && ~(read_ac_fault)) begin
+                  if (length_2 == 4'd0) begin
+                     state <= STATE_WAIT;
+                  end else begin
+                     state <= STATE_FIRST;
+                  end
+               end
+            end
+            
+         STATE_WAIT:
+            if(tlbread_page_fault || tlbread_ac_fault || (tlbread_retry && reset_waiting)) begin
+               state <= STATE_IDLE;  
+            end else if(tlbread_done) begin
+               state          <= STATE_IDLE;
+               read_data_next <= tlbread_data;
+            end
+         
+         
+         STATE_FIRST:
+            begin
+               if(tlbread_page_fault || tlbread_ac_fault || (tlbread_retry && reset_waiting)) begin
+                  state <= STATE_IDLE;  
+               end else if(tlbread_done) begin
+                  buffer <= tlbread_data[55:0];
+                  state  <= STATE_SECOND;
+               end
+            end
+            
+         STATE_SECOND:
+            begin
+               if(tlbread_page_fault || tlbread_ac_fault || tlbread_done || (tlbread_retry && reset_waiting)) begin
+                  state <= STATE_IDLE;
+               end
+               
+               if(tlbread_done && rd_reset == `FALSE && reset_waiting == `FALSE) begin
+                  read_done_next <= 1'b1;
+                  read_data_next <= merged;
+               end
+            end
+         
+      endcase
+   end
+end
 
-IF(state == STATE_FIRST_WAIT);
-    
-    SET(tlbread_do);
-    
-    SET(tlbread_address, read_address);
-    SET(tlbread_length,  length_1);
-    
-    IF(tlbread_page_fault || tlbread_ac_fault || (tlbread_retry && reset_waiting));
-        SAVE(state, STATE_IDLE);
-        
-    ELSE_IF(tlbread_done && length_2_reg != 4'd0);
-        SAVE(buffer, tlbread_data[55:0]);
-    
-        SAVE(state, STATE_SECOND);
-        
-    ELSE_IF(tlbread_done);
-        
-        IF(rd_reset == `FALSE && reset_waiting == `FALSE);
-            SAVE(read_done, `TRUE);
-            SAVE(read_data, tlbread_data);
-        ENDIF();
-        
-        SAVE(state, STATE_IDLE);
-    ENDIF();
-ENDIF();
-*/
-
-/*******************************************************************************SCRIPT
-
-IF(state == STATE_SECOND);
-    
-    SET(tlbread_address, address_2_reg);
-    SET(tlbread_length,  length_2_reg);
-    
-    SET(tlbread_do);
-    
-    IF(tlbread_page_fault || tlbread_ac_fault || tlbread_done || (tlbread_retry && reset_waiting));
-        SAVE(state, STATE_IDLE);
-    ENDIF();
-    
-    IF(tlbread_done && rd_reset == `FALSE && reset_waiting == `FALSE);
-        SAVE(read_done, `TRUE);
-        SAVE(read_data, merged);
-    ENDIF();
-ENDIF();
-*/
-
-//------------------------------------------------------------------------------
-
-`include "autogen/memory_read.v"
 
 endmodule
