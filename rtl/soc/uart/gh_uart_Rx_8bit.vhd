@@ -29,6 +29,7 @@ entity gh_uart_Rx_8bit is
 		num_bits  : in integer;
 		Parity_EN : in std_logic;
 		Parity_EV : in std_logic;
+		Parity_F  : in std_logic;
 		Parity_ER : out std_logic;
 		Frame_ER  : out std_logic;
 		Break_ITR : out std_logic;
@@ -88,6 +89,7 @@ END COMPONENT;
 	signal R_state, R_nstate : R_StateType; 
 
 	signal parity      : std_logic;
+	signal parity_x    : std_logic;
 	signal parity_Grst : std_logic;
 	signal RWC_LD      : std_logic;
 	signal R_WCOUNT : integer range 0 to 15;
@@ -171,8 +173,8 @@ U2 : gh_shift_reg_se_sl
 
 -----------------------------------------------------------
 
-	chk_par <= s_chk_par and (((parity xor iRX) and Parity_EV) 
-	                 or (((not parity) xor iRX) and (not Parity_EV)));
+	chk_par <= s_chk_par and (((parity_x xor iRX) and Parity_EV) 
+	                 or (((not parity_x) xor iRX) and (not Parity_EV)));
 
 U2c : gh_jkff 
 	PORT MAP (
@@ -347,6 +349,7 @@ U4 : gh_parity_gen_Serial
 		D => R_shift_reg(7),
 		Q => parity);
 
+parity_x <= parity when Parity_F = '0' else '0';
 		
 end a;
 

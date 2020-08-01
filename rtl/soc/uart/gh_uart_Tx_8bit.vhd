@@ -35,6 +35,7 @@ entity gh_uart_Tx_8bit is
 		stopB     : in std_logic;
 		Parity_EN : in std_logic;
 		Parity_EV : in std_logic;
+		Parity_F  : in std_logic;
 		sTX       : out std_logic;
 		BUSYn     : out std_logic;
 		read      : out std_logic -- data read
@@ -83,6 +84,7 @@ END COMPONENT;
 	signal T_state, T_nstate : T_StateType; 
 
 	signal parity      : std_logic;
+	signal parity_x    : std_logic;
 	signal parity_Grst : std_logic;
 	signal TWC_LD      : std_logic;
 	signal TWC_CE      : std_logic;
@@ -157,8 +159,7 @@ end process ;
 
 	iTX <= '0' when (T_state = s_start_bit) else -- send start bit
 	        Trans_shift_reg(0) when (T_state = shift_data) else -- send data
-	        parity when ((Parity_EV = '1') and (T_state = s_parity)) else
-	        (not parity) when (T_state = s_parity) else
+	        parity_x when (T_state = s_parity) else
 	        '1'; -- idle, stop bit
 
 process(T_state,D_RYn,BRC,T_WCOUNT,Parity_EN,num_bits,x_dCOUNT,stopB)
@@ -287,6 +288,7 @@ U4 : gh_parity_gen_Serial
 		D => Trans_shift_reg(0),
 		Q => parity);
 
-		
+parity_x <= parity xor (not Parity_EV) when Parity_F = '0' else not Parity_EV;
+
 end a;
 

@@ -128,6 +128,7 @@ COMPONENT gh_uart_Tx_8bit is
 		stopB     : in std_logic;
 		Parity_EN : in std_logic;
 		Parity_EV : in std_logic;
+		Parity_F  : in std_logic;
 		sTX       : out std_logic;
 		BUSYn     : out std_logic;
 		read      : out std_logic -- data read
@@ -143,6 +144,7 @@ COMPONENT gh_uart_Rx_8bit is
 		num_bits  : in integer;
 		Parity_EN : in std_logic;
 		Parity_EV : in std_logic;
+		Parity_F  : in std_logic;
 		Parity_ER : out std_logic;
 		Frame_ER  : out std_logic;
 		Break_ITR : out std_logic;
@@ -282,9 +284,8 @@ END COMPONENT;
 	signal num_bits  : integer:=0;
 	signal stopB     : std_logic;
 	signal Parity_EN : std_logic;
-	signal Parity_OD : std_logic;
 	signal Parity_EV : std_logic;
---	signal Parity_sticky : std_logic;
+	signal Parity_F  : std_logic;
 	signal Break_CB : std_logic;
 	
 	signal TF_RD    : std_logic;
@@ -630,7 +631,7 @@ U22 : gh_jkff
 		k => RF_EMPTY,
 		Q => RF_CLR);
 		
-	RF_CLRS <= D(1) AND WR_B(2);
+	RF_CLRS <= (D(1) OR (FCR(0) XOR D(0))) AND WR_B(2); -- reset by D(1)=1 or change in D(0)
 		
 U23 : gh_jkff 
 	PORT MAP (
@@ -640,7 +641,7 @@ U23 : gh_jkff
 		k => TF_EMPTY,
 		Q => TF_CLR);
 		
-	TF_CLRS <= D(2) AND WR_B(2);
+	TF_CLRS <= (D(2) OR (FCR(0) XOR D(0))) AND WR_B(2);
 		
 u24 : gh_register_ce 
 	generic map (8)
@@ -659,11 +660,10 @@ u24 : gh_register_ce
 
 	stopB <= LCR(2);
 	
-	Parity_EN <= LCR(3);
-	Parity_OD <= LCR(3) and (not LCR(4)) and (not LCR(5));
-	Parity_EV <= LCR(3) and LCR(4) and (not LCR(5)); 
---	Parity_sticky <= LCR(3) and LCR(5);
-	Break_CB <= LCR(6);
+  	Parity_EN <= LCR(3);
+ 	Parity_EV <= LCR(4);
+ 	Parity_F  <= LCR(5);
+  	Break_CB  <= LCR(6); 
 		
 u25 : gh_register_ce 
 	generic map (5)
@@ -779,6 +779,7 @@ U29 : gh_UART_Tx_8bit
 		StopB => stopB,
 		Parity_EN => Parity_EN,
 		Parity_EV => Parity_EV,
+		Parity_F  => Parity_F,
 		sTX => isTX,
 		BUSYn => TSR_EMPTY,
 		read => TF_RD);
@@ -861,10 +862,10 @@ U32c : gh_edge_det
 
 
 	ITR2 <= '0' when (IER(0) = '0') else  -- mod 01/20/07
-	        '1' when ((FCR(7 downto 6) = "11") and (a_full = '1')) else
-	        '1' when ((FCR(7 downto 6) = "10") and (h_full = '1')) else
+	        '1' when ((FCR(7 downto 6) = "00" or FCR(0) = '0') and(RF_empty = '0')) else
 	        '1' when ((FCR(7 downto 6) = "01") and (q_full = '1')) else
-	        '1' when ((FCR(7 downto 6) = "00") and(RF_empty = '0')) else
+	        '1' when ((FCR(7 downto 6) = "10") and (h_full = '1')) else
+	        '1' when ((FCR(7 downto 6) = "11") and (a_full = '1')) else
 	        '0';
  
 U33 : gh_UART_Rx_8bit 
@@ -876,6 +877,7 @@ U33 : gh_UART_Rx_8bit
 		num_bits => num_bits,
 		Parity_EN => Parity_EN,
 		Parity_EV => Parity_EV,
+		Parity_F  => Parity_F,
 		Parity_ER => RF_DI(8),
 		FRAME_ER => RF_DI(9),
 		Break_ITR => RF_DI(10),
@@ -974,7 +976,7 @@ U36a : gh_edge_det_XCD
 	                    "001" when (ITR1 = '1') else
 	                    "000";
 			  
-	IIR(7 downto 4) <= x"C"; -- FIFO's always enabled
+	IIR(7 downto 4) <= FCR(0) & FCR(0) & "00"; -- FIFO's always enabled, fake bits 7 and 6
 
 u37 : gh_register_ce -- 12/23/06
 	generic map (4)
