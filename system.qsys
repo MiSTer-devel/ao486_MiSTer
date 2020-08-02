@@ -37,7 +37,7 @@
    {
       datum _sortIndex
       {
-         value = "14";
+         value = "15";
          type = "int";
       }
    }
@@ -73,19 +73,11 @@
          type = "boolean";
       }
    }
-   element hdd0.sd_slave
-   {
-      datum _lockedAddress
-      {
-         value = "1";
-         type = "boolean";
-      }
-   }
    element hdd1
    {
       datum _sortIndex
       {
-         value = "15";
+         value = "14";
          type = "int";
       }
    }
@@ -102,14 +94,6 @@
       datum baseAddress
       {
          value = "38976";
-         type = "String";
-      }
-   }
-   element hdd1.sd_slave
-   {
-      datum baseAddress
-      {
-         value = "4096";
          type = "String";
       }
    }
@@ -660,6 +644,22 @@
          type = "String";
       }
    }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element uart
    {
       datum _sortIndex
@@ -764,17 +764,9 @@
   <parameter name="NUM_CLOCK_OUTPUTS" value="1" />
  </module>
  <module name="ao486" kind="ao486" version="1.0" enabled="1" />
- <module name="floppy0" kind="floppy" version="1.0" enabled="1">
-  <parameter name="BufAddress" value="2048" />
- </module>
- <module name="hdd0" kind="hdd" version="1.0" enabled="1">
-  <parameter name="BufAddress" value="0" />
-  <parameter name="MutexNum" value="0" />
- </module>
- <module name="hdd1" kind="hdd" version="1.0" enabled="1">
-  <parameter name="BufAddress" value="4096" />
-  <parameter name="MutexNum" value="1" />
- </module>
+ <module name="floppy0" kind="floppy" version="1.0" enabled="1" />
+ <module name="hdd0" kind="hdd" version="1.0" enabled="1" />
+ <module name="hdd1" kind="hdd" version="1.0" enabled="1" />
  <module name="hddext_0x370" kind="hddext" version="1.0" enabled="1" />
  <module name="joystick_0" kind="joystick" version="1.0" enabled="1" />
  <module
@@ -783,7 +775,7 @@
    version="17.0"
    enabled="1">
   <parameter name="ADDRESS_UNITS" value="SYMBOLS" />
-  <parameter name="ADDRESS_WIDTH" value="32" />
+  <parameter name="ADDRESS_WIDTH" value="16" />
   <parameter name="DATA_WIDTH" value="32" />
   <parameter name="LINEWRAPBURSTS" value="0" />
   <parameter name="MAX_BURST_SIZE" value="1" />
@@ -1021,24 +1013,6 @@
    end="floppy0.sd_slave">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0800" />
-  <parameter name="defaultConnection" value="false" />
- </connection>
- <connection
-   kind="avalon"
-   version="17.0"
-   start="mgmt_bridge.m0"
-   end="hdd0.sd_slave">
-  <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x0000" />
-  <parameter name="defaultConnection" value="false" />
- </connection>
- <connection
-   kind="avalon"
-   version="17.0"
-   start="mgmt_bridge.m0"
-   end="hdd1.sd_slave">
-  <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x1000" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection

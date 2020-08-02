@@ -85,7 +85,8 @@ module floppy
 );
 
 assign mgmt_readdata = (mgmt_address == 0) ? sd_sector : 32'd1;
-assign request = (state == S_SD_CONTROL) ? {cmd_write_normal_in_progress | cmd_format_in_progress, cmd_read_normal_in_progress} : 2'b00;
+assign request = (state == S_SD_READ_WAIT_FOR_DATA || state == S_SD_WRITE_WAIT_FOR_EMPTY_FIFO || state == S_SD_FORMAT_WAIT_FOR_FILL) ?
+					{cmd_write_normal_in_progress | cmd_format_in_progress, cmd_read_normal_in_progress} : 2'b00;
 
 //------------------------------------------------------------------------------
 
@@ -95,11 +96,11 @@ assign request = (state == S_SD_CONTROL) ? {cmd_write_normal_in_progress | cmd_f
 
 reg io_read_last;
 always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) io_read_last <= 1'b0; else if(io_read_last) io_read_last <= 1'b0; else io_read_last <= io_read; end 
-wire io_read_valid = io_read && io_read_last == 1'b0;
+wire io_read_valid = io_read && ~io_read_last;
 
 reg sd_slave_read_last;
 always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) sd_slave_read_last <= 1'b0; else if(sd_slave_read_last) sd_slave_read_last <= 1'b0; else sd_slave_read_last <= sd_slave_read; end 
-wire sd_slave_read_valid = sd_slave_read && sd_slave_read_last == 1'b0;
+wire sd_slave_read_valid = sd_slave_read && ~sd_slave_read_last;
 
 //------------------------------------------------------------------------------ ide shared ports
 
@@ -727,7 +728,7 @@ always @(posedge clk or negedge rst_n) begin
     //read
     else if(state == S_COUNT_LOGICAL && mult_b == 8'd0 && cmd_read_normal_in_progress)                  state <= S_PREPARE;
     //sd
-    else if(state == S_SD_CONTROL && mgmt_write && mgmt_address == 15 && cmd_read_normal_in_progress)   state <= S_SD_READ_WAIT_FOR_DATA;
+    else if(state == S_SD_CONTROL && cmd_read_normal_in_progress)                                       state <= S_SD_READ_WAIT_FOR_DATA;
     else if(state == S_SD_READ_WAIT_FOR_DATA && sd_slave_write && sd_write_counter == 9'd511)           state <= S_WAIT_FOR_EMPTY_READ_FIFO;
     else if(state == S_WAIT_FOR_EMPTY_READ_FIFO && from_floppy_empty)                                   state <= S_UPDATE_SECTOR;
     
@@ -735,7 +736,7 @@ always @(posedge clk or negedge rst_n) begin
     else if(state == S_COUNT_LOGICAL && mult_b == 8'd0 && cmd_write_normal_in_progress)                 state <= S_WAIT_FOR_FULL_WRITE_FIFO;
     else if(state == S_WAIT_FOR_FULL_WRITE_FIFO && to_floppy_count == 11'd512)                          state <= S_PREPARE;
     //sd
-    else if(state == S_SD_CONTROL && mgmt_write && mgmt_address == 15 && cmd_write_normal_in_progress)  state <= S_SD_WRITE_WAIT_FOR_EMPTY_FIFO;
+    else if(state == S_SD_CONTROL && cmd_write_normal_in_progress)                                      state <= S_SD_WRITE_WAIT_FOR_EMPTY_FIFO;
     else if(state == S_SD_WRITE_WAIT_FOR_EMPTY_FIFO && to_floppy_empty)                                 state <= S_UPDATE_SECTOR;
     
     //format
@@ -745,7 +746,7 @@ always @(posedge clk or negedge rst_n) begin
     //count
     else if(state == S_COUNT_LOGICAL && mult_b == 8'd0 && cmd_format_in_progress)                       state <= S_PREPARE;
     //sd
-    else if(state == S_SD_CONTROL && mgmt_write && mgmt_address == 15 && cmd_format_in_progress)        state <= S_SD_FORMAT_WAIT_FOR_FILL;
+    else if(state == S_SD_CONTROL && cmd_format_in_progress)                                            state <= S_SD_FORMAT_WAIT_FOR_FILL;
     else if(state == S_SD_FORMAT_WAIT_FOR_FILL && sd_read_counter == 9'd511 && sd_slave_read_valid)     state <= S_WAIT;
     
     //read id

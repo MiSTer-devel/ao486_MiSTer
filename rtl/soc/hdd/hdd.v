@@ -46,12 +46,10 @@ module hdd
 	input               ide_3f6_write,
 	input       [7:0]   ide_3f6_writedata,
 
-	//slave with data from/to sd
-	input       [8:0]   sd_slave_address,
-	input               sd_slave_read,
-	output reg  [31:0]  sd_slave_readdata,
-	input               sd_slave_write,
-	input       [31:0]  sd_slave_writedata,
+	input               sec_read,
+	output reg  [31:0]  sec_readdata,
+	input               sec_write,
+	input       [31:0]  sec_writedata,
 
 	//management slave
 	/*
@@ -69,23 +67,24 @@ module hdd
 	input               mgmt_read,
 	output      [31:0]  mgmt_readdata,
 
-	output       [1:0]  request
+	output       [2:0]  request
 );
 
 //------------------------------------------------------------------------------
 
 assign mgmt_readdata = (mgmt_address == 0) ? sd_sector : { 27'd0, logical_sector_count };
-assign request = (state == S_SD_CONTROL) ? {cmd_write_in_progress, cmd_read_in_progress} : 2'b00;
+assign request = (state == S_SD_READ_WAIT_FOR_DATA || state == S_SD_WRITE_WAIT_FOR_DATA) ?
+				{is_next & (cmd_write_in_progress | cmd_read_in_progress), cmd_write_in_progress, cmd_read_in_progress} : 3'b000;
 
 //------------------------------------------------------------------------------
 
 reg io_read_last;
 always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) io_read_last <= 1'b0; else if(io_read_last) io_read_last <= 1'b0; else io_read_last <= io_read; end 
-wire io_read_valid = io_read && io_read_last == 1'b0;
+wire io_read_valid = io_read && ~io_read_last;
 
-reg sd_slave_read_last;
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) sd_slave_read_last <= 1'b0; else if(sd_slave_read_last) sd_slave_read_last <= 1'b0; else sd_slave_read_last <= sd_slave_read; end 
-wire sd_slave_read_valid = sd_slave_read && sd_slave_read_last == 1'b0;
+reg sec_read_last;
+always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) sec_read_last <= 1'b0; else if(sec_read_last) sec_read_last <= 1'b0; else sec_read_last <= sec_read; end 
+wire sec_read_valid = sec_read && ~sec_read_last;
 
 reg present = 0;
 always @(posedge clk) begin
@@ -439,8 +438,8 @@ wire update_location_to_overflow =
 wire update_location_to_max = cmd_max_start;
 
 wire update_location_by_one =
-    (state == S_SD_READ_WAIT_FOR_DATA && sd_slave_write && sd_counter == 7'd127) ||
-    (state == S_SD_WRITE_WAIT_FOR_DATA && sd_slave_read_valid && sd_counter == 7'd127); 
+    (state == S_SD_READ_WAIT_FOR_DATA && sec_write && sd_counter == 7'd127) ||
+    (state == S_SD_WRITE_WAIT_FOR_DATA && sec_read_valid && sd_counter == 7'd127); 
 
 wire update_location_chs_sector_only = update_location_by_one && ~(lba_mode) &&
     { 1'b0, sector } < media_spt;
@@ -619,10 +618,10 @@ always @(posedge clk or negedge rst_n) begin
     
     //read
     else if(state == S_IDLE && cmd_read_start)                                                                           state <= S_PREPARE_COUNT;
-        //count
+    //count
     else if(state == S_COUNT_DECISION && ~(count_decision_immediate_error) && cmd_read_in_progress)                      state <= S_PREPARE;
-        //sd
-    else if(state == S_SD_CONTROL && mgmt_write && mgmt_address == 7 && cmd_read_in_progress)                            state <= S_SD_READ_WAIT_FOR_DATA;
+    //sd
+    else if(state == S_SD_CONTROL && cmd_read_in_progress)                                                               state <= S_SD_READ_WAIT_FOR_DATA;
     else if(state == S_SD_READ_WAIT_FOR_DATA && logical_sector_count == 5'd0)                                            state <= S_WAIT_FOR_EMPTY_READ_FIFO;
     else if(state == S_WAIT_FOR_EMPTY_READ_FIFO && from_hdd_empty_valid && num_sectors == 17'd0 && cmd_read_in_progress) state <= S_IDLE;
     else if(state == S_WAIT_FOR_EMPTY_READ_FIFO && from_hdd_empty_valid && cmd_read_in_progress)                         state <= S_PREPARE_COUNT;
@@ -643,7 +642,7 @@ always @(posedge clk or negedge rst_n) begin
     //count                                                                                                              
     else if(state == S_COUNT_DECISION && ~(count_decision_immediate_error) && cmd_write_in_progress)                     state <= S_PREPARE;
     //sd                                                                                                                 
-    else if(state == S_SD_CONTROL && mgmt_write && mgmt_address == 7 && cmd_write_in_progress)                           state <= S_SD_WRITE_WAIT_FOR_DATA;
+    else if(state == S_SD_CONTROL && cmd_write_in_progress)                                                              state <= S_SD_WRITE_WAIT_FOR_DATA;
     else if(state == S_SD_WRITE_WAIT_FOR_DATA && logical_sector_count == 5'd0 && num_sectors == 17'd0)                   state <= S_IDLE;
     else if(state == S_SD_WRITE_WAIT_FOR_DATA && logical_sector_count == 5'd0)                                           state <= S_WAIT_FOR_FULL_WRITE_FIFO;
 
@@ -720,13 +719,13 @@ wire [4:0] multiple_final_read =
 
 reg [4:0] logical_sector_count;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                                                                           logical_sector_count <= 5'd0;
-    else if(state == S_PREPARE && current_command_read_multiple)                                                                logical_sector_count <= multiple_final_read;
-    else if(state == S_PREPARE && current_command_write_multiple)                                                               logical_sector_count <= multiple_final_write;
-    else if(state == S_PREPARE)                                                                                                 logical_sector_count <= 5'd1;
+    if(rst_n == 1'b0)                                                                                                    logical_sector_count <= 5'd0;
+    else if(state == S_PREPARE && current_command_read_multiple)                                                         logical_sector_count <= multiple_final_read;
+    else if(state == S_PREPARE && current_command_write_multiple)                                                        logical_sector_count <= multiple_final_write;
+    else if(state == S_PREPARE)                                                                                          logical_sector_count <= 5'd1;
     
-    else if(state == S_SD_READ_WAIT_FOR_DATA  && sd_slave_write       && sd_counter == 7'd127 && logical_sector_count > 5'd0)   logical_sector_count <= logical_sector_count - 5'd1;
-    else if(state == S_SD_WRITE_WAIT_FOR_DATA && sd_slave_read_valid  && sd_counter == 7'd127 && logical_sector_count > 5'd0)   logical_sector_count <= logical_sector_count - 5'd1;
+    else if(state == S_SD_READ_WAIT_FOR_DATA  && sec_write       && sd_counter == 7'd127 && logical_sector_count > 5'd0) logical_sector_count <= logical_sector_count - 5'd1;
+    else if(state == S_SD_WRITE_WAIT_FOR_DATA && sec_read_valid  && sd_counter == 7'd127 && logical_sector_count > 5'd0) logical_sector_count <= logical_sector_count - 5'd1;
 end
 
 wire count_decision_immediate_error =
@@ -792,13 +791,25 @@ reg [6:0] sd_counter;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)	                                                            sd_counter <= 7'd0;
     else if(state != S_SD_READ_WAIT_FOR_DATA && state != S_SD_WRITE_WAIT_FOR_DATA)  sd_counter <= 7'd0;
-    else if(sd_slave_write || sd_slave_read_valid)                                  sd_counter <= sd_counter + 7'd1;
+    else if(sec_write || sec_read_valid)                                            sd_counter <= sd_counter + 7'd1;
 end
 
 reg [31:0] sd_sector;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)           sd_sector <= 32'd0;
     else if(state == S_PREPARE) sd_sector <= (logical_sector >= { 16'd0, media_sectors })? media_sd_base + media_sectors - 32'd1 : media_sd_base + logical_sector[31:0];
+end
+
+reg [31:0] sd_sector_next;
+always @(posedge clk or negedge rst_n) begin
+    if(rst_n == 1'b0)              sd_sector_next <= 32'hFFFFFFFF;
+    else if(state == S_SD_CONTROL) sd_sector_next <= sd_sector + logical_sector_count;
+end
+
+reg is_next;
+always @(posedge clk or negedge rst_n) begin
+    if(rst_n == 1'b0)              is_next <= 0;
+    else if(state == S_SD_CONTROL) is_next <= (sd_sector == sd_sector_next) && (logical_sector_count == 1);
 end
 
 //------------------------------------------------------------------------------ fifo for identify
@@ -880,8 +891,8 @@ fifo_from_hdd_inst(
     
     .sclr       (sw_reset_start),                                                                   //input
     
-    .data       ((state == S_IDENTIFY_FILL)? identify_q_final : sd_slave_writedata),                //input [31:0]
-    .wrreq      ((state == S_SD_READ_WAIT_FOR_DATA && sd_slave_write) || state == S_IDENTIFY_FILL), //input
+    .data       ((state == S_IDENTIFY_FILL)? identify_q_final : sec_writedata),                     //input [31:0]
+    .wrreq      ((state == S_SD_READ_WAIT_FOR_DATA && sec_write) || state == S_IDENTIFY_FILL),      //input
     
     .rdreq      (read_data_io && { 1'b0, from_hdd_stored_index } < data_io_size),                   //input
     .empty      (from_hdd_empty),                                                                   //output
@@ -922,8 +933,8 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)   sd_slave_readdata <= 32'b0;
-    else                sd_slave_readdata <= to_hdd_q;
+    if(rst_n == 1'b0)   sec_readdata <= 32'b0;
+    else                sec_readdata <= to_hdd_q;
 end
 
 wire [11:0] to_hdd_count = { to_hdd_full, to_hdd_usedw };
@@ -945,13 +956,13 @@ fifo_to_hdd_inst(
     .wrreq      (write_data_io && to_hdd_sum >= 3'd4 && ~(write_data_ready)),   //input
     .full       (to_hdd_full),                                                  //output
     
-    .rdreq      (state == S_SD_WRITE_WAIT_FOR_DATA && sd_slave_read_valid),     //input
+    .rdreq      (state == S_SD_WRITE_WAIT_FOR_DATA && sec_read_valid),          //input
     .q          (to_hdd_q),                                                     //output [31:0]
 
     .usedw      (to_hdd_usedw),                                                 //output [10:0]
     
     /* verilator lint_off PINNOCONNECT */
-    .empty      ()                                                             //output
+    .empty      ()                                                              //output
     /* verilator lint_on PINNOCONNECT */
 );
 

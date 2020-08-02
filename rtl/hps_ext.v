@@ -23,15 +23,19 @@ module hps_ext
 	input             clk_sys,
 	inout      [35:0] EXT_BUS,
 
-	input             io_wait,
-
 	input      [31:0] clk_rate,
 
 	input      [31:0] ext_din,
 	output reg [31:0] ext_dout,
-	output reg [31:0] ext_addr,
+	output reg [15:0] ext_addr,
 	output reg        ext_rd,
 	output reg        ext_wr,
+	
+	output     [31:0] ext_hdd_writedata,
+	input      [31:0] ext_hdd_readdata,
+	output reg        ext_hdd_write,
+	output reg        ext_hdd_read,
+
 	input       [7:0] ext_req
 );
 
@@ -48,89 +52,85 @@ reg [15:0] io_dout;
 reg        dout_en = 0;
 reg  [9:0] byte_cnt;
 
+assign ext_hdd_writedata = ext_dout;
+
 always@(posedge clk_sys) begin
 	reg [15:0] cmd;
 	reg        ext_hilo;
-	reg        old_wait;
 	reg        pending;
+	reg        hdd_io;
 
 	{ext_rd, ext_wr} <= 0;
+	{ext_hdd_read, ext_hdd_write} <= 0;
 
-	old_wait <= io_wait;
+	if(pending) io_dout <= ext_din[15:0];
 
 	if(~io_enable) begin
 		byte_cnt <= 0;
 		io_dout <= 0;
 		ext_hilo <= 0;
-		old_wait <= 0;
 		pending <= 0;
 		dout_en <= 0;
-	end else begin
+	end
+	else begin
 		if(io_strobe) begin
 
+			pending <= 0;
 			io_dout <= 0;
 			if(~&byte_cnt) byte_cnt <= byte_cnt + 1'd1;
+
+			if(byte_cnt == 1) begin
+				ext_addr <= io_din;
+				hdd_io   <= (io_din == 'h2000 || io_din == 'h2001);
+			end
 
 			if(byte_cnt == 0) begin
 				cmd <= io_din;
 				ext_hilo <= 0;
 				dout_en <= (io_din >= EXT_CMD_MIN && io_din <= EXT_CMD_MAX);
-			end else begin
+				io_dout <= {8'h80, ext_req};
+			end
+			else begin
 				case(cmd)
-					'h61: if(byte_cnt == 1) begin
-								ext_addr[15:0] <= io_din;
-								io_dout <= clk_rate[15:0];
-							end
-							else if(byte_cnt == 2) begin
-								ext_addr[31:16] <= io_din;
-								io_dout <= clk_rate[31:16];
+				'h61:      if(byte_cnt == 1) io_dout <= clk_rate[15:0];
+						else if(byte_cnt == 2) io_dout <= clk_rate[31:16];
+						else begin
+							if(~ext_hilo) begin
+								if(byte_cnt>4 && !hdd_io) ext_addr <= ext_addr + 3'd4;
+								ext_dout[15:0] <= io_din;
 							end
 							else begin
-								if(~ext_hilo) begin
-									if(byte_cnt>4) ext_addr <= ext_addr + 3'd4;
-									ext_dout[15:0] <= io_din;
-								end
-								else
-								begin
-									ext_dout[31:16] <= io_din;
-									ext_wr <= 1;
-								end
-								ext_hilo <= ~ext_hilo;
+								ext_dout[31:16] <= io_din;
+								ext_wr <= ~hdd_io;
+								ext_hdd_write <= hdd_io;
 							end
+							ext_hilo <= ~ext_hilo;
+						end
 
-					'h62: if(byte_cnt == 1) begin
-								ext_addr[15:0] <= io_din;
-							end
-							else if(byte_cnt == 2) begin
-								ext_addr[31:16] <= io_din;
+				'h62: if(byte_cnt >= 3) begin
+							if(hdd_io) begin
+								if(~ext_hilo) begin
+									io_dout <= ext_hdd_readdata[15:0];
+								end
+								else begin
+									io_dout <= ext_hdd_readdata[31:16];
+									ext_hdd_read <= 1;
+								end
 							end
 							else begin
 								if(~ext_hilo) begin
 									ext_rd <= 1;
 									pending <= 1;
 								end
-								else
-								begin
+								else begin
 									io_dout <= ext_din[31:16];
 									ext_addr <= ext_addr + 3'd4;
 								end
-								ext_hilo <= ~ext_hilo;
 							end
-
-					'h63: begin
-								io_dout <= {8'h80, ext_req};
-							end
-					default: ;
+							ext_hilo <= ~ext_hilo;
+						end
 				endcase
 			end
-		end
-
-		//some pending read functions
-		if(old_wait & ~io_wait & pending) begin
-			pending <= 0;
-			case(cmd)
-				'h62: io_dout <= ext_din[15:0];
-			endcase
 		end
 	end
 end

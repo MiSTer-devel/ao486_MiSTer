@@ -164,12 +164,12 @@ assign AUDIO_MIX = 0;
 assign AUDIO_L   = sb_out_l + {2'b00, {14{speaker_ena & speaker_out}}};
 assign AUDIO_R   = sb_out_r + {2'b00, {14{speaker_ena & speaker_out}}};
 
-assign LED_DISK[1] = 1;
+assign LED_DISK[1] = LED_USER;
 assign LED_POWER   = 0;
 assign BUTTONS   = 0;
 
-led hdd_led(clk_sys, |mgmt_req[3:0], LED_DISK[0]);
-led fdd_led(clk_sys, |mgmt_req[5:4], LED_USER);
+led hdd_led(clk_sys, |mgmt_req[5:0], LED_DISK[0]);
+led fdd_led(clk_sys, |mgmt_req[7:6], LED_USER);
 
 
 `include "build_id.v"
@@ -270,17 +270,22 @@ reg         mgmt_we = 0;
 reg         mgmt_rd = 0;
 wire [31:0] mgmt_din;
 wire [31:0] mgmt_dout;
-wire [31:0] mgmt_addr;
+wire [15:0] mgmt_addr;
 wire        mgmt_hrd;
 wire        mgmt_hwr;
-wire  [5:0] mgmt_req;
+wire  [7:0] mgmt_req;
+
+wire [31:0] hdd0_readdata;
+wire [31:0] hdd1_readdata;
+wire [31:0] hdd_writedata;
+wire        hdd_write;
+wire        hdd_read;
 
 wire [35:0] EXT_BUS;
 hps_ext hps_ext
 (
 	.clk_sys(clk_sys),
 	.EXT_BUS(EXT_BUS),
-	.io_wait(ioctl_wait),
 	.clk_rate(cur_rate),
 
 	.ext_din(mgmt_din),
@@ -288,6 +293,12 @@ hps_ext hps_ext
 	.ext_addr(mgmt_addr),
 	.ext_rd(mgmt_hrd),
 	.ext_wr(mgmt_hwr),
+
+	.ext_hdd_writedata(hdd_writedata),
+	.ext_hdd_readdata(mgmt_addr[0] ? hdd1_readdata : hdd0_readdata),
+	.ext_hdd_write(hdd_write),
+	.ext_hdd_read(hdd_read),
+
 	.ext_req(mgmt_req)
 );
 
@@ -615,9 +626,19 @@ system u0
 	.mgmt_byteenable      (4'b1111),
 	.mgmt_debugaccess     (0),
 
-	.hdd0_request         (mgmt_req[1:0]),
-	.hdd1_request         (mgmt_req[3:2]),
-	.fdd0_request         (mgmt_req[5:4]),
+	.hdd0_request         (mgmt_req[2:0]),
+	.hdd0_sec_read        (hdd_read & ~mgmt_addr[0]),
+	.hdd0_sec_write       (hdd_write & ~mgmt_addr[0]),
+	.hdd0_sec_writedata   (hdd_writedata),
+	.hdd0_sec_readdata    (hdd0_readdata),
+
+	.hdd1_request         (mgmt_req[5:3]),
+	.hdd1_sec_read        (hdd_read & mgmt_addr[0]),
+	.hdd1_sec_write       (hdd_write & mgmt_addr[0]),
+	.hdd1_sec_writedata   (hdd_writedata),
+	.hdd1_sec_readdata    (hdd1_readdata),
+
+	.fdd0_request         (mgmt_req[7:6]),
 
 	.serial_br_clk        (clk_uart),
 	.serial_rx            (UART_RXD),
