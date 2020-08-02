@@ -714,7 +714,7 @@ assign write_length =
     wr_operand_16bit?           3'd2 :
                                 3'd4;
 
-assign write_do = ~(wr_reset) && ~(write_done) && ~(write_page_fault) && ~(write_ac_fault) &&
+assign write_do = ~(wr_reset) && ~(write_page_fault) && ~(write_ac_fault) &&
     (write_rmw_virtual || write_virtual || write_stack_virtual || write_new_stack_virtual ||
      write_string_es_virtual || memory_write_system);
 

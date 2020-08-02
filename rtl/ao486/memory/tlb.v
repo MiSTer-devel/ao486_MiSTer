@@ -1441,9 +1441,7 @@ assign dcachewrite_address = memtype_physical;
 assign tlbregs_write_pwt =
     (cond_35)? (           pte[3]) :
     1'd0;
-assign tlbregs_write_linear =
-    (cond_35)? (        linear) :
-    32'd0;
+assign tlbregs_write_linear = linear;
 assign tlbread_done =
     (cond_13 && cond_14)? (`TRUE) :
     1'd0;
@@ -1453,8 +1451,7 @@ assign dcachewrite_data =
     (cond_35 && ~cond_36 && cond_37)? (            pte[31:0] | 32'h00000020 | ((pte[6] == `FALSE && rw)? 32'h00000040 : 32'h00000000)) :
     (cond_35 && ~cond_36 && ~cond_37 && ~cond_38 && cond_28)? (            tlbwrite_data) :
     (cond_41)? (            pte[31:0] | 32'h00000020 | ((pte[6] == `FALSE && rw)? 32'h00000040 : 32'h00000000)) :
-    (cond_42 && ~cond_38)? (            tlbwrite_data) :
-    32'd0;
+    tlbwrite_data; // (cond_42 && ~cond_38)
 assign tlbregs_tlbflushsingle_do =
     (cond_0 && cond_1)? (`TRUE) :
     1'd0;
@@ -1464,9 +1461,7 @@ assign translate_do =
     (cond_21 && cond_16)? (`TRUE) :
     (cond_22 && cond_16)? (`TRUE) :
     1'd0;
-assign tlbregs_write_physical =
-    (cond_35)? (      { pte[31:12], linear[11:0] }) :
-    32'd0;
+assign tlbregs_write_physical = { pte[31:12], linear[11:0] } ;
 assign tlbregs_write_do =
     (cond_35)? (`TRUE) :
     1'd0;
@@ -1520,8 +1515,7 @@ assign memtype_physical =
     (cond_40 && cond_12 && ~cond_37 && ~cond_28 && cond_29)? ( { pte[31:12], linear[11:0] }) :
     (cond_41)? ( { pde[31:12], linear[21:12], 2'b00 }) :
     (cond_42 && ~cond_38)? ( { pte[31:12], linear[11:0] }) :
-    (cond_43 && cond_12 && ~cond_28 && cond_29)? ( { pte[31:12], linear[11:0] }) :
-    32'd0;
+    { pte[31:12], linear[11:0] }; // (cond_43 && cond_12 && ~cond_28 && cond_29)
 assign prefetchfifo_signal_pf_do =
     (cond_22 && ~cond_23 && cond_17 && cond_18)? (`TRUE) :
     (cond_24 && cond_14 && cond_25 && cond_26)? (`TRUE) :
