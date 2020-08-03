@@ -164,7 +164,7 @@ assign AUDIO_MIX = 0;
 assign AUDIO_L   = sb_out_l + {2'b00, {14{speaker_ena & speaker_out}}};
 assign AUDIO_R   = sb_out_r + {2'b00, {14{speaker_ena & speaker_out}}};
 
-assign LED_DISK[1] = LED_USER;
+assign LED_DISK[1] = 0;
 assign LED_POWER   = 0;
 assign BUTTONS   = 0;
 
@@ -275,9 +275,9 @@ wire        mgmt_hrd;
 wire        mgmt_hwr;
 wire  [7:0] mgmt_req;
 
-wire [31:0] hdd0_readdata;
-wire [31:0] hdd1_readdata;
-wire [31:0] hdd_writedata;
+wire [15:0] hdd0_readdata;
+wire [15:0] hdd1_readdata;
+wire [15:0] hdd_writedata;
 wire        hdd_write;
 wire        hdd_read;
 
@@ -626,17 +626,17 @@ system u0
 	.mgmt_byteenable      (4'b1111),
 	.mgmt_debugaccess     (0),
 
-	.hdd0_request         (mgmt_req[2:0]),
-	.hdd0_sec_read        (hdd_read & ~mgmt_addr[0]),
-	.hdd0_sec_write       (hdd_write & ~mgmt_addr[0]),
-	.hdd0_sec_writedata   (hdd_writedata),
-	.hdd0_sec_readdata    (hdd0_readdata),
+	.hdd0_dat_request     (mgmt_req[2:0]),
+	.hdd0_dat_read        (hdd_read & ~mgmt_addr[0]),
+	.hdd0_dat_write       (hdd_write & ~mgmt_addr[0]),
+	.hdd0_dat_writedata   (hdd_writedata),
+	.hdd0_dat_readdata    (hdd0_readdata),
 
-	.hdd1_request         (mgmt_req[5:3]),
-	.hdd1_sec_read        (hdd_read & mgmt_addr[0]),
-	.hdd1_sec_write       (hdd_write & mgmt_addr[0]),
-	.hdd1_sec_writedata   (hdd_writedata),
-	.hdd1_sec_readdata    (hdd1_readdata),
+	.hdd1_dat_request     (mgmt_req[5:3]),
+	.hdd1_dat_read        (hdd_read & mgmt_addr[0]),
+	.hdd1_dat_write       (hdd_write & mgmt_addr[0]),
+	.hdd1_dat_writedata   (hdd_writedata),
+	.hdd1_dat_readdata    (hdd1_readdata),
 
 	.fdd0_request         (mgmt_req[7:6]),
 

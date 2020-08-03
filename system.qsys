@@ -660,6 +660,22 @@
          type = "String";
       }
    }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element uart
    {
       datum _sortIndex
@@ -787,9 +803,9 @@
   <parameter name="DATA_WIDTH" value="32" />
   <parameter name="LINEWRAPBURSTS" value="0" />
   <parameter name="MAX_BURST_SIZE" value="1" />
-  <parameter name="MAX_PENDING_RESPONSES" value="4" />
-  <parameter name="PIPELINE_COMMAND" value="1" />
-  <parameter name="PIPELINE_RESPONSE" value="1" />
+  <parameter name="MAX_PENDING_RESPONSES" value="1" />
+  <parameter name="PIPELINE_COMMAND" value="0" />
+  <parameter name="PIPELINE_RESPONSE" value="0" />
   <parameter name="SYMBOL_WIDTH" value="8" />
   <parameter name="SYSINFO_ADDR_WIDTH" value="16" />
   <parameter name="USE_AUTO_ADDRESS_WIDTH" value="0" />

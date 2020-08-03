@@ -46,10 +46,11 @@ module hdd
 	input               ide_3f6_write,
 	input       [7:0]   ide_3f6_writedata,
 
-	input               sec_read,
-	output reg  [31:0]  sec_readdata,
-	input               sec_write,
-	input       [31:0]  sec_writedata,
+	input               dat_read,
+	output      [15:0]  dat_readdata,
+	input               dat_write,
+	input       [15:0]  dat_writedata,
+	output       [2:0]  dat_request,
 
 	//management slave
 	/*
@@ -65,16 +66,32 @@ module hdd
 	input               mgmt_write,
 	input       [31:0]  mgmt_writedata,
 	input               mgmt_read,
-	output      [31:0]  mgmt_readdata,
-
-	output       [2:0]  request
+	output      [31:0]  mgmt_readdata
 );
 
 //------------------------------------------------------------------------------
 
 assign mgmt_readdata = (mgmt_address == 0) ? sd_sector : { 27'd0, logical_sector_count };
-assign request = (state == S_SD_READ_WAIT_FOR_DATA || state == S_SD_WRITE_WAIT_FOR_DATA) ?
+
+//------------------------------------------------------------------------------
+
+assign dat_request = (state == S_SD_READ_WAIT_FOR_DATA || state == S_SD_WRITE_WAIT_FOR_DATA) ?
 				{is_next & (cmd_write_in_progress | cmd_read_in_progress), cmd_write_in_progress, cmd_read_in_progress} : 3'b000;
+
+reg dat_word;
+always @(posedge clk) begin
+	if(state != S_SD_READ_WAIT_FOR_DATA && state != S_SD_WRITE_WAIT_FOR_DATA) dat_word <= 0;
+	else if(dat_read | dat_write)                                             dat_word <= ~dat_word;
+end
+
+wire sec_read  = dat_read & dat_word;
+assign dat_readdata = dat_word ? sec_readdata[31:16] : sec_readdata[15:0];
+
+reg [15:0] dat_writedata_l;
+always @(posedge clk) if(~dat_word & dat_write) dat_writedata_l <= dat_writedata;
+
+wire sec_write = dat_write & dat_word;
+wire [31:0] sec_writedata = {dat_writedata, dat_writedata_l};
 
 //------------------------------------------------------------------------------
 
@@ -570,7 +587,7 @@ wire cmd_unknown_start = cmd_start &&
     ~(cmd_identify_start) &&
     ~(cmd_features_prepare) &&
     ~(cmd_verify_start) &&
-    //~(cmd_multiple_prepare) &&
+    ~(cmd_multiple_prepare) &&
     ~(cmd_power_start) &&
     ~(cmd_checkpower_start) &&
     ~(cmd_seek_start) &&
@@ -932,6 +949,7 @@ always @(posedge clk or negedge rst_n) begin
     else if(write_data_io && to_hdd_sum == 3'd7)    to_hdd_stored <= {        to_hdd_result[55:32] };
 end
 
+reg [31:0] sec_readdata;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)   sec_readdata <= 32'b0;
     else                sec_readdata <= to_hdd_q;
