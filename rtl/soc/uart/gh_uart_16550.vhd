@@ -66,6 +66,12 @@ entity gh_uart_16550 is
 		TXRDYn  : out std_logic;
 		RXRDYn  : out std_logic;
 		
+		MPU_MODE: in std_logic := '0';
+		RX_Empty: out std_logic;
+		RX_Full : out std_logic;
+		TX_Empty: out std_logic;
+		TX_Full : out std_logic;
+
 		IRQ     : out std_logic;
 		B_CLK   : out std_logic;
 		RD      : out std_logic_vector(7 downto 0)
@@ -225,11 +231,15 @@ COMPONENT  gh_edge_det_XCD is -- added 2 aug 2007
 END COMPONENT;
 
 	signal IER    : std_logic_vector(3 downto 0); -- Interrupt Enable Register
+	signal IERm   : std_logic_vector(3 downto 0);
 	signal IIR    : std_logic_vector(7 downto 0); -- Interrupt ID Register
 	signal iIIR   : std_logic_vector(3 downto 0); -- 12/23/06
 	signal FCR    : std_logic_vector(7 downto 0); -- FIFO Control register
+	signal FCRm   : std_logic_vector(7 downto 0);
 	signal LCR    : std_logic_vector(7 downto 0); -- Line Control Register
+	signal LCRm   : std_logic_vector(7 downto 0);
 	signal MCR    : std_logic_vector(4 downto 0); -- Modem Control Register
+	signal MCRm   : std_logic_vector(4 downto 0);
 	signal LSR    : std_logic_vector(7 downto 0); -- Line Status Register
 	signal MSR    : std_logic_vector(7 downto 0); -- Modem Status Register
 	signal SCR    : std_logic_vector(7 downto 0); -- Line Control Register
@@ -246,7 +256,7 @@ END COMPONENT;
 	signal WR_DML : std_logic_vector(1 downto 0);
 	signal D16    : std_logic_vector(15 downto 0);
 	signal BRC16x : std_logic; -- baud rate clock 
-	
+
 	signal ITR0   : std_logic;
 	signal isITR1 : std_logic;
 	signal sITR1  : std_logic;
@@ -338,7 +348,14 @@ END COMPONENT;
 	signal TOI_c_ld : std_logic;
 	signal TOI_c_d  : std_logic_vector(11 downto 0);
 	
+	signal MPU_old  : std_logic;
 begin
+
+	MPU_old <= MPU_MODE when rising_edge(clk);
+	RX_Empty <= RF_empty;
+	TX_Empty <= TF_empty;
+	RX_Full <= RF_full;
+	TX_Full <= TF_full;
 
 ----------------------------------------------
 ---- resd   ----------------------------------
@@ -600,8 +617,8 @@ u19 : gh_DECODE_3to8
 
 	WR_F <= WR_B(0) and (not LCR(7));
 	WR_IER <= WR_B(1) and (not LCR(7));
-	WR_D <= LCR(7) and (WR_B(0) or WR_B(1));
-	WR_DML <= (WR_B(1) and LCR(7)) & (WR_B(0) and LCR(7));
+	WR_D <= LCR(7) and (WR_B(0) or WR_B(1)) when MPU_MODE = '0' else not MPU_old;
+	WR_DML <= (WR_B(1) and LCR(7)) & (WR_B(0) and LCR(7)) when MPU_MODE = '0' else "11";
 		
 u20 : gh_register_ce 
 	generic map (4)
@@ -610,8 +627,10 @@ u20 : gh_register_ce
 		rst => rst,
 		ce => WR_IER,
 		D => D(3 downto 0),
-		Q => IER
+		Q => IERm
 		);
+		
+		IER <= IERm when MPU_MODE = '0' else (others => '0');
 		
 u21 : gh_register_ce 
 	generic map (8)
@@ -620,8 +639,10 @@ u21 : gh_register_ce
 		rst => rst,
 		ce => WR_B(2),
 		D => D,
-		Q => FCR
+		Q => FCRm
 		);
+		
+		FCR <= FCRm when MPU_MODE = '0' else (others => '0');
 		
 U22 : gh_jkff 
 	PORT MAP (
@@ -650,8 +671,10 @@ u24 : gh_register_ce
 		rst => rst,
 		ce => WR_B(3),
 		D => D,
-		Q => LCR
+		Q => LCRm
 		);		
+	
+	LCR <= LCRm when MPU_MODE = '0' else "00000011";
 	
 	num_bits <= 5 when ((LCR(0) = '0') and (LCR(1) = '0')) else
 	            6 when ((LCR(0) = '1') and (LCR(1) = '0')) else	 -- 07/12/07
@@ -672,8 +695,10 @@ u25 : gh_register_ce
 		rst => rst,
 		ce => WR_B(4),
 		D => D(4 downto 0),
-		Q => MCR
+		Q => MCRm
 		);		
+		
+		MCR <= MCRm when MPU_MODE = '0' else (others => '0');
 
 	DTRn <= (not MCR(0)) or iLOOP;
 	RTSn <= (not MCR(1)) or iLOOP;
@@ -693,7 +718,7 @@ u26 : gh_register_ce
 
 ----------------------------------------------------------
 		
-	D16 <= D & D;
+	D16 <= D & D when MPU_MODE = '0' else x"0003";
 		
 u27 : gh_baud_rate_gen
 	port map(
@@ -964,8 +989,8 @@ U36a : gh_edge_det_XCD
 --------------------------------------------------------------
 --------------------------------------------------------------
 
-	IRQ <= '1' when ((ITR3 or ITR2 or TOI or ITR1 or ITR0) = '1') else
-	       '0';
+	IRQ <= '1' when ((ITR3 or ITR2 or TOI or ITR1 or ITR0) = '1') and MPU_MODE = '0' else
+          '0';
 		   
 	iIIR(0) <= '0' when ((ITR3 or ITR2 or TOI or ITR1 or ITR0) = '1') else
 	           '1';

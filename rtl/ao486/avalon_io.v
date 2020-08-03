@@ -85,8 +85,10 @@ wire address_out_of_bounds =
     (avalon_io_address >= 16'h00E0 && avalon_io_address < 16'h0170) ||
     (avalon_io_address >= 16'h0178 && avalon_io_address < 16'h01F0) ||
     (avalon_io_address >= 16'h01F8 && avalon_io_address < 16'h0200) ||
-	(avalon_io_address >= 16'h0204 && avalon_io_address < 16'h0220) ||
-    (avalon_io_address >= 16'h0230 && avalon_io_address < 16'h0370) ||
+    (avalon_io_address >= 16'h0204 && avalon_io_address < 16'h0220) ||
+    (avalon_io_address >= 16'h0230 && avalon_io_address < 16'h0330) ||
+    (avalon_io_address == 16'h0330 && avalon_io_byteenable[1:0] == 2'b00) ||
+    (avalon_io_address >= 16'h0334 && avalon_io_address < 16'h0370) ||
     (avalon_io_address >= 16'h0378 && avalon_io_address < 16'h0388) ||
     (avalon_io_address >= 16'h038C && avalon_io_address < 16'h03B0) ||
     (avalon_io_address >= 16'h03E0 && avalon_io_address < 16'h03F0) ||

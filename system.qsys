@@ -676,6 +676,14 @@
          type = "String";
       }
    }
+   element uart.mpu
+   {
+      datum baseAddress
+      {
+         value = "816";
+         type = "String";
+      }
+   }
    element vga
    {
       datum _sortIndex
@@ -789,7 +797,7 @@
  </module>
  <module name="pc_dma" kind="pc_dma" version="1.0" enabled="1" />
  <module name="pic" kind="pic" version="1.0" enabled="1">
-  <parameter name="AUTO_INTERRUPT_RECEIVER_INTERRUPTS_USED" value="53623" />
+  <parameter name="AUTO_INTERRUPT_RECEIVER_INTERRUPTS_USED" value="54135" />
  </module>
  <module name="pit" kind="pit" version="1.0" enabled="1" />
  <module name="ps2" kind="ps2" version="1.0" enabled="1" />
@@ -928,6 +936,11 @@
  <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="pic.master">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0020" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection kind="avalon" version="17.0" start="ao486.avalon_io" end="uart.mpu">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0330" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
@@ -1181,6 +1194,13 @@
    kind="interrupt"
    version="17.0"
    start="pic.interrupt_receiver"
+   end="uart.interrupt_mpu">
+  <parameter name="irqNumber" value="9" />
+ </connection>
+ <connection
+   kind="interrupt"
+   version="17.0"
+   start="pic.interrupt_receiver"
    end="pit.interrupt_pit">
   <parameter name="irqNumber" value="0" />
  </connection>
@@ -1230,7 +1250,7 @@
    kind="interrupt"
    version="17.0"
    start="pic.interrupt_receiver"
-   end="uart.interrupt_sender">
+   end="uart.interrupt_uart">
   <parameter name="irqNumber" value="4" />
  </connection>
  <connection
@@ -1247,6 +1267,11 @@
    end="ps2.irq_mouse">
   <parameter name="irqNumber" value="12" />
  </connection>
+ <connection
+   kind="reset"
+   version="17.0"
+   start="reset_cpu.out_reset"
+   end="uart.reset" />
  <connection
    kind="reset"
    version="17.0"
