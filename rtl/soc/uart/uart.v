@@ -107,7 +107,7 @@ always @(posedge clk or posedge reset) begin
 		read_ack <= 0;
 	end
 	else begin
-		if(mpu_write && mpu_address && (mpu_writedata == 'hFF || mpu_writedata == 'h3F)) read_ack <= 1;
+		if(mpu_write && mpu_address && ((mpu_writedata == 'hFF && ~mpu_mode) || mpu_writedata == 'h3F)) read_ack <= 1;
 		if(mpu_read && !mpu_address) read_ack <= 0;
 	end
 end
