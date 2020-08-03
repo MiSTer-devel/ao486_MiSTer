@@ -74,9 +74,27 @@ wire e_shift_SHxD;
 
 wire [63:0] e_shift_left_input;
 wire [63:0] e_shift_right_input;
-wire [32:0] e_shift_left_result;
 wire        e_shift_left_cflag;
-wire [32:0] e_shift_right_result;
+
+
+// Choose whether to use case statements for left/right shifters.
+// If not defined, the original code with nested ternary statements is used.
+`define SHIFT_LEFT_CASE
+`define SHIFT_RIGHT_CASE
+
+`ifdef SHIFT_LEFT_CASE
+    reg [32:0] e_shift_left_result;
+`else
+    wire [32:0] e_shift_left_result;
+`endif
+
+
+`ifdef SHIFT_RIGHT_CASE
+    reg [32:0] e_shift_right_result;
+`else
+    wire [32:0] e_shift_right_result;
+`endif
+
 
 wire e_shift_cf_of_rotate_carry_8bit;
 wire e_shift_cf_of_rotate_carry_16bit;
@@ -133,7 +151,45 @@ assign e_shift_right_input =
     (e_shift_RCR && exe_operand_32bit)?     { dst[30:0], cflag, dst } :
     (e_shift_SHRD && exe_operand_16bit)?    { e_shift_dst_wire, src[15:0], dst[15:0] } :
                                             { src, dst }; // e_shift_SHRD: 32-bits
-    
+
+`ifdef SHIFT_LEFT_CASE
+always @(*) begin
+    case(e_shift_count)
+        5'd0:   e_shift_left_result = { cflag,  e_shift_left_input[63:32] };
+        5'd1:   e_shift_left_result = e_shift_left_input[63:31];
+        5'd2:   e_shift_left_result = e_shift_left_input[62:30];
+        5'd3:   e_shift_left_result = e_shift_left_input[61:29];
+        5'd4:   e_shift_left_result = e_shift_left_input[60:28];
+        5'd5:   e_shift_left_result = e_shift_left_input[59:27];
+        5'd6:   e_shift_left_result = e_shift_left_input[58:26];
+        5'd7:   e_shift_left_result = e_shift_left_input[57:25];
+        5'd8:   e_shift_left_result = e_shift_left_input[56:24];
+        5'd9:   e_shift_left_result = e_shift_left_input[55:23];
+        5'd10:  e_shift_left_result = e_shift_left_input[54:22];
+        5'd11:  e_shift_left_result = e_shift_left_input[53:21];
+        5'd12:  e_shift_left_result = e_shift_left_input[52:20];
+        5'd13:  e_shift_left_result = e_shift_left_input[51:19];
+        5'd14:  e_shift_left_result = e_shift_left_input[50:18];
+        5'd15:  e_shift_left_result = e_shift_left_input[49:17];
+        5'd16:  e_shift_left_result = e_shift_left_input[48:16];
+        5'd17:  e_shift_left_result = e_shift_left_input[47:15];
+        5'd18:  e_shift_left_result = e_shift_left_input[46:14];
+        5'd19:  e_shift_left_result = e_shift_left_input[45:13];
+        5'd20:  e_shift_left_result = e_shift_left_input[44:12];
+        5'd21:  e_shift_left_result = e_shift_left_input[43:11];
+        5'd22:  e_shift_left_result = e_shift_left_input[42:10];
+        5'd23:  e_shift_left_result = e_shift_left_input[41:9];
+        5'd24:  e_shift_left_result = e_shift_left_input[40:8];
+        5'd25:  e_shift_left_result = e_shift_left_input[39:7];
+        5'd26:  e_shift_left_result = e_shift_left_input[38:6];
+        5'd27:  e_shift_left_result = e_shift_left_input[37:5];
+        5'd28:  e_shift_left_result = e_shift_left_input[36:4];
+        5'd29:  e_shift_left_result = e_shift_left_input[35:3];
+        5'd30:  e_shift_left_result = e_shift_left_input[34:2];
+        5'd31:  e_shift_left_result = e_shift_left_input[33:1];
+    endcase
+end
+`else
 assign e_shift_left_result =
     (e_shift_count == 5'd0)?  { cflag,  e_shift_left_input[63:32] } :
     (e_shift_count == 5'd1)?            e_shift_left_input[63:31] :
@@ -167,6 +223,7 @@ assign e_shift_left_result =
     (e_shift_count == 5'd29)?           e_shift_left_input[35:3] :
     (e_shift_count == 5'd30)?           e_shift_left_input[34:2] :
                                         e_shift_left_input[33:1];
+`endif
 
 assign e_shift_left_cflag =
     (e_shift_SHL &&   exe_is_8bit                       && e_shift_count >= 5'd9)?    1'b0 :
@@ -209,7 +266,45 @@ assign e_shift_left_cflag =
     (e_shift_SHLD &&                  exe_operand_16bit && e_shift_count == 5'd30)?   src[2] :
     (e_shift_SHLD &&                  exe_operand_16bit && e_shift_count == 5'd31)?   src[1] :
                                                                                       e_shift_left_result[32];
-                            
+
+`ifdef SHIFT_RIGHT_CASE
+always @(*) begin
+    case(e_shift_count)
+        5'd0:   e_shift_right_result = { e_shift_right_input[31:0], cflag };
+        5'd1:   e_shift_right_result = e_shift_right_input[32:0];
+        5'd2:   e_shift_right_result = e_shift_right_input[33:1];
+        5'd3:   e_shift_right_result = e_shift_right_input[34:2];
+        5'd4:   e_shift_right_result = e_shift_right_input[35:3];
+        5'd5:   e_shift_right_result = e_shift_right_input[36:4];
+        5'd6:   e_shift_right_result = e_shift_right_input[37:5];
+        5'd7:   e_shift_right_result = e_shift_right_input[38:6];
+        5'd8:   e_shift_right_result = e_shift_right_input[39:7];
+        5'd9:   e_shift_right_result = e_shift_right_input[40:8];
+        5'd10:  e_shift_right_result = e_shift_right_input[41:9];
+        5'd11:  e_shift_right_result = e_shift_right_input[42:10];
+        5'd12:  e_shift_right_result = e_shift_right_input[43:11];
+        5'd13:  e_shift_right_result = e_shift_right_input[44:12];
+        5'd14:  e_shift_right_result = e_shift_right_input[45:13];
+        5'd15:  e_shift_right_result = e_shift_right_input[46:14];
+        5'd16:  e_shift_right_result = e_shift_right_input[47:15];
+        5'd17:  e_shift_right_result = e_shift_right_input[48:16];
+        5'd18:  e_shift_right_result = e_shift_right_input[49:17];
+        5'd19:  e_shift_right_result = e_shift_right_input[50:18];
+        5'd20:  e_shift_right_result = e_shift_right_input[51:19];
+        5'd21:  e_shift_right_result = e_shift_right_input[52:20];
+        5'd22:  e_shift_right_result = e_shift_right_input[53:21];
+        5'd23:  e_shift_right_result = e_shift_right_input[54:22];
+        5'd24:  e_shift_right_result = e_shift_right_input[55:23];
+        5'd25:  e_shift_right_result = e_shift_right_input[56:24];
+        5'd26:  e_shift_right_result = e_shift_right_input[57:25];
+        5'd27:  e_shift_right_result = e_shift_right_input[58:26];
+        5'd28:  e_shift_right_result = e_shift_right_input[59:27];
+        5'd29:  e_shift_right_result = e_shift_right_input[60:28];
+        5'd30:  e_shift_right_result = e_shift_right_input[61:29];
+        5'd31:  e_shift_right_result = e_shift_right_input[62:30];
+    endcase
+end
+`else
 assign e_shift_right_result =
     (e_shift_count == 5'd0)?  { e_shift_right_input[31:0], cflag } :
     (e_shift_count == 5'd1)?    e_shift_right_input[32:0] :
@@ -243,6 +338,9 @@ assign e_shift_right_result =
     (e_shift_count == 5'd29)?   e_shift_right_input[60:28] :
     (e_shift_count == 5'd30)?   e_shift_right_input[61:29] :
                                 e_shift_right_input[62:30];
+`endif
+
+
 assign e_shift_cflag =
     (e_shift_SHL || e_shift_ROL || e_shift_RCL || e_shift_SHLD)?    e_shift_left_cflag :
     (e_shift_SHRD && exe_operand_16bit && e_shift_count >= 5'd17)?  1'b0 :
