@@ -743,44 +743,18 @@ always @(posedge clk_sys) begin
 end
 
 always @(posedge clk_sys) begin
-	reg old_reset;
-	reg [2:0] state = 0;
 
-	old_reset <= RESET;
+	if(~mgmt_wait) {mgmt_rd, mgmt_we} <= 0;
 
-	if(~mgmt_wait) begin
-		{mgmt_rd, mgmt_we} <= 0;
-		case(state)
-			1: begin
-					mgmt_rd <= 1;
-					state <= state + 1'd1;
-				end
-			2: if(mgmt_valid) begin
-					mgmt_din <= mgmt_data;
-					ioctl_wait <= 0;
-					state <= 0;
-				end
-			3: begin
-					mgmt_we <= 1;
-					state <= state + 1'd1;
-				end
-			4: begin
-					ioctl_wait <= 0;
-					state <= 0;
-				end
-		endcase
-	end
+	if(mgmt_hrd) mgmt_rd <= 1;
+	if(mgmt_hwr) mgmt_we <= 1;
 
-	if(mgmt_hrd) begin
-		ioctl_wait <= 1;
-		state <= 1;
-	end
-	if(mgmt_hwr) begin
-		ioctl_wait <= 1;
-		state <= 3;
-	end
-	
-	if(~old_reset && RESET) {state,ioctl_wait} <= 0;
+	if(mgmt_valid) mgmt_din <= mgmt_data;
+
+	if(mgmt_valid | (~mgmt_wait & mgmt_we)) ioctl_wait <= 0;
+	if(mgmt_hrd | mgmt_hwr)                 ioctl_wait <= 1;
+
+	if(RESET) {ioctl_wait, mgmt_rd, mgmt_we} <= 0;
 end
 
 endmodule
