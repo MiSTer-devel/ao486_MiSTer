@@ -31,6 +31,8 @@ module hps_ext
 	output reg        ext_rd,
 	output reg        ext_wr,
 	
+	output reg        ext_midi,
+
 	output reg [15:0] ext_hdd_writedata,
 	input      [15:0] ext_hdd_readdata,
 	output reg        ext_hdd_write,
@@ -73,6 +75,8 @@ always@(posedge clk_sys) begin
 	else begin
 		if(io_strobe) begin
 
+			ext_hdd_writedata <= io_din;
+
 			pending <= 0;
 			io_dout <= 0;
 			if(~&byte_cnt) byte_cnt <= byte_cnt + 1'd1;
@@ -92,10 +96,7 @@ always@(posedge clk_sys) begin
 				case(cmd)
 				'h61:      if(byte_cnt == 1) io_dout <= clk_rate[15:0];
 						else if(byte_cnt == 2) io_dout <= clk_rate[31:16];
-						else if(hdd_io) begin
-							ext_hdd_writedata <= io_din;
-							ext_hdd_write <= 1;
-						end
+						else if(hdd_io) ext_hdd_write <= 1;
 						else begin
 							if(~ext_hilo) begin
 								if(byte_cnt>4) ext_addr <= ext_addr + 3'd4;
@@ -125,6 +126,7 @@ always@(posedge clk_sys) begin
 							end
 							ext_hilo <= ~ext_hilo;
 						end
+				'h63: if(byte_cnt == 1) ext_midi <= io_din[7];
 				endcase
 			end
 		end

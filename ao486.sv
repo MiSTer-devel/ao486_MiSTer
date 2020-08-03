@@ -196,7 +196,7 @@ localparam CONF_STR =
 	"OB,RAM Size,256MB,16MB;",
 `ifndef DEBUG
 	"O57,Speed,90MHz,100MHz,15MHz,30MHz,56MHz;",
-	"OA,UART Speed,Normal,10x;",
+	"OA,UART Speed,Normal,30x;",
 `endif
 	"-;",
 	"R0,Reset and apply HDD;",
@@ -281,6 +281,8 @@ wire [15:0] hdd_writedata;
 wire        hdd_write;
 wire        hdd_read;
 
+wire        midi_en;
+
 wire [35:0] EXT_BUS;
 hps_ext hps_ext
 (
@@ -293,6 +295,8 @@ hps_ext hps_ext
 	.ext_addr(mgmt_addr),
 	.ext_rd(mgmt_hrd),
 	.ext_wr(mgmt_hwr),
+
+	.ext_midi(midi_en),
 
 	.ext_hdd_writedata(hdd_writedata),
 	.ext_hdd_readdata(mgmt_addr[0] ? hdd1_readdata : hdd0_readdata),
@@ -365,11 +369,14 @@ always @(posedge CLK_50M) begin
 	if(sp2 == sp1) speed <= sp2;
 end
 
+reg uspeed_sys;
+always @(posedge clk_sys) uspeed_sys <= ~status[10] | midi_en;
+
 reg uspeed;
 always @(posedge CLK_50M) begin
 	reg sp1, sp2;
 	
-	sp1 <= ~status[10];
+	sp1 <= uspeed_sys;
 	sp2 <= sp1;
 	
 	if(sp2 == sp1) uspeed <= sp2;
@@ -407,7 +414,7 @@ always @(posedge CLK_50M) begin
 					end
 				5: begin
 						cfg_address <= 5;
-						cfg_data <= uspeed ? 32'h4F4F4 : 32'h61716;
+						cfg_data <= uspeed ? 32'h4F4F4 : 32'h40909;
 						cfg_write <= 1;
 					end
 				7: begin
