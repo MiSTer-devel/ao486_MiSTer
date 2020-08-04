@@ -3,6 +3,7 @@ module l1_icache
 (
 	input             CLK,
 	input             RESET,
+	input             pr_reset,
 	
 	input             CPU_REQ,
 	input      [31:0] CPU_ADDR,
@@ -177,28 +178,32 @@ always @(posedge CLK) begin : mainfsm
 
 			READONE:
 				begin
-					state           <= FILLCACHE;
-					MEM_REQ         <= 1'b1;
-					MEM_ADDR        <= {read_addr[ADDRBITS:LINESIZE_BITS], {LINESIZE_BITS{1'b0}}, 2'b00};
-					fillcount       <= 0;
-					memory_addr_a   <= {read_addr[RAMSIZEBITS - 1:LINESIZE_BITS], {LINESIZE_BITS{1'b0}}};
-					tags_dirty_in   <= tags_dirty_out;
-					update_tag_addr <= read_addr[LINEMASKMSB:LINEMASKLSB];
-					LRU_addr        <= read_addr[LINEMASKMSB:LINEMASKLSB];
-					for (i = 0; i < ASSOCIATIVITY; i = i + 1'd1) begin
-						if (~tags_dirty_out[i]) begin
-							if (tags_read[i] == read_addr[ADDRBITS:RAMSIZEBITS]) begin
-								MEM_REQ   <= 1'b0;
-								cache_mux <= i[ASSO_BITS-1:0];
-								CPU_VALID <= 1'b1;
-								if (!burstleft) begin
-									state    <= IDLE;
-									CPU_DONE <= 1'b1;
-								end
-								else begin
-									state     <= READONE;
-									burstleft <= burstleft - 1'd1;
-									read_addr <= read_addr + 1'd1;
+					if (pr_reset) begin
+						state     <= IDLE;
+						CPU_DONE  <= 1'b1;
+					end else begin
+						state           <= FILLCACHE;
+						MEM_REQ         <= 1'b1;
+						MEM_ADDR        <= {read_addr[ADDRBITS:LINESIZE_BITS], {LINESIZE_BITS{1'b0}}, 2'b00};
+						fillcount       <= 0;
+						memory_addr_a   <= {read_addr[RAMSIZEBITS - 1:LINESIZE_BITS], {LINESIZE_BITS{1'b0}}};
+						tags_dirty_in   <= tags_dirty_out;
+						update_tag_addr <= read_addr[LINEMASKMSB:LINEMASKLSB];
+						LRU_addr        <= read_addr[LINEMASKMSB:LINEMASKLSB];
+						for (i = 0; i < ASSOCIATIVITY; i = i + 1'd1) begin
+							if (~tags_dirty_out[i]) begin
+								if (tags_read[i] == read_addr[ADDRBITS:RAMSIZEBITS]) begin
+									MEM_REQ   <= 1'b0;
+									cache_mux <= i[ASSO_BITS-1:0];
+									CPU_VALID <= 1'b1;
+									if (!burstleft) begin
+										state    <= IDLE;
+										CPU_DONE <= 1'b1;
+									end else begin
+										state     <= READONE;
+										burstleft <= burstleft - 1'd1;
+										read_addr <= read_addr + 1'd1;
+									end
 								end
 							end
 						end

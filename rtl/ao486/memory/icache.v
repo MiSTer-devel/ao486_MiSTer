@@ -70,7 +70,6 @@ localparam STATE_IDLE = 1'd0;
 localparam STATE_READ = 1'd1;
 
 reg          state;
-reg [31:0]   address;
 reg [4:0]    length;
 reg [11:0]   partial_length;
 reg          reset_waiting;
@@ -78,7 +77,6 @@ reg          reset_waiting;
 wire [4:0]   partial_length_current;
 
 wire [11:0]  length_burst;
-wire [35:0]  prefetch_line;
 
 wire         readcode_cache_do;
 wire [31:0]  readcode_cache_address;
@@ -102,23 +100,17 @@ end
 
 //------------------------------------------------------------------------------
 
-wire [31:0] mux_address;
-wire  [4:0] mux_length;
-
-assign mux_address = (state == STATE_IDLE)? icacheread_address : address;
-assign mux_length  = (state == STATE_IDLE)? icacheread_length : length;
-
 assign length_burst =
-    (mux_address[1:0] == 2'd0)?    { 3'd4, 3'd4, 3'd4, 3'd4 } :
-    (mux_address[1:0] == 2'd1)?    { 3'd4, 3'd4, 3'd4, 3'd3 } :
-    (mux_address[1:0] == 2'd2)?    { 3'd4, 3'd4, 3'd4, 3'd2 } :
-                                   { 3'd4, 3'd4, 3'd4, 3'd1 };
+    (icacheread_address[1:0] == 2'd0)? { 3'd4, 3'd4, 3'd4, 3'd4 } :
+    (icacheread_address[1:0] == 2'd1)? { 3'd4, 3'd4, 3'd4, 3'd3 } :
+    (icacheread_address[1:0] == 2'd2)? { 3'd4, 3'd4, 3'd4, 3'd2 } :
+                                       { 3'd4, 3'd4, 3'd4, 3'd1 };
                             
-assign prefetch_line =
-    (partial_length[2:0] == 3'd1)?   {                      4'd1 ,                  24'd0, readcode_cache_data[31:24] } :
-    (partial_length[2:0] == 3'd2)?   { (mux_length > 5'd2)? 4'd2 : mux_length[3:0], 16'd0, readcode_cache_data[31:16] } :
-    (partial_length[2:0] == 3'd3)?   { (mux_length > 5'd3)? 4'd3 : mux_length[3:0],  8'd0, readcode_cache_data[31:8] } :
-                                     { (mux_length > 5'd4)? 4'd4 : mux_length[3:0],        readcode_cache_data[31:0] };
+assign prefetchfifo_write_data =
+    (partial_length[2:0] == 3'd1)?   {                  4'd1 ,              24'd0, readcode_cache_data[31:24] } :
+    (partial_length[2:0] == 3'd2)?   { (length > 5'd2)? 4'd2 : length[3:0], 16'd0, readcode_cache_data[31:16] } :
+    (partial_length[2:0] == 3'd3)?   { (length > 5'd3)? 4'd3 : length[3:0],  8'd0, readcode_cache_data[31:8] } :
+                                     { (length > 5'd4)? 4'd4 : length[3:0],        readcode_cache_data[31:0] };
 
 //------------------------------------------------------------------------------
 
@@ -126,6 +118,7 @@ l1_icache l1_icache_inst(
    
     .CLK             (clk),
     .RESET           (~rst_n),
+    .pr_reset        (pr_reset),
 
     .CPU_REQ         (readcode_cache_do),
     .CPU_ADDR        (readcode_cache_address),
@@ -156,7 +149,6 @@ assign prefetchfifo_write_do =
    (state == STATE_READ && pr_reset == `FALSE && reset_waiting == `FALSE && readcode_cache_valid) ? (`TRUE) :
    `FALSE;
    
-assign prefetchfifo_write_data = prefetch_line;
 assign prefetched_length       = partial_length_current;
 
 assign prefetched_do =
@@ -175,7 +167,6 @@ always @(posedge clk) begin
          state          <= STATE_READ;
          partial_length <= length_burst;
          length         <= icacheread_length;
-         address        <= icacheread_address;
       end
       else if (state == STATE_READ) begin
          if(pr_reset == `FALSE && reset_waiting == `FALSE) begin

@@ -57,11 +57,14 @@ module prefetch_fifo(
 //------------------------------------------------------------------------------
 
 wire [35:0] q;
-wire         empty;
+wire        empty;
+wire        bypass;
 
-assign prefetchfifo_accept_data = { q[35:32], 32'd0, q[31:0] };
+assign bypass = prefetchfifo_write_do && empty;
 
-assign prefetchfifo_accept_empty = empty;
+assign prefetchfifo_accept_data = (bypass) ? { prefetchfifo_write_data[35:32], 32'd0, prefetchfifo_write_data[31:0] } : { q[35:32], 32'd0, q[31:0] };
+
+assign prefetchfifo_accept_empty = empty && ~bypass;
 
 //------------------------------------------------------------------------------
 
@@ -75,7 +78,7 @@ prefetch_fifo_inst(
     .sclr       (pr_reset), //input
     
     .rdreq      (prefetchfifo_accept_do),                                                               //input
-    .wrreq      (prefetchfifo_write_do || prefetchfifo_signal_limit_do || prefetchfifo_signal_pf_do),   //input
+    .wrreq      ((prefetchfifo_write_do && (~empty || ~prefetchfifo_accept_do)) || prefetchfifo_signal_limit_do || prefetchfifo_signal_pf_do),   //input
     .data       ((prefetchfifo_signal_limit_do)? { `PREFETCH_GP_FAULT, 32'd0 } :
                  (prefetchfifo_signal_pf_do)?    { `PREFETCH_PF_FAULT, 32'd0 } :
                                                      prefetchfifo_write_data),                          //input [35:0]
