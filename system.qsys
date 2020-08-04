@@ -721,7 +721,7 @@
  <parameter name="hdlLanguage" value="VERILOG" />
  <parameter name="hideFromIPCatalog" value="false" />
  <parameter name="lockedInterfaceDefinition" value="" />
- <parameter name="maxAdditionalLatency" value="0" />
+ <parameter name="maxAdditionalLatency" value="4" />
  <parameter name="projectName" value="ao486.qpf" />
  <parameter name="sopcBorderPoints" value="false" />
  <parameter name="systemHash" value="0" />
@@ -804,8 +804,8 @@
   <parameter name="LINEWRAPBURSTS" value="0" />
   <parameter name="MAX_BURST_SIZE" value="1" />
   <parameter name="MAX_PENDING_RESPONSES" value="1" />
-  <parameter name="PIPELINE_COMMAND" value="0" />
-  <parameter name="PIPELINE_RESPONSE" value="0" />
+  <parameter name="PIPELINE_COMMAND" value="1" />
+  <parameter name="PIPELINE_RESPONSE" value="1" />
   <parameter name="SYMBOL_WIDTH" value="8" />
   <parameter name="SYSINFO_ADDR_WIDTH" value="16" />
   <parameter name="USE_AUTO_ADDRESS_WIDTH" value="0" />
@@ -1364,5 +1364,5 @@
    start="reset_sys.reset_out"
    end="sound.reset_sink" />
  <interconnectRequirement for="$system" name="qsys_mm.clockCrossingAdapter" value="HANDSHAKE" />
- <interconnectRequirement for="$system" name="qsys_mm.maxAdditionalLatency" value="0" />
+ <interconnectRequirement for="$system" name="qsys_mm.maxAdditionalLatency" value="4" />
 </system>

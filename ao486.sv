@@ -299,12 +299,32 @@ hps_ext hps_ext
 	.ext_midi(midi_en),
 
 	.ext_hdd_writedata(hdd_writedata),
-	.ext_hdd_readdata(mgmt_addr[0] ? hdd1_readdata : hdd0_readdata),
+	.ext_hdd_readdata(hdd_readdata),
 	.ext_hdd_write(hdd_write),
 	.ext_hdd_read(hdd_read),
 
 	.ext_req(mgmt_req)
 );
+
+reg [15:0] hdd0_writedata;
+reg        hdd0_write;
+reg        hdd0_read;
+reg [15:0] hdd1_writedata;
+reg        hdd1_write;
+reg        hdd1_read;
+reg [15:0] hdd_readdata;
+
+always @(posedge clk_sys) begin
+	hdd0_writedata <= hdd_writedata;
+	hdd0_write     <= hdd_write & ~mgmt_addr[0];
+	hdd0_read      <= hdd_read & ~mgmt_addr[0];
+
+	hdd1_writedata <= hdd_writedata;
+	hdd1_write     <= hdd_write & mgmt_addr[0];
+	hdd1_read      <= hdd_read & mgmt_addr[0];
+
+	hdd_readdata   <= mgmt_addr[0] ? hdd1_readdata : hdd0_readdata;
+end
 
 //------------------------------------------------------------------------------
 
@@ -634,15 +654,15 @@ system u0
 	.mgmt_debugaccess     (0),
 
 	.hdd0_dat_request     (mgmt_req[2:0]),
-	.hdd0_dat_read        (hdd_read & ~mgmt_addr[0]),
-	.hdd0_dat_write       (hdd_write & ~mgmt_addr[0]),
-	.hdd0_dat_writedata   (hdd_writedata),
+	.hdd0_dat_read        (hdd0_read),
+	.hdd0_dat_write       (hdd0_write),
+	.hdd0_dat_writedata   (hdd0_writedata),
 	.hdd0_dat_readdata    (hdd0_readdata),
 
 	.hdd1_dat_request     (mgmt_req[5:3]),
-	.hdd1_dat_read        (hdd_read & mgmt_addr[0]),
-	.hdd1_dat_write       (hdd_write & mgmt_addr[0]),
-	.hdd1_dat_writedata   (hdd_writedata),
+	.hdd1_dat_read        (hdd1_read),
+	.hdd1_dat_write       (hdd1_write),
+	.hdd1_dat_writedata   (hdd1_writedata),
 	.hdd1_dat_readdata    (hdd1_readdata),
 
 	.fdd0_request         (mgmt_req[7:6]),
