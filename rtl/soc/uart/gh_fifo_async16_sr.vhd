@@ -32,6 +32,7 @@ entity gh_fifo_async16_sr is
 		RD     : in STD_LOGIC; -- read control
 		D      : in STD_LOGIC_VECTOR (data_width-1 downto 0);
 		Q      : out STD_LOGIC_VECTOR (data_width-1 downto 0);
+		emptyw : out STD_LOGIC; 
 		empty  : out STD_LOGIC; 
 		full   : out STD_LOGIC);
 end entity;
@@ -54,6 +55,7 @@ architecture a of gh_fifo_async16_sr is
 	signal add_RD_GCwc : std_logic_vector(4 downto 0);
 	signal n_add_RD    : std_logic_vector(4 downto 0);
 	signal add_RD_WS   : std_logic_vector(4 downto 0); -- synced to write clk
+	signal add_RD_WSw  : std_logic_vector(4 downto 0);
 	signal srst_w      : STD_LOGIC;
 	signal isrst_w     : STD_LOGIC;
 	signal srst_r      : STD_LOGIC;
@@ -94,6 +96,7 @@ begin
 		add_WR_GC <= (others => '0');
 	elsif (rising_edge(clk_WR)) then
 		add_RD_WS <= add_RD_GCwc;
+		add_RD_WSw <= add_RD_GC;
 		if (srst_w = '1') then
 			add_WR <= (others => '0');
 			add_WR_GC <= (others => '0');
@@ -116,6 +119,9 @@ end process;
 	ifull <= '0' when (iempty = '1') else -- just in case add_RD_WS is reset to "00000"
 	         '0' when (add_RD_WS /= add_WR_GC) else ---- instend of "11000"
 	         '1';
+
+	emptyw <= '1' when (add_RD_WSw = add_WR_GC) else
+	          '0';
 			 
 -----------------------------------------
 ----- Read address counter --------------

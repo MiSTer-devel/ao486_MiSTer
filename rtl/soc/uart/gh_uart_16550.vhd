@@ -171,6 +171,7 @@ COMPONENT gh_fifo_async16_sr is
 		D      : in STD_LOGIC_VECTOR (data_width-1 downto 0);
 		Q      : out STD_LOGIC_VECTOR (data_width-1 downto 0);
 		empty  : out STD_LOGIC; 
+		emptyw : out STD_LOGIC; 
 		full   : out STD_LOGIC);
 END COMPONENT;
 
@@ -353,7 +354,6 @@ begin
 
 	MPU_old <= MPU_MODE when rising_edge(clk);
 	RX_Empty <= RF_empty;
-	TX_Empty <= TF_empty;
 	RX_Full <= RF_full;
 	TX_Full <= TF_full;
 
@@ -749,6 +749,7 @@ U28 : gh_fifo_async16_sr
 		D => D,
 		Q => TF_DO,
 		empty => TF_empty,
+		emptyw => TX_Empty,
 		full => TF_full);
 
 ----------------------------------------------------------------

@@ -42,7 +42,7 @@ module uart (
 );
 
 assign irq_uart = ~mpu_mode & irq;
-assign irq_mpu  =  mpu_mode & (read_ack | ~rx_empty);
+assign irq_mpu  = read_ack | (mpu_mode & ~rx_empty);
 
 wire [7:0] data;
 always @(posedge clk) if(read) readdata <= data;
@@ -55,11 +55,11 @@ gh_uart_16550 uart
 (
 	.clk(clk),
 	.BR_clk(br_clk),
-	.rst(reset || (mpu_write && mpu_address && (mpu_writedata == 'hFF))),
+	.rst(reset | cmd_reset),
 	.CS(uart_CS),
 	.WR(uart_WR),
-	.ADD(address),
-	.D(writedata),
+	.ADD(uart_address),
+	.D(uart_writedata),
 	.RD(data),
 
 	.B_CLK(br_out),
@@ -81,25 +81,33 @@ gh_uart_16550 uart
 );
 
 wire xCR_write = write && (address == 2 || address == 3);
-wire uart_CS = mpu_mode ? ((!mpu_address && ((mpu_read & ~read_ack)|mpu_write)) || xCR_write) : (read | write);
-wire uart_WR = mpu_mode ? (mpu_write | xCR_write) : write;
+wire mpu_mode = mpu_mode_r & ~xCR_write;
 
-reg mpu_mode;
+wire uart_CS = mpu_mode ? (!mpu_address && ((mpu_read & ~read_ack) | mpu_write)) : (read | write);
+wire uart_WR = mpu_mode ? mpu_write : write;
+
+wire [7:0] uart_writedata = mpu_write ? mpu_writedata : writedata;
+wire [2:0] uart_address = (mpu_write | mpu_read) ? 3'd0 : address;
+
+reg mpu_mode_r;
 always @(posedge clk or posedge reset) begin
 	if(reset) begin
-		mpu_mode <= 0;
+		mpu_mode_r <= 0;
 	end
 	else begin
 		if(mpu_write && mpu_address) begin
-			if(mpu_writedata == 'hFF) mpu_mode <= 0;
-			if(mpu_writedata == 'h3F) mpu_mode <= 1;
+			if(mpu_writedata == 'hFF) mpu_mode_r <= 0;
+			if(mpu_writedata == 'h3F) mpu_mode_r <= 1;
 		end
 		// write to FCR or LCR to switch MPU off
-		if(xCR_write) mpu_mode <= 0;
+		if(xCR_write) mpu_mode_r <= 0;
 	end
 end
 
 wire [7:0] mpu_status = {~(read_ack | ~rx_empty), ~tx_empty, 6'd0};
+
+wire cmd_reset = mpu_write && mpu_address && (mpu_writedata == 'hFF);
+wire cmd_init  = mpu_write && mpu_address && (mpu_writedata == 'h3F);
 
 reg read_ack;
 always @(posedge clk or posedge reset) begin
@@ -107,8 +115,8 @@ always @(posedge clk or posedge reset) begin
 		read_ack <= 0;
 	end
 	else begin
-		if(mpu_write && mpu_address && ((mpu_writedata == 'hFF && ~mpu_mode) || mpu_writedata == 'h3F)) read_ack <= 1;
-		if(mpu_read && !mpu_address) read_ack <= 0;
+		if((cmd_reset & ~mpu_mode_r) | cmd_init) read_ack <= 1;
+		if(mpu_read & !mpu_address) read_ack <= 0;
 	end
 end
 
