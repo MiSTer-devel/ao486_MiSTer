@@ -25,35 +25,29 @@
  */
 
 module pit(
-    input               clk,
-    input               rst_n,
-    
-    output              irq,
-    
-    //io slave 040h-043h
-    input       [1:0]   io_address,
-    input               io_read,
-    output reg  [7:0]   io_readdata,
-    input               io_write,
-    input       [7:0]   io_writedata,
-    
-    //speaker port 61h
-    input               speaker_61h_read,
-    output      [7:0]   speaker_61h_readdata,
-    input               speaker_61h_write,
-    input       [7:0]   speaker_61h_writedata,
-    
-    //speaker output
-    output reg          speaker_enable,
-    output              speaker_out,
-    
-    //mgmt slave
-    /*
-    0.[7:0]: cycles in sysclock 1193181 Hz
-    */
-    input               mgmt_address,
-    input               mgmt_write,
-    input       [31:0]  mgmt_writedata
+	input               clk,
+	input               rst_n,
+
+	output              irq,
+
+	//io slave 040h-043h
+	input       [1:0]   io_address,
+	input               io_read,
+	output reg  [7:0]   io_readdata,
+	input               io_write,
+	input       [7:0]   io_writedata,
+
+	//speaker port 61h
+	input               speaker_61h_read,
+	output      [7:0]   speaker_61h_readdata,
+	input               speaker_61h_write,
+	input       [7:0]   speaker_61h_writedata,
+
+	//speaker output
+	output reg          speaker_enable,
+	output              speaker_out,
+
+	input      [27:0]   clock_rate
 );
 
 //------------------------------------------------------------------------------
@@ -64,23 +58,25 @@ wire io_read_valid = io_read && io_read_last == 1'b0;
 
 //------------------------------------------------------------------------------ system clock
 
-reg [7:0] cycles_in_1193181hz; //838.096ns
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                               cycles_in_1193181hz <= 8'd25;
-    else if(mgmt_write && mgmt_address == 1'b0)     cycles_in_1193181hz <= mgmt_writedata[7:0];
-end
+reg [27:0] clk_rate;
+always @(posedge clk) clk_rate <= clock_rate;
 
-reg [7:0] system_counter;
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                               system_counter <= 8'd0;
-    else if(system_counter >= cycles_in_1193181hz)  system_counter <= 8'd0;
-    else                                            system_counter <= system_counter + 8'd2;
+reg ce_system_counter;
+always @(posedge clk) begin
+	reg [27:0] sum = 0;
+
+	ce_system_counter = 0;
+	sum = sum + 28'd2386362; // 1193181hz * 2
+	if(sum >= clk_rate) begin
+		sum = sum - clk_rate;
+		ce_system_counter = 1;
+	end
 end
 
 reg system_clock;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                               system_clock <= 1'b0;
-    else if(system_counter >= cycles_in_1193181hz)  system_clock <= ~(system_clock);
+    if(rst_n == 1'b0)           system_clock <= 1'b0;
+    else if(ce_system_counter)  system_clock <= ~system_clock;
 end
 
 //------------------------------------------------------------------------------ read io
@@ -102,15 +98,15 @@ assign speaker_61h_readdata = { 2'b0, speaker_out, counter_1_toggle, 2'b0, speak
 
 reg [5:0] counter_1_cnt;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                           counter_1_cnt <= 6'd0;
-    else if(system_counter >= cycles_in_1193181hz && counter_1_cnt == 6'd35)    counter_1_cnt <= 6'd0;
-    else if(system_counter >= cycles_in_1193181hz)                              counter_1_cnt <= counter_1_cnt + 6'd1;
+    if(rst_n == 1'b0)                                       counter_1_cnt <= 6'd0;
+    else if(ce_system_counter && counter_1_cnt == 6'd35)    counter_1_cnt <= 6'd0;
+    else if(ce_system_counter)                              counter_1_cnt <= counter_1_cnt + 6'd1;
 end
 
 reg counter_1_toggle;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                           counter_1_toggle <= 1'b0;
-    else if(system_counter >= cycles_in_1193181hz && counter_1_cnt == 6'd35)    counter_1_toggle <= ~(counter_1_toggle);
+    if(rst_n == 1'b0)                                       counter_1_toggle <= 1'b0;
+    else if(ce_system_counter && counter_1_cnt == 6'd35)    counter_1_toggle <= ~(counter_1_toggle);
 end
 
 
@@ -188,12 +184,6 @@ pit_counter pit_counter_2(
     
     .data_out           (counter_2_readdata)    //output [7:0]
 );
-
-//------------------------------------------------------------------------------
-
-// synthesis translate_off
-wire _unused_ok = &{ 1'b0, speaker_61h_read, speaker_61h_writedata[7:2], mgmt_writedata[31:8], 1'b0 };
-// synthesis translate_on
 
 //------------------------------------------------------------------------------
 

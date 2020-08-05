@@ -34,7 +34,7 @@ module opl3
 	input                rst_n,
 	output               irq_n,
 
-	input         [12:0] period_80us, // from clk
+	input                ce_1us, // from clk
 
 	input          [1:0] addr,
 	output         [7:0] dout,
@@ -83,7 +83,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 wire timer1_pulse;
-timer timer1( clk, period_80us, timer1_preset, timer1_active, timer1_pulse );
+timer timer1( clk, ce_1us, 79, timer1_preset, timer1_active, timer1_pulse );
 
 reg timer1_overflow;
 always @(posedge clk or negedge rst_n) begin
@@ -111,7 +111,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 wire timer2_pulse;
-timer timer2( clk, {period_80us, 2'b00}, timer2_preset, timer2_active, timer2_pulse );
+timer timer2( clk, ce_1us, 319, timer2_preset, timer2_active, timer2_pulse );
 
 reg timer2_overflow;
 always @(posedge clk or negedge rst_n) begin
@@ -124,15 +124,15 @@ end
 
 reg force_overflow;
 always @(posedge clk) begin
-	reg [22:0] cnt;
+	reg [16:0] cnt;
 	reg  [5:0] rdcnt;
 	reg old_rd;
 
+	if(ce_1us && ~&cnt) cnt <= cnt + 1'd1;
+
 	force_overflow <= 0;
 
-	cnt <= cnt + 1'd1;
 	old_rd <= rd;
-
 	if(~old_rd && rd) begin
 		cnt <= 0;
 		if(~&rdcnt) begin
@@ -140,7 +140,7 @@ always @(posedge clk) begin
 			if(rdcnt == 20) force_overflow <= 1;
 		end
 	end
-	else if((cnt[22:10] >= period_80us) || (io_write && index == 4)) begin
+	else if((cnt >= 100000) || (io_write && index == 4)) begin
 		rdcnt <= 0;
 		cnt <= 0;
 	end
@@ -167,16 +167,17 @@ endmodule
 module timer
 (
 	input         clk,
-	input  [14:0] resolution,
+	input         ce_1us,
+	input   [8:0] resolution,
 	input   [7:0] init,
 	input         active,
 	output reg    overflow_pulse
 );
 
 always @(posedge clk) begin
-	reg  [7:0] counter     = 0;
-	reg [14:0] sub_counter = 0;
-	reg        old_act;
+	reg [7:0] counter;
+	reg [8:0] sub_counter;
+	reg       old_act;
 
 	old_act <= active;
 	overflow_pulse <= 0;
@@ -185,7 +186,7 @@ always @(posedge clk) begin
 		counter <= init;
 		sub_counter <= resolution;
 	end
-	else if(active) begin
+	else if(active & ce_1us) begin
 		sub_counter <= sub_counter - 1'd1;
 		if(!sub_counter) begin
 			sub_counter <= resolution;

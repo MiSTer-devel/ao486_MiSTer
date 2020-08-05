@@ -27,7 +27,8 @@
 module sound_dsp(
     input               clk,
     input               rst_n,
-    
+
+	input               ce_1us,
     output reg          irq,
     
     //io slave 220h-22Fh
@@ -47,15 +48,7 @@ module sound_dsp(
     //sample
     output              sample_from_dsp_disabled,
     output              sample_from_dsp_do,
-    output      [7:0]   sample_from_dsp_value,
-    
-    //mgmt slave
-    /*
-    0-255.[15:0]: cycles in period
-    */
-    input       [8:0]   mgmt_address,
-    input               mgmt_write,
-    input       [31:0]  mgmt_writedata
+	output      [7:0]   sample_from_dsp_value
 );
 
 //------------------------------------------------------------------------------
@@ -313,31 +306,38 @@ end
 
 //------------------------------------------------------------------------------ pause dac
 
-wire pause_interrupt = pause_counter == 16'd0 && pause_period == 16'd1;
+wire pause_interrupt = !pause_counter && ce_1us && &pause_period;
 
 reg pause_active;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                           pause_active <= 1'b0;
-    else if(sw_reset)                                           pause_active <= 1'b0;
-    else if(cmd_pause_dac)                                      pause_active <= 1'b1;
-    else if(pause_counter == 16'd0 && pause_period == 16'd0)    pause_active <= 1'b0;
+    if(rst_n == 1'b0)                        pause_active <= 1'b0;
+    else if(sw_reset)                        pause_active <= 1'b0;
+    else if(cmd_pause_dac)                   pause_active <= 1'b1;
+    else if(!pause_counter && !pause_period) pause_active <= 1'b0;
 end
 
 reg [15:0] pause_counter;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                       pause_counter <= 16'd0;
-    else if(sw_reset)                                       pause_counter <= 16'd0;
-    else if(cmd_pause_dac)                                  pause_counter <= { write_buffer[7:0], write_buffer[15:8] };
-    else if(pause_period == 16'd0 && pause_counter > 16'd0) pause_counter <= pause_counter - 16'd1;
+    if(rst_n == 1'b0)                        pause_counter <= 16'd0;
+    else if(sw_reset)                        pause_counter <= 16'd0;
+    else if(cmd_pause_dac)                   pause_counter <= { write_buffer[7:0], write_buffer[15:8] };
+    else if(!pause_period && pause_counter)  pause_counter <= pause_counter - 1'd1;
 end
 
-reg [15:0] pause_period;
+reg [7:0] pause_period;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                       pause_period <= 16'd0;
-    else if(sw_reset)                                       pause_period <= 16'd0;
-    else if(cmd_pause_dac)                                  pause_period <= period_q;
-    else if(pause_period == 16'd0 && pause_counter > 16'd0) pause_period <= period_q;
-    else if(pause_period > 16'd0)                           pause_period <= pause_period - 16'd1;
+    if(rst_n == 1'b0)                       pause_period <= 8'd0;
+    else if(sw_reset)                       pause_period <= 8'd0;
+    else if(cmd_pause_dac)                  pause_period <= period;
+    else if(!pause_period && pause_counter) pause_period <= period;
+    else if(ce_1us && pause_period)         pause_period <= pause_period + 1'd1;
+end
+
+reg [7:0] period;
+always @(posedge clk or negedge rst_n) begin
+    if(rst_n == 1'b0)                       period <= 128;
+    else if(sw_reset)                       period <= 128;
+    else if(cmd_set_time_constant)          period <= write_buffer[7:0];
 end
 
 //------------------------------------------------------------------------------
@@ -504,7 +504,7 @@ wire dma_auto_restart = dma_in_progress && dma_autoinit && (
     (adpcm_output && dma_left == 17'd0 && adpcm_type != ADPCM_NONE && adpcm_wait == 2'd1)
 );
 
-wire dma_restart_possible = dma_wait == 16'd0 && (adpcm_wait == 2'd0 || (adpcm_type != ADPCM_NONE && adpcm_wait == 2'd1)) && (~(dma_in_progress) || dma_auto_restart || pause_dma);
+wire dma_restart_possible = !dma_wait && (!adpcm_wait || (adpcm_type != ADPCM_NONE && adpcm_wait == 2'd1)) && (~(dma_in_progress) || dma_auto_restart || pause_dma);
 
 reg [16:0] dma_left;
 always @(posedge clk or negedge rst_n) begin
@@ -541,12 +541,12 @@ always @(posedge clk or negedge rst_n) begin
     else if(cmd_auto_dma_exit)  dma_autoinit <= 1'b0;
 end
 
-reg [15:0] dma_wait;
+reg [7:0] dma_wait;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                                                                   dma_wait <= 16'd0;
-    else if(sw_reset)                                                                                                   dma_wait <= 16'd0;
-    else if(dma_finished || dma_valid || adpcm_output || (~(dma_in_progress) && (dma_single_start || dma_auto_start)))  dma_wait <= period_q;
-    else if(dma_wait > 16'd0)                                                                                           dma_wait <= dma_wait - 16'd1;
+    if(rst_n == 1'b0)                                                                                                   dma_wait <= 8'd0;
+    else if(sw_reset)                                                                                                   dma_wait <= 8'd0;
+    else if(dma_finished || dma_valid || adpcm_output || (~(dma_in_progress) && (dma_single_start || dma_auto_start)))  dma_wait <= period;
+    else if(ce_1us && dma_wait)                                                                                         dma_wait <= dma_wait + 1'd1;
 end
 
 //------------------------------------------------------------------------------ adpcm
@@ -562,7 +562,7 @@ wire adpcm_reference_start =
     dma_command == S_OUT_AUTO_2_BIT_REF   || dma_command == S_OUT_AUTO_3_BIT_REF   || dma_command == S_OUT_AUTO_4_BIT_REF
 );
 
-wire adpcm_output = dma_wait == 16'd0 && adpcm_wait > 2'd0;
+wire adpcm_output = !dma_wait && adpcm_wait;
 
 reg adpcm_reference_awaiting;
 always @(posedge clk or negedge rst_n) begin
@@ -725,32 +725,6 @@ wire [2:0] adpcm_4bit_step_next =
 
 //------------------------------------------------------------------------------
 
-reg [7:0] period_address;
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)               period_address <= 8'd128;
-    else if(sw_reset)               period_address <= 8'd128;
-    else if(cmd_set_time_constant)  period_address <= write_buffer[7:0];
-end
-
-wire [15:0] period_q;
-
-simple_ram #(
-    .widthad    (8),
-    .width      (16)
-)
-period_ram_inst(
-    .clk                (clk),
-    
-    .wraddress          (mgmt_address[7:0]),
-    .wren               (mgmt_write && mgmt_address[8] == 1'b0),
-    .data               (mgmt_writedata[15:0]),
-    
-    .rdaddress          (period_address),
-    .q                  (period_q)
-);
-
-//------------------------------------------------------------------------------
-
 assign sample_from_dsp_disabled = ~(speaker_on) || pause_active;
 assign sample_from_dsp_do = ~(sample_from_dsp_disabled) && ((dma_output && adpcm_type == ADPCM_NONE) || cmd_direct_output || adpcm_active || (~(adpcm_reference_awaiting) && adpcm_reference_output));
 
@@ -759,12 +733,6 @@ assign sample_from_dsp_value =
     (adpcm_active)?             adpcm_active_value :
     (dma_output)?               dma_soundblaster_readdata :
                                 write_buffer[7:0];
-
-//------------------------------------------------------------------------------
-
-// synthesis translate_off
-wire _unused_ok = &{ 1'b0, mgmt_writedata[31:16], dma_soundblaster_terminal, 1'b0 };
-// synthesis translate_on
 
 //------------------------------------------------------------------------------
 

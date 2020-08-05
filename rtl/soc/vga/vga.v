@@ -60,14 +60,11 @@ module vga
 	//interrupt (IRQ2)
 	output              irq,
 
-	//mgmt slave 
-	input       [3:0]   mgmt_address,
-	input               mgmt_write,
-	input       [31:0]  mgmt_writedata,
+	input      [27:0]   clock_rate,
 
 	//vga
 	output              vga_ce,
-	input               vga_mode,
+	input               vga_f60,
 	output      [2:0]   vga_memmode,
 	output              vga_blank_n,
 	output reg          vga_off,
@@ -92,13 +89,13 @@ module vga
 
 //------------------------------------------------------------------------------
 
-reg [31:0] clk_rate = 90500000;
-always @(posedge clk_sys) if(mgmt_write && !mgmt_address) clk_rate <= mgmt_writedata;
+reg [27:0] clk_rate;
+always @(posedge clk_sys) clk_rate <= clock_rate;
 
 reg ce_video;
-reg [31:0] pixclk = 25175000;
+reg [27:0] pixclk = 25175000;
 always @(posedge clk_sys) begin
-	reg [31:0] sum = 0;
+	reg [27:0] sum = 0;
 	
 	ce_video = 0;
 	sum = sum + pixclk;
@@ -109,25 +106,13 @@ always @(posedge clk_sys) begin
 end
 
 wire [4:0] clock_select = {crtc_reg31[7:6],crtc_reg34[1],general_clock_select};
-reg [31:0] pixclk_orig;
+reg [27:0] pixclk_orig;
 always @(posedge clk_sys) begin
 	case(clock_select[3:0])
 		0 : pixclk_orig <= 25175000;
 		1 : pixclk_orig <= 28322000;
 		2 : pixclk_orig <= 32514000;
-		3 : pixclk_orig <= 35900000;
-		4 : pixclk_orig <= 39900000;
-		5 : pixclk_orig <= 44700000;
-		6 : pixclk_orig <= 31400000;
-		7 : pixclk_orig <= 37500000;
-		8 : pixclk_orig <= 50000000;
-		9 : pixclk_orig <= 56500000;
-		10: pixclk_orig <= 64900000;
-		11: pixclk_orig <= 71900000;
-		12: pixclk_orig <= 79900000;
-		13: pixclk_orig <= 89600000;
-		14: pixclk_orig <= 62800000;
-		15: pixclk_orig <= 74800000;
+		default : pixclk_orig <= 35900000;
 	endcase
 end
 
@@ -135,7 +120,7 @@ always @(posedge clk_sys) begin
 	reg [31:0] pixcnt = 0, pix60;
 	reg old_sync = 0;
 	
-	if(~rst_n || vga_mode) pixclk <= (clk_rate<pixclk_orig) ? clk_rate : pixclk_orig;
+	if(~rst_n || ~vga_f60) pixclk <= (clk_rate<pixclk_orig) ? clk_rate : pixclk_orig;
 	else if(ce_video) begin
 		old_sync <= vga_vert_sync;
 		pixcnt <= pixcnt + 1;
@@ -146,7 +131,7 @@ always @(posedge clk_sys) begin
 		
 		if(pix60<15000000) pixclk <= 15000000;
 		else if(pix60>clk_rate) pixclk <= clk_rate;
-		else pixclk <= pix60;
+		else pixclk <= pix60[27:0];
 	end
 end
 

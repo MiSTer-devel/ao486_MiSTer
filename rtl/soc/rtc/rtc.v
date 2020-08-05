@@ -25,48 +25,64 @@
  */
 
 module rtc(
-    input               clk,
-    input               rst_n,
-    
-    output reg          irq,
-    
-    //io slave
-    input               io_address,
-    input               io_read,
-    output reg  [7:0]   io_readdata,
-    input               io_write,
-    input       [7:0]   io_writedata,
-    
-	 input               rtc_memcfg,
-    //mgmt slave
-    /*
-    128.[26:0]: cycles in second
-    129.[12:0]: cycles in 122.07031 us
-    */
-    input       [7:0]   mgmt_address,
-    input               mgmt_write,
-    input       [31:0]  mgmt_writedata
+	input               clk,
+	input               rst_n,
+
+	output reg          irq,
+
+	//io slave
+	input               io_address,
+	input               io_read,
+	output reg  [7:0]   io_readdata,
+	input               io_write,
+	input       [7:0]   io_writedata,
+
+	input               rtc_memcfg,
+	//mgmt slave
+	/*
+	128.[26:0]: cycles in second
+	129.[12:0]: cycles in 122.07031 us
+	*/
+	input       [7:0]   mgmt_address,
+	input               mgmt_write,
+	input       [31:0]  mgmt_writedata,
+
+	input       [27:0]  clock_rate
 );
+
+reg [27:0] clk_rate;
+always @(posedge clk) clk_rate <= clock_rate;
+
+reg ce_800hz;
+always @(posedge clk) begin
+	reg [27:0] sum = 0;
+
+	ce_800hz = 0;
+	sum = sum + 28'd800;
+	if(sum >= clk_rate) begin
+		sum = sum - clk_rate;
+		ce_800hz = 1;
+	end
+end
+
+reg ce_81920hz;
+always @(posedge clk) begin
+	reg [27:0] sum = 0;
+
+	ce_81920hz = 0;
+	sum = sum + 28'd81920;
+	if(sum >= clk_rate) begin
+		sum = sum - clk_rate;
+		ce_81920hz = 1;
+	end
+end
+
 
 //------------------------------------------------------------------------------
 
 reg io_read_last;
 always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) io_read_last <= 1'b0; else if(io_read_last) io_read_last <= 1'b0; else io_read_last <= io_read; end 
 wire io_read_valid = io_read && io_read_last == 1'b0;
-
-//------------------------------------------------------------------------------ cycle count from mgmt
-
-reg [26:0] cycles_in_second;
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                               cycles_in_second <= 27'd30303030;
-    else if(mgmt_write && mgmt_address == 8'd128)   cycles_in_second <= mgmt_writedata[26:0];
-end
-
-reg [12:0] cycles_in_122us;
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                               cycles_in_122us <= 13'd4069;
-    else if(mgmt_write && mgmt_address == 8'd129)   cycles_in_122us <= mgmt_writedata[12:0];
-end
 
 //------------------------------------------------------------------------------ io read
 
@@ -122,23 +138,23 @@ localparam [2:0] SEC_STOPPED            = 3'd4;
 reg [2:0] sec_state;
 
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                                                   sec_state <= SEC_UPDATE_START;
+    if(rst_n == 1'b0)                                                sec_state <= SEC_UPDATE_START;
     
-    else if(crb_freeze || divider[2:1] == 2'b11)                                                        sec_state <= SEC_STOPPED;
-    else if(sec_state == SEC_STOPPED)                                                                   sec_state <= SEC_UPDATE_START;
+    else if(crb_freeze || divider[2:1] == 2'b11)                     sec_state <= SEC_STOPPED;
+    else if(sec_state == SEC_STOPPED)                                sec_state <= SEC_UPDATE_START;
     
-    else if(sec_state == SEC_UPDATE_START)                                                              sec_state <= SEC_UPDATE_IN_PROGRESS;
-    else if(sec_state == SEC_UPDATE_IN_PROGRESS && sec_timeout == 27'd0)                                sec_state <= SEC_SECOND_START;
-    else if(sec_state == SEC_SECOND_START)                                                              sec_state <= SEC_SECOND_IN_PROGRESS;
-    else if(sec_state == SEC_SECOND_IN_PROGRESS && sec_timeout == { 13'd0, cycles_in_122us, 1'b0 })     sec_state <= SEC_UPDATE_START;
+    else if(sec_state == SEC_UPDATE_START)                           sec_state <= SEC_UPDATE_IN_PROGRESS;
+    else if(sec_state == SEC_UPDATE_IN_PROGRESS && !sec_timeout)     sec_state <= SEC_SECOND_START;
+    else if(sec_state == SEC_SECOND_START)                           sec_state <= SEC_SECOND_IN_PROGRESS;
+    else if(sec_state == SEC_SECOND_IN_PROGRESS && sec_timeout == 1) sec_state <= SEC_UPDATE_START;
 end
 
-reg [26:0] sec_timeout;
+reg [10:0] sec_timeout;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                               sec_timeout <= 27'd8137; //4069*2 -1
-    else if(crb_freeze || divider[2:1] == 2'b11)    sec_timeout <= 27'd8137; //4069*2 -1
-    else if(sec_timeout == 27'd0)                   sec_timeout <= cycles_in_second;
-    else                                            sec_timeout <= sec_timeout - 27'd1;
+    if(rst_n == 1'b0)                               sec_timeout <= 4;
+    else if(crb_freeze || divider[2:1] == 2'b11)    sec_timeout <= 4;
+    else if(!sec_timeout)                           sec_timeout <= 799;
+    else if(ce_800hz)                               sec_timeout <= sec_timeout - 1'd1;
 end
 
 reg update_interrupt;
@@ -455,9 +471,8 @@ end
 
 wire periodic_enabled = divider[2:1] != 2'b00 && periodic_rate != 4'd0;
 wire periodic_start   = periodic_enabled && (
-                            (periodic_minor == 13'd0 && periodic_major == 13'd0) ||
-                            (periodic_minor == 13'd0 && periodic_major == 13'd1));
-wire periodic_count   = periodic_enabled && periodic_major >= 13'd1;
+                            (ce_81920hz && periodic_major == 13'd0) ||
+                            (ce_81920hz && periodic_major == 13'd1));
 
 wire [12:0] periodic_major_initial = {
     periodic_rate == 4'd15, periodic_rate == 4'd14, periodic_rate == 4'd13, periodic_rate == 4'd12,
@@ -465,28 +480,19 @@ wire [12:0] periodic_major_initial = {
     periodic_rate == 4'd7,  periodic_rate == 4'd6,  periodic_rate == 4'd5,  periodic_rate == 4'd4,
     periodic_rate == 4'd3 };
 
-reg [12:0] periodic_minor;
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                   periodic_minor <= 13'd0;
-    else if(~(periodic_enabled))                        periodic_minor <= 13'd0;
-    else if(periodic_start)                             periodic_minor <= cycles_in_122us;
-    else if(periodic_count && periodic_minor == 13'd0)  periodic_minor <= cycles_in_122us;
-    else if(periodic_count)                             periodic_minor <= periodic_minor - 13'd1;
-end
-
 reg [12:0] periodic_major;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                   periodic_major <= 13'd0;
-    else if(~(periodic_enabled))                        periodic_major <= 13'd0;
-    else if(periodic_start)                             periodic_major <= periodic_major_initial;
-    else if(periodic_count && periodic_minor == 13'd0)  periodic_major <= periodic_major - 13'd1;
+    if(rst_n == 1'b0)                                         periodic_major <= 13'd0;
+    else if(~periodic_enabled)                                periodic_major <= 13'd0;
+    else if(periodic_start)                                   periodic_major <= periodic_major_initial;
+    else if(periodic_enabled && periodic_major && ce_81920hz) periodic_major <= periodic_major - 13'd1;
 end
 
 reg periodic_interrupt;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                               periodic_interrupt <= 1'b0;
-    else if(io_read_valid && io_address == 1'b1 && ram_address == 7'h0C)            periodic_interrupt <= 1'b0;
-    else if(periodic_enabled && periodic_minor == 13'd0 && periodic_major == 13'd1) periodic_interrupt <= 1'b1;
+    if(rst_n == 1'b0)                                                    periodic_interrupt <= 1'b0;
+    else if(io_read_valid && io_address == 1'b1 && ram_address == 7'h0C) periodic_interrupt <= 1'b0;
+    else if(periodic_enabled && ce_81920hz && periodic_major == 13'd1)   periodic_interrupt <= 1'b1;
 end
 
 //------------------------------------------------------------------------------
@@ -516,11 +522,6 @@ rtc_ram_inst(
     .q                  (ram_q)
 );
 
-//------------------------------------------------------------------------------
-
-// synthesis translate_off
-wire _unused_ok = &{ 1'b0, mgmt_writedata[31:27], 1'b0 };
-// synthesis translate_on
 
 //------------------------------------------------------------------------------
 

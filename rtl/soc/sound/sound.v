@@ -25,50 +25,57 @@
  */
 
 module sound(
-    input               clk,
-    input               clk_opl,
-    input               rst_n,
-    
-    output              irq,
-    
-    //io slave 220h-22Fh
-    input       [3:0]   io_address,
-    input               io_read,
-    output      [7:0]   io_readdata,
-    input               io_write,
-    input       [7:0]   io_writedata,
-    
-    //fm music io slave 388h-38Bh
-    input       [1:0]   fm_address,
-    input               fm_read,
-    output      [7:0]   fm_readdata,
-    input               fm_write,
-    input       [7:0]   fm_writedata,
+	input               clk,
+	input               clk_opl,
+	input               rst_n,
+
+	output              irq,
+
+	//io slave 220h-22Fh
+	input       [3:0]   io_address,
+	input               io_read,
+	output      [7:0]   io_readdata,
+	input               io_write,
+	input       [7:0]   io_writedata,
+
+	//fm music io slave 388h-38Bh
+	input       [1:0]   fm_address,
+	input               fm_read,
+	output      [7:0]   fm_readdata,
+	input               fm_write,
+	input       [7:0]   fm_writedata,
 	input               fm_mode,
 
-    //dma
-    output              dma_soundblaster_req,
-    input               dma_soundblaster_ack,
-    input               dma_soundblaster_terminal,
-    input       [7:0]   dma_soundblaster_readdata,
-    output      [7:0]   dma_soundblaster_writedata,
-    
-    //sound output
-    output     [15:0]   sample_l,
-    output     [15:0]   sample_r,
+	//dma
+	output              dma_soundblaster_req,
+	input               dma_soundblaster_ack,
+	input               dma_soundblaster_terminal,
+	input       [7:0]   dma_soundblaster_readdata,
+	output      [7:0]   dma_soundblaster_writedata,
 
-    //mgmt slave
-    /*
-    0-255.[15:0]: cycles in period
-    256.[12:0]:  cycles in 80us
-    257.[9:0]:   cycles in 1 sample: 96000 Hz
-    */
-    input       [8:0]   mgmt_address,
-    input               mgmt_write,
-    input       [31:0]  mgmt_writedata
+	//sound output
+	output     [15:0]   sample_l,
+	output     [15:0]   sample_r,
+
+	input      [27:0]   clock_rate
 );
 
 //------------------------------------------------------------------------------
+
+reg [27:0] clk_rate;
+always @(posedge clk) clk_rate <= clock_rate;
+
+reg ce_1us;
+always @(posedge clk) begin
+	reg [27:0] sum = 0;
+
+	ce_1us = 0;
+	sum = sum + 28'd1000000;
+	if(sum >= clk_rate) begin
+		sum = sum - clk_rate;
+		ce_1us = 1;
+	end
+end
 
 //------------------------------------------------------------------------------ dsp
 
@@ -82,6 +89,8 @@ sound_dsp sound_dsp_inst(
     .clk                        (clk),
     .rst_n                      (rst_n),
     
+    .ce_1us                     (ce_1us),
+
     .irq                        (irq),                          //output
     
     //io slave 220h-22Fh
@@ -101,15 +110,7 @@ sound_dsp sound_dsp_inst(
     //sample
     .sample_from_dsp_disabled   (sample_from_dsp_disabled),     //output
     .sample_from_dsp_do         (sample_from_dsp_do),           //output
-    .sample_from_dsp_value      (sample_from_dsp_value),        //output [7:0] unsigned
-    
-    //mgmt slave
-    /*
-    0-255.[15:0]: cycles in period
-    */
-    .mgmt_address               (mgmt_address),                 //input [8:0]
-    .mgmt_write                 (mgmt_write),                   //input
-    .mgmt_writedata             (mgmt_writedata)                //input [31:0]
+    .sample_from_dsp_value      (sample_from_dsp_value)         //output [7:0] unsigned
 );
 
 //------------------------------------------------------------------------------ opl
@@ -119,12 +120,6 @@ wire  [7:0] sb_readdata_from_opl;
 wire        sample_from_opl;
 wire [15:0] sample_from_opl_l;
 wire [15:0] sample_from_opl_r;
-
-reg [12:0] period_80us;
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 0)                               period_80us <= 2400;
-    else if(mgmt_write && mgmt_address == 256)   period_80us <= mgmt_writedata[12:0];
-end
 
 wire  [7:0] opl_dout;
 
@@ -139,7 +134,7 @@ opl3 #(50000000) opl
 	.clk_opl(clk_opl),
 	.rst_n(rst_n),
 
-	.period_80us(period_80us),
+	.ce_1us(ce_1us),
 
 	.addr(io_write ? io_address[1:0] : fm_address),
 	.din(io_write  ? io_writedata    : fm_writedata),
