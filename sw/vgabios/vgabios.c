@@ -187,21 +187,21 @@ vgabios_license:
 .byte	0x00
 
 vgabios_website:
-.ascii  "  __  __ _  _____ _______        "
+.ascii  "  __  __ _  __________        "
 .byte	0x0a,0x0d
-.ascii  " |  \\/  (_)/ ____|__   __|       "
+.ascii  " |  \\/  (_)/ ____   __|       "
 .byte	0x0a,0x0d
-.ascii  " | \\  / |_| (___    | | ___ _ __ "
+.ascii  " |      | | (___ | | ___ _ __ "
 .byte	0x0a,0x0d
-.ascii  " | |\\/| | |\\___ \\   | |/ _ \\ '__|"
+.ascii  " | |\\/| | |\\___ \\| |/ _ \\ '__|"
 .byte	0x0a,0x0d
-.ascii  " | |  | | |____) |  | |  __/ |   "
+.ascii  " | |  | | |____) | |  __/ |   "
 .byte	0x0a,0x0d
-.ascii  " |_|  |_|_|_____/   |_|\\___|_|   "
+.ascii  " |_|  |_|_|_____/|_|\\___|_|   "
 .byte	0x0a,0x0d
-.ascii  "                                 "
+.ascii  "                               "
 .byte	0x0a,0x0d
-.ascii  "    http://www.misterfpga.org    "
+.ascii  "   http://www.misterfpga.org    "
 .byte	0x0a,0x0d
 .ascii  "                                 "
 .byte	0x0a,0x0d
