@@ -71,12 +71,8 @@ assign mgmt_readdata = (!mgmt_address) ? sd_sector : (&mgmt_address) ? sec_readd
 
 //------------------------------------------------------------------------------
 
-assign request = (state == S_SD_READ_WAIT_FOR_DATA || state == S_SD_WRITE_WAIT_FOR_DATA) ?
-				{is_next & (cmd_write_in_progress | cmd_read_in_progress), cmd_write_in_progress, cmd_read_in_progress} : 3'b000;
-
-wire sec_read  = mgmt_read  && (&mgmt_address);
-wire sec_write = mgmt_write && (&mgmt_address);
-wire [31:0] sec_writedata = mgmt_writedata;
+assign request = (state == S_FILL_CACHE || state == S_SD_WRITE_WAIT_FOR_DATA) ? {1'b0, cmd_write_in_progress, ~is_next & cmd_read_in_progress} : 3'b000;
+wire sec_read = mgmt_read && &mgmt_address;
 
 //------------------------------------------------------------------------------
 
@@ -602,6 +598,9 @@ localparam [3:0] S_COUNT_DECISION           = 4'd4;
 
 localparam [3:0] S_PREPARE                  = 4'd5;
 
+localparam [3:0] S_EVAL_CACHE               = 4'd6;
+localparam [3:0] S_FILL_CACHE               = 4'd7;
+
 localparam [3:0] S_SD_CONTROL               = 4'd9;
 localparam [3:0] S_SD_READ_WAIT_FOR_DATA    = 4'd10;
 
@@ -623,7 +622,9 @@ always @(posedge clk or negedge rst_n) begin
     //count
     else if(state == S_COUNT_DECISION && ~(count_decision_immediate_error) && cmd_read_in_progress)                      state <= S_PREPARE;
     //sd
-    else if(state == S_SD_CONTROL && cmd_read_in_progress)                                                               state <= S_SD_READ_WAIT_FOR_DATA;
+    else if(state == S_SD_CONTROL && cmd_read_in_progress)                                                               state <= S_EVAL_CACHE;
+    else if(state == S_EVAL_CACHE)                                                                                       state <= is_next ? S_SD_READ_WAIT_FOR_DATA : S_FILL_CACHE;
+    else if(state == S_FILL_CACHE && cache_full)                                                                         state <= S_SD_READ_WAIT_FOR_DATA;
     else if(state == S_SD_READ_WAIT_FOR_DATA && logical_sector_count == 5'd0)                                            state <= S_WAIT_FOR_EMPTY_READ_FIFO;
     else if(state == S_WAIT_FOR_EMPTY_READ_FIFO && from_hdd_empty_valid && num_sectors == 17'd0 && cmd_read_in_progress) state <= S_IDLE;
     else if(state == S_WAIT_FOR_EMPTY_READ_FIFO && from_hdd_empty_valid && cmd_read_in_progress)                         state <= S_PREPARE_COUNT;
@@ -811,7 +812,41 @@ end
 reg is_next;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)              is_next <= 0;
-    else if(state == S_SD_CONTROL) is_next <= (sd_sector == sd_sector_next) && (logical_sector_count == 1);
+    else if(state == S_SD_CONTROL) is_next <= ~cache_empty && cmd_read_in_progress && (sd_sector == sd_sector_next) && (logical_sector_count == 1);
+end
+
+wire cache_empty, cache_full;
+wire [31:0] from_cache;
+
+simple_fifo #(
+    .width      (32),
+    .widthu     (11)
+)
+cache_from_hps
+(
+    .clk        (clk),
+    .rst_n      (rst_n),
+    
+    .sclr       ((~is_next && state == S_EVAL_CACHE) || cmd_write_in_progress),
+    
+    .data       (mgmt_writedata),
+    .wrreq      (mgmt_write && (&mgmt_address)),
+    
+    .rdreq      (sec_write),
+    .empty      (cache_empty),
+    .q          (from_cache),
+
+    .full       (cache_full),
+    .usedw      ()
+);
+
+reg sec_write;
+always @(posedge clk) begin
+	reg [2:0] cnt;
+	
+	cnt <= cnt + 1'd1;
+	if(state == S_SD_READ_WAIT_FOR_DATA) sec_write <= &cnt;
+	else cnt <= 0;
 end
 
 //------------------------------------------------------------------------------ fifo for identify
@@ -893,7 +928,7 @@ fifo_from_hdd_inst(
     
     .sclr       (sw_reset_start),                                                                   //input
     
-    .data       ((state == S_IDENTIFY_FILL)? identify_q_final : sec_writedata),                     //input [31:0]
+    .data       ((state == S_IDENTIFY_FILL)? identify_q_final : from_cache),                        //input [31:0]
     .wrreq      ((state == S_SD_READ_WAIT_FOR_DATA && sec_write) || state == S_IDENTIFY_FILL),      //input
     
     .rdreq      (read_data_io && { 1'b0, from_hdd_stored_index } < data_io_size),                   //input
