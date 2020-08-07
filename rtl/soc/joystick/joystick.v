@@ -10,13 +10,13 @@ module joystick
 	input [15:0]  ana_2,
 	input  [1:0]  mode,
 
-	output [31:0] readdata,
+	input         address,
+	output  [7:0] readdata,
 	input         write,
-	input  [31:0] writedata,
-	input  [3:0]  byteenable
+	input   [7:0] writedata
 );
 
-assign readdata = {16'hFFFF, jb4, jb3, jb2, jb1, JOY2_Y>0, JOY2_X>0, JOY1_Y>0, JOY1_X>0, 8'hFF};
+assign readdata = {jb4, jb3, jb2, jb1, JOY2_Y>0, JOY2_X>0, JOY1_Y>0, JOY1_X>0};
 
 reg [8:0] JOY1_X;
 reg [8:0] JOY1_Y;
@@ -178,7 +178,7 @@ always @(posedge clk or negedge rst_n) begin : joy_block
 
 		CLK_DIV <= CLK_DIV + 1'b1;
 
-		if (write & byteenable[1]) begin
+		if (write & address) begin
 			JOY1_X <= j1x_r ? j1x : (JOY1_LEFT) ? 9'd8 : (JOY1_RIGHT) ? 9'd391 : 9'd200;
 			JOY1_Y <= j1y_r ? j1y : (JOY1_UP)   ? 9'd8 : (JOY1_DOWN)  ? 9'd391 : 9'd200;
 
