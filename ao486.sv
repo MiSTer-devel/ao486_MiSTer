@@ -220,8 +220,6 @@ wire        ps2_mouse_data_in;
 wire  [1:0] buttons;
 wire [31:0] status;
 
-reg         ioctl_wait = 0;
-
 wire [13:0] joystick_0;
 wire [13:0] joystick_1;
 wire [15:0] joystick_analog_0;
@@ -251,8 +249,6 @@ hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000), .PS2WE(1), .WIDE(1)) hps_
 	.new_vmode(status[4]),
 	.gamma_bus(gamma_bus),
 
-	.ioctl_wait(ioctl_wait),
-
 	.uart_mode(16'b000_11111_000_11111),
 
 	.joystick_0(joystick_0),
@@ -263,23 +259,13 @@ hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000), .PS2WE(1), .WIDE(1)) hps_
 	.EXT_BUS(EXT_BUS)
 );
 
-wire        mgmt_wait;
-wire        mgmt_valid;
-wire [31:0] mgmt_data;
-reg         mgmt_we = 0;
-reg         mgmt_rd = 0;
-wire [31:0] mgmt_din;
-wire [31:0] mgmt_dout;
+wire [15:0] mgmt_din;
+wire [15:0] mgmt_dout;
 wire [15:0] mgmt_addr;
-wire        mgmt_hrd;
-wire        mgmt_hwr;
+wire        mgmt_active;
+wire        mgmt_rd;
+wire        mgmt_wr;
 wire  [7:0] mgmt_req;
-
-wire [15:0] hdd0_readdata;
-wire [15:0] hdd1_readdata;
-wire [15:0] hdd_writedata;
-wire        hdd_write;
-wire        hdd_read;
 
 wire        midi_en;
 
@@ -288,43 +274,17 @@ hps_ext hps_ext
 (
 	.clk_sys(clk_sys),
 	.EXT_BUS(EXT_BUS),
-	.clk_rate(cur_rate),
 
 	.ext_din(mgmt_din),
 	.ext_dout(mgmt_dout),
 	.ext_addr(mgmt_addr),
-	.ext_rd(mgmt_hrd),
-	.ext_wr(mgmt_hwr),
+	.ext_rd(mgmt_rd),
+	.ext_wr(mgmt_wr),
+	.ext_active(mgmt_active),
 
 	.ext_midi(midi_en),
-
-	.ext_hdd_writedata(hdd_writedata),
-	.ext_hdd_readdata(hdd_readdata),
-	.ext_hdd_write(hdd_write),
-	.ext_hdd_read(hdd_read),
-
 	.ext_req(mgmt_req)
 );
-
-reg [15:0] hdd0_writedata;
-reg        hdd0_write;
-reg        hdd0_read;
-reg [15:0] hdd1_writedata;
-reg        hdd1_write;
-reg        hdd1_read;
-reg [15:0] hdd_readdata;
-
-always @(posedge clk_sys) begin
-	hdd0_writedata <= hdd_writedata;
-	hdd0_write     <= hdd_write & ~mgmt_addr[0];
-	hdd0_read      <= hdd_read & ~mgmt_addr[0];
-
-	hdd1_writedata <= hdd_writedata;
-	hdd1_write     <= hdd_write & mgmt_addr[0];
-	hdd1_read      <= hdd_read & mgmt_addr[0];
-
-	hdd_readdata   <= mgmt_addr[0] ? hdd1_readdata : hdd0_readdata;
-end
 
 //------------------------------------------------------------------------------
 
@@ -402,7 +362,7 @@ always @(posedge CLK_50M) begin
 	if(sp2 == sp1) uspeed <= sp2;
 end
 
-(* romstyle = "logic" *) wire [31:0] clk_rate[5]  = '{90000000, 100000000, 15000000, 30000000, 56250000};
+(* romstyle = "logic" *) wire [27:0] clk_rate[5]  = '{90000000, 100000000, 15000000, 30000000, 56250000};
 (* romstyle = "logic" *) wire [17:0] speed_div[5] = '{  'h0505,   'h20504,   'h1e1e,   'h0f0f,   'h0808};
 
 always @(posedge CLK_50M) begin
@@ -649,30 +609,17 @@ system u0
 	.rtc_memcfg           (memcfg),
 	.rtc_clock_rate       (cur_rate),
 
-	.mgmt_waitrequest     (mgmt_wait),
-	.mgmt_readdata        (mgmt_data),
-	.mgmt_readdatavalid   (mgmt_valid),
-	.mgmt_burstcount      (1),
+	.mgmt_readdata        (mgmt_din),
 	.mgmt_writedata       (mgmt_dout),
 	.mgmt_address         (mgmt_addr),
-	.mgmt_write           (mgmt_we),
+	.mgmt_write           (mgmt_wr),
 	.mgmt_read            (mgmt_rd),
-	.mgmt_byteenable      (4'b1111),
-	.mgmt_debugaccess     (0),
+	.mgmt_active          (mgmt_active),
 
-	.hdd0_dat_request     (mgmt_req[2:0]),
-	.hdd0_dat_read        (hdd0_read),
-	.hdd0_dat_write       (hdd0_write),
-	.hdd0_dat_writedata   (hdd0_writedata),
-	.hdd0_dat_readdata    (hdd0_readdata),
-
-	.hdd1_dat_request     (mgmt_req[5:3]),
-	.hdd1_dat_read        (hdd1_read),
-	.hdd1_dat_write       (hdd1_write),
-	.hdd1_dat_writedata   (hdd1_writedata),
-	.hdd1_dat_readdata    (hdd1_readdata),
-
+	.hdd0_request         (mgmt_req[2:0]),
+	.hdd1_request         (mgmt_req[5:3]),
 	.fdd0_request         (mgmt_req[7:6]),
+	.fdd0_clock_rate      (cur_rate),
 
 	.serial_br_clk        (clk_uart),
 	.serial_rx            (UART_RXD),
@@ -747,16 +694,16 @@ l2_cache cache
 reg memcfg = 0;
 always @(posedge clk_sys) if(cpu_reset) memcfg <= status[11];
 
-wire       sys_reset = rst_q[7] | ~init_reset_n | RESET;
-wire       cpu_reset = cpu_rst1 | sys_reset;
+wire sys_reset = rst_q[7] | ~init_reset_n | RESET;
+wire cpu_reset = cpu_rst1 | sys_reset;
+reg  cpu_rst1 = 0;
+reg  init_reset_n = 0;
 
 reg  [7:0] rst_q;
-reg        old_rst1 = 0;
-reg        old_rst2 = 0;
-reg        cpu_rst1 = 0;
-reg        init_reset_n = 0;
-
 always @(posedge clk_sys) begin
+	reg  old_rst1 = 0;
+	reg  old_rst2 = 0;
+
 	old_rst1 <= status[0];
 	old_rst2 <= old_rst1;
 
@@ -767,21 +714,6 @@ always @(posedge clk_sys) begin
 		rst_q <= '1;
 		init_reset_n <= 1;
 	end
-end
-
-always @(posedge clk_sys) begin
-
-	if(~mgmt_wait) {mgmt_rd, mgmt_we} <= 0;
-
-	if(mgmt_hrd) mgmt_rd <= 1;
-	if(mgmt_hwr) mgmt_we <= 1;
-
-	if(mgmt_valid) mgmt_din <= mgmt_data;
-
-	if(mgmt_valid | (~mgmt_wait & mgmt_we)) ioctl_wait <= 0;
-	if(mgmt_hrd | mgmt_hwr)                 ioctl_wait <= 1;
-
-	if(RESET) {ioctl_wait, mgmt_rd, mgmt_we} <= 0;
 end
 
 endmodule

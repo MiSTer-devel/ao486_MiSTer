@@ -52,13 +52,6 @@ module floppy
 	output              ide_3f6_write,
 	output      [7:0]   ide_3f6_writedata,
 
-	//slave for sd
-	input       [8:0]   sd_slave_address,
-	input               sd_slave_read,
-	output reg  [7:0]   sd_slave_readdata,
-	input               sd_slave_write,
-	input       [7:0]   sd_slave_writedata,
-
 	//slave for management
 	/*
 	0x00.[0]:      media present
@@ -81,10 +74,15 @@ module floppy
 	input               mgmt_read,
 	output      [31:0]  mgmt_readdata,
 
+	input       [27:0]  clock_rate,
+
 	output       [1:0]  request
 );
 
-assign mgmt_readdata = (mgmt_address == 0) ? sd_sector : 32'd1;
+reg [27:0] clk_rate;
+always @(posedge clk) clk_rate <= clock_rate;
+
+assign mgmt_readdata = (!mgmt_address) ? sd_sector : (&mgmt_address) ? sd_slave_readdata : 32'd1;
 assign request = (state == S_SD_READ_WAIT_FOR_DATA || state == S_SD_WRITE_WAIT_FOR_EMPTY_FIFO || state == S_SD_FORMAT_WAIT_FOR_FILL) ?
 					{cmd_write_normal_in_progress | cmd_format_in_progress, cmd_read_normal_in_progress} : 2'b00;
 
@@ -97,6 +95,9 @@ assign request = (state == S_SD_READ_WAIT_FOR_DATA || state == S_SD_WRITE_WAIT_F
 reg io_read_last;
 always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) io_read_last <= 1'b0; else if(io_read_last) io_read_last <= 1'b0; else io_read_last <= io_read; end 
 wire io_read_valid = io_read && ~io_read_last;
+
+wire sd_slave_read  = mgmt_read  && &mgmt_address;
+wire sd_slave_write = mgmt_write && &mgmt_address;
 
 reg sd_slave_read_last;
 always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) sd_slave_read_last <= 1'b0; else if(sd_slave_read_last) sd_slave_read_last <= 1'b0; else sd_slave_read_last <= sd_slave_read; end 
@@ -172,22 +173,6 @@ always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                           media_sd_base <= 32'd0;
     else if(mgmt_write && mgmt_address == 4'd6) media_sd_base <= mgmt_writedata;
 end
-
-reg [15:0] media_wait_cycles;
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                           media_wait_cycles <= 16'd0;
-    else if(mgmt_write && mgmt_address == 4'd7) media_wait_cycles <= mgmt_writedata[15:0];
-end
-
-reg [15:0] media_wait_rate_0;
-reg [15:0] media_wait_rate_1;
-reg [15:0] media_wait_rate_2;
-reg [15:0] media_wait_rate_3;
-
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) media_wait_rate_0 <= 16'd1000; else if(mgmt_write && mgmt_address == 4'h8) media_wait_rate_0 <= mgmt_writedata[15:0]; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) media_wait_rate_1 <= 16'd1666; else if(mgmt_write && mgmt_address == 4'h9) media_wait_rate_1 <= mgmt_writedata[15:0]; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) media_wait_rate_2 <= 16'd2000; else if(mgmt_write && mgmt_address == 4'hA) media_wait_rate_2 <= mgmt_writedata[15:0]; end
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) media_wait_rate_3 <= 16'd500;  else if(mgmt_write && mgmt_address == 4'hB) media_wait_rate_3 <= mgmt_writedata[15:0]; end
 
 reg [7:0] media_type;
 always @(posedge clk or negedge rst_n) begin
@@ -553,13 +538,24 @@ always @(posedge clk or negedge rst_n) begin
     else if(delay_rate == 16'd0 && delay_steps > 8'd0)  delay_srt <= specify_srt;
 end
 
-reg [15:0] delay_rate;
+wire [27:0] delay_adder = (data_rate == 2'd0)? 28'd1000 : (data_rate == 2'd1)? 28'd600 : (data_rate == 2'd2)? 28'd500 : 28'd2000;
+
+reg [27:0] delay_adder_r;
+always @(posedge clk) begin
+    if(cmd_recalibrate_start)                       delay_adder_r <= delay_adder;
+    else if(cmd_seek_start)                         delay_adder_r <= delay_adder;
+    else if(delay_srt > 4'd0 || delay_steps > 8'd0) delay_adder_r <= delay_adder;
+end
+
+reg [27:0] delay_rate;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                               delay_rate <= 16'd0;
-    else if(cmd_recalibrate_start)                  delay_rate <= (data_rate == 2'd0)? media_wait_rate_0 : (data_rate == 2'd1)? media_wait_rate_1 : (data_rate == 2'd2)? media_wait_rate_2 : media_wait_rate_3;
-    else if(cmd_seek_start)                         delay_rate <= (data_rate == 2'd0)? media_wait_rate_0 : (data_rate == 2'd1)? media_wait_rate_1 : (data_rate == 2'd2)? media_wait_rate_2 : media_wait_rate_3;
-    else if(delay_rate > 16'd0)                     delay_rate <= delay_rate - 16'd1;
-    else if(delay_srt > 4'd0 || delay_steps > 8'd0) delay_rate <= (data_rate == 2'd0)? media_wait_rate_0 : (data_rate == 2'd1)? media_wait_rate_1 : (data_rate == 2'd2)? media_wait_rate_2 : media_wait_rate_3;
+    if(rst_n == 1'b0)                               delay_rate <= 0;
+    else if(cmd_recalibrate_start)                  delay_rate <= delay_adder;
+    else if(cmd_seek_start)                         delay_rate <= delay_adder;
+    else if(delay_rate >= clk_rate)                 delay_rate <= 1;
+    else if(delay_rate == 1)                        delay_rate <= 0;
+    else if(delay_rate) 		                      delay_rate <= delay_rate + delay_adder_r;
+    else if(delay_srt > 4'd0 || delay_steps > 8'd0) delay_rate <= delay_adder;
 end
 
 wire delay_last_cycle = delay_steps == 8'd0 && delay_srt == 4'd0 && delay_rate == 16'd1;
@@ -751,7 +747,7 @@ always @(posedge clk or negedge rst_n) begin
     
     //read id
     else if(state == S_IDLE && cmd_read_id_ok_at_start)                                                 state <= S_WAIT;
-    else if(state == S_WAIT && command_wait_counter == 16'd0 && cmd_read_id_in_progress)                state <= S_IDLE;
+    else if(state == S_WAIT && !command_wait_counter && cmd_read_id_in_progress)                        state <= S_IDLE;
     
     //count
     else if(state == S_PREPARE_COUNT)                                                                   state <= S_COUNT_LOGICAL;
@@ -761,7 +757,7 @@ always @(posedge clk or negedge rst_n) begin
     
     //update read/write/format
     else if(state == S_UPDATE_SECTOR)                                                                   state <= S_WAIT;
-    else if(state == S_WAIT && command_wait_counter == 16'd0 && ~(cmd_read_id_in_progress))             state <= S_CHECK_TC;
+    else if(state == S_WAIT && !command_wait_counter && ~cmd_read_id_in_progress)                       state <= S_CHECK_TC;
     else if(state == S_CHECK_TC && (cmd_read_write_finish || cmd_format_finish))                        state <= S_IDLE;
     else if(state == S_CHECK_TC && cmd_format_in_progress)                                              state <= S_WAIT_FOR_FORMAT_INPUT;
     else if(state == S_CHECK_TC)                                                                        state <= S_PREPARE_COUNT;
@@ -769,9 +765,9 @@ end
 
 reg [15:0] command_wait_counter;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                           command_wait_counter <= 16'd0;
-    else if(state != S_WAIT)                                    command_wait_counter <= media_wait_cycles;
-    else if(state == S_WAIT && command_wait_counter > 16'd0)    command_wait_counter <= command_wait_counter - 16'd1;
+    if(rst_n == 1'b0)                                command_wait_counter <= 16'd0;
+    else if(state != S_WAIT)                         command_wait_counter <= 4000; // was calculated floppy_wait_cycles but was buggy, so use fixed wait time
+    else if(state == S_WAIT && command_wait_counter) command_wait_counter <= command_wait_counter - 16'd1;
 end
 
 //------------------------------------------------------------------------------ count logical sector
@@ -891,6 +887,7 @@ wire        to_floppy_full;
 wire        to_floppy_empty;
 wire [7:0]  to_floppy_q;
 
+reg  [7:0]  sd_slave_readdata;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                   sd_slave_readdata <= 8'b0;
     else if(cmd_format_in_progress)     sd_slave_readdata <= format_filler_byte;
@@ -931,8 +928,8 @@ fifo_from_floppy_inst(
     
      .sclr      (state == S_IDLE || (state == S_WAIT_FOR_EMPTY_READ_FIFO && ~(execute_ndma) && dma_floppy_terminal)),   //input
     
-    .data       (sd_slave_writedata),   //input [7:0]
-    .wrreq      (sd_slave_write),       //input
+    .data       (mgmt_writedata[7:0]),   //input [7:0]
+    .wrreq      (mgmt_write && &mgmt_address),       //input
     
     .rdreq      (state == S_WAIT_FOR_EMPTY_READ_FIFO && (read_in_io_mode || (~(execute_ndma) && dma_floppy_ack))),      //input
     .empty      (from_floppy_empty),    //output

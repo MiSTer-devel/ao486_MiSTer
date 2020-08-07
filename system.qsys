@@ -49,14 +49,6 @@
          type = "boolean";
       }
    }
-   element floppy0.sd_slave
-   {
-      datum _lockedAddress
-      {
-         value = "1";
-         type = "boolean";
-      }
-   }
    element hdd0
    {
       datum _sortIndex
@@ -129,11 +121,11 @@
          type = "String";
       }
    }
-   element mgmt_bridge
+   element mgmt
    {
       datum _sortIndex
       {
-         value = "17";
+         value = "18";
          type = "int";
       }
    }
@@ -708,11 +700,123 @@
          type = "String";
       }
    }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element uart
    {
       datum _sortIndex
       {
-         value = "18";
+         value = "17";
          type = "int";
       }
    }
@@ -777,7 +881,7 @@
    type="conduit"
    dir="end" />
  <interface name="mem" internal="ao486.avalon_memory" type="avalon" dir="start" />
- <interface name="mgmt" internal="mgmt_bridge.s0" type="avalon" dir="end" />
+ <interface name="mgmt" internal="mgmt.in" type="conduit" dir="end" />
  <interface name="ps2" internal="ps2.export_ps2" type="conduit" dir="end" />
  <interface
    name="ps2_misc"
@@ -825,24 +929,7 @@
  <module name="hdd1" kind="hdd" version="1.0" enabled="1" />
  <module name="hddext_0x370" kind="hddext" version="1.0" enabled="1" />
  <module name="joystick_0" kind="joystick" version="1.0" enabled="1" />
- <module
-   name="mgmt_bridge"
-   kind="altera_avalon_mm_bridge"
-   version="17.0"
-   enabled="1">
-  <parameter name="ADDRESS_UNITS" value="SYMBOLS" />
-  <parameter name="ADDRESS_WIDTH" value="16" />
-  <parameter name="DATA_WIDTH" value="32" />
-  <parameter name="LINEWRAPBURSTS" value="0" />
-  <parameter name="MAX_BURST_SIZE" value="1" />
-  <parameter name="MAX_PENDING_RESPONSES" value="1" />
-  <parameter name="PIPELINE_COMMAND" value="1" />
-  <parameter name="PIPELINE_RESPONSE" value="1" />
-  <parameter name="SYMBOL_WIDTH" value="8" />
-  <parameter name="SYSINFO_ADDR_WIDTH" value="16" />
-  <parameter name="USE_AUTO_ADDRESS_WIDTH" value="0" />
-  <parameter name="USE_RESPONSE" value="0" />
- </module>
+ <module name="mgmt" kind="mgmt" version="17.0" enabled="1" />
  <module name="pc_dma" kind="pc_dma" version="1.0" enabled="1" />
  <module name="pic" kind="pic" version="1.0" enabled="1">
   <parameter name="AUTO_INTERRUPT_RECEIVER_INTERRUPTS_USED" value="54135" />
@@ -1029,48 +1116,10 @@
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
-   kind="avalon"
-   version="17.0"
-   start="mgmt_bridge.m0"
-   end="floppy0.mgmt">
-  <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x8800" />
-  <parameter name="defaultConnection" value="false" />
- </connection>
- <connection kind="avalon" version="17.0" start="mgmt_bridge.m0" end="hdd0.mgmt">
-  <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x8840" />
-  <parameter name="defaultConnection" value="false" />
- </connection>
- <connection kind="avalon" version="17.0" start="mgmt_bridge.m0" end="rtc.mgmt">
-  <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x8c00" />
-  <parameter name="defaultConnection" value="false" />
- </connection>
- <connection kind="avalon" version="17.0" start="mgmt_bridge.m0" end="hdd1.mgmt">
-  <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x9840" />
-  <parameter name="defaultConnection" value="false" />
- </connection>
- <connection
-   kind="avalon"
-   version="17.0"
-   start="mgmt_bridge.m0"
-   end="floppy0.sd_slave">
-  <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x0800" />
-  <parameter name="defaultConnection" value="false" />
- </connection>
- <connection
    kind="clock"
    version="17.0"
    start="InClock_SYS.out_clk"
    end="reset_sys.clk" />
- <connection
-   kind="clock"
-   version="17.0"
-   start="InClock_SYS.out_clk"
-   end="mgmt_bridge.clk" />
  <connection
    kind="clock"
    version="17.0"
@@ -1136,6 +1185,11 @@
    version="17.0"
    start="InClock_SYS.out_clk"
    end="uart.clock" />
+ <connection
+   kind="clock"
+   version="17.0"
+   start="InClock_SYS.out_clk"
+   end="mgmt.clock" />
  <connection
    kind="clock"
    version="17.0"
@@ -1217,6 +1271,34 @@
    version="17.0"
    start="ps2.conduit_speaker_61h"
    end="pit.conduit_speaker_61h">
+  <parameter name="endPort" value="" />
+  <parameter name="endPortLSB" value="0" />
+  <parameter name="startPort" value="" />
+  <parameter name="startPortLSB" value="0" />
+  <parameter name="width" value="0" />
+ </connection>
+ <connection kind="conduit" version="17.0" start="floppy0.mgmt" end="mgmt.fdd0">
+  <parameter name="endPort" value="" />
+  <parameter name="endPortLSB" value="0" />
+  <parameter name="startPort" value="" />
+  <parameter name="startPortLSB" value="0" />
+  <parameter name="width" value="0" />
+ </connection>
+ <connection kind="conduit" version="17.0" start="hdd0.mgmt" end="mgmt.hdd0">
+  <parameter name="endPort" value="" />
+  <parameter name="endPortLSB" value="0" />
+  <parameter name="startPort" value="" />
+  <parameter name="startPortLSB" value="0" />
+  <parameter name="width" value="0" />
+ </connection>
+ <connection kind="conduit" version="17.0" start="hdd1.mgmt" end="mgmt.hdd1">
+  <parameter name="endPort" value="" />
+  <parameter name="endPortLSB" value="0" />
+  <parameter name="startPort" value="" />
+  <parameter name="startPortLSB" value="0" />
+  <parameter name="width" value="0" />
+ </connection>
+ <connection kind="conduit" version="17.0" start="rtc.mgmt" end="mgmt.rtc">
   <parameter name="endPort" value="" />
   <parameter name="endPortLSB" value="0" />
   <parameter name="startPort" value="" />
@@ -1310,11 +1392,6 @@
    version="17.0"
    start="reset_cpu.out_reset"
    end="ao486.reset_sink" />
- <connection
-   kind="reset"
-   version="17.0"
-   start="reset_sys.reset_out"
-   end="mgmt_bridge.reset" />
  <connection
    kind="reset"
    version="17.0"

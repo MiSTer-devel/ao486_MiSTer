@@ -161,4 +161,16 @@
   <tag2 key="COMPONENT_EDITABLE" value="true" />
   <tag2 key="COMPONENT_HIDE_FROM_SOPC" value="true" />
  </component>
+ <component
+   name="mgmt"
+   file="./rtl/soc/mgmt/mgmt_hw.tcl"
+   displayName="mgmt"
+   version="17.0"
+   description=""
+   tags="AUTHORSHIP= /// CONNECTION_TYPES=avalon,clock,conduit,reset /// INTERNAL_COMPONENT=false"
+   categories="ao486"
+   factory="TclModuleFactory">
+  <tag2 key="COMPONENT_EDITABLE" value="true" />
+  <tag2 key="COMPONENT_HIDE_FROM_SOPC" value="true" />
+ </component>
 </library>

@@ -45,7 +45,7 @@ module rtc(
 	*/
 	input       [7:0]   mgmt_address,
 	input               mgmt_write,
-	input       [31:0]  mgmt_writedata,
+	input       [7:0]   mgmt_writedata,
 
 	input       [27:0]  clock_rate
 );
