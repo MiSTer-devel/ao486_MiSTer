@@ -1415,6 +1415,23 @@ write write_inst(
 
 //------------------------------------------------------------------------------
 
-
+// synthesis translate_off
+cpu_export cpu_export_inst(
+    .clk                (clk),
+    .rst_n              (rst_n),
+    .new_export         (exe_ready),
+    //.commandcount       (),
+           
+    .eax                (eax),
+    .ebx                (ebx),
+    .ecx                (ecx),
+    .edx                (edx),
+    .esp                (esp),
+    .ebp                (ebp),
+    .esi                (esi),
+    .edi                (edi),
+    .eip                (eip)
+);
+// synthesis translate_on
 
 endmodule

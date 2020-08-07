@@ -1,0 +1,1 @@
+vsim -novopt work.etb -t 1ps -L C:\Projekte\ao486_MiSTer_dev\rtl\ao486\altera_mf_both 
