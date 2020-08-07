@@ -812,6 +812,22 @@
          type = "String";
       }
    }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element uart
    {
       datum _sortIndex
@@ -1107,15 +1123,6 @@
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
-   kind="avalon"
-   version="17.0"
-   start="pc_dma.avalon_master"
-   end="ao486.dma">
-  <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x0000" />
-  <parameter name="defaultConnection" value="false" />
- </connection>
- <connection
    kind="clock"
    version="17.0"
    start="InClock_SYS.out_clk"
@@ -1271,6 +1278,13 @@
    version="17.0"
    start="ps2.conduit_speaker_61h"
    end="pit.conduit_speaker_61h">
+  <parameter name="endPort" value="" />
+  <parameter name="endPortLSB" value="0" />
+  <parameter name="startPort" value="" />
+  <parameter name="startPortLSB" value="0" />
+  <parameter name="width" value="0" />
+ </connection>
+ <connection kind="conduit" version="17.0" start="ao486.dma" end="pc_dma.dma">
   <parameter name="endPort" value="" />
   <parameter name="endPortLSB" value="0" />
   <parameter name="startPort" value="" />
