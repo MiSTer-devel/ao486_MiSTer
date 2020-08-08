@@ -1,0 +1,3 @@
+set_global_assignment -name QIP_FILE [file join $::quartus(qip_path) opl3/opl3.qip ]
+set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) sound.v ]
+set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) sound_dsp.v ]

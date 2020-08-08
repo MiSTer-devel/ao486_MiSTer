@@ -135,17 +135,17 @@ always @(posedge clk_sys) begin
 	end
 end
 
-reg io_b_read_last, io_b_read_valid;
+reg io_b_read_last;
 always @(posedge clk_sys or negedge rst_n) if(~rst_n) io_b_read_last <= 1'b0; else if(io_b_read_last) io_b_read_last <= 1'b0; else io_b_read_last <= io_b_read;
-always @(posedge clk_sys) io_b_read_valid <= io_b_read && ~io_b_read_last;
+wire io_b_read_valid = io_b_read && ~io_b_read_last;
 
-reg io_c_read_last, io_c_read_valid;
+reg io_c_read_last;
 always @(posedge clk_sys or negedge rst_n) if(~rst_n) io_c_read_last <= 1'b0; else if(io_c_read_last) io_c_read_last <= 1'b0; else io_c_read_last <= io_c_read;
-always @(posedge clk_sys) io_c_read_valid <= io_c_read && ~io_c_read_last;
+wire io_c_read_valid = io_c_read && ~io_c_read_last;
 
-reg io_d_read_last, io_d_read_valid;
+reg io_d_read_last;
 always @(posedge clk_sys or negedge rst_n) if(~rst_n) io_d_read_last <= 1'b0; else if(io_d_read_last) io_d_read_last <= 1'b0; else io_d_read_last <= io_d_read;
-always @(posedge clk_sys) io_d_read_valid <= io_d_read && ~io_d_read_last;
+wire io_d_read_valid = io_d_read && ~io_d_read_last;
 
 reg mem_read_last;
 always @(posedge clk_sys or negedge rst_n) if(~rst_n) mem_read_last <= 1'b0; else if(mem_read_last) mem_read_last <= 1'b0; else mem_read_last <= mem_read;

@@ -1,13 +1,13 @@
 //======================================================== conditions
 wire cond_0 = state == STATE_IDLE;
-wire cond_1 = io_write_do && io_write_done == `FALSE && dcache_busy == `FALSE;
-wire cond_2 = io_read_do && io_read_done == `FALSE && dcache_busy == `FALSE;
+wire cond_1 = io_write_do && io_write_done == `FALSE;
+wire cond_2 = io_read_do && io_read_done == `FALSE;
 wire cond_3 = state == STATE_WRITE_1;
-wire cond_4 = avalon_io_waitrequest == `FALSE || address_out_of_bounds;
+wire cond_4 = avalon_io_waitrequest == `FALSE;
 wire cond_5 = write_two_stage;
 wire cond_6 = state == STATE_WRITE_2;
 wire cond_7 = state == STATE_READ_1;
-wire cond_8 = avalon_io_readdatavalid || address_out_of_bounds;
+wire cond_8 = avalon_io_readdatavalid;
 wire cond_9 = read_two_stage;
 wire cond_10 = avalon_io_waitrequest == `FALSE;
 wire cond_11 = state == STATE_READ_2;

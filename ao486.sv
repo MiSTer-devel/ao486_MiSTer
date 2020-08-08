@@ -487,8 +487,6 @@ wire [17:0] vga_pal_d;
 wire        vga_pal_we;
 
 wire [19:0] vga_start_addr;
-wire  [5:0] vga_wr_seg;
-wire  [5:0] vga_rd_seg;
 wire  [8:0] vga_width;
 wire  [8:0] vga_stride;
 wire [10:0] vga_height;
@@ -529,12 +527,18 @@ assign FB_FORCE_BLANK = fb_off;
 reg f60;
 always @(posedge clk_sys) f60 <= fb_en || (fb_width >= 800);
 
-system u0
-(
-	.clk_sys_clk          (clk_sys),
-	.clk_opl_clk          (clk_opl),
+assign DDRAM_ADDR[28:25] = 4'h3;
 
-	.qsys_reset_reset     (sys_reset),
+system system
+(
+	.clk_sys              (clk_sys),
+	.clk_opl              (clk_opl),
+	.clk_uart             (clk_uart),
+
+	.reset_sys            (sys_reset),
+	.reset_cpu            (cpu_reset),
+
+	.clock_rate           (cur_rate),
 
 	.video_ce             (CE_PIXEL),
 	.video_f60            (~status[4] | f60),
@@ -544,29 +548,24 @@ system u0
 	.video_r              (r),
 	.video_g              (g),
 	.video_b              (b),
-	.video_memmode        (vga_mode),
 
 	.video_pal_a          (vga_pal_a),
 	.video_pal_d          (vga_pal_d),
 	.video_pal_we         (vga_pal_we),
 	.video_start_addr     (vga_start_addr),
-	.video_wr_seg         (vga_wr_seg),
-	.video_rd_seg         (vga_rd_seg),
 	.video_width          (vga_width),
 	.video_stride         (vga_stride),
 	.video_height         (vga_height),
 	.video_flags          (vga_flags),
 	.video_off            (vga_off),
-	.video_clock_rate     (cur_rate),
+	.video_fb_en          (fb_en),
 
 	.sound_sample_l       (sb_out_l),
 	.sound_sample_r       (sb_out_r),
 	.sound_fm_mode        (status[3]),
-	.sound_clock_rate     (cur_rate),
 	
 	.speaker_enable       (speaker_ena),
 	.speaker_out          (speaker_out),
-	.speaker_clock_rate   (cur_rate),
 
 	.ps2_misc_a20_enable  (),
 	.ps2_misc_reset_n     (ps2_reset_n),
@@ -588,26 +587,7 @@ system u0
 	.joystick_ana_2       (joystick_analog_1),
 	.joystick_mode        (status[13:12]),
 
-	.cpu_reset_reset      (cpu_reset),
-
-	.mem_address          (mem_address),
-	.mem_read             (mem_read),
-	.mem_waitrequest      (mem_waitrequest),
-	.mem_readdata         (mem_readdata),
-	.mem_write            (mem_write),
-	.mem_writedata        (mem_writedata),
-	.mem_readdatavalid    (mem_readdatavalid),
-	.mem_byteenable       (mem_byteenable),
-	.mem_burstcount       (mem_burstcount),
-
-	.vga_address          (vga_address),
-	.vga_read             (vga_read),
-	.vga_readdata         (vga_readdata),
-	.vga_write            (vga_write),
-	.vga_writedata        (vga_writedata),
-
 	.rtc_memcfg           (memcfg),
-	.rtc_clock_rate       (cur_rate),
 
 	.mgmt_readdata        (mgmt_din),
 	.mgmt_writedata       (mgmt_dout),
@@ -619,9 +599,7 @@ system u0
 	.hdd0_request         (mgmt_req[2:0]),
 	.hdd1_request         (mgmt_req[5:3]),
 	.fdd0_request         (mgmt_req[7:6]),
-	.fdd0_clock_rate      (cur_rate),
 
-	.serial_br_clk        (clk_uart),
 	.serial_rx            (UART_RXD),
 	.serial_tx            (UART_TXD),
 	.serial_cts_n         (UART_CTS),
@@ -630,65 +608,18 @@ system u0
 	.serial_rts_n         (UART_RTS),
 	.serial_dtr_n         (UART_DTR),
 	.serial_ri_n          (1),
-	.serial_br_out        ()
-);
-
-
-wire [29:0] mem_address;
-wire [31:0] mem_writedata;
-wire [31:0] mem_readdata;
-wire [3:0]  mem_byteenable;
-wire [3:0]  mem_burstcount;
-wire        mem_write;
-wire        mem_read;
-wire        mem_waitrequest;
-wire        mem_readdatavalid;
-
-wire [16:0] vga_address;
-wire  [7:0] vga_readdata;
-wire  [7:0] vga_writedata;
-wire        vga_read;
-wire        vga_write;
-wire  [2:0] vga_mode;
-
-assign      DDRAM_ADDR[28:25] = 4'h3;
-assign      DDRAM_CLK = clk_sys;
-
-l2_cache cache
-(
-	.CLK              (clk_sys            ),
-	.RESET            (cpu_reset          ),
-
-	.CPU_ADDR         (mem_address        ),
-	.CPU_DIN          (mem_writedata      ),
-	.CPU_DOUT         (mem_readdata       ),
-	.CPU_DOUT_READY   (mem_readdatavalid  ),
-	.CPU_BE           (mem_byteenable     ),
-	.CPU_BURSTCNT     (mem_burstcount     ),
-	.CPU_BUSY         (mem_waitrequest    ),
-	.CPU_RD           (mem_read           ),
-	.CPU_WE           (mem_write          ),
-
-	.DDRAM_ADDR       (DDRAM_ADDR[24:0]   ),
-	.DDRAM_DIN        (DDRAM_DIN          ),
-	.DDRAM_DOUT       (DDRAM_DOUT         ),
-	.DDRAM_DOUT_READY (DDRAM_DOUT_READY   ),
-	.DDRAM_BE         (DDRAM_BE           ),
-	.DDRAM_BURSTCNT   (DDRAM_BURSTCNT     ),
-	.DDRAM_BUSY       (DDRAM_BUSY         ),
-	.DDRAM_RD         (DDRAM_RD           ),
-	.DDRAM_WE         (DDRAM_WE           ),
-
-	.VGA_ADDR         (vga_address        ),
-	.VGA_DIN          (vga_readdata       ),
-	.VGA_DOUT         (vga_writedata      ),
-	.VGA_RD           (vga_read           ),
-	.VGA_WE           (vga_write          ),
-	.VGA_MODE         (vga_mode           ),
-
-	.VGA_WR_SEG       (vga_wr_seg         ),
-	.VGA_RD_SEG       (vga_rd_seg         ),
-	.VGA_FB_EN        (fb_en              )
+	.serial_br_out        (),
+	
+	.DDRAM_CLK            (DDRAM_CLK),
+	.DDRAM_ADDR           (DDRAM_ADDR[24:0]),
+	.DDRAM_DIN            (DDRAM_DIN),
+	.DDRAM_DOUT           (DDRAM_DOUT),
+	.DDRAM_DOUT_READY     (DDRAM_DOUT_READY),
+	.DDRAM_BE             (DDRAM_BE),
+	.DDRAM_BURSTCNT       (DDRAM_BURSTCNT),
+	.DDRAM_BUSY           (DDRAM_BUSY),
+	.DDRAM_RD             (DDRAM_RD),
+	.DDRAM_WE             (DDRAM_WE)
 );
 
 reg memcfg = 0;

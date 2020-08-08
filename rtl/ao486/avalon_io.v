@@ -72,40 +72,8 @@ reg       was_readdatavalid;
 reg       avalon_io_read_reg;
 reg       avalon_io_write_reg;
 
-wire address_out_of_bounds =
-    (avalon_io_address >= 16'h0010 && avalon_io_address < 16'h0020) ||
-    (avalon_io_address == 16'h0020 && avalon_io_byteenable[1:0] == 2'b00) ||
-    (avalon_io_address >= 16'h0024 && avalon_io_address < 16'h0040) ||
-    (avalon_io_address >= 16'h0044 && avalon_io_address < 16'h0060) ||
-    (avalon_io_address >= 16'h0068 && avalon_io_address < 16'h0070) ||
-    (avalon_io_address == 16'h0070 && avalon_io_byteenable[1:0] == 2'b00) ||
-    (avalon_io_address >= 16'h0074 && avalon_io_address < 16'h0080) ||
-    (avalon_io_address == 16'h00A0 && avalon_io_byteenable[1:0] == 2'b00) ||
-    (avalon_io_address >= 16'h00A4 && avalon_io_address < 16'h00C0) ||
-    (avalon_io_address >= 16'h00E0 && avalon_io_address < 16'h0170) ||
-    (avalon_io_address >= 16'h0178 && avalon_io_address < 16'h01F0) ||
-    (avalon_io_address >= 16'h01F8 && avalon_io_address < 16'h0200) ||
-    (avalon_io_address == 16'h0200 && avalon_io_byteenable[1] == 1'b0) ||
-    (avalon_io_address >= 16'h0204 && avalon_io_address < 16'h0220) ||
-    (avalon_io_address >= 16'h0230 && avalon_io_address < 16'h0330) ||
-    (avalon_io_address == 16'h0330 && avalon_io_byteenable[1:0] == 2'b00) ||
-    (avalon_io_address >= 16'h0334 && avalon_io_address < 16'h0370) ||
-    (avalon_io_address >= 16'h0378 && avalon_io_address < 16'h0388) ||
-    (avalon_io_address >= 16'h038C && avalon_io_address < 16'h03B0) ||
-    (avalon_io_address >= 16'h03E0 && avalon_io_address < 16'h03F0) ||
-    (avalon_io_address >= 16'h0400 );
-
-wire [31:0] avalon_io_readdata_final =
-    (address_out_of_bounds)?            32'hFFFFFFFF :
-    (avalon_io_address == 16'h0020)?    { 16'hFFFF, avalon_io_readdata[15:0] } :
-    (avalon_io_address == 16'h0070)?    { 16'hFFFF, avalon_io_readdata[15:0] } :
-    (avalon_io_address == 16'h00A0)?    { 16'hFFFF, avalon_io_readdata[15:0] } :
-    (avalon_io_address == 16'h0200)?    { 16'hFFFF, avalon_io_readdata[15:8], 8'hFF } :
-    (avalon_io_address == 16'h0330)?    { 16'hFFFF, avalon_io_readdata[15:0] } :
-                                        avalon_io_readdata;
-
-assign avalon_io_read  = (address_out_of_bounds)? 1'b0 : avalon_io_read_reg;
-assign avalon_io_write = (address_out_of_bounds)? 1'b0 : avalon_io_write_reg;
+assign avalon_io_read  = avalon_io_read_reg;
+assign avalon_io_write = avalon_io_write_reg;
 
 //------------------------------------------------------------------------------
 
@@ -198,16 +166,16 @@ assign read_two_stage =
     (io_read_length == 3'd4 && io_read_address[1:0] >= 2'd1);
     
 assign read_data_1 =
-    (io_read_address[1:0] == 2'd0)?    avalon_io_readdata_final :
-    (io_read_address[1:0] == 2'd1)?    { 8'd0,  avalon_io_readdata_final[31:8] } :
-    (io_read_address[1:0] == 2'd2)?    { 16'd0, avalon_io_readdata_final[31:16] } :
-                                       { 24'd0, avalon_io_readdata_final[31:24] };
+    (io_read_address[1:0] == 2'd0)?    avalon_io_readdata :
+    (io_read_address[1:0] == 2'd1)?    { 8'd0,  avalon_io_readdata[31:8] } :
+    (io_read_address[1:0] == 2'd2)?    { 16'd0, avalon_io_readdata[31:16] } :
+                                       { 24'd0, avalon_io_readdata[31:24] };
 
 assign read_data_2 =
-    (io_read_length == 3'd2 && io_read_address[1:0] == 2'd3)?   { avalon_io_readdata_final[23:0], io_read_data[7:0] } :
-    (io_read_length == 3'd4 && io_read_address[1:0] == 2'd1)?   { avalon_io_readdata_final[7:0],  io_read_data[23:0] } :
-    (io_read_length == 3'd4 && io_read_address[1:0] == 2'd2)?   { avalon_io_readdata_final[15:0], io_read_data[15:0] } :
-                                                                { avalon_io_readdata_final[23:0], io_read_data[7:0] };
+    (io_read_length == 3'd2 && io_read_address[1:0] == 2'd3)?   { avalon_io_readdata[23:0], io_read_data[7:0] } :
+    (io_read_length == 3'd4 && io_read_address[1:0] == 2'd1)?   { avalon_io_readdata[7:0],  io_read_data[23:0] } :
+    (io_read_length == 3'd4 && io_read_address[1:0] == 2'd2)?   { avalon_io_readdata[15:0], io_read_data[15:0] } :
+                                                                { avalon_io_readdata[23:0], io_read_data[7:0] };
     
     
 //------------------------------------------------------------------------------

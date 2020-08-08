@@ -1,0 +1,7 @@
+set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) bram.vhd ]
+set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) simple_fifo.v ]
+set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) simple_fifo_mlab.v ]
+set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) simple_mult.v ]
+set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) simple_ram.v ]
+set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) simple_rom.v ]
+set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) simple_single_rom.v ]

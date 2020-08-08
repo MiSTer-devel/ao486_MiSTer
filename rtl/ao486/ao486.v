@@ -27,49 +27,46 @@
 `include "defines.v"
 
 module ao486 (
-    input               clk,
-    input               rst_n,
-    
+	input               clk,
+	input               rst_n,
+
 	input               a20_enable,
 
-    //--------------------------------------------------------------------------
-    input               interrupt_do,
-    input   [7:0]       interrupt_vector,
-    output              interrupt_done,
-    
-    //-------------------------------------------------------------------------- Altera Avalon memory bus
-    output      [29:0]  avm_address,
-    output      [31:0]  avm_writedata,
-    output      [3:0]   avm_byteenable,
-    output      [3:0]   avm_burstcount,
-    output              avm_write,
-    output              avm_read,
-    
-    input               avm_waitrequest,
-    input               avm_readdatavalid,
-    input       [31:0]  avm_readdata,
+	//--------------------------------------------------------------------------
+	input               interrupt_do,
+	input   [7:0]       interrupt_vector,
+	output              interrupt_done,
 
-    //-------------------------------------------------------------------------- Altera Avalon dma bus
-    input       [23:0]  dma_address,
-    input               dma_write,
-    input        [7:0]  dma_writedata,
-    input               dma_read,
-    output       [7:0]  dma_readdata,
-    output              dma_readdatavalid,
-    output              dma_waitrequest,
+	//-------------------------------------------------------------------------- Altera Avalon memory bus
+	output      [29:0]  avm_address,
+	output      [31:0]  avm_writedata,
+	output      [3:0]   avm_byteenable,
+	output      [3:0]   avm_burstcount,
+	output              avm_write,
+	output              avm_read,
 
-    //-------------------------------------------------------------------------- Altera Avalon io bus
-    output  [15:0]      avalon_io_address,
-    output  [3:0]       avalon_io_byteenable,
-    
-    output              avalon_io_read,
-    input               avalon_io_readdatavalid,
-    input   [31:0]      avalon_io_readdata,
-    
-    output              avalon_io_write,
-    output  [31:0]      avalon_io_writedata,
-    
-    input               avalon_io_waitrequest
+	input               avm_waitrequest,
+	input               avm_readdatavalid,
+	input       [31:0]  avm_readdata,
+
+	//-------------------------------------------------------------------------- Altera Avalon dma bus
+	input       [23:0]  dma_address,
+	input               dma_write,
+	input        [7:0]  dma_writedata,
+	input               dma_read,
+	output       [7:0]  dma_readdata,
+	output              dma_readdatavalid,
+	output              dma_waitrequest,
+
+	//-------------------------------------------------------------------------- Altera Avalon io bus
+	output  [15:0]      io_address,
+	output  [3:0]       io_byteenable,
+	output              io_read,
+	input               io_readdatavalid,
+	input   [31:0]      io_readdata,
+	output              io_write,
+	output  [31:0]      io_writedata,
+	input               io_waitrequest
 );
 
 //------------------------------------------------------------------------------
@@ -385,16 +382,16 @@ avalon_io avalon_io_inst(
     .dcache_busy                   (dcache_busy),                   //input
     
     //Avalon
-    .avalon_io_address             (avalon_io_address),             //output [15:0]
-    .avalon_io_byteenable          (avalon_io_byteenable),          //output [3:0]
+    .avalon_io_address             (io_address),                    //output [15:0]
+    .avalon_io_byteenable          (io_byteenable),                 //output [3:0]
     
-    .avalon_io_read                (avalon_io_read),                //output
-    .avalon_io_readdatavalid       (avalon_io_readdatavalid),       //input
-    .avalon_io_readdata            (avalon_io_readdata),            //input [31:0]
+    .avalon_io_read                (io_read),                       //output
+    .avalon_io_readdatavalid       (io_readdatavalid),              //input
+    .avalon_io_readdata            (io_readdata),                   //input [31:0]
     
-    .avalon_io_write               (avalon_io_write),               //output
-    .avalon_io_writedata           (avalon_io_writedata),           //output [31:0]
-    .avalon_io_waitrequest         (avalon_io_waitrequest)          //input
+    .avalon_io_write               (io_write),                      //output
+    .avalon_io_writedata           (io_writedata),                  //output [31:0]
+    .avalon_io_waitrequest         (io_waitrequest)                 //input
 );
 
 //------------------------------------------------------------------------------

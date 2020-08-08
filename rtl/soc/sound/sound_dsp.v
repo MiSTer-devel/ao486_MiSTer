@@ -25,29 +25,29 @@
  */
 
 module sound_dsp(
-    input               clk,
-    input               rst_n,
+	input               clk,
+	input               rst_n,
 
 	input               ce_1us,
-    output reg          irq,
-    
-    //io slave 220h-22Fh
-    input       [3:0]   io_address,
-    input               io_read,
-    output      [7:0]   io_readdata_from_dsp,
-    input               io_write,
-    input       [7:0]   io_writedata,
-    
-    //dma
-    output              dma_soundblaster_req,
-    input               dma_soundblaster_ack,
-    input               dma_soundblaster_terminal,
-    input       [7:0]   dma_soundblaster_readdata,
-    output      [7:0]   dma_soundblaster_writedata,
-    
-    //sample
-    output              sample_from_dsp_disabled,
-    output              sample_from_dsp_do,
+	output reg          irq,
+
+	//io slave 220h-22Fh
+	input       [3:0]   io_address,
+	input               io_read,
+	output reg  [7:0]   io_readdata_from_dsp,
+	input               io_write,
+	input       [7:0]   io_writedata,
+
+	//dma
+	output              dma_soundblaster_req,
+	input               dma_soundblaster_ack,
+	input               dma_soundblaster_terminal,
+	input       [7:0]   dma_soundblaster_readdata,
+	output      [7:0]   dma_soundblaster_writedata,
+
+	//sample
+	output              sample_from_dsp_disabled,
+	output              sample_from_dsp_do,
 	output      [7:0]   sample_from_dsp_value
 );
 
@@ -59,12 +59,14 @@ wire io_read_valid = io_read && io_read_last == 1'b0;
 
 //------------------------------------------------------------------------------
 
-assign io_readdata_from_dsp =
-    (io_address == 4'hE)?                       { read_ready, 7'h7F } :
-    (io_address == 4'hA && copy_cnt > 6'd0)?    copyright_byte :
-    (io_address == 4'hA)?                       read_buffer[15:8] :
-    (io_address == 4'hC)?                       { write_ready, 7'h7F } :
+always @(posedge clk) begin
+	io_readdata_from_dsp <=
+		(io_address == 4'hE)?                       { read_ready, 7'h7F } :
+		(io_address == 4'hA && copy_cnt > 6'd0)?    copyright_byte :
+		(io_address == 4'hA)?                       read_buffer[15:8] :
+		(io_address == 4'hC)?                       { write_ready, 7'h7F } :
                                                 8'hFF;
+end
 
 //------------------------------------------------------------------------------
 
@@ -229,7 +231,7 @@ wire [7:0] dma_id_q;
 simple_single_rom #(
     .widthad    (10),
     .width      (8),
-    .datafile   ("./../soc/sound/dsp_dma_identification_rom.hex")
+    .datafile   ("rtl/soc/sound/sound_dsp_dma_id.hex")
 )
 dma_id_rom_inst (
     .clk        (clk),
