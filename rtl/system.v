@@ -89,14 +89,16 @@ module system
 	output        DDRAM_WE
 );
 
-wire [31:0] iobus_in_readdata;
-wire        iobus_in_waitrequest;
-wire [15:0] iobus_in_address;
-wire  [3:0] iobus_in_byteenable;
-wire        iobus_in_read;
-wire        iobus_in_readdatavalid;
-wire        iobus_in_write;
-wire [31:0] iobus_in_writedata;
+wire        iobus_in_read_do;
+wire [15:0] iobus_in_read_address;
+wire [2:0]  iobus_in_read_length;
+wire [31:0] iobus_in_read_data;
+wire        iobus_in_read_done;
+wire        iobus_in_write_do;
+wire [15:0] iobus_in_write_address;
+wire [2:0]  iobus_in_write_length;
+wire [31:0] iobus_in_write_data;
+wire        iobus_in_write_done;
 wire        a20_enable;
 wire  [7:0] dma_floppy_readdata;
 wire        dma_floppy_terminal;
@@ -141,14 +143,14 @@ wire        floppy0_read;
 wire        floppy0_write;
 wire  [7:0] floppy0_writedata;
 wire [31:0] hdd0_readdata;
-wire        hdd0_address;
-wire  [3:0] hdd0_byteenable;
+wire  [2:0] hdd0_address;
+wire  [2:0] hdd0_datasize;
 wire        hdd0_read;
 wire        hdd0_write;
 wire [31:0] hdd0_writedata;
 wire [31:0] hdd1_readdata;
-wire        hdd1_address;
-wire  [3:0] hdd1_byteenable;
+wire  [2:0] hdd1_address;
+wire  [2:0] hdd1_datasize;
 wire        hdd1_read;
 wire        hdd1_write;
 wire [31:0] hdd1_writedata;
@@ -158,9 +160,7 @@ wire        hddext_0x370_read;
 wire        hddext_0x370_write;
 wire  [7:0] hddext_0x370_writedata;
 wire  [7:0] joystick_readdata;
-wire        joystick_address;
 wire        joystick_write;
-wire  [7:0] joystick_writedata;
 wire  [7:0] pit_readdata;
 wire  [1:0] pit_address;
 wire        pit_read;
@@ -341,14 +341,16 @@ ao486 ao486 (
 	.interrupt_do         (interrupt_do),
 	.interrupt_vector     (interrupt_vector),
 	.interrupt_done       (interrupt_done),
-	.io_address           (iobus_in_address),
-	.io_byteenable        (iobus_in_byteenable),
-	.io_read              (iobus_in_read),
-	.io_readdatavalid     (iobus_in_readdatavalid),
-	.io_readdata          (iobus_in_readdata),
-	.io_write             (iobus_in_write),
-	.io_writedata         (iobus_in_writedata),
-	.io_waitrequest       (iobus_in_waitrequest),
+	.io_read_do           (iobus_in_read_do),
+	.io_read_address      (iobus_in_read_address),
+	.io_read_length       (iobus_in_read_length),
+	.io_read_data         (iobus_in_read_data),
+	.io_read_done         (iobus_in_read_done),
+	.io_write_do          (iobus_in_write_do),
+	.io_write_address     (iobus_in_write_address),
+	.io_write_length      (iobus_in_write_length),
+	.io_write_data        (iobus_in_write_data),
+	.io_write_done        (iobus_in_write_done),
 	.a20_enable           (a20_enable),
 	.dma_address          (pc_dma_address),
 	.dma_read             (pc_dma_read),
@@ -359,16 +361,19 @@ ao486 ao486 (
 	.dma_writedata        (pc_dma_writedata)
 );
 
+
 iobus iobus (
 	.clk                       (clk_sys),
-	.in_address                (iobus_in_address),
-	.in_read                   (iobus_in_read),
-	.in_readdata               (iobus_in_readdata),
-	.in_write                  (iobus_in_write),
-	.in_writedata              (iobus_in_writedata),
-	.in_waitrequest            (iobus_in_waitrequest),
-	.in_byteenable             (iobus_in_byteenable),
-	.in_readdatavalid          (iobus_in_readdatavalid),
+	.in_read_do                (iobus_in_read_do),
+	.in_read_address           (iobus_in_read_address),
+	.in_read_length            (iobus_in_read_length),
+	.in_read_data              (iobus_in_read_data),
+	.in_read_done              (iobus_in_read_done),
+	.in_write_do               (iobus_in_write_do),
+	.in_write_address          (iobus_in_write_address),
+	.in_write_length           (iobus_in_write_length),
+	.in_write_data             (iobus_in_write_data),
+	.in_write_done             (iobus_in_write_done),
 	.floppy0_io_address        (floppy0_address),
 	.floppy0_io_readdata       (floppy0_readdata),
 	.floppy0_io_writedata      (floppy0_writedata),
@@ -379,22 +384,20 @@ iobus iobus (
 	.hdd0_io_writedata         (hdd0_writedata),
 	.hdd0_io_read              (hdd0_read),
 	.hdd0_io_write             (hdd0_write),
-	.hdd0_io_byteenable        (hdd0_byteenable),
+	.hdd0_io_data_size         (hdd0_datasize),
 	.hdd1_io_address           (hdd1_address),
 	.hdd1_io_readdata          (hdd1_readdata),
 	.hdd1_io_writedata         (hdd1_writedata),
 	.hdd1_io_read              (hdd1_read),
 	.hdd1_io_write             (hdd1_write),
-	.hdd1_io_byteenable        (hdd1_byteenable),
+	.hdd1_io_data_size         (hdd1_datasize),
 	.hddext_0x370_io_address   (hddext_0x370_address),
 	.hddext_0x370_io_readdata  (hddext_0x370_readdata),
 	.hddext_0x370_io_writedata (hddext_0x370_writedata),
 	.hddext_0x370_io_read      (hddext_0x370_read),
 	.hddext_0x370_io_write     (hddext_0x370_write),
 	.joystick_io_readdata      (joystick_readdata),
-	.joystick_io_writedata     (joystick_writedata),
 	.joystick_io_write         (joystick_write),
-	.joystick_io_address       (joystick_address),
 	.pc_dma_master_address     (pc_dma_master_address),
 	.pc_dma_master_readdata    (pc_dma_master_readdata),
 	.pc_dma_master_writedata   (pc_dma_master_writedata),
@@ -508,7 +511,7 @@ floppy floppy0 (
 hdd hdd0 (
 	.clk               (clk_sys),
 	.io_address        (hdd0_address),
-	.io_byteenable     (hdd0_byteenable),
+	.io_data_size      (hdd0_datasize),
 	.io_read           (hdd0_read),
 	.io_readdata       (hdd0_readdata),
 	.io_write          (hdd0_write),
@@ -530,7 +533,7 @@ hdd hdd0 (
 hdd hdd1 (
 	.clk               (clk_sys),
 	.io_address        (hdd1_address),
-	.io_byteenable     (hdd1_byteenable),
+	.io_data_size      (hdd1_datasize),
 	.io_read           (hdd1_read),
 	.io_readdata       (hdd1_readdata),
 	.io_write          (hdd1_write),
@@ -573,9 +576,7 @@ joystick joystick_0 (
 	.mode      (joystick_mode),
 	.clk_grav  (joystick_clk_grav),
 	.readdata  (joystick_readdata),
-	.write     (joystick_write),
-	.writedata (joystick_writedata),
-	.address   (joystick_address)
+	.write     (joystick_write)
 );
 
 mgmt mgmt (

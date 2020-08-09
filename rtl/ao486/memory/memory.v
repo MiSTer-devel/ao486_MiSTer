@@ -67,8 +67,6 @@ module memory(
     input               tlbcheck_rw,
     //END
     
-    output              dcache_busy,
-    
     //RESP:
     input               tlbflushsingle_do,
     output              tlbflushsingle_done,
@@ -389,7 +387,6 @@ avalon_mem avalon_mem_inst(
 
 assign invddata_done = 1'b1;
 assign wbinvddata_done = 1'b1;
-assign dcache_busy = 1'b0;
 
 //------------------------------------------------------------------------------
 icache icache_inst(

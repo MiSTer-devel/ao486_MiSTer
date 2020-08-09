@@ -33,12 +33,12 @@ module hdd
 	output reg          irq,
 
 	//avalon slave
-	input               io_address,
-	input       [3:0]   io_byteenable,
+	input        [2:0]  io_address,
 	input               io_read,
 	output reg  [31:0]  io_readdata,
 	input               io_write,
-	input       [31:0]  io_writedata, 
+	input       [31:0]  io_writedata,
+	input        [2:0]  io_data_size,
 
 	//ide shared port 0x3F6
 	input               ide_3f6_read,
@@ -97,19 +97,11 @@ end
 
 wire io_wr = io_write & present;
 
-wire write_data_io =
-    io_wr && io_address == 1'b0 && io_byteenable[0] &&
-    cmd_write_in_progress;
+wire write_data_io = io_wr && io_address == 0 && cmd_write_in_progress;
 
 wire read_data_io =
-    io_read_valid && io_address == 1'b0 && io_byteenable[0] && status_drq &&
+    io_read_valid && io_address == 0 && status_drq &&
     (cmd_read_in_progress || cmd_identify_in_progress);
-
-wire [2:0] data_io_size =
-    (io_byteenable[3:0] == 4'b1111)?    3'd4 :
-    (io_byteenable[1:0] == 2'b11)?      3'd2 :
-    (io_byteenable[0])?                 3'd1 :
-                                        3'd0;
 
 wire [7:0] status_value =
     (drive_select)?     8'h00 :
@@ -126,15 +118,15 @@ wire [7:0] status_value =
 wire [15:0] cylinder_final = (drive_select)? 16'hFFFF : cylinder;
 
 wire [31:0] io_readdata_next =
-    (read_data_io)?                                                             from_hdd_result[31:0] :
-    (io_read_valid && io_address == 1'b0 && io_byteenable[1:0] == 2'b10)?       { 16'd0, error_register, 8'd0 } :
-    (io_read_valid && io_address == 1'b0 && io_byteenable[2:0] == 3'b100)?      { 8'd0,  sector_count,   16'd0 } :
-    (io_read_valid && io_address == 1'b0 && io_byteenable[3:0] == 4'b1000)?     { sector, 24'd0 } :
-    (io_read_valid && io_address == 1'b1 && io_byteenable[0] == 1'b1)?          { 24'd0, cylinder_final[7:0] } :
-    (io_read_valid && io_address == 1'b1 && io_byteenable[1:0] == 2'b10)?       { 16'd0, cylinder_final[15:8], 8'd0 } :
-    (io_read_valid && io_address == 1'b1 && io_byteenable[2:0] == 3'b100)?      { 8'd0, 8'h80 | ((lba_mode)? 8'h40 : 8'h00) | 8'h20 | ((drive_select)? 8'h10 : 8'h00) | ((drive_select)? 8'h00 : { 4'd0, head }), 16'd0 } :
-    (io_read_valid && io_address == 1'b1 && io_byteenable[3:0] == 4'b1000)?     { status_value, 24'd0 } :
-                                                                                32'd0; //used
+    (read_data_io)                     ? from_hdd_result[31:0] :
+    (io_read_valid && io_address == 1) ? error_register        :
+    (io_read_valid && io_address == 2) ? sector_count          :
+    (io_read_valid && io_address == 3) ? sector                :
+    (io_read_valid && io_address == 4) ? cylinder_final[7:0]   :
+    (io_read_valid && io_address == 5) ? cylinder_final[15:8]  :
+    (io_read_valid && io_address == 6) ? {1'b1, lba_mode, 1'b1, drive_select, (drive_select ? 4'h0 : head)} :
+    (io_read_valid && io_address == 7) ? status_value          :
+	                                      32'd0; //used
 
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)   io_readdata <= 32'b0;
@@ -259,14 +251,14 @@ end
 
 reg [3:0] status_index_pulse_counter;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                                                                       status_index_pulse_counter <= 4'd0;
-    else if(~(drive_select) && (ide_3f6_read || (io_read_valid && io_address == 1'b1 && io_byteenable[3:0] == 4'b1000)))    status_index_pulse_counter <= status_index_pulse_counter_next;
+    if(rst_n == 1'b0)                                                                status_index_pulse_counter <= 4'd0;
+    else if(~(drive_select) && (ide_3f6_read || (io_read_valid && io_address == 7))) status_index_pulse_counter <= status_index_pulse_counter_next;
 end
 
 reg [7:0] features;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                    features <= 8'h00;
-    else if(io_wr && io_address == 1'b0 && io_byteenable[1:0] == 2'b10)  features <= io_writedata[15:8];
+    if(rst_n == 1'b0)                  features <= 8'h00;
+    else if(io_wr && io_address == 1)  features <= io_writedata[7:0];
 end
 
 reg [16:0] num_sectors;
@@ -279,24 +271,24 @@ end
 
 reg [7:0] sector_count;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                    sector_count <= 8'd1;
-    else if(set_signature)                                               sector_count <= 8'd1;
-    else if(cmd_checkpower_start)                                        sector_count <= 8'hFF;
-    else if(io_wr && io_address == 1'b0 && io_byteenable[2:0] == 3'b100) sector_count <= io_writedata[23:16];
-    else if(update_location_by_one)                                      sector_count <= sector_count - 8'd1;
+    if(rst_n == 1'b0)                 sector_count <= 8'd1;
+    else if(set_signature)            sector_count <= 8'd1;
+    else if(cmd_checkpower_start)     sector_count <= 8'hFF;
+    else if(io_wr && io_address == 2) sector_count <= io_writedata[7:0];
+    else if(update_location_by_one)   sector_count <= sector_count - 8'd1;
 end
 
 reg [7:0] hob_nsector;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                    hob_nsector <= 8'd0;
-    else if(io_wr && io_address == 1'b0 && io_byteenable[2:0] == 3'b100) hob_nsector <= sector_count;
+    if(rst_n == 1'b0)                 hob_nsector <= 8'd0;
+    else if(io_wr && io_address == 2) hob_nsector <= sector_count;
 end
 
 reg drive_select;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                    drive_select <= 1'b0;
-    else if(set_signature)                                               drive_select <= 1'b0;
-    else if(io_wr && io_address == 1'b1 && io_byteenable[2:0] == 3'b100) drive_select <= io_writedata[20];
+    if(rst_n == 1'b0)                 drive_select <= 1'b0;
+    else if(set_signature)            drive_select <= 1'b0;
+    else if(io_wr && io_address == 6) drive_select <= io_writedata[4];
 end
 
 wire ide_3f6_wr = ide_3f6_write & present;
@@ -327,15 +319,15 @@ reg [7:0] current_command;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                                                                   current_command <= 8'b0;
     else if(sw_reset_start)                                                             current_command <= 8'b0;
-    else if(cmd_read_start || cmd_write_start || cmd_identify_start || cmd_seek_start)  current_command <= io_writedata[31:24];
+    else if(cmd_read_start || cmd_write_start || cmd_identify_start || cmd_seek_start)  current_command <= io_writedata[7:0];
     else if(state == S_IDLE)                                                            current_command <= 8'd0;
 end
 
 reg lba_mode;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                    lba_mode <= 1'b0;
-    else if(sw_reset_start)                                              lba_mode <= 1'b0;
-    else if(io_wr && io_address == 1'b1 && io_byteenable[2:0] == 3'b100) lba_mode <= io_writedata[22];
+    if(rst_n == 1'b0)                 lba_mode <= 1'b0;
+    else if(sw_reset_start)           lba_mode <= 1'b0;
+    else if(io_wr && io_address == 6) lba_mode <= io_writedata[6];
 end
 
 reg [4:0] multiple_sectors;
@@ -353,8 +345,8 @@ reg [15:0] cylinder;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                                                                           cylinder <= 16'd0;
     else if(set_signature)                                                                      cylinder <= 16'd0;
-    else if(io_wr && io_address == 1'b1 && io_byteenable[0] == 1'b1)                            cylinder <= { cylinder[15:8], io_writedata[7:0] };
-    else if(io_wr && io_address == 1'b1 && io_byteenable[1:0] == 2'b10)                         cylinder <= { io_writedata[15:8], cylinder[7:0] };
+    else if(io_wr && io_address == 4)                                                           cylinder <= { cylinder[15:8], io_writedata[7:0] };
+    else if(io_wr && io_address == 5)                                                           cylinder <= { io_writedata[7:0], cylinder[7:0] };
     else if(update_location_to_overflow)                                                        cylinder <= media_sectors[23:8];
     else if(update_location_by_one && lba_mode && current_command_lba48)                        cylinder <= location_lba48_plus_1[23:8];
     else if(update_location_by_one && lba_mode)                                                 cylinder <= location_lba28_plus_1[23:8];
@@ -371,7 +363,7 @@ reg [3:0] head;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)   head <= 4'd0;
     else if(set_signature)                                                      head <= 4'd0;
-    else if(io_wr && io_address == 1'b1 && io_byteenable[2:0] == 3'b100)        head <= io_writedata[19:16];
+    else if(io_wr && io_address == 6)                                           head <= io_writedata[3:0];
     else if(update_location_to_overflow && ~(current_command_read_lba48))       head <= media_sectors[27:24];
     else if(update_location_by_one && lba_mode && ~(current_command_lba48))     head <= location_lba28_plus_1[27:24];
     else if(update_location_to_max && lba_mode && ~(current_command_lba48))     head <= location_lba28_max[27:24];
@@ -383,7 +375,7 @@ reg [7:0] sector;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                                                           sector <= 8'd1;
     else if(set_signature)                                                      sector <= 8'd1;
-    else if(io_wr && io_address == 1'b0 && io_byteenable[3:0] == 4'b1000)       sector <= io_writedata[31:24];
+    else if(io_wr && io_address == 3)                                           sector <= io_writedata[7:0];
     else if(update_location_to_overflow)                                        sector <= media_sectors[7:0];
     else if(update_location_by_one && lba_mode && current_command_lba48)        sector <= location_lba48_plus_1[7:0];
     else if(update_location_by_one && lba_mode)                                 sector <= location_lba28_plus_1[7:0];
@@ -396,7 +388,7 @@ end
 reg [7:0] hob_hcyl;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)   hob_hcyl <= 8'd0;
-    else if(io_wr && io_address == 1'b1 && io_byteenable[1:0] == 2'b10)         hob_hcyl <= cylinder[15:8];
+    else if(io_wr && io_address == 5)                                           hob_hcyl <= cylinder[7:0];
     else if(update_location_to_overflow && current_command_read_lba48)          hob_hcyl <= 8'd0;
     else if(update_location_by_one && lba_mode && current_command_lba48)        hob_hcyl <= location_lba48_plus_1[47:40];
     else if(update_location_to_max && lba_mode && current_command_lba48)        hob_hcyl <= location_lba48_max[47:40];
@@ -405,7 +397,7 @@ end
 reg [7:0] hob_lcyl;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)   hob_lcyl <= 8'd0;
-    else if(io_wr && io_address == 1'b1 && io_byteenable[0] == 1'b1)            hob_lcyl <= cylinder[7:0];
+    else if(io_wr && io_address == 4)                                           hob_lcyl <= cylinder[7:0];
     else if(update_location_to_overflow && current_command_read_lba48)          hob_lcyl <= 8'd0;
     else if(update_location_by_one && lba_mode && current_command_lba48)        hob_lcyl <= location_lba48_plus_1[39:32];
     else if(update_location_to_max && lba_mode && current_command_lba48)        hob_lcyl <= location_lba48_max[39:32];
@@ -414,7 +406,7 @@ end
 reg [7:0] hob_sector;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)   hob_sector <= 8'd0;
-    else if(io_wr && io_address == 1'b0 && io_byteenable[3:0] == 4'b1000)       hob_sector <= sector;
+    else if(io_wr && io_address == 3)                                           hob_sector <= sector;
     else if(update_location_to_overflow && current_command_read_lba48)          hob_sector <= media_sectors[31:24];
     else if(update_location_by_one && lba_mode && current_command_lba48)        hob_sector <= location_lba48_plus_1[31:24];
     else if(update_location_to_max && lba_mode && current_command_lba48)        hob_sector <= location_lba48_max[31:24];
@@ -451,7 +443,7 @@ wire update_location_chs_cylinder_only = update_location_by_one && ~(lba_mode) &
 //------------------------------------------------------------------------------ current command
 
 wire current_command_lba48 = current_command_read_lba48 || current_command_write_lba48 ||
-    (cmd_max_start && io_writedata[31:24] == 8'h27);
+    (cmd_max_start && io_writedata[7:0] == 8'h27);
 
 wire cmd_read_in_progress          = current_command == 8'h24 || current_command == 8'h29 || current_command == 8'h20 || current_command == 8'h21 || current_command == 8'hC4;
 wire current_command_read_multiple = current_command == 8'hC4 || current_command == 8'h29;
@@ -466,26 +458,26 @@ wire current_command_write_lba48    = current_command == 8'h34 || current_comman
 //------------------------------------------------------------------------------ command
 
 wire cmd_start =
-    io_wr && io_address == 1'b1 && io_byteenable[3:0] == 4'b1000 && ~(drive_select) && ~(status_busy);
+    io_wr && io_address == 7 && ~(drive_select) && ~(status_busy);
     
 //calibrate
-wire cmd_calibrate_start = cmd_start && io_writedata[31:24] >= 8'h10 && io_writedata[31:24] <= 8'h1F;
+wire cmd_calibrate_start = cmd_start && io_writedata[7:0] >= 8'h10 && io_writedata[7:0] <= 8'h1F;
 
 //read
-wire cmd_read_prepare = cmd_start && (io_writedata[31:24] == 8'h24 || io_writedata[31:24] == 8'h29 || io_writedata[31:24] == 8'h20 || io_writedata[31:24] == 8'h21 || io_writedata[31:24] == 8'hC4);
+wire cmd_read_prepare = cmd_start && (io_writedata[7:0] == 8'h24 || io_writedata[7:0] == 8'h29 || io_writedata[7:0] == 8'h20 || io_writedata[7:0] == 8'h21 || io_writedata[7:0] == 8'hC4);
 
 wire cmd_read_abort_at_start = cmd_read_prepare && (
     (~(lba_mode) && head == 4'd0 && cylinder == 16'd0 && sector == 8'd0) ||
-    ((io_writedata[31:24] == 8'hC4 || io_writedata[31:24] == 8'h29) && multiple_sectors == 5'd0)
+    ((io_writedata[7:0] == 8'hC4 || io_writedata[7:0] == 8'h29) && multiple_sectors == 5'd0)
 );
 
 wire cmd_read_start = cmd_read_prepare && ~(cmd_read_abort_at_start);
 
 //write
-wire cmd_write_prepare = cmd_start && (io_writedata[31:24] == 8'h30 || io_writedata[31:24] == 8'hC5 || io_writedata[31:24] == 8'h34 || io_writedata[31:24] == 8'h39);
+wire cmd_write_prepare = cmd_start && (io_writedata[7:0] == 8'h30 || io_writedata[7:0] == 8'hC5 || io_writedata[7:0] == 8'h34 || io_writedata[7:0] == 8'h39);
 
 wire cmd_write_abort_at_start = cmd_write_prepare && (
-    ((io_writedata[31:24] == 8'hC5 || io_writedata[31:24] == 8'h39) && multiple_sectors == 5'd0)
+    ((io_writedata[7:0] == 8'hC5 || io_writedata[7:0] == 8'h39) && multiple_sectors == 5'd0)
 );
 
 wire cmd_write_start = cmd_write_prepare && ~(cmd_write_abort_at_start);
@@ -495,10 +487,10 @@ wire write_data_ready =
     (~(current_command_write_multiple) && to_hdd_count >= 12'd128);
 
 //diag
-wire cmd_execute_drive_diag = cmd_start && io_writedata[31:24] == 8'h90;
+wire cmd_execute_drive_diag = cmd_start && io_writedata[7:0] == 8'h90;
 
 //initialize
-wire cmd_initialize_prepare = cmd_start && io_writedata[31:24] == 8'h91;
+wire cmd_initialize_prepare = cmd_start && io_writedata[7:0] == 8'h91;
 
 wire cmd_initialize_abort_at_start = cmd_initialize_prepare && (
     ({ 1'b0, sector_count } != media_spt) ||
@@ -508,10 +500,10 @@ wire cmd_initialize_abort_at_start = cmd_initialize_prepare && (
 wire cmd_initialize_start = cmd_initialize_prepare && ~(cmd_initialize_abort_at_start);
 
 //identify
-wire cmd_identify_start = cmd_start && io_writedata[31:24] == 8'hEC;
+wire cmd_identify_start = cmd_start && io_writedata[7:0] == 8'hEC;
 
 //set features
-wire cmd_features_prepare = cmd_start && io_writedata[31:24] == 8'hEF;
+wire cmd_features_prepare = cmd_start && io_writedata[7:0] == 8'hEF;
 
 wire cmd_features_abort_at_start = cmd_features_prepare && (
     (features == 8'h03 && (sector_count[7:3] != 5'd0 && sector_count[7:3] != 5'd1 && sector_count[7:3] != 5'd4 && sector_count[7:3] != 5'd8)) ||
@@ -521,14 +513,14 @@ wire cmd_features_abort_at_start = cmd_features_prepare && (
 wire cmd_features_start = cmd_features_prepare && ~(cmd_features_abort_at_start);
 
 //read verify sectors
-wire cmd_verify_start = cmd_start && (io_writedata[31:24] == 8'h40 || io_writedata[31:24] == 8'h41 || io_writedata[31:24] == 8'h42);
+wire cmd_verify_start = cmd_start && (io_writedata[7:0] == 8'h40 || io_writedata[7:0] == 8'h41 || io_writedata[7:0] == 8'h42);
 
 //set multiple
 
 //if changed - fix cmd_multiple_abort_at_start
 `define MAX_MULTIPLE_SECTORS 16
 
-wire cmd_multiple_prepare = cmd_start && io_writedata[31:24] == 8'hC6;
+wire cmd_multiple_prepare = cmd_start && io_writedata[7:0] == 8'hC6;
 
 wire cmd_multiple_abort_at_start = cmd_multiple_prepare && (
     (sector_count > `MAX_MULTIPLE_SECTORS) ||
@@ -539,18 +531,18 @@ wire cmd_multiple_abort_at_start = cmd_multiple_prepare && (
 wire cmd_multiple_start = cmd_multiple_prepare && ~(cmd_multiple_abort_at_start);
 
 //power
-wire cmd_power_start = cmd_start && (io_writedata[31:24] == 8'hE0 || io_writedata[31:24] == 8'hE1 || io_writedata[31:24] == 8'hE7 || io_writedata[31:24] == 8'hEA);
+wire cmd_power_start = cmd_start && (io_writedata[7:0] == 8'hE0 || io_writedata[7:0] == 8'hE1 || io_writedata[7:0] == 8'hE7 || io_writedata[7:0] == 8'hEA);
 
 //check power
-wire cmd_checkpower_start = cmd_start && io_writedata[31:24] == 8'hE5;
+wire cmd_checkpower_start = cmd_start && io_writedata[7:0] == 8'hE5;
 
 //seek
-wire cmd_seek_start = cmd_start && io_writedata[31:24] == 8'h70;
+wire cmd_seek_start = cmd_start && io_writedata[7:0] == 8'h70;
 
 wire cmd_seek_in_progress = current_command == 8'h70;
 
 //max address
-wire cmd_max_prepare = cmd_start && (io_writedata[31:24] == 8'h27 || io_writedata[31:24] == 8'hF8);
+wire cmd_max_prepare = cmd_start && (io_writedata[7:0] == 8'h27 || io_writedata[7:0] == 8'hF8);
 
 wire cmd_max_abort_at_start = cmd_max_prepare && (
     ~(lba_mode)
@@ -576,10 +568,10 @@ wire cmd_unknown_start = cmd_start &&
 
 //location
 wire lba48_transform_active =
-    (cmd_read_start   && (io_writedata[31:24] == 8'h24 || io_writedata[31:24] == 8'h29)) ||
-    (cmd_write_start  && (io_writedata[31:24] == 8'h34 || io_writedata[31:24] == 8'h39)) ||
-    (cmd_verify_start &&  io_writedata[31:24] == 8'h42) ||
-    (cmd_max_start    &&  io_writedata[31:24] == 8'h27);
+    (cmd_read_start   && (io_writedata[7:0] == 8'h24 || io_writedata[7:0] == 8'h29)) ||
+    (cmd_write_start  && (io_writedata[7:0] == 8'h34 || io_writedata[7:0] == 8'h39)) ||
+    (cmd_verify_start &&  io_writedata[7:0] == 8'h42) ||
+    (cmd_max_start    &&  io_writedata[7:0] == 8'h27);
     
 wire lba48_transform_inactive = ~(lba48_transform_active) && (cmd_read_start || cmd_write_start || cmd_verify_start || cmd_max_start);
 
@@ -697,8 +689,8 @@ wire raise_interrupt =
     cmd_max_start;
 
 wire lower_interrupt =
-    (io_read_valid  && io_address == 1'b1 && io_byteenable[3:0] == 4'b1000) ||
-    (io_wr && io_address == 1'b1 && io_byteenable[3:0] == 4'b1000 && ~(drive_select));
+    (io_read_valid  && io_address == 7) ||
+    (io_wr && io_address == 7 && ~(drive_select));
 
 wire command_abort =
     (state == S_COUNT_DECISION && count_decision_immediate_error) ||
@@ -888,13 +880,13 @@ fifo_identify_inst(
 
 //------------------------------------------------------------------------------ fifo from hdd
 
-wire [2:0] from_hdd_stored_index_next = 3'd4 + { 1'b0, from_hdd_stored_index } - data_io_size;
+wire [2:0] from_hdd_stored_index_next = 3'd4 + { 1'b0, from_hdd_stored_index } - io_data_size;
 
 reg [1:0] from_hdd_stored_index;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                                                           from_hdd_stored_index <= 2'd0;
     else if(state == S_IDLE)                                                    from_hdd_stored_index <= 2'd0;
-    else if(read_data_io && { 1'b0, from_hdd_stored_index } >= data_io_size)    from_hdd_stored_index <= from_hdd_stored_index - data_io_size[1:0];
+    else if(read_data_io && { 1'b0, from_hdd_stored_index } >= io_data_size)    from_hdd_stored_index <= from_hdd_stored_index - io_data_size[1:0];
     else if(read_data_io && from_hdd_empty)                                     from_hdd_stored_index <= 2'd0;
     else if(read_data_io)                                                       from_hdd_stored_index <= from_hdd_stored_index_next[1:0];
 end
@@ -908,9 +900,9 @@ wire [55:0] from_hdd_result =
 reg [23:0] from_hdd_stored;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                               from_hdd_stored <= 24'd0;
-    else if(read_data_io && data_io_size == 3'd1)   from_hdd_stored <= from_hdd_result[31:8];
-    else if(read_data_io && data_io_size == 3'd2)   from_hdd_stored <= from_hdd_result[39:16];
-    else if(read_data_io && data_io_size == 3'd4)   from_hdd_stored <= from_hdd_result[55:32];
+    else if(read_data_io && io_data_size == 3'd1)   from_hdd_stored <= from_hdd_result[31:8];
+    else if(read_data_io && io_data_size == 3'd2)   from_hdd_stored <= from_hdd_result[39:16];
+    else if(read_data_io && io_data_size == 3'd4)   from_hdd_stored <= from_hdd_result[55:32];
 end
 
 wire from_hdd_empty_valid = from_hdd_empty && from_hdd_stored_index == 2'd0;
@@ -931,7 +923,7 @@ fifo_from_hdd_inst(
     .data       ((state == S_IDENTIFY_FILL)? identify_q_final : from_cache),                        //input [31:0]
     .wrreq      ((state == S_SD_READ_WAIT_FOR_DATA && sec_write) || state == S_IDENTIFY_FILL),      //input
     
-    .rdreq      (read_data_io && { 1'b0, from_hdd_stored_index } < data_io_size),                   //input
+    .rdreq      (read_data_io && { 1'b0, from_hdd_stored_index } < io_data_size),                   //input
     .empty      (from_hdd_empty),                                                                   //output
     .q          (from_hdd_q),                                                                       //output [31:0]
 
@@ -956,7 +948,7 @@ wire [55:0] to_hdd_result =
     (to_hdd_stored_index == 2'd2)?        { 8'd0,  io_writedata, to_hdd_stored[15:0] } :
                                           {        io_writedata, to_hdd_stored[23:0] };
 
-wire [2:0] to_hdd_sum = data_io_size + { 1'b0, to_hdd_stored_index };
+wire [2:0] to_hdd_sum = io_data_size + { 1'b0, to_hdd_stored_index };
 
 reg [23:0] to_hdd_stored;
 always @(posedge clk or negedge rst_n) begin

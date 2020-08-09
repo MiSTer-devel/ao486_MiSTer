@@ -42,5 +42,4 @@ set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) memory/
 set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) exception.v ]
 set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) global_regs.v ]
 set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) defines.v ]
-set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) avalon_io.v ]
 set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) ao486.v ]

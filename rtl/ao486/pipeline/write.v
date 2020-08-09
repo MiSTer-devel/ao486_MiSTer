@@ -725,7 +725,7 @@ assign write_for_wr_ready = write_done && ~(write_page_fault) && ~(write_ac_faul
 
 wire write_io_for_wr_ready;
 
-assign io_write_do      = write_io;
+assign io_write_do      = write_io & ~io_write_done;
 assign io_write_address = glob_param_1[15:0];
 assign io_write_length  = (wr_is_8bit)? 3'd1 : (wr_operand_16bit)? 3'd2 : 3'd4;
 assign io_write_data    = result_push;    

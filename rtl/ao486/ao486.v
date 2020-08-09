@@ -37,7 +37,7 @@ module ao486 (
 	input   [7:0]       interrupt_vector,
 	output              interrupt_done,
 
-	//-------------------------------------------------------------------------- Altera Avalon memory bus
+	//-------------------------------------------------------------------------- memory bus
 	output      [29:0]  avm_address,
 	output      [31:0]  avm_writedata,
 	output      [3:0]   avm_byteenable,
@@ -49,7 +49,7 @@ module ao486 (
 	input               avm_readdatavalid,
 	input       [31:0]  avm_readdata,
 
-	//-------------------------------------------------------------------------- Altera Avalon dma bus
+	//-------------------------------------------------------------------------- dma bus
 	input       [23:0]  dma_address,
 	input               dma_write,
 	input        [7:0]  dma_writedata,
@@ -58,15 +58,18 @@ module ao486 (
 	output              dma_readdatavalid,
 	output              dma_waitrequest,
 
-	//-------------------------------------------------------------------------- Altera Avalon io bus
-	output  [15:0]      io_address,
-	output  [3:0]       io_byteenable,
-	output              io_read,
-	input               io_readdatavalid,
-	input   [31:0]      io_readdata,
-	output              io_write,
-	output  [31:0]      io_writedata,
-	input               io_waitrequest
+	//-------------------------------------------------------------------------- io bus
+	output              io_read_do,
+	output       [15:0] io_read_address,
+	output       [2:0]  io_read_length,
+	input        [31:0] io_read_data,
+	input               io_read_done,
+
+	output              io_write_do,
+	output       [15:0] io_write_address,
+	output       [2:0]  io_write_length,
+	output       [31:0] io_write_data,
+	input               io_write_done
 );
 
 //------------------------------------------------------------------------------
@@ -186,8 +189,6 @@ wire        tlbcheck_done;
 wire        tlbcheck_page_fault;
 wire [31:0] tlbcheck_address;
 wire        tlbcheck_rw;
-
-wire        dcache_busy;
 
 wire        tlbflushsingle_do;
 wire        tlbflushsingle_done;
@@ -347,52 +348,6 @@ exception exception_inst(
     .exc_pf_check                  (exc_pf_check)                  //output
 );
 
-//------------------------------------------------------------------------------
-
-wire        io_read_do;
-wire [15:0] io_read_address;
-wire [2:0]  io_read_length;
-wire [31:0] io_read_data;
-wire        io_read_done;
-
-wire        io_write_do;
-wire [15:0] io_write_address;
-wire [2:0]  io_write_length;
-wire [31:0] io_write_data;
-wire        io_write_done;
-
-avalon_io avalon_io_inst(
-    .clk                (clk),
-    .rst_n              (rst_n),
-    
-    //io_read
-    .io_read_do                    (io_read_do),                    //input
-    .io_read_address               (io_read_address),               //input [15:0]
-    .io_read_length                (io_read_length),                //input [2:0]
-    .io_read_data                  (io_read_data),                  //output [31:0]
-    .io_read_done                  (io_read_done),                  //output
-    
-    //io_write
-    .io_write_do                   (io_write_do),                   //input
-    .io_write_address              (io_write_address),              //input [15:0]
-    .io_write_length               (io_write_length),               //input [2:0]
-    .io_write_data                 (io_write_data),                 //input [31:0]
-    .io_write_done                 (io_write_done),                 //output
-    
-    .dcache_busy                   (dcache_busy),                   //input
-    
-    //Avalon
-    .avalon_io_address             (io_address),                    //output [15:0]
-    .avalon_io_byteenable          (io_byteenable),                 //output [3:0]
-    
-    .avalon_io_read                (io_read),                       //output
-    .avalon_io_readdatavalid       (io_readdatavalid),              //input
-    .avalon_io_readdata            (io_readdata),                   //input [31:0]
-    
-    .avalon_io_write               (io_write),                      //output
-    .avalon_io_writedata           (io_writedata),                  //output [31:0]
-    .avalon_io_waitrequest         (io_waitrequest)                 //input
-);
 
 //------------------------------------------------------------------------------
 
@@ -497,8 +452,6 @@ memory memory_inst(
     .tlbcheck_address              (tlbcheck_address),              //input [31:0]
     .tlbcheck_rw                   (tlbcheck_rw),                   //input
     //END
-    
-    .dcache_busy                   (dcache_busy),                   //output
     
     //RESP:
     .tlbflushsingle_do             (tlbflushsingle_do),             //input
