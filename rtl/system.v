@@ -89,16 +89,6 @@ module system
 	output        DDRAM_WE
 );
 
-wire        iobus_in_read_do;
-wire [15:0] iobus_in_read_address;
-wire [2:0]  iobus_in_read_length;
-wire [31:0] iobus_in_read_data;
-wire        iobus_in_read_done;
-wire        iobus_in_write_do;
-wire [15:0] iobus_in_write_address;
-wire [2:0]  iobus_in_write_length;
-wire [31:0] iobus_in_write_data;
-wire        iobus_in_write_done;
 wire        a20_enable;
 wire  [7:0] dma_floppy_readdata;
 wire        dma_floppy_terminal;
@@ -118,9 +108,6 @@ wire  [7:0] ide_370_readdata;
 wire  [7:0] ide_370_writedata;
 wire        ide_370_write;
 wire        ide_370_read;
-wire        interrupt_done;
-wire        interrupt_do;
-wire  [7:0] interrupt_vector;
 wire        speaker_61h_read;
 wire        speaker_61h_write;
 wire  [7:0] speaker_61h_readdata;
@@ -132,75 +119,6 @@ wire        pc_dma_read;
 wire        pc_dma_readdatavalid;
 wire        pc_dma_write;
 wire  [7:0] pc_dma_writedata;
-wire  [7:0] sound_fm_readdata;
-wire  [1:0] sound_fm_address;
-wire        sound_fm_read;
-wire        sound_fm_write;
-wire  [7:0] sound_fm_writedata;
-wire  [7:0] floppy0_readdata;
-wire  [2:0] floppy0_address;
-wire        floppy0_read;
-wire        floppy0_write;
-wire  [7:0] floppy0_writedata;
-wire [31:0] hdd0_readdata;
-wire  [2:0] hdd0_address;
-wire  [2:0] hdd0_datasize;
-wire        hdd0_read;
-wire        hdd0_write;
-wire [31:0] hdd0_writedata;
-wire [31:0] hdd1_readdata;
-wire  [2:0] hdd1_address;
-wire  [2:0] hdd1_datasize;
-wire        hdd1_read;
-wire        hdd1_write;
-wire [31:0] hdd1_writedata;
-wire  [7:0] hddext_0x370_readdata;
-wire  [2:0] hddext_0x370_address;
-wire        hddext_0x370_read;
-wire        hddext_0x370_write;
-wire  [7:0] hddext_0x370_writedata;
-wire  [7:0] joystick_readdata;
-wire        joystick_write;
-wire  [7:0] pit_readdata;
-wire  [1:0] pit_address;
-wire        pit_read;
-wire        pit_write;
-wire  [7:0] pit_writedata;
-wire  [7:0] ps2_io_readdata;
-wire  [2:0] ps2_io_address;
-wire        ps2_io_read;
-wire        ps2_io_write;
-wire  [7:0] ps2_io_writedata;
-wire  [7:0] rtc_readdata;
-wire        rtc_address;
-wire        rtc_read;
-wire        rtc_write;
-wire  [7:0] rtc_writedata;
-wire  [7:0] sound_io_readdata;
-wire  [3:0] sound_io_address;
-wire        sound_io_read;
-wire        sound_io_write;
-wire  [7:0] sound_io_writedata;
-wire  [7:0] uart_io_readdata;
-wire  [2:0] uart_io_address;
-wire        uart_io_read;
-wire        uart_io_write;
-wire  [7:0] uart_io_writedata;
-wire  [7:0] vga_io_c_readdata;
-wire  [3:0] vga_io_c_address;
-wire        vga_io_c_read;
-wire        vga_io_c_write;
-wire  [7:0] vga_io_c_writedata;
-wire  [7:0] pc_dma_master_readdata;
-wire  [4:0] pc_dma_master_address;
-wire        pc_dma_master_read;
-wire        pc_dma_master_write;
-wire  [7:0] pc_dma_master_writedata;
-wire  [7:0] pic_master_readdata;
-wire        pic_master_address;
-wire        pic_master_read;
-wire        pic_master_write;
-wire  [7:0] pic_master_writedata;
 wire [31:0] mgmt_fdd0_readdata;
 wire  [3:0] mgmt_fdd0_address;
 wire        mgmt_fdd0_read;
@@ -219,60 +137,77 @@ wire [31:0] mgmt_hdd1_writedata;
 wire  [7:0] mgmt_rtc_address;
 wire        mgmt_rtc_write;
 wire  [7:0] mgmt_rtc_writedata;
-wire  [7:0] pc_dma_page_readdata;
-wire  [3:0] pc_dma_page_address;
-wire        pc_dma_page_read;
-wire  [7:0] pc_dma_page_writedata;
-wire        pc_dma_page_write;
-wire  [7:0] pc_dma_slave_readdata;
-wire  [3:0] pc_dma_slave_address;
-wire        pc_dma_slave_read;
-wire  [7:0] pc_dma_slave_writedata;
-wire        pc_dma_slave_write;
-wire  [7:0] pic_slave_readdata;
-wire        pic_slave_address;
-wire        pic_slave_read;
-wire        pic_slave_write;
-wire  [7:0] pic_slave_writedata;
-wire  [7:0] ps2_sysctl_readdata;
-wire  [3:0] ps2_sysctl_address;
-wire        ps2_sysctl_read;
-wire        ps2_sysctl_write;
-wire  [7:0] ps2_sysctl_writedata;
-wire  [7:0] uart_mpu_readdata;
-wire        uart_mpu_address;
-wire        uart_mpu_read;
-wire  [7:0] uart_mpu_writedata;
-wire        uart_mpu_write;
-wire  [7:0] vga_io_b_readdata;
-wire  [3:0] vga_io_b_address;
-wire        vga_io_b_read;
-wire  [7:0] vga_io_b_writedata;
-wire        vga_io_b_write;
-wire  [7:0] vga_io_d_readdata;
-wire  [3:0] vga_io_d_address;
-wire        vga_io_d_read;
-wire  [7:0] vga_io_d_writedata;
-wire        vga_io_d_write;
-wire        irq_9;
-wire        irq_0;
-wire        irq_8;
-wire        irq_14;
-wire        irq_6;
-wire        irq_15;
-wire        irq_2;
-wire        irq_5;
-wire        irq_4;
-wire        irq_1;
-wire        irq_12;
-
+wire        interrupt_done;
+wire        interrupt_do;
+wire  [7:0] interrupt_vector;
 reg  [15:0] interrupt_receiver;
+wire        irq_0, irq_1, irq_2, irq_4, irq_5, irq_6, irq_8, irq_9, irq_12, irq_14, irq_15;
+
+wire        cpu_io_read_do;
+wire [15:0] cpu_io_read_address;
+wire [2:0]  cpu_io_read_length;
+wire [31:0] cpu_io_read_data;
+wire        cpu_io_read_done;
+wire        cpu_io_write_do;
+wire [15:0] cpu_io_write_address;
+wire [2:0]  cpu_io_write_length;
+wire [31:0] cpu_io_write_data;
+wire        cpu_io_write_done;
+wire [15:0] iobus_address;
+wire        iobus_write;
+wire        iobus_read;
+wire  [2:0] iobus_datasize;
+wire [31:0] iobus_writedata;
+reg   [7:0] iobus_readdata8;
+
+reg         hdd0_cs;
+reg         hdd1_cs;
+reg         floppy0_cs;
+reg         hdd1_ext_cs;
+reg         dma_master_cs;
+reg         dma_page_cs;
+reg         dma_slave_cs;
+reg         pic_master_cs;
+reg         pic_slave_cs;
+reg         pit_cs;
+reg         ps2_io_cs;
+reg         ps2_ctl_cs;
+reg         joy_cs;
+reg         rtc_cs;
+reg         fm_cs;
+reg         sb_cs;
+reg         uart_cs;
+reg         mpu_cs;
+reg         vga_b_cs;
+reg         vga_c_cs;
+reg         vga_d_cs;
+
+wire  [7:0] sound_fm_readdata;
+wire  [7:0] sound_io_readdata;
+wire  [7:0] floppy0_readdata;
+wire [31:0] hdd0_readdata;
+wire [31:0] hdd1_readdata;
+wire  [7:0] hdd1_ext_readdata;
+wire  [7:0] joystick_readdata;
+wire  [7:0] pit_readdata;
+wire  [7:0] ps2_io_readdata;
+wire  [7:0] ps2_sysctl_readdata;
+wire  [7:0] rtc_readdata;
+wire  [7:0] uart_readdata;
+wire  [7:0] pc_dma_master_readdata;
+wire  [7:0] pc_dma_page_readdata;
+wire  [7:0] pc_dma_slave_readdata;
+wire  [7:0] pic_master_readdata;
+wire  [7:0] pic_slave_readdata;
+wire  [7:0] vga_io_c_readdata;
+wire  [7:0] vga_io_b_readdata;
+wire  [7:0] vga_io_d_readdata;
 
 wire [29:0] mem_address;
 wire [31:0] mem_writedata;
 wire [31:0] mem_readdata;
-wire [3:0]  mem_byteenable;
-wire [3:0]  mem_burstcount;
+wire  [3:0] mem_byteenable;
+wire  [3:0] mem_burstcount;
 wire        mem_write;
 wire        mem_read;
 wire        mem_waitrequest;
@@ -326,9 +261,11 @@ l2_cache cache
 	.VGA_FB_EN        (video_fb_en)
 );
 
-ao486 ao486 (
+ao486 ao486
+(
 	.clk                  (clk_sys),
 	.rst_n                (~reset_cpu),
+
 	.avm_address          (mem_address),
 	.avm_writedata        (mem_writedata),
 	.avm_byteenable       (mem_byteenable),
@@ -338,20 +275,24 @@ ao486 ao486 (
 	.avm_waitrequest      (mem_waitrequest),
 	.avm_readdatavalid    (mem_readdatavalid),
 	.avm_readdata         (mem_readdata),
+
 	.interrupt_do         (interrupt_do),
 	.interrupt_vector     (interrupt_vector),
 	.interrupt_done       (interrupt_done),
-	.io_read_do           (iobus_in_read_do),
-	.io_read_address      (iobus_in_read_address),
-	.io_read_length       (iobus_in_read_length),
-	.io_read_data         (iobus_in_read_data),
-	.io_read_done         (iobus_in_read_done),
-	.io_write_do          (iobus_in_write_do),
-	.io_write_address     (iobus_in_write_address),
-	.io_write_length      (iobus_in_write_length),
-	.io_write_data        (iobus_in_write_data),
-	.io_write_done        (iobus_in_write_done),
+
+	.io_read_do           (cpu_io_read_do),
+	.io_read_address      (cpu_io_read_address),
+	.io_read_length       (cpu_io_read_length),
+	.io_read_data         (cpu_io_read_data),
+	.io_read_done         (cpu_io_read_done),
+	.io_write_do          (cpu_io_write_do),
+	.io_write_address     (cpu_io_write_address),
+	.io_write_length      (cpu_io_write_length),
+	.io_write_data        (cpu_io_write_data),
+	.io_write_done        (cpu_io_write_done),
+
 	.a20_enable           (a20_enable),
+
 	.dma_address          (pc_dma_address),
 	.dma_read             (pc_dma_read),
 	.dma_readdata         (pc_dma_readdata),
@@ -361,409 +302,434 @@ ao486 ao486 (
 	.dma_writedata        (pc_dma_writedata)
 );
 
+always @(posedge clk_sys) begin
+	hdd0_cs       <= ({iobus_address[15:3], 3'd0} == 16'h01F0);
+	hdd1_cs       <= ({iobus_address[15:3], 3'd0} == 16'h0170);
+	joy_cs        <= ({iobus_address[15:0]      } == 16'h0201);
+	floppy0_cs    <= ({iobus_address[15:3], 3'd0} == 16'h03F0);
+	hdd1_ext_cs   <= ({iobus_address[15:3], 3'd0} == 16'h0370);
+	dma_master_cs <= ({iobus_address[15:5], 5'd0} == 16'h00C0);
+	dma_page_cs   <= ({iobus_address[15:4], 4'd0} == 16'h0080);
+	dma_slave_cs  <= ({iobus_address[15:4], 4'd0} == 16'h0000);
+	pic_master_cs <= ({iobus_address[15:1], 1'd0} == 16'h0020);
+	pic_slave_cs  <= ({iobus_address[15:1], 1'd0} == 16'h00A0);
+	pit_cs        <= ({iobus_address[15:2], 2'd0} == 16'h0040);
+	ps2_io_cs     <= ({iobus_address[15:3], 3'd0} == 16'h0060);
+	ps2_ctl_cs    <= ({iobus_address[15:4], 4'd0} == 16'h0090);
+	rtc_cs        <= ({iobus_address[15:1], 1'd0} == 16'h0070);
+	fm_cs         <= ({iobus_address[15:2], 2'd0} == 16'h0388);
+	sb_cs         <= ({iobus_address[15:4], 4'd0} == 16'h0220);
+	uart_cs       <= ({iobus_address[15:3], 3'd0} == 16'h03F8);
+	mpu_cs        <= ({iobus_address[15:1], 1'd0} == 16'h0330);
+	vga_b_cs      <= ({iobus_address[15:4], 4'd0} == 16'h03B0);
+	vga_c_cs      <= ({iobus_address[15:4], 4'd0} == 16'h03C0);
+	vga_d_cs      <= ({iobus_address[15:4], 4'd0} == 16'h03D0);
+end
 
-iobus iobus (
-	.clk                       (clk_sys),
-	.in_read_do                (iobus_in_read_do),
-	.in_read_address           (iobus_in_read_address),
-	.in_read_length            (iobus_in_read_length),
-	.in_read_data              (iobus_in_read_data),
-	.in_read_done              (iobus_in_read_done),
-	.in_write_do               (iobus_in_write_do),
-	.in_write_address          (iobus_in_write_address),
-	.in_write_length           (iobus_in_write_length),
-	.in_write_data             (iobus_in_write_data),
-	.in_write_done             (iobus_in_write_done),
-	.floppy0_io_address        (floppy0_address),
-	.floppy0_io_readdata       (floppy0_readdata),
-	.floppy0_io_writedata      (floppy0_writedata),
-	.floppy0_io_read           (floppy0_read),
-	.floppy0_io_write          (floppy0_write),
-	.hdd0_io_address           (hdd0_address),
-	.hdd0_io_readdata          (hdd0_readdata),
-	.hdd0_io_writedata         (hdd0_writedata),
-	.hdd0_io_read              (hdd0_read),
-	.hdd0_io_write             (hdd0_write),
-	.hdd0_io_data_size         (hdd0_datasize),
-	.hdd1_io_address           (hdd1_address),
-	.hdd1_io_readdata          (hdd1_readdata),
-	.hdd1_io_writedata         (hdd1_writedata),
-	.hdd1_io_read              (hdd1_read),
-	.hdd1_io_write             (hdd1_write),
-	.hdd1_io_data_size         (hdd1_datasize),
-	.hddext_0x370_io_address   (hddext_0x370_address),
-	.hddext_0x370_io_readdata  (hddext_0x370_readdata),
-	.hddext_0x370_io_writedata (hddext_0x370_writedata),
-	.hddext_0x370_io_read      (hddext_0x370_read),
-	.hddext_0x370_io_write     (hddext_0x370_write),
-	.joystick_io_readdata      (joystick_readdata),
-	.joystick_io_write         (joystick_write),
-	.pc_dma_master_address     (pc_dma_master_address),
-	.pc_dma_master_readdata    (pc_dma_master_readdata),
-	.pc_dma_master_writedata   (pc_dma_master_writedata),
-	.pc_dma_master_read        (pc_dma_master_read),
-	.pc_dma_master_write       (pc_dma_master_write),
-	.pc_dma_page_address       (pc_dma_page_address),
-	.pc_dma_page_readdata      (pc_dma_page_readdata),
-	.pc_dma_page_writedata     (pc_dma_page_writedata),
-	.pc_dma_page_read          (pc_dma_page_read),
-	.pc_dma_page_write         (pc_dma_page_write),
-	.pc_dma_slave_address      (pc_dma_slave_address),
-	.pc_dma_slave_readdata     (pc_dma_slave_readdata),
-	.pc_dma_slave_writedata    (pc_dma_slave_writedata),
-	.pc_dma_slave_read         (pc_dma_slave_read),
-	.pc_dma_slave_write        (pc_dma_slave_write),
-	.pic_master_address        (pic_master_address),
-	.pic_master_readdata       (pic_master_readdata),
-	.pic_master_writedata      (pic_master_writedata),
-	.pic_master_read           (pic_master_read),
-	.pic_master_write          (pic_master_write),
-	.pic_slave_address         (pic_slave_address),
-	.pic_slave_readdata        (pic_slave_readdata),
-	.pic_slave_writedata       (pic_slave_writedata),
-	.pic_slave_read            (pic_slave_read),
-	.pic_slave_write           (pic_slave_write),
-	.pit_io_address            (pit_address),
-	.pit_io_readdata           (pit_readdata),
-	.pit_io_writedata          (pit_writedata),
-	.pit_io_read               (pit_read),
-	.pit_io_write              (pit_write),
-	.ps2_io_address            (ps2_io_address),
-	.ps2_io_readdata           (ps2_io_readdata),
-	.ps2_io_writedata          (ps2_io_writedata),
-	.ps2_io_read               (ps2_io_read),
-	.ps2_io_write              (ps2_io_write),
-	.ps2_sysctl_address        (ps2_sysctl_address),
-	.ps2_sysctl_readdata       (ps2_sysctl_readdata),
-	.ps2_sysctl_writedata      (ps2_sysctl_writedata),
-	.ps2_sysctl_read           (ps2_sysctl_read),
-	.ps2_sysctl_write          (ps2_sysctl_write),
-	.rtc_io_address            (rtc_address),
-	.rtc_io_readdata           (rtc_readdata),
-	.rtc_io_writedata          (rtc_writedata),
-	.rtc_io_read               (rtc_read),
-	.rtc_io_write              (rtc_write),
-	.sound_io_address          (sound_io_address),
-	.sound_io_readdata         (sound_io_readdata),
-	.sound_io_writedata        (sound_io_writedata),
-	.sound_io_read             (sound_io_read),
-	.sound_io_write            (sound_io_write),
-	.sound_fm_address          (sound_fm_address),
-	.sound_fm_readdata         (sound_fm_readdata),
-	.sound_fm_writedata        (sound_fm_writedata),
-	.sound_fm_read             (sound_fm_read),
-	.sound_fm_write            (sound_fm_write),
-	.uart_io_address           (uart_io_address),
-	.uart_io_readdata          (uart_io_readdata),
-	.uart_io_writedata         (uart_io_writedata),
-	.uart_io_read              (uart_io_read),
-	.uart_io_write             (uart_io_write),
-	.uart_mpu_address          (uart_mpu_address),
-	.uart_mpu_readdata         (uart_mpu_readdata),
-	.uart_mpu_writedata        (uart_mpu_writedata),
-	.uart_mpu_read             (uart_mpu_read),
-	.uart_mpu_write            (uart_mpu_write),
-	.vga_io_b_address          (vga_io_b_address),
-	.vga_io_b_readdata         (vga_io_b_readdata),
-	.vga_io_b_writedata        (vga_io_b_writedata),
-	.vga_io_b_read             (vga_io_b_read),
-	.vga_io_b_write            (vga_io_b_write),
-	.vga_io_c_address          (vga_io_c_address),
-	.vga_io_c_readdata         (vga_io_c_readdata),
-	.vga_io_c_writedata        (vga_io_c_writedata),
-	.vga_io_c_read             (vga_io_c_read),
-	.vga_io_c_write            (vga_io_c_write),
-	.vga_io_d_address          (vga_io_d_address),
-	.vga_io_d_readdata         (vga_io_d_readdata),
-	.vga_io_d_writedata        (vga_io_d_writedata),
-	.vga_io_d_read             (vga_io_d_read),
-	.vga_io_d_write            (vga_io_d_write),
-	.reset                     (reset_sys)
+always @* begin
+	     if(floppy0_cs    ) iobus_readdata8 = floppy0_readdata;
+	else if(hdd1_ext_cs   ) iobus_readdata8 = hdd1_ext_readdata;
+	else if(dma_master_cs ) iobus_readdata8 = pc_dma_master_readdata;
+	else if(dma_page_cs   ) iobus_readdata8 = pc_dma_page_readdata;
+	else if(dma_slave_cs  ) iobus_readdata8 = pc_dma_slave_readdata;
+	else if(pic_master_cs ) iobus_readdata8 = pic_master_readdata;
+	else if(pic_slave_cs  ) iobus_readdata8 = pic_slave_readdata;
+	else if(pit_cs        ) iobus_readdata8 = pit_readdata;
+	else if(ps2_io_cs     ) iobus_readdata8 = ps2_io_readdata;
+	else if(ps2_ctl_cs    ) iobus_readdata8 = ps2_sysctl_readdata;
+	else if(rtc_cs        ) iobus_readdata8 = rtc_readdata;
+	else if(fm_cs         ) iobus_readdata8 = sound_fm_readdata;
+	else if(sb_cs         ) iobus_readdata8 = sound_io_readdata;
+	else if(uart_cs|mpu_cs) iobus_readdata8 = uart_readdata;
+	else if(vga_b_cs      ) iobus_readdata8 = vga_io_b_readdata;
+	else if(vga_c_cs      ) iobus_readdata8 = vga_io_c_readdata;
+	else if(vga_d_cs      ) iobus_readdata8 = vga_io_d_readdata;
+	else if(joy_cs        ) iobus_readdata8 = joystick_readdata;
+	else                    iobus_readdata8 = 8'hFF;
+end
+
+iobus iobus
+(
+	.clk               (clk_sys),
+	.reset             (reset_sys),
+
+	.cpu_read_do       (cpu_io_read_do),
+	.cpu_read_address  (cpu_io_read_address),
+	.cpu_read_length   (cpu_io_read_length),
+	.cpu_read_data     (cpu_io_read_data),
+	.cpu_read_done     (cpu_io_read_done),
+	.cpu_write_do      (cpu_io_write_do),
+	.cpu_write_address (cpu_io_write_address),
+	.cpu_write_length  (cpu_io_write_length),
+	.cpu_write_data    (cpu_io_write_data),
+	.cpu_write_done    (cpu_io_write_done),
+
+	.bus_address       (iobus_address),
+	.bus_write         (iobus_write),
+	.bus_read          (iobus_read),
+	.bus_io32          (hdd0_cs | hdd1_cs),
+	.bus_datasize      (iobus_datasize),
+	.bus_writedata     (iobus_writedata),
+	.bus_readdata8     (iobus_readdata8),
+	.bus_readdata32    (hdd0_cs ? hdd0_readdata : hdd1_readdata)
 );
 
-floppy floppy0 (
+floppy floppy0
+(
 	.clk                  (clk_sys),
-	.io_address           (floppy0_address),
-	.io_read              (floppy0_read),
-	.io_readdata          (floppy0_readdata),
-	.io_write             (floppy0_write),
-	.io_writedata         (floppy0_writedata),
-	.mgmt_address         (mgmt_fdd0_address),
-	.mgmt_write           (mgmt_fdd0_write),
-	.mgmt_writedata       (mgmt_fdd0_writedata),
-	.mgmt_read            (mgmt_fdd0_read),
-	.mgmt_readdata        (mgmt_fdd0_readdata),
 	.rst_n                (~reset_sys),
+
+	.clock_rate           (clock_rate),
+
+	.io_address           (iobus_address[2:0]),
+	.io_read              (iobus_read & floppy0_cs),
+	.io_readdata          (floppy0_readdata),
+	.io_write             (iobus_write & floppy0_cs),
+	.io_writedata         (iobus_writedata[7:0]),
+
 	.dma_floppy_req       (dma_floppy_req),
 	.dma_floppy_ack       (dma_floppy_ack),
 	.dma_floppy_terminal  (dma_floppy_terminal),
 	.dma_floppy_readdata  (dma_floppy_readdata),
 	.dma_floppy_writedata (dma_floppy_writedata),
+
 	.ide_3f6_read         (ide_3f6_read),
 	.ide_3f6_readdata     (ide_3f6_readdata),
 	.ide_3f6_write        (ide_3f6_write),
 	.ide_3f6_writedata    (ide_3f6_writedata),
-	.irq                  (irq_6),
+
+	.mgmt_address         (mgmt_fdd0_address),
+	.mgmt_write           (mgmt_fdd0_write),
+	.mgmt_writedata       (mgmt_fdd0_writedata),
+	.mgmt_read            (mgmt_fdd0_read),
+	.mgmt_readdata        (mgmt_fdd0_readdata),
+
 	.request              (fdd0_request),
-	.clock_rate           (clock_rate)
+	.irq                  (irq_6)
 );
 
-hdd hdd0 (
+hdd hdd0
+(
 	.clk               (clk_sys),
-	.io_address        (hdd0_address),
-	.io_data_size      (hdd0_datasize),
-	.io_read           (hdd0_read),
+	.rst_n             (~reset_sys),
+
+	.io_address        (iobus_address[2:0]),
+	.io_data_size      (iobus_datasize),
+	.io_read           (iobus_read & hdd0_cs),
 	.io_readdata       (hdd0_readdata),
-	.io_write          (hdd0_write),
-	.io_writedata      (hdd0_writedata),
+	.io_write          (iobus_write & hdd0_cs),
+	.io_writedata      (iobus_writedata),
+
+	.ide_3f6_read      (ide_3f6_read),
+	.ide_3f6_readdata  (ide_3f6_readdata),
+	.ide_3f6_write     (ide_3f6_write),
+	.ide_3f6_writedata (ide_3f6_writedata),
+
 	.mgmt_address      (mgmt_hdd0_address),
 	.mgmt_write        (mgmt_hdd0_write),
 	.mgmt_writedata    (mgmt_hdd0_writedata),
 	.mgmt_read         (mgmt_hdd0_read),
 	.mgmt_readdata     (mgmt_hdd0_readdata),
-	.rst_n             (~reset_sys),
-	.irq               (irq_14),
-	.ide_3f6_read      (ide_3f6_read),
-	.ide_3f6_readdata  (ide_3f6_readdata),
-	.ide_3f6_write     (ide_3f6_write),
-	.ide_3f6_writedata (ide_3f6_writedata),
-	.request           (hdd0_request)
+
+	.request           (hdd0_request),
+	.irq               (irq_14)
 );
 
-hdd hdd1 (
+hdd hdd1
+(
 	.clk               (clk_sys),
-	.io_address        (hdd1_address),
-	.io_data_size      (hdd1_datasize),
-	.io_read           (hdd1_read),
+	.rst_n             (~reset_sys),
+
+	.io_address        (iobus_address[2:0]),
+	.io_data_size      (iobus_datasize),
+	.io_read           (iobus_read & hdd1_cs),
 	.io_readdata       (hdd1_readdata),
-	.io_write          (hdd1_write),
-	.io_writedata      (hdd1_writedata),
+	.io_write          (iobus_write & hdd1_cs),
+	.io_writedata      (iobus_writedata),
+
+	.ide_3f6_read      (ide_370_read),
+	.ide_3f6_readdata  (ide_370_readdata),
+	.ide_3f6_write     (ide_370_write),
+	.ide_3f6_writedata (ide_370_writedata),
+
 	.mgmt_address      (mgmt_hdd1_address),
 	.mgmt_write        (mgmt_hdd1_write),
 	.mgmt_writedata    (mgmt_hdd1_writedata),
 	.mgmt_read         (mgmt_hdd1_read),
 	.mgmt_readdata     (mgmt_hdd1_readdata),
-	.rst_n             (~reset_sys),
-	.irq               (irq_15),
-	.ide_3f6_read      (ide_370_read),
-	.ide_3f6_readdata  (ide_370_readdata),
-	.ide_3f6_write     (ide_370_write),
-	.ide_3f6_writedata (ide_370_writedata),
-	.request           (hdd1_request)
+
+	.request           (hdd1_request),
+	.irq               (irq_15)
 );
 
-hddext hddext_0x370 (
+hddext hdd1_ext
+(
 	.clk               (clk_sys),
-	.io_address        (hddext_0x370_address),
-	.io_read           (hddext_0x370_read),
-	.io_readdata       (hddext_0x370_readdata),
-	.io_write          (hddext_0x370_write),
-	.io_writedata      (hddext_0x370_writedata),
 	.rst_n             (~reset_sys),
+
+	.io_address        (iobus_address[2:0]),
+	.io_read           (iobus_read & hdd1_ext_cs),
+	.io_readdata       (hdd1_ext_readdata),
+	.io_write          (iobus_write & hdd1_ext_cs),
+	.io_writedata      (iobus_writedata[7:0]),
+
 	.ide_3f6_read      (ide_370_read),
 	.ide_3f6_readdata  (ide_370_readdata),
 	.ide_3f6_write     (ide_370_write),
 	.ide_3f6_writedata (ide_370_writedata)
 );
 
-joystick joystick_0 (
-	.rst_n     (~reset_sys),
+joystick joystick
+(
 	.clk       (clk_sys),
+	.rst_n     (~reset_sys),
+
+	.clk_grav  (joystick_clk_grav),
+
+	.readdata  (joystick_readdata),
+	.write     (iobus_write & joy_cs),
+
 	.dig_1     (joystick_dig_1),
 	.dig_2     (joystick_dig_2),
 	.ana_1     (joystick_ana_1),
 	.ana_2     (joystick_ana_2),
-	.mode      (joystick_mode),
-	.clk_grav  (joystick_clk_grav),
-	.readdata  (joystick_readdata),
-	.write     (joystick_write)
+	.mode      (joystick_mode)
 );
 
-mgmt mgmt (
+mgmt mgmt
+(
 	.clk            (clk_sys),
+
 	.in_address     (mgmt_address),
 	.in_read        (mgmt_read),
 	.in_readdata    (mgmt_readdata),
 	.in_write       (mgmt_write),
 	.in_writedata   (mgmt_writedata),
 	.in_active      (mgmt_active),
+
 	.hdd0_address   (mgmt_hdd0_address),
 	.hdd0_readdata  (mgmt_hdd0_readdata),
 	.hdd0_read      (mgmt_hdd0_read),
 	.hdd0_write     (mgmt_hdd0_write),
 	.hdd0_writedata (mgmt_hdd0_writedata),
+
 	.hdd1_address   (mgmt_hdd1_address),
 	.hdd1_readdata  (mgmt_hdd1_readdata),
 	.hdd1_read      (mgmt_hdd1_read),
 	.hdd1_write     (mgmt_hdd1_write),
 	.hdd1_writedata (mgmt_hdd1_writedata),
+
 	.fdd0_address   (mgmt_fdd0_address),
 	.fdd0_readdata  (mgmt_fdd0_readdata),
 	.fdd0_read      (mgmt_fdd0_read),
 	.fdd0_write     (mgmt_fdd0_write),
 	.fdd0_writedata (mgmt_fdd0_writedata),
+
 	.rtc_address    (mgmt_rtc_address),
 	.rtc_write      (mgmt_rtc_write),
 	.rtc_writedata  (mgmt_rtc_writedata)
 );
 
-pc_dma pc_dma (
+pc_dma pc_dma
+(
 	.clk                        (clk_sys),
-	.slave_address              (pc_dma_slave_address),
-	.slave_read                 (pc_dma_slave_read),
-	.slave_readdata             (pc_dma_slave_readdata),
-	.slave_write                (pc_dma_slave_write),
-	.slave_writedata            (pc_dma_slave_writedata),
-	.page_address               (pc_dma_page_address),
-	.page_read                  (pc_dma_page_read),
-	.page_readdata              (pc_dma_page_readdata),
-	.page_write                 (pc_dma_page_write),
-	.page_writedata             (pc_dma_page_writedata),
-	.master_address             (pc_dma_master_address),
-	.master_read                (pc_dma_master_read),
-	.master_readdata            (pc_dma_master_readdata),
-	.master_write               (pc_dma_master_write),
-	.master_writedata           (pc_dma_master_writedata),
 	.rst_n                      (~reset_sys),
-	.dma_floppy_req             (dma_floppy_req),
-	.dma_floppy_ack             (dma_floppy_ack),
-	.dma_floppy_terminal        (dma_floppy_terminal),
-	.dma_floppy_readdata        (dma_floppy_readdata),
-	.dma_floppy_writedata       (dma_floppy_writedata),
-	.dma_soundblaster_req       (dma_soundblaster_req),
-	.dma_soundblaster_ack       (dma_soundblaster_ack),
-	.dma_soundblaster_terminal  (dma_soundblaster_terminal),
-	.dma_soundblaster_readdata  (dma_soundblaster_readdata),
-	.dma_soundblaster_writedata (dma_soundblaster_writedata),
+
 	.avm_address                (pc_dma_address),
 	.avm_waitrequest            (pc_dma_waitrequest),
 	.avm_read                   (pc_dma_read),
 	.avm_readdatavalid          (pc_dma_readdatavalid),
 	.avm_readdata               (pc_dma_readdata),
 	.avm_write                  (pc_dma_write),
-	.avm_writedata              (pc_dma_writedata)
+	.avm_writedata              (pc_dma_writedata),
+
+	.master_address             (iobus_address[4:0]),
+	.master_read                (iobus_read & dma_master_cs),
+	.master_readdata            (pc_dma_master_readdata),
+	.master_write               (iobus_write & dma_master_cs),
+	.master_writedata           (iobus_writedata[7:0]),
+
+	.slave_address              (iobus_address[3:0]),
+	.slave_read                 (iobus_read & dma_slave_cs),
+	.slave_readdata             (pc_dma_slave_readdata),
+	.slave_write                (iobus_write & dma_slave_cs),
+	.slave_writedata            (iobus_writedata[7:0]),
+
+	.page_address               (iobus_address[3:0]),
+	.page_read                  (iobus_read & dma_page_cs),
+	.page_readdata              (pc_dma_page_readdata),
+	.page_write                 (iobus_write & dma_page_cs),
+	.page_writedata             (iobus_writedata[7:0]),
+
+	.dma_floppy_req             (dma_floppy_req),
+	.dma_floppy_ack             (dma_floppy_ack),
+	.dma_floppy_terminal        (dma_floppy_terminal),
+	.dma_floppy_readdata        (dma_floppy_readdata),
+	.dma_floppy_writedata       (dma_floppy_writedata),
+
+	.dma_soundblaster_req       (dma_soundblaster_req),
+	.dma_soundblaster_ack       (dma_soundblaster_ack),
+	.dma_soundblaster_terminal  (dma_soundblaster_terminal),
+	.dma_soundblaster_readdata  (dma_soundblaster_readdata),
+	.dma_soundblaster_writedata (dma_soundblaster_writedata)
 );
 
-pic pic (
+pic pic
+(
 	.clk              (clk_sys),
-	.master_address   (pic_master_address),
-	.master_read      (pic_master_read),
-	.master_readdata  (pic_master_readdata),
-	.master_write     (pic_master_write),
-	.master_writedata (pic_master_writedata),
-	.slave_address    (pic_slave_address),
-	.slave_read       (pic_slave_read),
-	.slave_readdata   (pic_slave_readdata),
-	.slave_write      (pic_slave_write),
-	.slave_writedata  (pic_slave_writedata),
 	.rst_n            (~reset_sys),
+
+	.master_address   (iobus_address[0]),
+	.master_read      (iobus_read & pic_master_cs),
+	.master_readdata  (pic_master_readdata),
+	.master_write     (iobus_write & pic_master_cs),
+	.master_writedata (iobus_writedata[7:0]),
+
+	.slave_address    (iobus_address[0]),
+	.slave_read       (iobus_read & pic_slave_cs),
+	.slave_readdata   (pic_slave_readdata),
+	.slave_write      (iobus_write & pic_slave_cs),
+	.slave_writedata  (iobus_writedata[7:0]),
+
 	.interrupt_vector (interrupt_vector),
 	.interrupt_done   (interrupt_done),
 	.interrupt_do     (interrupt_do),
 	.interrupt_input  (interrupt_receiver)
 );
 
-pit pit (
+pit pit
+(
 	.clk                   (clk_sys),
-	.io_address            (pit_address),
-	.io_read               (pit_read),
-	.io_readdata           (pit_readdata),
-	.io_write              (pit_write),
-	.io_writedata          (pit_writedata),
 	.rst_n                 (~reset_sys),
+
+	.clock_rate            (clock_rate),
+
+	.io_address            (iobus_address[1:0]),
+	.io_read               (iobus_read & pit_cs),
+	.io_readdata           (pit_readdata),
+	.io_write              (iobus_write & pit_cs),
+	.io_writedata          (iobus_writedata[7:0]),
+
 	.speaker_61h_read      (speaker_61h_read),
 	.speaker_61h_readdata  (speaker_61h_readdata),
 	.speaker_61h_write     (speaker_61h_write),
 	.speaker_61h_writedata (speaker_61h_writedata),
 	.speaker_enable        (speaker_enable),
 	.speaker_out           (speaker_out),
-	.clock_rate            (clock_rate),
+
 	.irq                   (irq_0)
 );
 
-ps2 ps2 (
+ps2 ps2
+(
 	.clk                   (clk_sys),
-	.io_address            (ps2_io_address),
-	.io_read               (ps2_io_read),
-	.io_readdata           (ps2_io_readdata),
-	.io_write              (ps2_io_write),
-	.io_writedata          (ps2_io_writedata),
-	.sysctl_address        (ps2_sysctl_address),
-	.sysctl_read           (ps2_sysctl_read),
-	.sysctl_readdata       (ps2_sysctl_readdata),
-	.sysctl_write          (ps2_sysctl_write),
-	.sysctl_writedata      (ps2_sysctl_writedata),
 	.rst_n                 (~reset_sys),
-	.irq_mouse             (irq_12),
+
+	.io_address            (iobus_address[2:0]),
+	.io_read               (iobus_read & ps2_io_cs),
+	.io_readdata           (ps2_io_readdata),
+	.io_write              (iobus_write & ps2_io_cs),
+	.io_writedata          (iobus_writedata[7:0]),
+
+	.sysctl_address        (iobus_address[3:0]),
+	.sysctl_read           (iobus_read & ps2_ctl_cs),
+	.sysctl_readdata       (ps2_sysctl_readdata),
+	.sysctl_write          (iobus_write & ps2_ctl_cs),
+	.sysctl_writedata      (iobus_writedata[7:0]),
+
 	.ps2_kbclk             (ps2_kbclk_in),
 	.ps2_kbdat             (ps2_kbdat_in),
 	.ps2_kbclk_out         (ps2_kbclk_out),
 	.ps2_kbdat_out         (ps2_kbdat_out),
+
 	.ps2_mouseclk          (ps2_mouseclk_in),
 	.ps2_mousedat          (ps2_mousedat_in),
 	.ps2_mouseclk_out      (ps2_mouseclk_out),
 	.ps2_mousedat_out      (ps2_mousedat_out),
-	.irq_keyb              (irq_1),
+
 	.speaker_61h_read      (speaker_61h_read),
 	.speaker_61h_readdata  (speaker_61h_readdata),
 	.speaker_61h_write     (speaker_61h_write),
 	.speaker_61h_writedata (speaker_61h_writedata),
+
 	.output_a20_enable     (ps2_misc_a20_enable),
 	.output_reset_n        (ps2_misc_reset_n),
-	.a20_enable            (a20_enable)
+	.a20_enable            (a20_enable),
+
+	.irq_keyb              (irq_1),
+	.irq_mouse             (irq_12)
 );
 
-rtc rtc (
+rtc rtc
+(
 	.clk            (clk_sys),
-	.io_address     (rtc_address),
-	.io_read        (rtc_read),
+	.rst_n          (~reset_sys),
+
+	.clock_rate     (clock_rate),
+
+	.io_address     (iobus_address[0]),
+	.io_read        (iobus_read & rtc_cs),
 	.io_readdata    (rtc_readdata),
-	.io_write       (rtc_write),
-	.io_writedata   (rtc_writedata),
+	.io_write       (iobus_write & rtc_cs),
+	.io_writedata   (iobus_writedata[7:0]),
+
 	.mgmt_address   (mgmt_rtc_address),
 	.mgmt_write     (mgmt_rtc_write),
 	.mgmt_writedata (mgmt_rtc_writedata),
-	.rst_n          (~reset_sys),
-	.irq            (irq_8),
+
 	.rtc_memcfg     (rtc_memcfg),
-	.clock_rate     (clock_rate)
+
+	.irq            (irq_8)
 );
 
-sound sound (
+sound sound
+(
 	.clk                        (clk_sys),
 	.clk_opl                    (clk_opl),
-	.io_address                 (sound_io_address),
-	.io_read                    (sound_io_read),
-	.io_readdata                (sound_io_readdata),
-	.io_write                   (sound_io_write),
-	.io_writedata               (sound_io_writedata),
-	.fm_address                 (sound_fm_address),
-	.fm_read                    (sound_fm_read),
-	.fm_readdata                (sound_fm_readdata),
-	.fm_write                   (sound_fm_write),
-	.fm_writedata               (sound_fm_writedata),
 	.rst_n                      (~reset_sys),
-	.irq                        (irq_5),
+
+	.clock_rate                 (clock_rate),
+
+	.io_address                 (iobus_address[3:0]),
+	.io_read                    (iobus_read & sb_cs),
+	.io_readdata                (sound_io_readdata),
+	.io_write                   (iobus_write & sb_cs),
+	.io_writedata               (iobus_writedata[7:0]),
+
+	.fm_address                 (iobus_address[1:0]),
+	.fm_read                    (iobus_read & fm_cs),
+	.fm_readdata                (sound_fm_readdata),
+	.fm_write                   (iobus_write & fm_cs),
+	.fm_writedata               (iobus_writedata[7:0]),
+
 	.dma_soundblaster_req       (dma_soundblaster_req),
 	.dma_soundblaster_ack       (dma_soundblaster_ack),
 	.dma_soundblaster_terminal  (dma_soundblaster_terminal),
 	.dma_soundblaster_readdata  (dma_soundblaster_readdata),
 	.dma_soundblaster_writedata (dma_soundblaster_writedata),
+
 	.sample_l                   (sound_sample_l),
 	.sample_r                   (sound_sample_r),
+
 	.fm_mode                    (sound_fm_mode),
-	.clock_rate                 (clock_rate)
+
+	.irq                        (irq_5)
 );
 
-uart uart (
+uart uart
+(
 	.clk           (clk_sys),
 	.br_clk        (clk_uart),
 	.reset         (reset_sys|reset_cpu),
-	.address       (uart_io_address),
-	.read          (uart_io_read),
-	.readdata      (uart_io_readdata),
-	.write         (uart_io_write),
-	.writedata     (uart_io_writedata),
+
+	.address       (iobus_address[2:0]),
+	.read          (iobus_read),
+	.readdata      (uart_readdata),
+	.write         (iobus_write),
+	.writedata     (iobus_writedata[7:0]),
+	.uart_cs       (uart_cs),
+	.mpu_cs        (mpu_cs),
+
 	.rx            (serial_rx),
 	.tx            (serial_tx),
 	.cts_n         (serial_cts_n),
@@ -773,38 +739,42 @@ uart uart (
 	.rts_n         (serial_rts_n),
 	.br_out        (serial_br_out),
 	.dtr_n         (serial_dtr_n),
-	.mpu_address   (uart_mpu_address),
-	.mpu_read      (uart_mpu_read),
-	.mpu_readdata  (uart_mpu_readdata),
-	.mpu_write     (uart_mpu_write),
-	.mpu_writedata (uart_mpu_writedata),
-	.irq_mpu       (irq_9),
-	.irq_uart      (irq_4)
+
+	.irq_uart      (irq_4),
+	.irq_mpu       (irq_9)
 );
 
-vga vga (
+vga vga
+(
 	.clk_sys        (clk_sys),
-	.io_b_address   (vga_io_b_address),
-	.io_b_read      (vga_io_b_read),
+	.rst_n          (~reset_sys),
+
+	.clock_rate     (clock_rate),
+
+	.io_b_address   (iobus_address[3:0]),
+	.io_b_read      (iobus_read & vga_b_cs),
 	.io_b_readdata  (vga_io_b_readdata),
-	.io_b_write     (vga_io_b_write),
-	.io_b_writedata (vga_io_b_writedata),
-	.io_c_address   (vga_io_c_address),
-	.io_c_read      (vga_io_c_read),
+	.io_b_write     (iobus_write & vga_b_cs),
+	.io_b_writedata (iobus_writedata[7:0]),
+
+	.io_c_address   (iobus_address[3:0]),
+	.io_c_read      (iobus_read & vga_c_cs),
 	.io_c_readdata  (vga_io_c_readdata),
-	.io_c_write     (vga_io_c_write),
-	.io_c_writedata (vga_io_c_writedata),
-	.io_d_address   (vga_io_d_address),
-	.io_d_read      (vga_io_d_read),
+	.io_c_write     (iobus_write & vga_c_cs),
+	.io_c_writedata (iobus_writedata[7:0]),
+
+	.io_d_address   (iobus_address[3:0]),
+	.io_d_read      (iobus_read & vga_d_cs),
 	.io_d_readdata  (vga_io_d_readdata),
-	.io_d_write     (vga_io_d_write),
-	.io_d_writedata (vga_io_d_writedata),
+	.io_d_write     (iobus_write & vga_d_cs),
+	.io_d_writedata (iobus_writedata[7:0]),
+
 	.mem_address    (vga_address),
 	.mem_read       (vga_read),
 	.mem_readdata   (vga_readdata),
 	.mem_write      (vga_write),
 	.mem_writedata  (vga_writedata),
-	.rst_n          (~reset_sys),
+
 	.vga_ce         (video_ce),
 	.vga_blank_n    (video_blank_n),
 	.vga_horiz_sync (video_hsync),
@@ -825,7 +795,7 @@ vga vga (
 	.vga_flags      (video_flags),
 	.vga_stride     (video_stride),
 	.vga_off        (video_off),
-	.clock_rate     (clock_rate),
+
 	.irq            (irq_2)
 );
 
