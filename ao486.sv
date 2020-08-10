@@ -161,8 +161,8 @@ assign VIDEO_ARY = status[1] ? 8'd9  : 8'd3;
 
 assign AUDIO_S   = 1;
 assign AUDIO_MIX = 0;
-assign AUDIO_L   = sb_out_l + {2'b00, {14{speaker_ena & speaker_out}}};
-assign AUDIO_R   = sb_out_r + {2'b00, {14{speaker_ena & speaker_out}}};
+assign AUDIO_L   = sb_out_l + {2'b00, {14{speaker_out}}};
+assign AUDIO_R   = sb_out_r + {2'b00, {14{speaker_out}}};
 
 assign LED_DISK[1] = 0;
 assign LED_POWER   = 0;
@@ -424,7 +424,7 @@ end
 
 wire        ps2_reset_n;
 
-wire        speaker_ena, speaker_out;
+wire        speaker_out;
 wire [15:0] sb_out_l, sb_out_r;
 
 wire        device;
@@ -525,7 +525,7 @@ assign FB_STRIDE      = fb_stride;
 assign FB_FORCE_BLANK = fb_off;
 
 reg f60;
-always @(posedge clk_sys) f60 <= fb_en || (fb_width >= 800);
+always @(posedge clk_sys) f60 <= fb_en || (fb_width > 700);
 
 assign DDRAM_ADDR[28:25] = 4'h3;
 
@@ -564,11 +564,9 @@ system system
 	.sound_sample_r       (sb_out_r),
 	.sound_fm_mode        (status[3]),
 	
-	.speaker_enable       (speaker_ena),
 	.speaker_out          (speaker_out),
 
-	.ps2_misc_a20_enable  (),
-	.ps2_misc_reset_n     (ps2_reset_n),
+	.ps2_reset_n          (ps2_reset_n),
 
 	.ps2_kbclk_in         (ps2_kbd_clk_out),
 	.ps2_kbdat_in         (ps2_kbd_data_out),
@@ -586,8 +584,6 @@ system system
 	.joystick_ana_1       (joystick_analog_0),
 	.joystick_ana_2       (joystick_analog_1),
 	.joystick_mode        (status[13:12]),
-
-	.rtc_memcfg           (memcfg),
 
 	.mgmt_readdata        (mgmt_din),
 	.mgmt_writedata       (mgmt_dout),
@@ -607,9 +603,9 @@ system system
 	.serial_dsr_n         (UART_DSR),
 	.serial_rts_n         (UART_RTS),
 	.serial_dtr_n         (UART_DTR),
-	.serial_ri_n          (1),
-	.serial_br_out        (),
 	
+	.memcfg               (memcfg),
+
 	.DDRAM_CLK            (DDRAM_CLK),
 	.DDRAM_ADDR           (DDRAM_ADDR[24:0]),
 	.DDRAM_DIN            (DDRAM_DIN),

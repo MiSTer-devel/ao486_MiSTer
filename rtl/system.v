@@ -36,26 +36,22 @@ module system
 	input         ps2_mousedat_in,
 	output        ps2_mouseclk_out,
 	output        ps2_mousedat_out,
-	output        ps2_misc_a20_enable,
-	output        ps2_misc_reset_n,
+	output        ps2_reset_n,
 
-	input         rtc_memcfg,
+	input         memcfg,
 
 	input         serial_rx,
 	output        serial_tx,
 	input         serial_cts_n,
 	input         serial_dcd_n,
 	input         serial_dsr_n,
-	input         serial_ri_n,
 	output        serial_rts_n,
-	output        serial_br_out,
 	output        serial_dtr_n,
 
 	output [15:0] sound_sample_l,
 	output [15:0] sound_sample_r,
 	input         sound_fm_mode,
 
-	output        speaker_enable,
 	output        speaker_out,
 
 	output        video_ce,
@@ -119,24 +115,19 @@ wire        dma_read;
 wire        dma_readdatavalid;
 wire        dma_write;
 wire  [7:0] dma_writedata;
+
 wire [31:0] mgmt_fdd0_readdata;
-wire  [3:0] mgmt_fdd0_address;
-wire        mgmt_fdd0_read;
-wire        mgmt_fdd0_write;
-wire [31:0] mgmt_fdd0_writedata;
 wire [31:0] mgmt_hdd0_readdata;
-wire  [3:0] mgmt_hdd0_address;
-wire        mgmt_hdd0_read;
-wire        mgmt_hdd0_write;
-wire [31:0] mgmt_hdd0_writedata;
 wire [31:0] mgmt_hdd1_readdata;
-wire  [3:0] mgmt_hdd1_address;
-wire        mgmt_hdd1_read;
-wire        mgmt_hdd1_write;
-wire [31:0] mgmt_hdd1_writedata;
-wire  [7:0] mgmt_rtc_address;
-wire        mgmt_rtc_write;
-wire  [7:0] mgmt_rtc_writedata;
+wire [31:0] mgmt_ctl_writedata;
+wire  [7:0] mgmt_ctl_address;
+wire        mgmt_ctl_read;
+wire        mgmt_ctl_write;
+reg         mgmt_hdd0_cs;
+reg         mgmt_hdd1_cs;
+reg         mgmt_fdd0_cs;
+reg         mgmt_rtc_cs;
+
 wire        interrupt_done;
 wire        interrupt_do;
 wire  [7:0] interrupt_vector;
@@ -418,10 +409,10 @@ floppy floppy0
 	.ide_3f6_write        (ide_3f6_write),
 	.ide_3f6_writedata    (ide_3f6_writedata),
 
-	.mgmt_address         (mgmt_fdd0_address),
-	.mgmt_write           (mgmt_fdd0_write),
-	.mgmt_writedata       (mgmt_fdd0_writedata),
-	.mgmt_read            (mgmt_fdd0_read),
+	.mgmt_address         (mgmt_ctl_address[3:0]),
+	.mgmt_write           (mgmt_ctl_write & mgmt_fdd0_cs),
+	.mgmt_writedata       (mgmt_ctl_writedata),
+	.mgmt_read            (mgmt_ctl_read & mgmt_fdd0_cs),
 	.mgmt_readdata        (mgmt_fdd0_readdata),
 
 	.request              (fdd0_request),
@@ -445,10 +436,10 @@ hdd hdd0
 	.ide_3f6_write     (ide_3f6_write),
 	.ide_3f6_writedata (ide_3f6_writedata),
 
-	.mgmt_address      (mgmt_hdd0_address),
-	.mgmt_write        (mgmt_hdd0_write),
-	.mgmt_writedata    (mgmt_hdd0_writedata),
-	.mgmt_read         (mgmt_hdd0_read),
+	.mgmt_address      (mgmt_ctl_address[3:0]),
+	.mgmt_write        (mgmt_ctl_write & mgmt_hdd0_cs),
+	.mgmt_writedata    (mgmt_ctl_writedata),
+	.mgmt_read         (mgmt_ctl_read & mgmt_hdd0_cs),
 	.mgmt_readdata     (mgmt_hdd0_readdata),
 
 	.request           (hdd0_request),
@@ -472,10 +463,10 @@ hdd hdd1
 	.ide_3f6_write     (ide_370_write),
 	.ide_3f6_writedata (ide_370_writedata),
 
-	.mgmt_address      (mgmt_hdd1_address),
-	.mgmt_write        (mgmt_hdd1_write),
-	.mgmt_writedata    (mgmt_hdd1_writedata),
-	.mgmt_read         (mgmt_hdd1_read),
+	.mgmt_address      (mgmt_ctl_address[3:0]),
+	.mgmt_write        (mgmt_ctl_write & mgmt_hdd1_cs),
+	.mgmt_writedata    (mgmt_ctl_writedata),
+	.mgmt_read         (mgmt_ctl_read & mgmt_hdd1_cs),
 	.mgmt_readdata     (mgmt_hdd1_readdata),
 
 	.request           (hdd1_request),
@@ -533,7 +524,6 @@ pit pit
 	.speaker_61h_readdata  (speaker_61h_readdata),
 	.speaker_61h_write     (speaker_61h_write),
 	.speaker_61h_writedata (speaker_61h_writedata),
-	.speaker_enable        (speaker_enable),
 	.speaker_out           (speaker_out),
 
 	.irq                   (irq_0)
@@ -567,8 +557,8 @@ ps2 ps2
 	.speaker_61h_write     (speaker_61h_write),
 	.speaker_61h_writedata (speaker_61h_writedata),
 
-	.output_a20_enable     (ps2_misc_a20_enable),
-	.output_reset_n        (ps2_misc_reset_n),
+	.output_a20_enable     (),
+	.output_reset_n        (ps2_reset_n),
 	.a20_enable            (a20_enable),
 
 	.irq_keyb              (irq_1),
@@ -588,11 +578,11 @@ rtc rtc
 	.io_write       (iobus_write & rtc_cs),
 	.io_readdata    (rtc_readdata),
 
-	.mgmt_address   (mgmt_rtc_address),
-	.mgmt_write     (mgmt_rtc_write),
-	.mgmt_writedata (mgmt_rtc_writedata),
+	.mgmt_address   (mgmt_ctl_address),
+	.mgmt_write     (mgmt_ctl_write & mgmt_rtc_cs),
+	.mgmt_writedata (mgmt_ctl_writedata[7:0]),
 
-	.rtc_memcfg     (rtc_memcfg),
+	.rtc_memcfg     (memcfg),
 
 	.irq            (irq_8)
 );
@@ -646,10 +636,10 @@ uart uart
 	.cts_n          (serial_cts_n),
 	.dcd_n          (serial_dcd_n),
 	.dsr_n          (serial_dsr_n),
-	.ri_n           (serial_ri_n),
 	.rts_n          (serial_rts_n),
-	.br_out         (serial_br_out),
 	.dtr_n          (serial_dtr_n),
+	.br_out         (),
+	.ri_n           (1),
 
 	.irq_uart       (irq_4),
 	.irq_mpu        (irq_9)
@@ -736,6 +726,14 @@ always @* begin
 	interrupt[15] = irq_15;
 end
 
+
+always @(posedge clk_sys) begin
+	mgmt_hdd0_cs <= (mgmt_address[15:8] == 8'hF0);
+	mgmt_hdd1_cs <= (mgmt_address[15:8] == 8'hF1);
+	mgmt_fdd0_cs <= (mgmt_address[15:8] == 8'hF2);
+	mgmt_rtc_cs  <= (mgmt_address[15:8] == 8'hF4);
+end
+
 mgmt mgmt
 (
 	.clk            (clk_sys),
@@ -747,27 +745,11 @@ mgmt mgmt
 	.in_writedata   (mgmt_writedata),
 	.in_active      (mgmt_active),
 
-	.hdd0_address   (mgmt_hdd0_address),
-	.hdd0_readdata  (mgmt_hdd0_readdata),
-	.hdd0_read      (mgmt_hdd0_read),
-	.hdd0_write     (mgmt_hdd0_write),
-	.hdd0_writedata (mgmt_hdd0_writedata),
-
-	.hdd1_address   (mgmt_hdd1_address),
-	.hdd1_readdata  (mgmt_hdd1_readdata),
-	.hdd1_read      (mgmt_hdd1_read),
-	.hdd1_write     (mgmt_hdd1_write),
-	.hdd1_writedata (mgmt_hdd1_writedata),
-
-	.fdd0_address   (mgmt_fdd0_address),
-	.fdd0_readdata  (mgmt_fdd0_readdata),
-	.fdd0_read      (mgmt_fdd0_read),
-	.fdd0_write     (mgmt_fdd0_write),
-	.fdd0_writedata (mgmt_fdd0_writedata),
-
-	.rtc_address    (mgmt_rtc_address),
-	.rtc_write      (mgmt_rtc_write),
-	.rtc_writedata  (mgmt_rtc_writedata)
+	.out_address    (mgmt_ctl_address),
+	.out_read       (mgmt_ctl_read),
+	.out_write      (mgmt_ctl_write),
+	.out_writedata  (mgmt_ctl_writedata),
+	.out_readdata   (mgmt_hdd0_cs ? mgmt_hdd0_readdata : mgmt_hdd1_cs ? mgmt_hdd1_readdata : mgmt_fdd0_readdata)
 );
 
 endmodule

@@ -44,7 +44,6 @@ module pit(
 	input       [7:0]   speaker_61h_writedata,
 
 	//speaker output
-	output reg          speaker_enable,
 	output              speaker_out,
 
 	input      [27:0]   clock_rate
@@ -113,11 +112,13 @@ always @(posedge clk or negedge rst_n) begin
     else if(speaker_61h_write)  speaker_gate <= speaker_61h_writedata[0];
 end
 
+reg speaker_enable;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)           speaker_enable <= 1'b0;
     else if(speaker_61h_write)  speaker_enable <= speaker_61h_writedata[1];
 end
 
+assign speaker_out = spk_out & speaker_enable;
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
@@ -164,13 +165,14 @@ pit_counter pit_counter_1(
     .data_out           (counter_1_readdata)    //output [7:0]
 );
 
+wire spk_out;
 pit_counter pit_counter_2(
     .clk                (clk),
     .rst_n              (rst_n),
     
     .clock              (system_clock),     //input
     .gate               (speaker_gate),     //input
-    .out                (speaker_out),      //output
+    .out                (spk_out),      //output
     
     .data_in            (io_writedata),                                                                                                                                         //input [7:0]
     .set_control_mode   (io_write && io_address == 2'd3 && io_writedata[7:6] == 2'b10 && io_writedata[5:4] != 2'b00),                                                           //input
