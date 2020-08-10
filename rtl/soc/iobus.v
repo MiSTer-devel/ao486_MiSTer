@@ -21,8 +21,7 @@ module iobus
 	input             bus_io32,
 	output reg  [2:0] bus_datasize,
 	output reg [31:0] bus_writedata,
-	input       [7:0] bus_readdata8,
-	input      [31:0] bus_readdata32
+	input      [31:0] bus_readdata
 );
 
 localparam S_IDLE      = 0;
@@ -85,10 +84,10 @@ always @(posedge clk) begin
 				bus_address <= bus_address + 1'd1;
 				cnt <= cnt + 1'd1;
 				bus_datasize <= bus_datasize - 1'd1;
-				cpu_read_data[{cnt, 3'b000} +:8] <= bus_readdata8;
+				cpu_read_data[{cnt, 3'b000} +:8] <= bus_readdata[7:0];
 				state <= S_READ;
 
-				if(bus_io32) cpu_read_data <= bus_readdata32;
+				if(bus_io32) cpu_read_data <= bus_readdata;
 
 				if(bus_datasize == 1 || bus_io32) begin
 					cpu_read_done <= 1;

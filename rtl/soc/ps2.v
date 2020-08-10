@@ -24,51 +24,56 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-module ps2(
-    input                   clk,
-    input                   rst_n,
-    
-    output reg              irq_keyb,
-    output reg              irq_mouse,
-    
-    //io slave 0x60-0x67
-    input       [2:0]       io_address,
-    input                   io_read,
-    output reg  [7:0]       io_readdata,
-    input                   io_write,
-    input       [7:0]       io_writedata,
-    
-    //io slave 0x90-0x9F
-    input       [3:0]       sysctl_address,
-    input                   sysctl_read,
-    output reg  [7:0]       sysctl_readdata,
-    input                   sysctl_write,
-    input       [7:0]       sysctl_writedata,
-    
-    //speaker port 61h
-    output                  speaker_61h_read,
-    input       [7:0]       speaker_61h_readdata,
-    output                  speaker_61h_write,
-    output      [7:0]       speaker_61h_writedata,
-    
-    //output port
-    output reg              output_a20_enable,
-    output reg              output_reset_n,
-    
-    output                  a20_enable,
+module ps2
+(
+	input                   clk,
+	input                   rst_n,
 
-    //ps2 keyboard
-    input                   ps2_kbclk,
-    input                   ps2_kbdat,
-    output                  ps2_kbclk_out,
-    output                  ps2_kbdat_out,
-    
-    //ps2 mouse
-    input                   ps2_mouseclk,
-    input                   ps2_mousedat,
-    output                  ps2_mouseclk_out,
-    output                  ps2_mousedat_out
+	output reg              irq_keyb,
+	output reg              irq_mouse,
+
+	input       [3:0]       io_address,
+	input                   io_read,
+	output reg  [7:0]       io_readdata,
+	input                   io_write,
+	input       [7:0]       io_writedata,
+
+	input                   io_cs,  //0x60-0x67
+	input                   ctl_cs, //0x90-0x9F
+
+	//speaker port 61h
+	output                  speaker_61h_read,
+	input       [7:0]       speaker_61h_readdata,
+	output                  speaker_61h_write,
+	output      [7:0]       speaker_61h_writedata,
+
+	//output port
+	output reg              output_a20_enable,
+	output reg              output_reset_n,
+
+	output                  a20_enable,
+
+	//ps2 keyboard
+	input                   ps2_kbclk,
+	input                   ps2_kbdat,
+	output                  ps2_kbclk_out,
+	output                  ps2_kbdat_out,
+
+	//ps2 mouse
+	input                   ps2_mouseclk,
+	input                   ps2_mousedat,
+	output                  ps2_mouseclk_out,
+	output                  ps2_mousedat_out
 );
+
+wire io_m_read    = io_read  & io_cs;
+wire io_m_write   = io_write & io_cs;
+wire sysctl_write = io_write & ctl_cs;
+
+always @(posedge clk) begin
+    if(io_cs) io_readdata <= io_readdata_next;
+    else      io_readdata <= sysctl_readdata_next;
+end
 
 //------------------------------------------------------------------------------
 
@@ -76,21 +81,21 @@ reg io_read_last;
 always @(posedge clk or negedge rst_n) begin
 	if(rst_n == 1'b0)     io_read_last <= 1'b0;
 	else if(io_read_last) io_read_last <= 1'b0;
-	else                  io_read_last <= io_read;
+	else                  io_read_last <= io_m_read;
 end
-wire io_read_valid = io_read && ~io_read_last;
+wire io_read_valid = io_m_read && ~io_read_last;
 
 //------------------------------------------------------------------------------
 
-assign speaker_61h_read         = io_read_valid && io_address == 3'd1;
-assign speaker_61h_write        = io_write && io_address == 3'd1;
+assign speaker_61h_read         = io_read_valid && io_address[2:0] == 3'd1;
+assign speaker_61h_write        = io_m_write && io_address[2:0] == 3'd1;
 assign speaker_61h_writedata    = io_writedata;
 
 //------------------------------------------------------------------------------ io read
 
 wire [7:0] io_readdata_next =
-    (io_read_valid && io_address == 3'd1)?        speaker_61h_readdata :
-    (io_read_valid && io_address == 3'd4)? {
+    (io_read_valid && io_address[2:0] == 3'd1)?        speaker_61h_readdata :
+    (io_read_valid && io_address[2:0] == 3'd4)? {
         status_keyboardparityerror,
         status_timeout,
         ~(mouse_fifo_empty),
@@ -103,40 +108,31 @@ wire [7:0] io_readdata_next =
     (status_mousebufferfull)?               mouse_fifo_q :
                                             keyb_fifo_q_final;
 
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)   io_readdata <= 8'd0;
-    else                io_readdata <= io_readdata_next;
-end
-
 //------------------------------------------------------------------------------ sysctl read
 
 wire [7:0] sysctl_readdata_next =
-    (sysctl_address == 4'h2)?       { 6'd0, output_a20_enable, 1'b0 } :
+    (io_address == 4'h2)?       { 6'd0, output_a20_enable, 1'b0 } :
                                     8'hFF;
 
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)   sysctl_readdata <= 8'd0;
-    else                sysctl_readdata <= sysctl_readdata_next;
-end
 
 //------------------------------------------------------------------------------ output
 
 assign a20_enable = output_a20_enable;
 
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                   output_a20_enable <= 1'b1;
-    else if(cmd_write_output_port)                      output_a20_enable <= io_writedata[1];
-    else if(cmd_disable_a20)                            output_a20_enable <= 1'b0;
-    else if(cmd_enable_a20)                             output_a20_enable <= 1'b1;
-    else if(sysctl_write && sysctl_address == 4'h2)     output_a20_enable <= sysctl_writedata[1];
+    if(rst_n == 1'b0)                               output_a20_enable <= 1'b1;
+    else if(cmd_write_output_port)                  output_a20_enable <= io_writedata[1];
+    else if(cmd_disable_a20)                        output_a20_enable <= 1'b0;
+    else if(cmd_enable_a20)                         output_a20_enable <= 1'b1;
+    else if(sysctl_write && io_address == 4'h2)     output_a20_enable <= io_writedata[1];
 end
 
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                       output_reset_n <= 1'b1;
-    else if(cmd_write_output_port)                                          output_reset_n <= io_writedata[0];
-    else if(cmd_reset)                                                      output_reset_n <= 1'b0;
-    else if(sysctl_write && sysctl_address == 4'h2 && sysctl_writedata[0])  output_reset_n <= 1'b0;
-    else                                                                    output_reset_n <= 1'b1;
+    if(rst_n == 1'b0)                                               output_reset_n <= 1'b1;
+    else if(cmd_write_output_port)                                  output_reset_n <= io_writedata[0];
+    else if(cmd_reset)                                              output_reset_n <= 1'b0;
+    else if(sysctl_write && io_address == 4'h2 && io_writedata[0])  output_reset_n <= 1'b0;
+    else                                                            output_reset_n <= 1'b1;
 end
 
 //------------------------------------------------------------------------------
@@ -145,21 +141,21 @@ reg status_keyboardparityerror;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                                       status_keyboardparityerror <= 1'b0;
     else if(keyb_recv_parity_err || mouse_recv_parity_err)  status_keyboardparityerror <= 1'b1;
-    else if(io_read_valid && io_address == 3'd4)            status_keyboardparityerror <= 1'b0;
+    else if(io_read_valid && io_address[2:0] == 3'd4)       status_keyboardparityerror <= 1'b0;
 end
 
 reg status_timeout;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                                   status_timeout <= 1'b0;
     else if(keyb_timeout_reset || mouse_timeout_reset)  status_timeout <= 1'b1;
-    else if(io_read_valid && io_address == 3'd4)        status_timeout <= 1'b0;
+    else if(io_read_valid && io_address[2:0] == 3'd4)   status_timeout <= 1'b0;
 end
 
 reg status_lastcommand;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                           status_lastcommand <= 1'b1;
-    else if(io_write && io_address == 3'd0)     status_lastcommand <= 1'b0;
-    else if(io_write && io_address == 3'd4)     status_lastcommand <= 1'b1;
+    else if(io_m_write && io_address[2:0] == 3'd0)     status_lastcommand <= 1'b0;
+    else if(io_m_write && io_address[2:0] == 3'd4)     status_lastcommand <= 1'b1;
 end
 
 reg translate;
@@ -217,14 +213,14 @@ end
 
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                                                                                       irq_keyb <= 1'b0;
-    else if(io_read_valid && io_address == 3'd0 && status_outputbufferfull && ~(status_mousebufferfull))    irq_keyb <= 1'b0;
+    else if(io_read_valid && io_address[2:0] == 3'd0 && status_outputbufferfull && ~(status_mousebufferfull))    irq_keyb <= 1'b0;
     else if(allow_irq_keyb && status_outputbufferfull && ~(status_mousebufferfull))                         irq_keyb <= 1'b1;
 end
 
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                       irq_mouse <= 1'b0;
-    else if(io_read_valid && io_address == 3'd0 && status_mousebufferfull)  irq_mouse <= 1'b0;
-    else if(allow_irq_mouse && status_mousebufferfull)                      irq_mouse <= 1'b1;
+    if(rst_n == 1'b0)                                                           irq_mouse <= 1'b0;
+    else if(io_read_valid && io_address[2:0] == 3'd0 && status_mousebufferfull) irq_mouse <= 1'b0;
+    else if(allow_irq_mouse && status_mousebufferfull)                          irq_mouse <= 1'b1;
 end
 
 wire outputbuffer_idle = ~(status_mousebufferfull) && ~(status_outputbufferfull);
@@ -232,14 +228,14 @@ wire outputbuffer_idle = ~(status_mousebufferfull) && ~(status_outputbufferfull)
 reg status_mousebufferfull;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                                   status_mousebufferfull <= 1'b0;
-    else if(io_read_valid && io_address == 3'd0)        status_mousebufferfull <= 1'b0;
+    else if(io_read_valid && io_address[2:0] == 3'd0)   status_mousebufferfull <= 1'b0;
     else if(outputbuffer_idle && ~(mouse_fifo_empty))   status_mousebufferfull <= 1'b1;
 end
 
 reg status_outputbufferfull;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                                                           status_outputbufferfull <= 1'b0;
-    else if(io_read_valid && io_address == 3'd0)                                status_outputbufferfull <= 1'b0;
+    else if(io_read_valid && io_address[2:0] == 3'd0)                           status_outputbufferfull <= 1'b0;
     else if(outputbuffer_idle && (~(mouse_fifo_empty) || ~(keyb_fifo_empty)))   status_outputbufferfull <= 1'b1;
 end
 
@@ -247,19 +243,19 @@ end
 
 reg expecting_port_60h;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                           expecting_port_60h <= 1'b0;
-    else if(io_write && io_address == 3'd0)     expecting_port_60h <= 1'b0;
-    else if(cmd_with_param_first_byte)          expecting_port_60h <= 1'b1;
-    else if(io_write && io_address == 3'd4)     expecting_port_60h <= 1'b0;
+    if(rst_n == 1'b0)                              expecting_port_60h <= 1'b0;
+    else if(io_m_write && io_address[2:0] == 3'd0) expecting_port_60h <= 1'b0;
+    else if(cmd_with_param_first_byte)             expecting_port_60h <= 1'b1;
+    else if(io_m_write && io_address[2:0] == 3'd4) expecting_port_60h <= 1'b0;
 end
 
 reg [7:0] last_command;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                           last_command <= 8'h00;
-    else if(io_write && io_address == 3'd4)     last_command <= io_writedata;
+    if(rst_n == 1'b0)                              last_command <= 8'h00;
+    else if(io_m_write && io_address[2:0] == 3'd4) last_command <= io_writedata;
 end
 
-wire cmd_with_param_first_byte  = io_write && io_address == 3'd4 && (
+wire cmd_with_param_first_byte  = io_m_write && io_address[2:0] == 3'd4 && (
     io_writedata == 8'h60 || //write command byte
     io_writedata == 8'hCB || //write keyboard controller mode
     io_writedata == 8'hD1 || //write output port
@@ -268,8 +264,8 @@ wire cmd_with_param_first_byte  = io_write && io_address == 3'd4 && (
     io_writedata == 8'hD2    //write keyboard output buffer
 );
 
-wire cmd_with_param             = io_write && io_address == 3'd0 && expecting_port_60h && ~(status_inputbufferfull);
-wire cmd_without_param          = io_write && io_address == 3'd4 && ~(cmd_with_param_first_byte);
+wire cmd_with_param             = io_m_write && io_address[2:0] == 3'd0 && expecting_port_60h && ~(status_inputbufferfull);
+wire cmd_without_param          = io_m_write && io_address[2:0] == 3'd4 && ~(cmd_with_param_first_byte);
 
 wire cmd_write_command_byte     = cmd_with_param && last_command == 8'h60;
 wire cmd_write_output_port      = cmd_with_param && last_command == 8'hD1;
@@ -358,7 +354,7 @@ end
 
 //------------------------------------------------------------------------------ write to device
 
-wire write_to_keyb  = io_write && io_address == 3'd0 && ~(expecting_port_60h) && ~(status_inputbufferfull);
+wire write_to_keyb  = io_m_write && io_address[2:0] == 3'd0 && ~(expecting_port_60h) && ~(status_inputbufferfull);
 wire write_to_mouse = cmd_write_to_mouse;
 
 reg status_inputbufferfull;
@@ -643,7 +639,7 @@ keyb_fifo(
     .full       (keyb_fifo_full),                                                                                               //output
     .usedw      (keyb_fifo_usedw),                                                                                              //output [5:0]
     
-    .rdreq      (io_read_valid && io_address == 3'd0 && status_outputbufferfull && ~(status_mousebufferfull)),                  //input
+    .rdreq      (io_read_valid && io_address[2:0] == 3'd0 && status_outputbufferfull && ~(status_mousebufferfull)),                  //input
     .q          (keyb_fifo_q),                                                                                                  //output [7:0]
     .empty      (keyb_fifo_empty)                                                                                               //output
 );
@@ -837,16 +833,11 @@ mouse_fifo(
     .full       (mouse_fifo_full),                                              //output
     .usedw      (mouse_fifo_usedw),                                             //output [5:0]
     
-    .rdreq      (io_read_valid && io_address == 3'd0 && status_mousebufferfull),//input
+    .rdreq      (io_read_valid && io_address[2:0] == 3'd0 && status_mousebufferfull),//input
     .q          (mouse_fifo_q),                                                 //output [7:0]
     .empty      (mouse_fifo_empty)                                              //output
 );
 
-//------------------------------------------------------------------------------
-
-// synthesis translate_off
-wire _unused_ok = &{ 1'b0, sysctl_read, sysctl_writedata[7:2], 1'b0 };
-// synthesis translate_on
 
 //------------------------------------------------------------------------------
 

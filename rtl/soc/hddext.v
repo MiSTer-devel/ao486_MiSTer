@@ -35,9 +35,6 @@ wire [7:0] io_readdata_prepare =
     (io_address == 3'd6)?   ide_3f6_readdata :
                             8'hFF;
 							
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)   io_readdata <= 8'd0;
-    else                io_readdata <= io_readdata_prepare;
-end
+always @(posedge clk) io_readdata <= io_readdata_prepare;
 
 endmodule

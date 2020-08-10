@@ -128,15 +128,8 @@ wire [31:0] io_readdata_next =
     (io_read_valid && io_address == 7) ? status_value          :
 	                                      32'd0; //used
 
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)   io_readdata <= 32'b0;
-    else                io_readdata <= present ? io_readdata_next : 32'hFFFFFFFF;
-end
-
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)   ide_3f6_readdata <= 8'b0;
-    else                ide_3f6_readdata <= present ? status_value : 8'hFF;
-end
+always @(posedge clk) io_readdata <= present ? io_readdata_next : 32'hFFFFFFFF;
+always @(posedge clk) ide_3f6_readdata <= present ? status_value : 8'hFF;
 
 //------------------------------------------------------------------------------ media management
 

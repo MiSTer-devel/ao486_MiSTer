@@ -31,27 +31,24 @@ module sound(
 
 	output              irq,
 
-	//io slave 220h-22Fh
-	input       [3:0]   io_address,
-	input               io_read,
-	output      [7:0]   io_readdata,
-	input               io_write,
-	input       [7:0]   io_writedata,
+	
+	input       [3:0]   address,
+	input               read,
+	output reg  [7:0]   readdata,
+	input               write,
+	input       [7:0]   writedata,
 
-	//fm music io slave 388h-38Bh
-	input       [1:0]   fm_address,
-	input               fm_read,
-	output      [7:0]   fm_readdata,
-	input               fm_write,
-	input       [7:0]   fm_writedata,
+	input               sb_cs,   //220h-22Fh
+	input               fm_cs,   //388h-38Bh (228h-229h)
+
 	input               fm_mode,
 
 	//dma
-	output              dma_soundblaster_req,
-	input               dma_soundblaster_ack,
-	input               dma_soundblaster_terminal,
-	input       [7:0]   dma_soundblaster_readdata,
-	output      [7:0]   dma_soundblaster_writedata,
+	output              dma_req,
+	input               dma_ack,
+	input               dma_terminal,
+	input       [7:0]   dma_readdata,
+	output      [7:0]   dma_writedata,
 
 	//sound output
 	output     [15:0]   sample_l,
@@ -59,6 +56,13 @@ module sound(
 
 	input      [27:0]   clock_rate
 );
+
+wire sb_read  = read  & sb_cs;
+wire sb_write = write & sb_cs;
+wire fm_read  = read  & fm_cs;
+wire fm_write = write & fm_cs;
+
+always @(posedge clk) readdata <= (address == 8) ? opl_dout : (address == 9) ? 8'hFF : data_from_dsp;
 
 //------------------------------------------------------------------------------
 
@@ -79,54 +83,50 @@ end
 
 //------------------------------------------------------------------------------ dsp
 
-wire [7:0] io_readdata_from_dsp;
+wire [7:0] data_from_dsp;
 
-wire       sample_from_dsp_disabled;
-wire       sample_from_dsp_do;
-wire [7:0] sample_from_dsp_value;
+wire       dsp_disabled;
+wire       dsp_do;
+wire [7:0] dsp_value;
 
 sound_dsp sound_dsp_inst(
-    .clk                        (clk),
-    .rst_n                      (rst_n),
+    .clk             (clk),
+    .rst_n           (rst_n),
     
-    .ce_1us                     (ce_1us),
+    .ce_1us          (ce_1us),
 
-    .irq                        (irq),                          //output
+    .irq             (irq),           //output
     
     //io slave 220h-22Fh
-    .io_address                 (io_address),                   //input [3:0]
-    .io_read                    (io_read),                      //input
-    .io_readdata_from_dsp       (io_readdata_from_dsp),         //output [7:0]
-    .io_write                   (io_write),                     //input
-    .io_writedata               (io_writedata),                 //input [7:0]
+    .io_address      (address),       //input [3:0]
+    .io_read         (sb_read),       //input
+    .io_readdata     (data_from_dsp), //output [7:0]
+    .io_write        (sb_write),      //input
+    .io_writedata    (writedata),     //input [7:0]
     
     //dma
-    .dma_soundblaster_req       (dma_soundblaster_req),         //output
-    .dma_soundblaster_ack       (dma_soundblaster_ack),         //input
-    .dma_soundblaster_terminal  (dma_soundblaster_terminal),    //input
-    .dma_soundblaster_readdata  (dma_soundblaster_readdata),    //input [7:0]
-    .dma_soundblaster_writedata (dma_soundblaster_writedata),   //output [7:0]
+    .dma_req         (dma_req),       //output
+    .dma_ack         (dma_ack),       //input
+    .dma_terminal    (dma_terminal),  //input
+    .dma_readdata    (dma_readdata),  //input [7:0]
+    .dma_writedata   (dma_writedata), //output [7:0]
     
     //sample
-    .sample_from_dsp_disabled   (sample_from_dsp_disabled),     //output
-    .sample_from_dsp_do         (sample_from_dsp_do),           //output
-    .sample_from_dsp_value      (sample_from_dsp_value)         //output [7:0] unsigned
+    .sample_disabled (dsp_disabled),  //output
+    .sample_do       (dsp_do),        //output
+    .sample_value    (dsp_value)      //output [7:0] unsigned
 );
 
 //------------------------------------------------------------------------------ opl
 
-wire  [7:0] sb_readdata_from_opl;
-
-wire        sample_from_opl;
 wire [15:0] sample_from_opl_l;
 wire [15:0] sample_from_opl_r;
-
 wire  [7:0] opl_dout;
 
-wire opl_we = (           io_address[2:1] == 0 && io_write)
-           || (             fm_address[1] == 0 && fm_write)
-           || (fm_mode && io_address[3:1] == 1 && io_write)
-           || (fm_mode &&   fm_address[1] == 1 && fm_write);
+wire opl_we = (           address[2:1] == 0 && sb_write)
+           || (             address[1] == 0 && fm_write)
+           || (fm_mode && address[3:1] == 1 && sb_write)
+           || (fm_mode &&   address[1] == 1 && fm_write);
 
 opl3 #(50000000) opl
 (
@@ -136,30 +136,23 @@ opl3 #(50000000) opl
 
 	.ce_1us(ce_1us),
 
-	.addr(io_write ? io_address[1:0] : fm_address),
-	.din(io_write  ? io_writedata    : fm_writedata),
+	.addr(address[1:0]),
+	.din(writedata),
 	.dout(opl_dout),
 	.we(opl_we),
-	.rd((io_read && (io_address == 8)) || (fm_read && !fm_address)),
+	.rd((sb_read || fm_read) && (address == 8)),
 
 	.sample_l(sample_from_opl_l),
 	.sample_r(sample_from_opl_r)
 );
 
-assign sb_readdata_from_opl = (io_address == 8) ? opl_dout : 8'hFF;
-assign fm_readdata          = !fm_address       ? opl_dout : 8'hFF;
-
-//------------------------------------------------------------------------------ io_readdata
-
-assign io_readdata = (io_address == 8 || io_address == 9) ? sb_readdata_from_opl : io_readdata_from_dsp;
-
 //------------------------------------------------------------------------------
 
 reg [15:0] sample_dsp;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 0)                      sample_dsp <= 0;
-    else if(sample_from_dsp_disabled)   sample_dsp <= 0;
-    else if(sample_from_dsp_do)         sample_dsp <= {~sample_from_dsp_value[7], sample_from_dsp_value[6:0], sample_from_dsp_value};  //unsigned to signed
+    if(rst_n == 0)        sample_dsp <= 0;
+    else if(dsp_disabled) sample_dsp <= 0;
+    else if(dsp_do)       sample_dsp <= {~dsp_value[7], dsp_value[6:0], dsp_value};  //unsigned to signed
 end
 
 assign sample_l = {{2{sample_dsp[15]}}, sample_dsp[15:2]} + {sample_from_opl_l[15], sample_from_opl_l[15:1]};

@@ -25,31 +25,35 @@
  */
 
 module pic(
-    input               clk,
-    input               rst_n,
-    
-    //master pic
-    input               master_address,
-    input               master_read,
-    output reg  [7:0]   master_readdata,
-    input               master_write,
-    input       [7:0]   master_writedata,
-    
-    //slave pic
-    input               slave_address,
-    input               slave_read,
-    output reg  [7:0]   slave_readdata,
-    input               slave_write,
-    input       [7:0]   slave_writedata,
-    
-    //interrupt input
-    input       [15:0]  interrupt_input,
-    
-    //interrupt output
-    output reg          interrupt_do,
-    output reg  [7:0]   interrupt_vector,
-    input               interrupt_done
+	input               clk,
+	input               rst_n,
+
+	input               io_address,
+	input               io_read,
+	output reg  [7:0]   io_readdata,
+	input               io_write,
+	input       [7:0]   io_writedata,
+	input               io_master_cs,
+	input               io_slave_cs,
+
+	//interrupt input
+	input       [15:0]  interrupt_input,
+
+	//interrupt output
+	output reg          interrupt_do,
+	output reg  [7:0]   interrupt_vector,
+	input               interrupt_done
 );
+
+wire master_read  = io_read  & io_master_cs;
+wire master_write = io_write & io_master_cs;
+wire slave_read   = io_read  & io_slave_cs;
+wire slave_write  = io_write & io_slave_cs;
+
+always @(posedge clk) begin
+    if(io_master_cs) io_readdata <= mas_readdata_prepared;
+    else             io_readdata <= sla_readdata_prepared;
+end
 
 //------------------------------------------------------------------------------
 
@@ -72,57 +76,47 @@ end
 //------------------------------------------------------------------------------
 
 wire [7:0] sla_readdata_prepared =
-    (sla_polled)?                                               { sla_current_irq, 4'd0, sla_irq_value } :
-    (slave_address == 1'b0 && sla_read_reg_select == 1'b0)?     sla_irr :
-    (slave_address == 1'b0 && sla_read_reg_select == 1'b1)?     sla_isr :
-                                                                sla_imr;
-
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)   slave_readdata <= 8'd0;
-    else                slave_readdata <= sla_readdata_prepared;
-end
+    (sla_polled)?                                          { sla_current_irq, 4'd0, sla_irq_value } :
+    (io_address == 1'b0 && sla_read_reg_select == 1'b0)?     sla_irr :
+    (io_address == 1'b0 && sla_read_reg_select == 1'b1)?     sla_isr :
+                                                             sla_imr;
 
 wire [7:0] mas_readdata_prepared =
-    (mas_polled)?                                               { mas_current_irq, 4'd0, mas_irq_value } :
-    (master_address == 1'b0 && mas_read_reg_select == 1'b0)?    mas_irr :
-    (master_address == 1'b0 && mas_read_reg_select == 1'b1)?    mas_isr :
-                                                                mas_imr;
-
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)   master_readdata <= 8'd0;
-    else                master_readdata <= mas_readdata_prepared;
-end
+    (mas_polled)?                                         { mas_current_irq, 4'd0, mas_irq_value } :
+    (io_address == 1'b0 && mas_read_reg_select == 1'b0)?    mas_irr :
+    (io_address == 1'b0 && mas_read_reg_select == 1'b1)?    mas_isr :
+                                                            mas_imr;
 
 //------------------------------------------------------------------------------
 
-wire sla_init_icw1 = slave_write && slave_address == 1'b0 && slave_writedata[4] == 1'b1;
-wire sla_init_icw2 = slave_write && slave_address == 1'b1 && sla_in_init && sla_init_byte_expected == 3'd2;
-wire sla_init_icw3 = slave_write && slave_address == 1'b1 && sla_in_init && sla_init_byte_expected == 3'd3;
-wire sla_init_icw4 = slave_write && slave_address == 1'b1 && sla_in_init && sla_init_byte_expected == 3'd4;
+wire sla_init_icw1 = slave_write && io_address == 1'b0 && io_writedata[4] == 1'b1;
+wire sla_init_icw2 = slave_write && io_address == 1'b1 && sla_in_init && sla_init_byte_expected == 3'd2;
+wire sla_init_icw3 = slave_write && io_address == 1'b1 && sla_in_init && sla_init_byte_expected == 3'd3;
+wire sla_init_icw4 = slave_write && io_address == 1'b1 && sla_in_init && sla_init_byte_expected == 3'd4;
 
-wire sla_ocw1 = sla_in_init == 1'b0 && slave_write && slave_address == 1'b1;
-wire sla_ocw2 = slave_write && slave_address == 1'b0 && slave_writedata[4:3] == 2'b00;
-wire sla_ocw3 = slave_write && slave_address == 1'b0 && slave_writedata[4:3] == 2'b01;
+wire sla_ocw1 = sla_in_init == 1'b0 && slave_write && io_address == 1'b1;
+wire sla_ocw2 = slave_write && io_address == 1'b0 && io_writedata[4:3] == 2'b00;
+wire sla_ocw3 = slave_write && io_address == 1'b0 && io_writedata[4:3] == 2'b01;
 
 reg sla_polled;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                       sla_polled <= 1'b0;
     else if(sla_polled && slave_read_valid) sla_polled <= 1'b0;
-    else if(sla_ocw3)                       sla_polled <= slave_writedata[2];
+    else if(sla_ocw3)                       sla_polled <= io_writedata[2];
 end
 
 reg sla_read_reg_select;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                       sla_read_reg_select <= 1'b0;
-    else if(sla_init_icw1)                                                  sla_read_reg_select <= 1'b0;
-    else if(sla_ocw3 && slave_writedata[2] == 1'b0 && slave_writedata[1])   sla_read_reg_select <= slave_writedata[0];
+    if(rst_n == 1'b0)                                                 sla_read_reg_select <= 1'b0;
+    else if(sla_init_icw1)                                            sla_read_reg_select <= 1'b0;
+    else if(sla_ocw3 && io_writedata[2] == 1'b0 && io_writedata[1])   sla_read_reg_select <= io_writedata[0];
 end
 
 reg sla_special_mask;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                                                       sla_special_mask <= 1'd0;
-    else if(sla_init_icw1)                                                  sla_special_mask <= 1'd0;
-    else if(sla_ocw3 && slave_writedata[2] == 1'b0 && slave_writedata[6])   sla_special_mask <= slave_writedata[5];
+    if(rst_n == 1'b0)                                                 sla_special_mask <= 1'd0;
+    else if(sla_init_icw1)                                            sla_special_mask <= 1'd0;
+    else if(sla_ocw3 && io_writedata[2] == 1'b0 && io_writedata[6])   sla_special_mask <= io_writedata[5];
 end
 
 reg sla_in_init;
@@ -136,13 +130,13 @@ end
 reg sla_init_requires_4;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)       sla_init_requires_4 <= 1'b0;
-    else if(sla_init_icw1)  sla_init_requires_4 <= slave_writedata[0];
+    else if(sla_init_icw1)  sla_init_requires_4 <= io_writedata[0];
 end
 
 reg sla_ltim;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)       sla_ltim <= 1'b0;
-    else if(sla_init_icw1)  sla_ltim <= slave_writedata[3];
+    else if(sla_init_icw1)  sla_ltim <= io_writedata[3];
 end
 
 reg [2:0] sla_init_byte_expected;
@@ -157,9 +151,9 @@ reg [2:0] sla_lowest_priority;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                                                           sla_lowest_priority <= 3'd7;
     else if(sla_init_icw1)                                                      sla_lowest_priority <= 3'd7;
-    else if(sla_ocw2 && slave_writedata == 8'hA0)                               sla_lowest_priority <= sla_lowest_priority + 3'd1;  //rotate on non-specific EOI
-    else if(sla_ocw2 && { slave_writedata[7:3], 3'b000 } == 8'hC0)              sla_lowest_priority <= slave_writedata[2:0];        //set priority
-    else if(sla_ocw2 && { slave_writedata[7:3], 3'b000 } == 8'hE0)              sla_lowest_priority <= slave_writedata[2:0];        //rotate on specific EOI
+    else if(sla_ocw2 && io_writedata == 8'hA0)                                  sla_lowest_priority <= sla_lowest_priority + 3'd1;  //rotate on non-specific EOI
+    else if(sla_ocw2 && { io_writedata[7:3], 3'b000 } == 8'hC0)                 sla_lowest_priority <= io_writedata[2:0];        //set priority
+    else if(sla_ocw2 && { io_writedata[7:3], 3'b000 } == 8'hE0)                 sla_lowest_priority <= io_writedata[2:0];        //rotate on specific EOI
     else if(sla_acknowledge_not_spurious && sla_auto_eoi && sla_rotate_on_aeoi) sla_lowest_priority <= sla_lowest_priority + 3'd1;  //rotate on AEOI
 end
 
@@ -167,7 +161,7 @@ reg [7:0] sla_imr;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)           sla_imr <= 8'hFF;
     else if(sla_init_icw1)      sla_imr <= 8'h00;
-    else if(sla_ocw1)           sla_imr <= slave_writedata;
+    else if(sla_ocw1)           sla_imr <= io_writedata;
 end
 
 wire [7:0] sla_edge_detect = {
@@ -190,25 +184,25 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 wire [7:0] sla_writedata_mask =
-    (slave_writedata[2:0] == 3'd0)?     8'b00000001 :
-    (slave_writedata[2:0] == 3'd1)?     8'b00000010 :
-    (slave_writedata[2:0] == 3'd2)?     8'b00000100 :
-    (slave_writedata[2:0] == 3'd3)?     8'b00001000 :
-    (slave_writedata[2:0] == 3'd4)?     8'b00010000 :
-    (slave_writedata[2:0] == 3'd5)?     8'b00100000 :
-    (slave_writedata[2:0] == 3'd6)?     8'b01000000 :
+    (io_writedata[2:0] == 3'd0)?     8'b00000001 :
+    (io_writedata[2:0] == 3'd1)?     8'b00000010 :
+    (io_writedata[2:0] == 3'd2)?     8'b00000100 :
+    (io_writedata[2:0] == 3'd3)?     8'b00001000 :
+    (io_writedata[2:0] == 3'd4)?     8'b00010000 :
+    (io_writedata[2:0] == 3'd5)?     8'b00100000 :
+    (io_writedata[2:0] == 3'd6)?     8'b01000000 :
                                         8'b10000000;
 
 wire sla_isr_clear = 
     (sla_polled && slave_read_valid) || //polling
-    (sla_ocw2 && (slave_writedata == 8'h20 || slave_writedata == 8'hA0)); //non-specific EOI or rotate on non-specific EOF
+    (sla_ocw2 && (io_writedata == 8'h20 || io_writedata == 8'hA0)); //non-specific EOI or rotate on non-specific EOF
                                         
 reg [7:0] sla_isr;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                                               sla_isr <= 8'h00;
     else if(sla_init_icw1)                                          sla_isr <= 8'h00;
-    else if(sla_ocw2 && { slave_writedata[7:3], 3'b000 } == 8'h60)  sla_isr <= sla_isr & ~(sla_writedata_mask);                     //clear on specific EOI
-    else if(sla_ocw2 && { slave_writedata[7:3], 3'b000 } == 8'hE0)  sla_isr <= sla_isr & ~(sla_writedata_mask);                     //clear on rotate on specific EOI
+    else if(sla_ocw2 && { io_writedata[7:3], 3'b000 } == 8'h60)  sla_isr <= sla_isr & ~(sla_writedata_mask);                     //clear on specific EOI
+    else if(sla_ocw2 && { io_writedata[7:3], 3'b000 } == 8'hE0)  sla_isr <= sla_isr & ~(sla_writedata_mask);                     //clear on rotate on specific EOI
     else if(sla_isr_clear)                                          sla_isr <= sla_isr & ~(sla_selected_shifted_isr_first_bits);    //clear on polling or non-specific EOI (with or without rotate)
     else if(sla_acknowledge_not_spurious && ~(sla_auto_eoi))        sla_isr <= sla_isr | interrupt_vector_bits;                     //set
 end
@@ -216,21 +210,21 @@ end
 reg [4:0] sla_interrupt_offset;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)       sla_interrupt_offset <= 5'h0E;
-    else if(sla_init_icw2)  sla_interrupt_offset <= slave_writedata[7:3];
+    else if(sla_init_icw2)  sla_interrupt_offset <= io_writedata[7:3];
 end
 
 reg sla_auto_eoi;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)       sla_auto_eoi <= 1'b0;
     else if(sla_init_icw1)  sla_auto_eoi <= 1'b0;
-    else if(sla_init_icw4)  sla_auto_eoi <= slave_writedata[1];
+    else if(sla_init_icw4)  sla_auto_eoi <= io_writedata[1];
 end
 
 reg sla_rotate_on_aeoi;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                                   sla_rotate_on_aeoi <= 1'b0;
     else if(sla_init_icw1)                              sla_rotate_on_aeoi <= 1'b0;
-    else if(sla_ocw2 && slave_writedata[6:0] == 7'd0)   sla_rotate_on_aeoi <= slave_writedata[7];
+    else if(sla_ocw2 && io_writedata[6:0] == 7'd0)   sla_rotate_on_aeoi <= io_writedata[7];
 end
 
 wire [7:0] sla_selected_prepare = sla_irr & ~(sla_imr) & ~(sla_isr);
@@ -320,34 +314,34 @@ end
 
 //------------------------------------------------------------------------------
 
-wire mas_init_icw1 = master_write && master_address == 1'b0 && master_writedata[4] == 1'b1;
-wire mas_init_icw2 = master_write && master_address == 1'b1 && mas_in_init && mas_init_byte_expected == 3'd2;
-wire mas_init_icw3 = master_write && master_address == 1'b1 && mas_in_init && mas_init_byte_expected == 3'd3;
-wire mas_init_icw4 = master_write && master_address == 1'b1 && mas_in_init && mas_init_byte_expected == 3'd4;
+wire mas_init_icw1 = master_write && io_address == 1'b0 && io_writedata[4] == 1'b1;
+wire mas_init_icw2 = master_write && io_address == 1'b1 && mas_in_init && mas_init_byte_expected == 3'd2;
+wire mas_init_icw3 = master_write && io_address == 1'b1 && mas_in_init && mas_init_byte_expected == 3'd3;
+wire mas_init_icw4 = master_write && io_address == 1'b1 && mas_in_init && mas_init_byte_expected == 3'd4;
 
-wire mas_ocw1 = mas_in_init == 1'b0 && master_write && master_address == 1'b1;
-wire mas_ocw2 = master_write && master_address == 1'b0 && master_writedata[4:3] == 2'b00;
-wire mas_ocw3 = master_write && master_address == 1'b0 && master_writedata[4:3] == 2'b01;
+wire mas_ocw1 = mas_in_init == 1'b0 && master_write && io_address == 1'b1;
+wire mas_ocw2 = master_write && io_address == 1'b0 && io_writedata[4:3] == 2'b00;
+wire mas_ocw3 = master_write && io_address == 1'b0 && io_writedata[4:3] == 2'b01;
 
 reg mas_polled;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                           mas_polled <= 1'b0;
     else if(mas_polled && master_read_valid)    mas_polled <= 1'b0;
-    else if(mas_ocw3)                           mas_polled <= master_writedata[2];
+    else if(mas_ocw3)                           mas_polled <= io_writedata[2];
 end
 
 reg mas_read_reg_select;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                                                       mas_read_reg_select <= 1'b0;
     else if(mas_init_icw1)                                                  mas_read_reg_select <= 1'b0;
-    else if(mas_ocw3 && master_writedata[2] == 1'b0 && master_writedata[1]) mas_read_reg_select <= master_writedata[0];
+    else if(mas_ocw3 && io_writedata[2] == 1'b0 && io_writedata[1]) mas_read_reg_select <= io_writedata[0];
 end
 
 reg mas_special_mask;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                                                       mas_special_mask <= 1'd0;
     else if(mas_init_icw1)                                                  mas_special_mask <= 1'd0;
-    else if(mas_ocw3 && master_writedata[2] == 1'b0 && master_writedata[6]) mas_special_mask <= master_writedata[5];
+    else if(mas_ocw3 && io_writedata[2] == 1'b0 && io_writedata[6]) mas_special_mask <= io_writedata[5];
 end
 
 reg mas_in_init;
@@ -361,13 +355,13 @@ end
 reg mas_init_requires_4;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)       mas_init_requires_4 <= 1'b0;
-    else if(mas_init_icw1) mas_init_requires_4 <= master_writedata[0];
+    else if(mas_init_icw1) mas_init_requires_4 <= io_writedata[0];
 end
 
 reg mas_ltim;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)      	mas_ltim <= 1'b0;
-    else if(mas_init_icw1) 	mas_ltim <= master_writedata[3];
+    else if(mas_init_icw1) 	mas_ltim <= io_writedata[3];
 end
 
 reg [2:0] mas_init_byte_expected;
@@ -382,9 +376,9 @@ reg [2:0] mas_lowest_priority;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                                                               mas_lowest_priority <= 3'd7;
     else if(mas_init_icw1)                                                          mas_lowest_priority <= 3'd7;
-    else if(mas_ocw2 && master_writedata == 8'hA0)                                  mas_lowest_priority <= mas_lowest_priority + 3'd1;  //rotate on non-specific EOI
-    else if(mas_ocw2 && { master_writedata[7:3], 3'b000 } == 8'hC0)                 mas_lowest_priority <= master_writedata[2:0];       //set priority
-    else if(mas_ocw2 && { master_writedata[7:3], 3'b000 } == 8'hE0)                 mas_lowest_priority <= master_writedata[2:0];       //rotate on specific EOI
+    else if(mas_ocw2 && io_writedata == 8'hA0)                                  mas_lowest_priority <= mas_lowest_priority + 3'd1;  //rotate on non-specific EOI
+    else if(mas_ocw2 && { io_writedata[7:3], 3'b000 } == 8'hC0)                 mas_lowest_priority <= io_writedata[2:0];       //set priority
+    else if(mas_ocw2 && { io_writedata[7:3], 3'b000 } == 8'hE0)                 mas_lowest_priority <= io_writedata[2:0];       //rotate on specific EOI
     else if(mas_acknowledge_not_spurious && mas_auto_eoi && mas_rotate_on_aeoi)     mas_lowest_priority <= mas_lowest_priority + 3'd1;  //rotate on AEOI
 end
 
@@ -392,7 +386,7 @@ reg [7:0] mas_imr;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)           mas_imr <= 8'hFF;
     else if(mas_init_icw1)      mas_imr <= 8'h00;
-    else if(mas_ocw1)           mas_imr <= master_writedata;
+    else if(mas_ocw1)           mas_imr <= io_writedata;
 end
 
 wire [7:0] mas_interrupt_input = { interrupt_input[7:3], sla_current_irq, interrupt_input[1:0] };
@@ -417,25 +411,25 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 wire [7:0] mas_writedata_mask =
-    (master_writedata[2:0] == 3'd0)?    8'b00000001 :
-    (master_writedata[2:0] == 3'd1)?    8'b00000010 :
-    (master_writedata[2:0] == 3'd2)?    8'b00000100 :
-    (master_writedata[2:0] == 3'd3)?    8'b00001000 :
-    (master_writedata[2:0] == 3'd4)?    8'b00010000 :
-    (master_writedata[2:0] == 3'd5)?    8'b00100000 :
-    (master_writedata[2:0] == 3'd6)?    8'b01000000 :
+    (io_writedata[2:0] == 3'd0)?    8'b00000001 :
+    (io_writedata[2:0] == 3'd1)?    8'b00000010 :
+    (io_writedata[2:0] == 3'd2)?    8'b00000100 :
+    (io_writedata[2:0] == 3'd3)?    8'b00001000 :
+    (io_writedata[2:0] == 3'd4)?    8'b00010000 :
+    (io_writedata[2:0] == 3'd5)?    8'b00100000 :
+    (io_writedata[2:0] == 3'd6)?    8'b01000000 :
                                         8'b10000000;
 
 wire mas_isr_clear = 
     (mas_polled && master_read_valid) || //polling
-    (mas_ocw2 && (master_writedata == 8'h20 || master_writedata == 8'hA0)); //non-specific EOI or rotate on non-specific EOF
+    (mas_ocw2 && (io_writedata == 8'h20 || io_writedata == 8'hA0)); //non-specific EOI or rotate on non-specific EOF
                                         
 reg [7:0] mas_isr;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                                                   mas_isr <= 8'h00;
     else if(mas_init_icw1)                                              mas_isr <= 8'h00;
-    else if(mas_ocw2 && { master_writedata[7:3], 3'b000 } == 8'h60)     mas_isr <= mas_isr & ~(mas_writedata_mask);                     //clear on specific EOI
-    else if(mas_ocw2 && { master_writedata[7:3], 3'b000 } == 8'hE0)     mas_isr <= mas_isr & ~(mas_writedata_mask);                     //clear on rotate on specific EOI
+    else if(mas_ocw2 && { io_writedata[7:3], 3'b000 } == 8'h60)     mas_isr <= mas_isr & ~(mas_writedata_mask);                     //clear on specific EOI
+    else if(mas_ocw2 && { io_writedata[7:3], 3'b000 } == 8'hE0)     mas_isr <= mas_isr & ~(mas_writedata_mask);                     //clear on rotate on specific EOI
     else if(mas_isr_clear)                                              mas_isr <= mas_isr & ~(mas_selected_shifted_isr_first_bits);    //clear on polling or non-specific EOI (with or without rotate)
     else if(mas_acknowledge_not_spurious && ~(mas_auto_eoi))            mas_isr <= mas_isr | mas_interrupt_vector_bits;                 //set
 end
@@ -443,21 +437,21 @@ end
 reg [4:0] mas_interrupt_offset;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)       mas_interrupt_offset <= 5'd1;
-    else if(mas_init_icw2)  mas_interrupt_offset <= master_writedata[7:3];
+    else if(mas_init_icw2)  mas_interrupt_offset <= io_writedata[7:3];
 end
 
 reg mas_auto_eoi;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)       mas_auto_eoi <= 1'b0;
     else if(mas_init_icw1)  mas_auto_eoi <= 1'b0;
-    else if(mas_init_icw4)  mas_auto_eoi <= master_writedata[1];
+    else if(mas_init_icw4)  mas_auto_eoi <= io_writedata[1];
 end
 
 reg mas_rotate_on_aeoi;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                                   mas_rotate_on_aeoi <= 1'b0;
     else if(mas_init_icw1)                              mas_rotate_on_aeoi <= 1'b0;
-    else if(mas_ocw2 && master_writedata[6:0] == 7'd0)  mas_rotate_on_aeoi <= master_writedata[7];
+    else if(mas_ocw2 && io_writedata[6:0] == 7'd0)  mas_rotate_on_aeoi <= io_writedata[7];
 end
 
 wire [7:0] mas_selected_prepare = mas_irr & ~(mas_imr) & ~(mas_isr);

@@ -5,13 +5,13 @@ set_global_assignment -name QIP_FILE rtl/cache/cache.qip
 set_global_assignment -name QIP_FILE rtl/soc/uart/uart.qip
 set_global_assignment -name QIP_FILE rtl/soc/sound/sound.qip
 set_global_assignment -name QIP_FILE rtl/common/common.qip
+set_global_assignment -name VERILOG_FILE rtl/soc/mgmt.v
+set_global_assignment -name VERILOG_FILE rtl/soc/iobus.v
 set_global_assignment -name VERILOG_FILE rtl/soc/floppy.v
 set_global_assignment -name VERILOG_FILE rtl/soc/hdd.v
 set_global_assignment -name VERILOG_FILE rtl/soc/hddext.v
-set_global_assignment -name VERILOG_FILE rtl/soc/iobus.v
 set_global_assignment -name VERILOG_FILE rtl/soc/joystick.v
-set_global_assignment -name VERILOG_FILE rtl/soc/mgmt.v
-set_global_assignment -name VERILOG_FILE rtl/soc/pc_dma.v
+set_global_assignment -name VERILOG_FILE rtl/soc/dma.v
 set_global_assignment -name VERILOG_FILE rtl/soc/pic.v
 set_global_assignment -name VERILOG_FILE rtl/soc/pit.v
 set_global_assignment -name VERILOG_FILE rtl/soc/pit_counter.v

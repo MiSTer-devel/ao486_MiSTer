@@ -30,30 +30,19 @@ module vga
 	input               rst_n,
 
 	//avalon slave vga io
-	input       [3:0]   io_b_address,
-	input               io_b_read,
-	output      [7:0]   io_b_readdata,
-	input               io_b_write,
-	input       [7:0]   io_b_writedata,
-
-	//avalon slave vga io
-	input       [3:0]   io_c_address,
-	input               io_c_read,
-	output reg  [7:0]   io_c_readdata,
-	input               io_c_write,
-	input       [7:0]   io_c_writedata,
-
-	//avalon slave vga io
-	input       [3:0]   io_d_address,
-	input               io_d_read,
-	output      [7:0]   io_d_readdata,
-	input               io_d_write,
-	input       [7:0]   io_d_writedata,
+	input       [3:0]   io_address,
+	input               io_read,
+	output reg  [7:0]   io_readdata,
+	input               io_write,
+	input       [7:0]   io_writedata,
+	input               io_b_cs,
+	input               io_c_cs,
+	input               io_d_cs,
 
 	//avalon slave vga memory
 	input       [16:0]  mem_address,
 	input               mem_read,
-	output reg  [7:0]   mem_readdata,
+	output      [7:0]   mem_readdata,
 	input               mem_write,
 	input       [7:0]   mem_writedata,
 
@@ -86,6 +75,24 @@ module vga
 	output reg [10:0]   vga_height,
 	output reg  [3:0]   vga_flags
 );
+
+wire io_b_read  = io_read  & io_b_cs;
+wire io_b_write = io_write & io_b_cs;
+wire io_c_read  = io_read  & io_c_cs;
+wire io_c_write = io_write & io_c_cs;
+wire io_d_read  = io_read  & io_d_cs;
+wire io_d_write = io_write & io_d_cs;
+
+always @(posedge clk_sys) begin
+	io_readdata <= host_io_read_wire;
+	if(io_c_cs) begin
+		if(io_address == 4'h1 && attrib_io_index <= 5'hF) io_readdata <= host_palette_q;
+		if(io_address == 4'h9 && ~dac_is_read)            io_readdata <= 8'h3F;
+		if(io_address == 4'h9 && dac_cnt == 2'd0)         io_readdata <= dac_read_q[17:12];
+		if(io_address == 4'h9 && dac_cnt == 2'd1)         io_readdata <= dac_read_q[11:6];
+		if(io_address == 4'h9 && dac_cnt == 2'd2)         io_readdata <= dac_read_q[5:0];
+	end
+end
 
 //------------------------------------------------------------------------------
 
@@ -150,13 +157,6 @@ wire io_d_read_valid = io_d_read && ~io_d_read_last;
 reg mem_read_last;
 always @(posedge clk_sys or negedge rst_n) if(~rst_n) mem_read_last <= 1'b0; else if(mem_read_last) mem_read_last <= 1'b0; else mem_read_last <= mem_read;
 wire mem_read_valid = mem_read && ~mem_read_last;
-
-//------------------------------------------------------------------------------
-
-wire [7:0] io_writedata =
-    (io_b_write)?   io_b_writedata :
-    (io_c_write)?   io_c_writedata :
-                    io_d_writedata;
 
 //------------------------------------------------------------------------------ sequencer io
 
@@ -647,30 +647,26 @@ wire host_io_ignored =
     (general_io_space    && (io_b_read_valid || io_b_write)) ||
     (~(general_io_space) && (io_d_read_valid || io_d_write));
     
-    
-reg [3:0] host_io_read_address_last;
-always @(posedge clk_sys or negedge rst_n) if(~rst_n) host_io_read_address_last <= 4'd0; else if(io_c_read_valid) host_io_read_address_last <= io_c_address;
-    
 reg [2:0]   seq_io_index;
-always @(posedge clk_sys or negedge rst_n) if(~rst_n) seq_io_index <= 3'd0; else if(io_c_write && io_c_address == 4'h4) seq_io_index <= io_writedata[2:0];
+always @(posedge clk_sys or negedge rst_n) if(~rst_n) seq_io_index <= 3'd0; else if(io_c_write && io_address == 4'h4) seq_io_index <= io_writedata[2:0];
 
-wire        seq_io_write = io_c_write && io_c_address == 4'h5;
+wire        seq_io_write = io_c_write && io_address == 4'h5;
 
 reg [5:0]   crtc_io_index;
 always @(posedge clk_sys or negedge rst_n) begin
     if(~rst_n)                                                          crtc_io_index <= 6'd0;
-    else if(io_b_write && io_b_address == 4'h4 && ~(host_io_ignored))   crtc_io_index <= io_b_writedata[5:0];
-    else if(io_d_write && io_d_address == 4'h4 && ~(host_io_ignored))   crtc_io_index <= io_d_writedata[5:0];
+    else if(io_b_write && io_address == 4'h4 && ~(host_io_ignored))   crtc_io_index <= io_writedata[5:0];
+    else if(io_d_write && io_address == 4'h4 && ~(host_io_ignored))   crtc_io_index <= io_writedata[5:0];
 end
 
-wire crtc_io_write = ((io_b_write && io_b_address == 4'd5) || (io_d_write && io_d_address == 4'd5)) && ~(host_io_ignored) && (~(crtc_protect) || crtc_io_index >= 5'd8);
+wire crtc_io_write = ((io_b_write && io_address == 4'd5) || (io_d_write && io_address == 4'd5)) && ~(host_io_ignored) && (~(crtc_protect) || crtc_io_index >= 5'd8);
 
-wire crtc_io_write_compare = ((io_b_write && io_b_address == 4'd5) || (io_d_write && io_d_address == 4'd5)) && ~(host_io_ignored);
+wire crtc_io_write_compare = ((io_b_write && io_address == 4'd5) || (io_d_write && io_address == 4'd5)) && ~(host_io_ignored);
 
 reg [3:0]   graph_io_index;
-always @(posedge clk_sys or negedge rst_n) if(~rst_n) graph_io_index <= 4'd0; else if(io_c_write && io_c_address == 4'hE) graph_io_index <= io_c_writedata[3:0];
+always @(posedge clk_sys or negedge rst_n) if(~rst_n) graph_io_index <= 4'd0; else if(io_c_write && io_address == 4'hE) graph_io_index <= io_writedata[3:0];
 
-wire        graph_io_write = io_c_write && io_c_address == 4'hF;
+wire        graph_io_write = io_c_write && io_address == 4'hF;
 
 reg [4:0]   attrib_io_index;
 reg         attrib_video_enable;
@@ -678,30 +674,30 @@ reg         attrib_flip_flop;
 reg         output_enable;
 always @(posedge clk_sys or negedge rst_n) begin
 	if(~rst_n) {output_enable, attrib_video_enable} <= 0;
-	else if(io_c_write && io_c_address == 4'h0 && ~(attrib_flip_flop)) begin
-		attrib_video_enable <= io_c_writedata[5];
-		if(io_c_writedata[5]) output_enable <= 1;
+	else if(io_c_write && io_address == 4'h0 && ~(attrib_flip_flop)) begin
+		attrib_video_enable <= io_writedata[5];
+		if(io_writedata[5]) output_enable <= 1;
 	end
 end
 
-always @(posedge clk_sys or negedge rst_n) if(~rst_n) attrib_io_index <= 5'd0; else if(io_c_write && io_c_address == 4'h0 && ~(attrib_flip_flop)) attrib_io_index <= io_c_writedata[4:0];
+always @(posedge clk_sys or negedge rst_n) if(~rst_n) attrib_io_index <= 5'd0; else if(io_c_write && io_address == 4'h0 && ~(attrib_flip_flop)) attrib_io_index <= io_writedata[4:0];
 
 always @(posedge clk_sys or negedge rst_n) begin
     if(~rst_n)                                                                                                              attrib_flip_flop <= 1'b0;
-    else if(((io_b_read_valid && io_b_address == 4'hA) || (io_d_read_valid && io_d_address == 4'hA)) && ~(host_io_ignored)) attrib_flip_flop <= 1'b0;
-    else if(io_c_write && io_c_address == 4'h0)                                                                             attrib_flip_flop <= ~attrib_flip_flop;
+    else if(((io_b_read_valid && io_address == 4'hA) || (io_d_read_valid && io_address == 4'hA)) && ~(host_io_ignored)) attrib_flip_flop <= 1'b0;
+    else if(io_c_write && io_address == 4'h0)                                                                             attrib_flip_flop <= ~attrib_flip_flop;
 end
 
-wire attrib_io_write = io_c_write && io_c_address == 4'h0 && attrib_flip_flop;
+wire attrib_io_write = io_c_write && io_address == 4'h0 && attrib_flip_flop;
 
-wire general_io_write_misc = io_c_write && io_c_address == 4'h2;
+wire general_io_write_misc = io_c_write && io_address == 4'h2;
 
 reg [5:0] seg_rd, seg_wr;
 always @(posedge clk_sys or negedge rst_n) begin
 	if(~rst_n) {seg_rd, seg_wr} <= 0;
 	else if(~seq_sync_reset_n || ~seq_async_reset_n) {seg_rd, seg_wr} <= 0;
-	else if(io_c_write && io_c_address == 'hD) {seg_rd[3:0], seg_wr[3:0]} <= io_c_writedata;
-	else if(io_c_write && io_c_address == 'hB) {seg_rd[5:4], seg_wr[5:4]} <= {io_c_writedata[5:4],io_c_writedata[1:0]};
+	else if(io_c_write && io_address == 'hD) {seg_rd[3:0], seg_wr[3:0]} <= io_writedata;
+	else if(io_c_write && io_address == 'hB) {seg_rd[5:4], seg_wr[5:4]} <= {io_writedata[5:4],io_writedata[1:0]};
 end
 
 always @(posedge clk_sys) begin
@@ -718,48 +714,48 @@ end
 //------------------------------------------------------------------------------
 
 reg [7:0] dac_mask;
-always @(posedge clk_sys or negedge rst_n) if(~rst_n) dac_mask <= 8'hFF; else if(io_c_write && io_c_address == 4'h6) dac_mask <= io_c_writedata[7:0];
+always @(posedge clk_sys or negedge rst_n) if(~rst_n) dac_mask <= 8'hFF; else if(io_c_write && io_address == 4'h6) dac_mask <= io_writedata[7:0];
 
 reg       dac_is_read;
 always @(posedge clk_sys or negedge rst_n) begin
-    if(~rst_n)                           dac_is_read <= 1'd0;
-    else if(io_c_write && io_c_address == 4'h7) dac_is_read <= 1'b1;
-    else if(io_c_write && io_c_address == 4'h8) dac_is_read <= 1'b0;
+    if(~rst_n)                                dac_is_read <= 1'd0;
+    else if(io_c_write && io_address == 4'h7) dac_is_read <= 1'b1;
+    else if(io_c_write && io_address == 4'h8) dac_is_read <= 1'b0;
 end
 
 reg [11:0] dac_write_buffer;
 always @(posedge clk_sys or negedge rst_n) begin
-    if(~rst_n)                                  dac_write_buffer <= 12'd0;
-    else if(io_c_write && io_c_address == 4'h9) dac_write_buffer <= { dac_write_buffer[5:0], io_c_writedata[5:0] };
+    if(~rst_n)                                dac_write_buffer <= 12'd0;
+    else if(io_c_write && io_address == 4'h9) dac_write_buffer <= { dac_write_buffer[5:0], io_writedata[5:0] };
 end
 
 reg [7:0] dac_write_index;
 always @(posedge clk_sys or negedge rst_n) begin
-    if(~rst_n)                                                      dac_write_index <= 8'd0;
-    else if(io_c_write && io_c_address == 4'h8)                     dac_write_index <= io_c_writedata[7:0];
-    else if(io_c_write && io_c_address == 4'h9 && dac_cnt == 2'd2)  dac_write_index <= dac_write_index + 8'd1;
+    if(~rst_n)                                                    dac_write_index <= 8'd0;
+    else if(io_c_write && io_address == 4'h8)                     dac_write_index <= io_writedata[7:0];
+    else if(io_c_write && io_address == 4'h9 && dac_cnt == 2'd2)  dac_write_index <= dac_write_index + 8'd1;
 end
 
 reg [7:0] dac_reg9;
 always @(posedge clk_sys or negedge rst_n) begin
     if(~rst_n)                            dac_reg9 <= 8'd0;
-    else if(io_c_write && io_c_address == 4'h9)  dac_reg9 <= io_c_writedata;
+    else if(io_c_write && io_address == 4'h9)  dac_reg9 <= io_writedata;
 end
 
 reg [7:0] dac_read_index;
 always @(posedge clk_sys or negedge rst_n) begin
-    if(~rst_n)                                                              dac_read_index <= 8'd0;
-    else if(io_c_write && io_c_address == 4'h7)                             dac_read_index <= io_c_writedata[7:0];
-    else if(io_c_read_valid  && io_c_address == 4'h9 && dac_cnt == 2'd2)    dac_read_index <= dac_read_index + 8'd1;
+    if(~rst_n)                                                            dac_read_index <= 8'd0;
+    else if(io_c_write && io_address == 4'h7)                             dac_read_index <= io_writedata[7:0];
+    else if(io_c_read_valid  && io_address == 4'h9 && dac_cnt == 2'd2)    dac_read_index <= dac_read_index + 8'd1;
 end
 
 reg [1:0] dac_cnt;
 always @(posedge clk_sys or negedge rst_n) begin
-    if(~rst_n)                                                                          dac_cnt <= 2'd0;
-    else if(io_c_write && io_c_address == 4'h7)                                         dac_cnt <= 2'd0;
-    else if(io_c_write && io_c_address == 4'h8)                                         dac_cnt <= 2'd0;
-    else if((io_c_read_valid || io_c_write) && io_c_address == 4'h9 && dac_cnt == 2'd2) dac_cnt <= 2'd0;
-    else if((io_c_read_valid || io_c_write) && io_c_address == 4'h9)                    dac_cnt <= dac_cnt + 2'd1;
+    if(~rst_n)                                                                        dac_cnt <= 2'd0;
+    else if(io_c_write && io_address == 4'h7)                                         dac_cnt <= 2'd0;
+    else if(io_c_write && io_address == 4'h8)                                         dac_cnt <= 2'd0;
+    else if((io_c_read_valid || io_c_write) && io_address == 4'h9 && dac_cnt == 2'd2) dac_cnt <= 2'd0;
+    else if((io_c_read_valid || io_c_write) && io_address == 4'h9)                    dac_cnt <= dac_cnt + 2'd1;
 end
 
 //------------------------------------------------------------------------------
@@ -767,86 +763,28 @@ end
 wire host_io_vertical_retrace;
 wire host_io_not_displaying;
 
-reg [7:0] host_io_read_wire;
-always @(*) begin
-	casex({
-			 (host_io_ignored),
-			 (io_c_read_valid && io_c_address == 4'hC),
-			 (io_c_read_valid && io_c_address == 4'h2),
-			 ((io_b_read_valid && io_b_address == 4'hA) || (io_d_read_valid && io_d_address == 4'hA)),
-			 (io_c_read_valid && io_c_address == 4'h0 && attrib_flip_flop),
-			 (io_c_read_valid && io_c_address == 4'h0),
-			 (io_c_read_valid && io_c_address == 4'h1),
-			 (io_c_read_valid && io_c_address == 4'h4),
-			 (io_c_read_valid && io_c_address == 4'h5),
-			 (io_c_read_valid && io_c_address == 4'h6),
-			 (io_c_read_valid && io_c_address == 4'h7),
-			 (io_c_read_valid && io_c_address == 4'h8),
-			 (io_c_read_valid && io_c_address == 4'h9),
-			 (io_c_read_valid && io_c_address == 4'hB),
-			 (io_c_read_valid && io_c_address == 4'hD),
-			 (io_c_read_valid && io_c_address == 4'hE),
-			 (io_c_read_valid && io_c_address == 4'hF),
-			 (io_d_read_valid && io_d_address == 4'h4),
-			 ((io_b_read_valid && io_b_address == 4'h5) || (io_d_read_valid && io_d_address == 4'h5)),
-			 (io_b_read_valid || io_d_read_valid)
-			 })
-
-		20'b1XXXXXXXXXXXXXXXXXXX: host_io_read_wire = 8'hFF;
-		20'b01XXXXXXXXXXXXXXXXXX: host_io_read_wire = { general_vsync, general_hsync, general_not_impl_odd_even_page, 1'b0, general_clock_select, general_enable_ram, general_io_space }; //misc output reg
-		20'b001XXXXXXXXXXXXXXXXX: host_io_read_wire = { interrupt, 2'b0, 1'b1, 4'b0 }; //input status 0
-		20'b0001XXXXXXXXXXXXXXXX: host_io_read_wire = { 4'b0, host_io_vertical_retrace, 2'b0, host_io_not_displaying }; //input status 1
-		20'b00001XXXXXXXXXXXXXXX: host_io_read_wire = 8'h00; //attrib index in write mode
-		20'b000001XXXXXXXXXXXXXX: host_io_read_wire = { 2'b0, attrib_video_enable, attrib_io_index }; //attrib in address mode
-		20'b0000001XXXXXXXXXXXXX: host_io_read_wire = host_io_read_attrib; //attrib read
-		20'b00000001XXXXXXXXXXXX: host_io_read_wire = { 5'd0, seq_io_index }; //seq index
-		20'b000000001XXXXXXXXXXX: host_io_read_wire = host_io_read_seq; //seq data
-		20'b0000000001XXXXXXXXXX: host_io_read_wire = dac_mask; //pel mask
-		20'b00000000001XXXXXXXXX: host_io_read_wire = { 6'd0, dac_is_read? 2'b11 : 2'b00 }; //dac state
-		20'b000000000001XXXXXXXX: host_io_read_wire = dac_write_index;
-		20'b0000000000001XXXXXXX: host_io_read_wire = dac_reg9;
-		20'b00000000000001XXXXXX: host_io_read_wire = { 2'b00, seg_rd[5:4], 2'b00, seg_wr[5:4] };
-		20'b000000000000001XXXXX: host_io_read_wire = { seg_rd[3:0], seg_wr[3:0] };
-		20'b0000000000000001XXXX: host_io_read_wire = { 4'd0, graph_io_index };
-		20'b00000000000000001XXX: host_io_read_wire = host_io_read_graph;
-		20'b000000000000000001XX: host_io_read_wire = { 2'b0, crtc_io_index };
-		20'b0000000000000000001X: host_io_read_wire = host_io_read_crtc;
-		20'b00000000000000000001: host_io_read_wire = 8'hFF;
-		20'b00000000000000000000: host_io_read_wire = 8'h00; // 6'h1A (Feature Control Register)
-		
-	endcase
-end
-
-reg [7:0] host_io_read_reg;
-always @(posedge clk_sys or negedge rst_n) begin
-	if(~rst_n) host_io_read_reg <= 8'd0;
-	else       host_io_read_reg <= host_io_read_wire;
-end
-
-wire [5:0]  host_palette_q;
-wire [17:0] dac_read_q;
-
-always @(*) begin
-	casex({
-			 (host_io_read_address_last == 4'h1 && attrib_io_index <= 5'hF),
-			 (host_io_read_address_last == 4'h9 && ~(dac_is_read)),
-			 (host_io_read_address_last == 4'h9 && dac_cnt == 2'd1),
-			 (host_io_read_address_last == 4'h9 && dac_cnt == 2'd2),
-			 (host_io_read_address_last == 4'h9 && dac_cnt == 2'd0),
-			})
-		5'b1XXXX: io_c_readdata = { 2'b0, host_palette_q };
-		5'b01XXX: io_c_readdata = 8'h3F;
-		5'b001XX: io_c_readdata = { 2'b0, dac_read_q[17:12] };
-		5'b0001X: io_c_readdata = { 2'b0, dac_read_q[11:6] };
-		5'b00001: io_c_readdata = { 2'b0, dac_read_q[5:0] };
-		5'b00000: io_c_readdata = host_io_read_reg;
-	endcase
-end
-
-assign io_b_readdata = host_io_read_reg;
-assign io_d_readdata = host_io_read_reg;
-
-//------------------------------------------------------------------------------
+wire [7:0] host_io_read_wire = 
+	(host_io_ignored)                                            ? 8'hFF :
+	(io_c_read_valid && io_address == 4'hC)                      ? { general_vsync, general_hsync, general_not_impl_odd_even_page, 1'b0, general_clock_select, general_enable_ram, general_io_space } : //misc output reg
+	(io_c_read_valid && io_address == 4'h2)                      ? { interrupt, 2'b0, 1'b1, 4'b0 } : //input status 0
+	((io_b_read_valid || io_d_read_valid) && io_address == 4'hA) ? { 4'b0, host_io_vertical_retrace, 2'b0, host_io_not_displaying } : //input status 1
+	(io_c_read_valid && io_address == 4'h0 && attrib_flip_flop)  ? 8'h00 : //attrib index in write mode
+	(io_c_read_valid && io_address == 4'h0)                      ? { 2'b0, attrib_video_enable, attrib_io_index } : //attrib in address mode
+	(io_c_read_valid && io_address == 4'h1)                      ? host_io_read_attrib : //attrib read
+	(io_c_read_valid && io_address == 4'h4)                      ? { 5'd0, seq_io_index } : //seq index
+	(io_c_read_valid && io_address == 4'h5)                      ? host_io_read_seq : //seq data
+	(io_c_read_valid && io_address == 4'h6)                      ? dac_mask : //pel mask
+	(io_c_read_valid && io_address == 4'h7)                      ? { 6'd0, dac_is_read? 2'b11 : 2'b00 } : //dac state
+	(io_c_read_valid && io_address == 4'h8)                      ? dac_write_index :
+	(io_c_read_valid && io_address == 4'h9)                      ? dac_reg9 :
+	(io_c_read_valid && io_address == 4'hB)                      ? { 2'b00, seg_rd[5:4], 2'b00, seg_wr[5:4] } :
+	(io_c_read_valid && io_address == 4'hD)                      ? { seg_rd[3:0], seg_wr[3:0] } :
+	(io_c_read_valid && io_address == 4'hE)                      ? { 4'd0, graph_io_index } :
+	(io_c_read_valid && io_address == 4'hF)                      ? host_io_read_graph :
+	(io_d_read_valid && io_address == 4'h4)                      ? { 2'b0, crtc_io_index } :
+	((io_b_read_valid || io_d_read_valid) && io_address == 4'h5) ? host_io_read_crtc :
+	(io_b_read_valid || io_d_read_valid)                         ? 8'hFF :
+																						8'h00; // 6'h1A (Feature Control Register)
 
 //------------------------------------------------------------------------------
 
@@ -918,34 +856,19 @@ wire [7:0] host_read_mode_1 = {
     (graph_color_compare_dont_care[2]? ~(host_ram2_q[0] ^ graph_color_compare_map[2]) : 1'b1) & (graph_color_compare_dont_care[3]? ~(host_ram3_q[0] ^ graph_color_compare_map[3]) : 1'b1)
 };
 
-always @(*) begin
-	casex(
-		{(host_read_out_of_bounds),
-       (seq_access_chain4 && host_address_reduced_last[1:0] == 2'b00),
-       (seq_access_chain4 && host_address_reduced_last[1:0] == 2'b01),
-       (seq_access_chain4 && host_address_reduced_last[1:0] == 2'b10),
-       (seq_access_chain4 && host_address_reduced_last[1:0] == 2'b11),
-       (~graph_read_mode  && ~(seq_access_odd_even_disabled) && ~host_address_reduced_last[0]),
-       (~graph_read_mode  && ~(seq_access_odd_even_disabled) && host_address_reduced_last[0]),
-       (~graph_read_mode  && graph_read_map_select == 2'd0),
-       (~graph_read_mode  && graph_read_map_select == 2'd1),
-       (~graph_read_mode  && graph_read_map_select == 2'd2),
-       (~graph_read_mode  && graph_read_map_select == 2'd3)})
-		 
-		 11'b1XXXXXXXXXX: mem_readdata = 8'hFF;
-		 11'b01XXXXXXXXX: mem_readdata = host_ram0_q;
-		 11'b001XXXXXXXX: mem_readdata = host_ram1_q;
-		 11'b0001XXXXXXX: mem_readdata = host_ram2_q;
-		 11'b00001XXXXXX: mem_readdata = host_ram3_q;
-		 11'b000001XXXXX: mem_readdata = host_ram0_q;
-		 11'b0000001XXXX: mem_readdata = host_ram1_q;
-		 11'b00000001XXX: mem_readdata = host_ram0_q;
-		 11'b000000001XX: mem_readdata = host_ram1_q;
-		 11'b0000000001X: mem_readdata = host_ram2_q;
-		 11'b00000000001: mem_readdata = host_ram3_q;
-		 11'b00000000000: mem_readdata = host_read_mode_1;
-	endcase
-end
+assign mem_readdata =
+	(host_read_out_of_bounds)                                                               ? 8'hFF      :
+	(seq_access_chain4 && host_address_reduced_last[1:0] == 2'b00)                          ? host_ram0_q:
+	(seq_access_chain4 && host_address_reduced_last[1:0] == 2'b01)                          ? host_ram1_q:
+	(seq_access_chain4 && host_address_reduced_last[1:0] == 2'b10)                          ? host_ram2_q:
+	(seq_access_chain4 && host_address_reduced_last[1:0] == 2'b11)                          ? host_ram3_q:
+	(~graph_read_mode  && ~(seq_access_odd_even_disabled) && ~host_address_reduced_last[0]) ? host_ram0_q:
+	(~graph_read_mode  && ~(seq_access_odd_even_disabled) && host_address_reduced_last[0])  ? host_ram1_q:
+	(~graph_read_mode  && graph_read_map_select == 2'd0)                                    ? host_ram0_q:
+	(~graph_read_mode  && graph_read_map_select == 2'd1)                                    ? host_ram1_q:
+	(~graph_read_mode  && graph_read_map_select == 2'd2)                                    ? host_ram2_q:
+	(~graph_read_mode  && graph_read_map_select == 2'd3)                                    ? host_ram3_q:
+																			                                    host_read_mode_1;
 
 always @(posedge clk_sys or negedge rst_n) begin
 	if(~rst_n) begin
@@ -1359,12 +1282,13 @@ end
 //------------------------------------------------------------------------------
 
 wire [5:0] pel_palette;
+wire [5:0] host_palette_q;
 
 dpram #(4,6) internal_palette_ram
 (
 	.clock          (clk_sys),
 	.address_a      (attrib_io_index[3:0]),
-	.data_a         (io_c_writedata[5:0]),
+	.data_a         (io_writedata[5:0]),
 	.wren_a         (attrib_io_write && attrib_io_index < 5'h10),
 	.q_a            (host_palette_q),
 	
@@ -1390,13 +1314,14 @@ wire [7:0] pel_index =
 //------------------------------------------------------------------------------
 
 wire [17:0] dac_color;
+wire [17:0] dac_read_q;
 
 dpram #(8,18) dac_ram
 (
 	.clock          (clk_sys),
 	.address_a      (dac_is_read? dac_read_index : dac_write_index),
-	.data_a         ({ dac_write_buffer, io_c_writedata[5:0] }),
-	.wren_a         (io_c_write && io_c_address == 4'h9 && dac_cnt == 2'd2),
+	.data_a         ({ dac_write_buffer, io_writedata[5:0] }),
+	.wren_a         (io_c_write && io_address == 4'h9 && dac_cnt == 2'd2),
 	.q_a            (dac_read_q),
 	
 	.enable_b       (ce_video),
@@ -1405,9 +1330,9 @@ dpram #(8,18) dac_ram
 );
 
 always @(posedge clk_sys) begin
-	vga_pal_d  <= { dac_write_buffer, io_c_writedata[5:0] };
+	vga_pal_d  <= { dac_write_buffer, io_writedata[5:0] };
 	vga_pal_a  <= dac_write_index;
-	vga_pal_we <= io_c_write && io_c_address == 4'h9 && dac_cnt == 2'd2;
+	vga_pal_we <= io_c_write && io_address == 4'h9 && dac_cnt == 2'd2;
 end
 
 //------------------------------------------------------------------------------

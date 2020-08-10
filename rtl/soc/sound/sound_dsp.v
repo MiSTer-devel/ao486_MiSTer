@@ -34,21 +34,21 @@ module sound_dsp(
 	//io slave 220h-22Fh
 	input       [3:0]   io_address,
 	input               io_read,
-	output reg  [7:0]   io_readdata_from_dsp,
+	output      [7:0]   io_readdata,
 	input               io_write,
 	input       [7:0]   io_writedata,
 
 	//dma
-	output              dma_soundblaster_req,
-	input               dma_soundblaster_ack,
-	input               dma_soundblaster_terminal,
-	input       [7:0]   dma_soundblaster_readdata,
-	output      [7:0]   dma_soundblaster_writedata,
+	output              dma_req,
+	input               dma_ack,
+	input               dma_terminal,
+	input       [7:0]   dma_readdata,
+	output      [7:0]   dma_writedata,
 
 	//sample
-	output              sample_from_dsp_disabled,
-	output              sample_from_dsp_do,
-	output      [7:0]   sample_from_dsp_value
+	output              sample_disabled,
+	output              sample_do,
+	output      [7:0]   sample_value
 );
 
 //------------------------------------------------------------------------------
@@ -59,14 +59,12 @@ wire io_read_valid = io_read && io_read_last == 1'b0;
 
 //------------------------------------------------------------------------------
 
-always @(posedge clk) begin
-	io_readdata_from_dsp <=
+assign io_readdata =
 		(io_address == 4'hE)?                       { read_ready, 7'h7F } :
 		(io_address == 4'hA && copy_cnt > 6'd0)?    copyright_byte :
 		(io_address == 4'hA)?                       read_buffer[15:8] :
 		(io_address == 4'hC)?                       { write_ready, 7'h7F } :
-                                                8'hFF;
-end
+                                                    8'hFF;
 
 //------------------------------------------------------------------------------
 
@@ -117,7 +115,7 @@ always @(posedge clk or negedge rst_n) begin
     else if(input_strobe && input_direction)    input_sample <= input_sample - 8'd1;
 end
 
-assign dma_soundblaster_writedata = (dma_id_active)? dma_id_value : input_sample;
+assign dma_writedata = (dma_id_active)? dma_id_value : input_sample;
 
 //------------------------------------------------------------------------------
 
@@ -220,10 +218,10 @@ end
 
 reg dma_id_active;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)               dma_id_active <= 1'b0;
-    else if(sw_reset)               dma_id_active <= 1'b0;
-    else if(cmd_dma_id)             dma_id_active <= 1'b1;
-    else if(dma_soundblaster_ack)   dma_id_active <= 1'b0;
+    if(rst_n == 1'b0)   dma_id_active <= 1'b0;
+    else if(sw_reset)   dma_id_active <= 1'b0;
+    else if(cmd_dma_id) dma_id_active <= 1'b1;
+    else if(dma_ack)    dma_id_active <= 1'b0;
 end
 
 wire [7:0] dma_id_q;
@@ -490,9 +488,9 @@ wire dma_auto_start = dma_restart_possible && (
 
 wire dma_normal_req = dma_in_progress && dma_wait == 16'd0 && adpcm_wait == 2'd0 && ~(pause_dma);
 
-assign dma_soundblaster_req = dma_id_active || dma_normal_req;
+assign dma_req = dma_id_active || dma_normal_req;
 
-wire dma_valid  = dma_normal_req && dma_soundblaster_ack && ~(dma_id_active);
+wire dma_valid  = dma_normal_req && dma_ack && ~(dma_id_active);
 wire dma_output = ~(dma_is_input) && dma_valid;
 wire dma_input  = dma_is_input    && dma_valid;
 
@@ -598,7 +596,7 @@ reg [7:0] adpcm_sample;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                                   adpcm_sample <= 8'd0;
     else if(sw_reset)                                   adpcm_sample <= 8'd0;
-    else if(dma_output)                                 adpcm_sample <= dma_soundblaster_readdata;
+    else if(dma_output)                                 adpcm_sample <= dma_readdata;
     else if(adpcm_output && adpcm_type == ADPCM_2BIT)   adpcm_sample <= { adpcm_sample[5:0], 2'b0 };
     else if(adpcm_output && adpcm_type == ADPCM_3BIT)   adpcm_sample <= { adpcm_sample[4:0], 3'b0 };
     else if(adpcm_output && adpcm_type == ADPCM_4BIT)   adpcm_sample <= { adpcm_sample[3:0], 4'b0 };
@@ -647,7 +645,7 @@ always @(posedge clk or negedge rst_n) begin
     else if(adpcm_active && adpcm_type == ADPCM_2BIT)   adpcm_reference <= adpcm_2bit_reference_next;
     else if(adpcm_active && adpcm_type == ADPCM_3BIT)   adpcm_reference <= adpcm_3bit_reference_next;
     else if(adpcm_active && adpcm_type == ADPCM_4BIT)   adpcm_reference <= adpcm_4bit_reference_next;
-    else if(adpcm_reference_awaiting && dma_output)     adpcm_reference <= dma_soundblaster_readdata;
+    else if(adpcm_reference_awaiting && dma_output)     adpcm_reference <= dma_readdata;
 end
 
 //------------------------------------------------------------------------------ adpcm 2 bit
@@ -727,13 +725,13 @@ wire [2:0] adpcm_4bit_step_next =
 
 //------------------------------------------------------------------------------
 
-assign sample_from_dsp_disabled = ~(speaker_on) || pause_active;
-assign sample_from_dsp_do = ~(sample_from_dsp_disabled) && ((dma_output && adpcm_type == ADPCM_NONE) || cmd_direct_output || adpcm_active || (~(adpcm_reference_awaiting) && adpcm_reference_output));
+assign sample_disabled = ~(speaker_on) || pause_active;
+assign sample_do = ~(sample_disabled) && ((dma_output && adpcm_type == ADPCM_NONE) || cmd_direct_output || adpcm_active || (~(adpcm_reference_awaiting) && adpcm_reference_output));
 
-assign sample_from_dsp_value =
+assign sample_value =
     (adpcm_reference_output)?   adpcm_sample :
     (adpcm_active)?             adpcm_active_value :
-    (dma_output)?               dma_soundblaster_readdata :
+    (dma_output)?               dma_readdata :
                                 write_buffer[7:0];
 
 //------------------------------------------------------------------------------

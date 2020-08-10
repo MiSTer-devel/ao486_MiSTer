@@ -109,10 +109,7 @@ wire [7:0] io_readdata_next =
     (ram_address == 7'h37)?     rtc_century :
                                 ram_q;
 
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)   io_readdata <= 8'd0;
-    else                io_readdata <= io_readdata_next;
-end
+always @(posedge clk) io_readdata <= io_readdata_next;
 
 //------------------------------------------------------------------------------ irq
 

@@ -10,11 +10,11 @@ module joystick
 	input [15:0]  ana_2,
 	input  [1:0]  mode,
 
-	output  [7:0] readdata,
+	output reg [7:0] readdata,
 	input         write
 );
 
-assign readdata = {jb4, jb3, jb2, jb1, JOY2_Y>0, JOY2_X>0, JOY1_Y>0, JOY1_X>0};
+always @(posedge clk) readdata <= {jb4, jb3, jb2, jb1, JOY2_Y>0, JOY2_X>0, JOY1_Y>0, JOY1_X>0};
 
 reg [8:0] JOY1_X;
 reg [8:0] JOY1_Y;
