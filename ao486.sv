@@ -349,12 +349,12 @@ always @(posedge CLK_50M) begin
 	if(sp2 == sp1) speed <= sp2;
 end
 
-reg uspeed_sys;
-always @(posedge clk_sys) uspeed_sys <= ~status[10] | midi_en;
+reg [1:0] uspeed_sys;
+always @(posedge clk_sys) uspeed_sys <= {midi_en, ~midi_en & ~status[10]};
 
-reg uspeed;
+reg [1:0] uspeed;
 always @(posedge CLK_50M) begin
-	reg sp1, sp2;
+	reg [1:0] sp1, sp2;
 	
 	sp1 <= uspeed_sys;
 	sp2 <= sp1;
@@ -368,7 +368,8 @@ end
 always @(posedge CLK_50M) begin
 	reg [2:0] old_speed = 0;
 	reg [2:0] state = 0;
-	reg       old_uspeed = 0;
+	reg [1:0] old_uspeed = 0;
+	reg       old_rst = 0;
 
 	if(!cfg_waitrequest) begin
 		
@@ -378,9 +379,10 @@ always @(posedge CLK_50M) begin
 			if(state) state<=state+1'd1;
 			case(state)
 				0: begin
+						old_rst <= cpu_reset;
 						old_speed <= speed;
 						old_uspeed <= uspeed;
-						if(old_speed != speed || old_uspeed != uspeed) state <= 1;
+						if((old_speed != speed) || (old_uspeed != uspeed) || (old_rst & ~cpu_reset)) state <= 1;
 					end
 				1: begin
 						cfg_address <= 0;
@@ -394,7 +396,7 @@ always @(posedge CLK_50M) begin
 					end
 				5: begin
 						cfg_address <= 5;
-						cfg_data <= uspeed ? 32'h4F4F4 : 32'h40909;
+						cfg_data <= (uspeed == 0) ? 32'h40909 : (uspeed == 1) ? 32'h4F4F4 : 32'h49696;
 						cfg_write <= 1;
 					end
 				7: begin
@@ -621,8 +623,10 @@ system system
 reg memcfg = 0;
 always @(posedge clk_sys) if(cpu_reset) memcfg <= status[11];
 
+reg cpu_reset;
+always @(posedge clk_sys) cpu_reset <= cpu_rst1 | sys_reset;
+
 wire sys_reset = rst_q[7] | ~init_reset_n | RESET;
-wire cpu_reset = cpu_rst1 | sys_reset;
 reg  cpu_rst1 = 0;
 reg  init_reset_n = 0;
 

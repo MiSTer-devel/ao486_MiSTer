@@ -718,7 +718,7 @@ u26 : gh_register_ce
 
 ----------------------------------------------------------
 		
-	D16 <= D & D when MPU_MODE = '0' else x"0003";
+	D16 <= D & D when MPU_MODE = '0' else x"0006";
 		
 u27 : gh_baud_rate_gen
 	port map(
