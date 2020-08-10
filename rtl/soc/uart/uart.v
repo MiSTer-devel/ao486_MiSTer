@@ -32,6 +32,7 @@ module uart (
 	output           br_out,
 	output           dtr_n,
 
+	input            midi_rate,
 	output           irq_uart,
 	output           irq_mpu
 );
@@ -76,6 +77,7 @@ gh_uart_16550 uart
 	.RTSn(rts_n),
 	.IRQ(irq),
 
+	.DIV2(midi_rate),
 	.MPU_MODE(mpu_mode),
 	.TX_Empty(),
 	.TX_Full(tx_full),

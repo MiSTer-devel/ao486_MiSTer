@@ -9,7 +9,6 @@ set_global_assignment -name VERILOG_FILE rtl/soc/mgmt.v
 set_global_assignment -name VERILOG_FILE rtl/soc/iobus.v
 set_global_assignment -name VERILOG_FILE rtl/soc/floppy.v
 set_global_assignment -name VERILOG_FILE rtl/soc/hdd.v
-set_global_assignment -name VERILOG_FILE rtl/soc/hddext.v
 set_global_assignment -name VERILOG_FILE rtl/soc/joystick.v
 set_global_assignment -name VERILOG_FILE rtl/soc/dma.v
 set_global_assignment -name VERILOG_FILE rtl/soc/pic.v

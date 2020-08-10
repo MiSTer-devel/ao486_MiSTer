@@ -66,6 +66,7 @@ entity gh_uart_16550 is
 		TXRDYn  : out std_logic;
 		RXRDYn  : out std_logic;
 		
+		DIV2    : in std_logic := '0';
 		MPU_MODE: in std_logic := '0';
 		RX_Empty: out std_logic;
 		RX_Full : out std_logic;
@@ -180,6 +181,7 @@ COMPONENT gh_baud_rate_gen is
 		clk     : in std_logic;
 		rst     : in std_logic;
 		BR_clk  : in std_logic;
+		DIV2    : in std_logic;
 		WR      : in std_logic;
 		BE      : in std_logic_vector (1 downto 0); -- byte enable
 		D       : in std_logic_vector (15 downto 0);
@@ -718,12 +720,13 @@ u26 : gh_register_ce
 
 ----------------------------------------------------------
 		
-	D16 <= D & D when MPU_MODE = '0' else x"0006";
+	D16 <= D & D when MPU_MODE = '0' else x"0003";
 		
 u27 : gh_baud_rate_gen
 	port map(
 		clk => clk,  
-		BR_clk => BR_clk, 
+		BR_clk => BR_clk,
+		DIV2 => DIV2,
 		rst  => rst, 
 		WR => WR_D,
 		BE => WR_DML,

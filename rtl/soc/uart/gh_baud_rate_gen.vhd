@@ -25,6 +25,7 @@ entity gh_baud_rate_gen is
 	port(
 		clk     : in std_logic;	
 		BR_clk  : in std_logic;
+		DIV2    : in std_logic := '0';
 		rst     : in std_logic;
 		WR      : in std_logic;
 		BE      : in std_logic_vector (1 downto 0); -- byte enable
@@ -63,6 +64,7 @@ END COMPONENT;
 	signal UB_LD   : std_logic;
 	signal LB_LD   : std_logic;
 	signal rate    : std_logic_vector(15 downto 0);
+	signal rate2   : std_logic_vector(15 downto 0);
 	signal C_LD    : std_logic;
 	signal C_CE    : std_logic;
 	signal irLD    : std_logic;	-- added 02/04/06
@@ -146,6 +148,8 @@ end process;
 	C_CE <= '1' when (rate > x"01") else
 	        '0';
 
+rate2 <= rate when DIV2 = '0' else (rate(14 downto 0) & '0');
+
 U3 : gh_counter_down_ce_ld
 	Generic Map (size => 16)
 	PORT MAP (
@@ -153,7 +157,7 @@ U3 : gh_counter_down_ce_ld
 		rst => rst,
 		LOAD => C_LD,
 		CE => C_CE,
-		D => rate,
+		D => rate2,
 		Q => count);
 		
 end a;

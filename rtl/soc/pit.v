@@ -30,18 +30,12 @@ module pit(
 
 	output              irq,
 
-	//io slave 040h-043h
-	input       [1:0]   io_address,
+	//io slave 040h-043h / 61h
+	input       [2:0]   io_address,
 	input               io_read,
 	output reg  [7:0]   io_readdata,
 	input               io_write,
 	input       [7:0]   io_writedata,
-
-	//speaker port 61h
-	input               speaker_61h_read,
-	output      [7:0]   speaker_61h_readdata,
-	input               speaker_61h_write,
-	input       [7:0]   speaker_61h_writedata,
 
 	//speaker output
 	output              speaker_out,
@@ -81,16 +75,15 @@ end
 //------------------------------------------------------------------------------ read io
 
 wire [7:0] io_readdata_next =
-    (io_read_valid && io_address == 2'd0)?    counter_0_readdata :
-    (io_read_valid && io_address == 2'd1)?    counter_1_readdata :
-    (io_read_valid && io_address == 2'd2)?    counter_2_readdata :
-                                              8'd0; //control address
+    (io_read_valid && io_address == 0) ? counter_0_readdata :
+    (io_read_valid && io_address == 1) ? counter_1_readdata :
+    (io_read_valid && io_address == 2) ? counter_2_readdata :
+    (io_read_valid && io_address == 5) ? { 2'b0, speaker_out, counter_1_toggle, 2'b0, speaker_enable, speaker_gate } :
+                                         8'd0; //control address
 
 always @(posedge clk) io_readdata <= io_readdata_next;
 
 //------------------------------------------------------------------------------ speaker
-
-assign speaker_61h_readdata = { 2'b0, speaker_out, counter_1_toggle, 2'b0, speaker_enable, speaker_gate };
 
 reg [5:0] counter_1_cnt;
 always @(posedge clk or negedge rst_n) begin
@@ -108,14 +101,14 @@ end
 
 reg speaker_gate;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)           speaker_gate <= 1'b0;
-    else if(speaker_61h_write)  speaker_gate <= speaker_61h_writedata[0];
+    if(rst_n == 1'b0)                    speaker_gate <= 1'b0;
+    else if(io_write && io_address == 5) speaker_gate <= io_writedata[0];
 end
 
 reg speaker_enable;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)           speaker_enable <= 1'b0;
-    else if(speaker_61h_write)  speaker_enable <= speaker_61h_writedata[1];
+    if(rst_n == 1'b0)                    speaker_enable <= 1'b0;
+    else if(io_write && io_address == 5) speaker_enable <= io_writedata[1];
 end
 
 assign speaker_out = spk_out & speaker_enable;
@@ -136,11 +129,11 @@ pit_counter pit_counter_0(
     .out                (irq),              //output
     
     .data_in            (io_writedata),                                                                                                                                         //input [7:0]
-    .set_control_mode   (io_write && io_address == 2'd3 && io_writedata[7:6] == 2'b00 && io_writedata[5:4] != 2'b00),                                                           //input
-    .latch_count        (io_write && io_address == 2'd3 && ((io_writedata[7:6] == 2'b00 && io_writedata[5:4] == 2'b00) || (io_writedata[7:5] == 3'b110 && io_writedata[1]))),   //input
-    .latch_status       (io_write && io_address == 2'd3 && io_writedata[7:6] == 2'b11 && io_writedata[4] == 1'b0 && io_writedata[1]),                                           //input
-    .write              (io_write && io_address == 2'd0),                                                                                                                       //input
-    .read               (io_read_valid && io_address == 2'd0),                                                                                                                  //input
+    .set_control_mode   (io_write && io_address == 3 && io_writedata[7:6] == 2'b00 && io_writedata[5:4] != 2'b00),                                                           //input
+    .latch_count        (io_write && io_address == 3 && ((io_writedata[7:6] == 2'b00 && io_writedata[5:4] == 2'b00) || (io_writedata[7:5] == 3'b110 && io_writedata[1]))),   //input
+    .latch_status       (io_write && io_address == 3 && io_writedata[7:6] == 2'b11 && io_writedata[4] == 1'b0 && io_writedata[1]),                                           //input
+    .write              (io_write && io_address == 0),                                                                                                                       //input
+    .read               (io_read_valid && io_address == 0),                                                                                                                  //input
     
     .data_out           (counter_0_readdata)    //output [7:0]
 );
@@ -156,11 +149,11 @@ pit_counter pit_counter_1(
     /* verilator lint_on PINNOCONNECT */
     
     .data_in            (io_writedata),                                                                                                                                         //input [7:0]
-    .set_control_mode   (io_write && io_address == 2'd3 && io_writedata[7:6] == 2'b01 && io_writedata[5:4] != 2'b00),                                                           //input
-    .latch_count        (io_write && io_address == 2'd3 && ((io_writedata[7:6] == 2'b01 && io_writedata[5:4] == 2'b00) || (io_writedata[7:5] == 3'b110 && io_writedata[2]))),   //input
-    .latch_status       (io_write && io_address == 2'd3 && io_writedata[7:6] == 2'b11 && io_writedata[4] == 1'b0 && io_writedata[2]),                                           //input
-    .write              (io_write && io_address == 2'd1),                                                                                                                       //input
-    .read               (io_read_valid && io_address == 2'd1),                                                                                                                  //input
+    .set_control_mode   (io_write && io_address == 3 && io_writedata[7:6] == 2'b01 && io_writedata[5:4] != 2'b00),                                                           //input
+    .latch_count        (io_write && io_address == 3 && ((io_writedata[7:6] == 2'b01 && io_writedata[5:4] == 2'b00) || (io_writedata[7:5] == 3'b110 && io_writedata[2]))),   //input
+    .latch_status       (io_write && io_address == 3 && io_writedata[7:6] == 2'b11 && io_writedata[4] == 1'b0 && io_writedata[2]),                                           //input
+    .write              (io_write && io_address == 1),                                                                                                                       //input
+    .read               (io_read_valid && io_address == 1),                                                                                                                  //input
     
     .data_out           (counter_1_readdata)    //output [7:0]
 );
@@ -175,11 +168,11 @@ pit_counter pit_counter_2(
     .out                (spk_out),      //output
     
     .data_in            (io_writedata),                                                                                                                                         //input [7:0]
-    .set_control_mode   (io_write && io_address == 2'd3 && io_writedata[7:6] == 2'b10 && io_writedata[5:4] != 2'b00),                                                           //input
-    .latch_count        (io_write && io_address == 2'd3 && ((io_writedata[7:6] == 2'b10 && io_writedata[5:4] == 2'b00) || (io_writedata[7:5] == 3'b110 && io_writedata[3]))),   //input
-    .latch_status       (io_write && io_address == 2'd3 && io_writedata[7:6] == 2'b11 && io_writedata[4] == 1'b0 && io_writedata[3]),                                           //input
-    .write              (io_write && io_address == 2'd2),                                                                                                                       //input
-    .read               (io_read_valid && io_address == 2'd2),                                                                                                                  //input
+    .set_control_mode   (io_write && io_address == 3 && io_writedata[7:6] == 2'b10 && io_writedata[5:4] != 2'b00),                                                           //input
+    .latch_count        (io_write && io_address == 3 && ((io_writedata[7:6] == 2'b10 && io_writedata[5:4] == 2'b00) || (io_writedata[7:5] == 3'b110 && io_writedata[3]))),   //input
+    .latch_status       (io_write && io_address == 3 && io_writedata[7:6] == 2'b11 && io_writedata[4] == 1'b0 && io_writedata[3]),                                           //input
+    .write              (io_write && io_address == 2),                                                                                                                       //input
+    .read               (io_read_valid && io_address == 2),                                                                                                                  //input
     
     .data_out           (counter_2_readdata)    //output [7:0]
 );

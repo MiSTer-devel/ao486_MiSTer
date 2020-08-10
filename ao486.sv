@@ -605,7 +605,8 @@ system system
 	.serial_dsr_n         (UART_DSR),
 	.serial_rts_n         (UART_RTS),
 	.serial_dtr_n         (UART_DTR),
-	
+	.serial_midi_rate     (midi_en),
+
 	.memcfg               (memcfg),
 
 	.DDRAM_CLK            (DDRAM_CLK),

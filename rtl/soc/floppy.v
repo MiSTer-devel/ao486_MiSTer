@@ -46,12 +46,6 @@ module floppy
 	input               io_write,
 	input       [7:0]   io_writedata,
 
-	//ide shared port 0x3F6
-	output              ide_3f6_read,
-	input       [7:0]   ide_3f6_readdata,
-	output              ide_3f6_write,
-	output      [7:0]   ide_3f6_writedata,
-
 	//slave for management
 	/*
 	0x00.[0]:      media present
@@ -103,12 +97,6 @@ reg sd_slave_read_last;
 always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) sd_slave_read_last <= 1'b0; else if(sd_slave_read_last) sd_slave_read_last <= 1'b0; else sd_slave_read_last <= sd_slave_read; end 
 wire sd_slave_read_valid = sd_slave_read && ~sd_slave_read_last;
 
-//------------------------------------------------------------------------------ ide shared ports
-
-assign ide_3f6_read      = io_read_valid && io_address == 3'd6;
-assign ide_3f6_write     = io_write && io_address == 3'd6;
-assign ide_3f6_writedata = io_writedata;
-
 //------------------------------------------------------------------------------ io read
 
 wire read_in_io_mode  = io_read_valid && io_address == 3'd5 && execute_ndma && cmd_read_normal_in_progress;
@@ -121,7 +109,6 @@ wire [7:0] io_readdata_prepare =
     (io_address == 3'd4)?   { datareg_ready, transfer_to_cpu, execute_ndma, busy, in_seek_mode } :  //main status reg
     (read_in_io_mode)?      from_floppy_q :
     (io_address == 3'd5)?   reply[7:0] :
-    (io_address == 3'd6)?   ide_3f6_readdata :
     (io_address == 3'd7)?   { change, 7'h7F } :
                             8'd0;
 

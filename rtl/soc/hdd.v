@@ -33,18 +33,12 @@ module hdd
 	output reg          irq,
 
 	//avalon slave
-	input        [2:0]  io_address,
+	input        [3:0]  io_address,
 	input               io_read,
 	output reg  [31:0]  io_readdata,
 	input               io_write,
 	input       [31:0]  io_writedata,
 	input        [2:0]  io_data_size,
-
-	//ide shared port 0x3F6
-	input               ide_3f6_read,
-	output reg  [7:0]   ide_3f6_readdata,
-	input               ide_3f6_write,
-	input       [7:0]   ide_3f6_writedata,
 
 	output       [2:0]  request,
 
@@ -118,18 +112,18 @@ wire [7:0] status_value =
 wire [15:0] cylinder_final = (drive_select)? 16'hFFFF : cylinder;
 
 wire [31:0] io_readdata_next =
-    (read_data_io)                     ? from_hdd_result[31:0] :
-    (io_read_valid && io_address == 1) ? error_register        :
-    (io_read_valid && io_address == 2) ? sector_count          :
-    (io_read_valid && io_address == 3) ? sector                :
-    (io_read_valid && io_address == 4) ? cylinder_final[7:0]   :
-    (io_read_valid && io_address == 5) ? cylinder_final[15:8]  :
-    (io_read_valid && io_address == 6) ? {1'b1, lba_mode, 1'b1, drive_select, (drive_select ? 4'h0 : head)} :
-    (io_read_valid && io_address == 7) ? status_value          :
-	                                      32'd0; //used
+    (read_data_io)                      ? from_hdd_result[31:0] :
+    (io_read_valid && io_address == 1)  ? error_register        :
+    (io_read_valid && io_address == 2)  ? sector_count          :
+    (io_read_valid && io_address == 3)  ? sector                :
+    (io_read_valid && io_address == 4)  ? cylinder_final[7:0]   :
+    (io_read_valid && io_address == 5)  ? cylinder_final[15:8]  :
+    (io_read_valid && io_address == 6)  ? {1'b1, lba_mode, 1'b1, drive_select, (drive_select ? 4'h0 : head)} :
+    (io_read_valid && io_address == 7)  ? status_value          :
+    (io_read_valid && io_address == 14) ? status_value          :
+	                                       32'd0; //used
 
 always @(posedge clk) io_readdata <= present ? io_readdata_next : 32'hFFFFFFFF;
-always @(posedge clk) ide_3f6_readdata <= present ? status_value : 8'hFF;
 
 //------------------------------------------------------------------------------ media management
 
@@ -245,7 +239,7 @@ end
 reg [3:0] status_index_pulse_counter;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)                                                                status_index_pulse_counter <= 4'd0;
-    else if(~(drive_select) && (ide_3f6_read || (io_read_valid && io_address == 7))) status_index_pulse_counter <= status_index_pulse_counter_next;
+    else if(~drive_select && io_read_valid && (io_address == 7 || io_address == 14)) status_index_pulse_counter <= status_index_pulse_counter_next;
 end
 
 reg [7:0] features;
@@ -284,21 +278,21 @@ always @(posedge clk or negedge rst_n) begin
     else if(io_wr && io_address == 6) drive_select <= io_writedata[4];
 end
 
-wire ide_3f6_wr = ide_3f6_write & present;
+wire ide_3f6_wr = (io_wr && io_address == 14);
 reg disable_irq;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)       disable_irq <= 1'b0;
     else if(sw_reset_start) disable_irq <= 1'b0;
-    else if(ide_3f6_wr)     disable_irq <= ide_3f6_writedata[1];
+    else if(ide_3f6_wr)     disable_irq <= io_writedata[1];
 end
 
-wire sw_reset_start = ide_3f6_wr && ide_3f6_writedata[2];
-wire sw_reset_end   = ide_3f6_wr && ~(ide_3f6_writedata[2]) && reset_in_progress;
+wire sw_reset_start = ide_3f6_wr &&  io_writedata[2];
+wire sw_reset_end   = ide_3f6_wr && ~io_writedata[2] && reset_in_progress;
 
 reg reset_in_progress;
 always @(posedge clk or negedge rst_n) begin
     if(rst_n == 1'b0)    reset_in_progress <= 1'b0;
-    else if(ide_3f6_wr)  reset_in_progress <= ide_3f6_writedata[2];
+    else if(ide_3f6_wr)  reset_in_progress <= io_writedata[2];
 end
 
 always @(posedge clk or negedge rst_n) begin

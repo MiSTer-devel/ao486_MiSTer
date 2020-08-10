@@ -41,12 +41,6 @@ module ps2
 	input                   io_cs,  //0x60-0x67
 	input                   ctl_cs, //0x90-0x9F
 
-	//speaker port 61h
-	output                  speaker_61h_read,
-	input       [7:0]       speaker_61h_readdata,
-	output                  speaker_61h_write,
-	output      [7:0]       speaker_61h_writedata,
-
 	//output port
 	output reg              output_a20_enable,
 	output reg              output_reset_n,
@@ -85,16 +79,9 @@ always @(posedge clk or negedge rst_n) begin
 end
 wire io_read_valid = io_m_read && ~io_read_last;
 
-//------------------------------------------------------------------------------
-
-assign speaker_61h_read         = io_read_valid && io_address[2:0] == 3'd1;
-assign speaker_61h_write        = io_m_write && io_address[2:0] == 3'd1;
-assign speaker_61h_writedata    = io_writedata;
-
 //------------------------------------------------------------------------------ io read
 
 wire [7:0] io_readdata_next =
-    (io_read_valid && io_address[2:0] == 3'd1)?        speaker_61h_readdata :
     (io_read_valid && io_address[2:0] == 3'd4)? {
         status_keyboardparityerror,
         status_timeout,
@@ -105,14 +92,14 @@ wire [7:0] io_readdata_next =
         status_inputbufferfull,
         status_outputbufferfull
     } :
-    (status_mousebufferfull)?               mouse_fifo_q :
-                                            keyb_fifo_q_final;
+    (status_mousebufferfull) ? mouse_fifo_q :
+                               keyb_fifo_q_final;
 
 //------------------------------------------------------------------------------ sysctl read
 
 wire [7:0] sysctl_readdata_next =
-    (io_address == 4'h2)?       { 6'd0, output_a20_enable, 1'b0 } :
-                                    8'hFF;
+    (io_address == 4'h2) ? { 6'd0, output_a20_enable, 1'b0 } :
+                             8'hFF;
 
 
 //------------------------------------------------------------------------------ output
@@ -153,7 +140,7 @@ end
 
 reg status_lastcommand;
 always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 1'b0)                           status_lastcommand <= 1'b1;
+    if(rst_n == 1'b0)                                  status_lastcommand <= 1'b1;
     else if(io_m_write && io_address[2:0] == 3'd0)     status_lastcommand <= 1'b0;
     else if(io_m_write && io_address[2:0] == 3'd4)     status_lastcommand <= 1'b1;
 end
