@@ -195,7 +195,8 @@ localparam CONF_STR =
 	"-;",
 	"OB,RAM Size,256MB,16MB;",
 `ifndef DEBUG
-	"O57,Speed,90MHz,100MHz,15MHz,30MHz,56MHz;",
+	"D1O56,Speed,90MHz,15MHz,30MHz,56MHz;",
+	"h0O7,Turbo 100Mhz,Off,On;",
 	"OA,UART Speed,Normal,30x;",
 `endif
 	"-;",
@@ -211,6 +212,7 @@ wire        ps2_kbd_clk_out;
 wire        ps2_kbd_data_out;
 wire        ps2_kbd_clk_in;
 wire        ps2_kbd_data_in;
+wire [10:0] ps2_key;
 
 wire        ps2_mouse_clk_out;
 wire        ps2_mouse_data_out;
@@ -234,6 +236,7 @@ hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000), .PS2WE(1), .WIDE(1)) hps_
 	
 	.HPS_BUS(HPS_BUS),
 
+	.ps2_key(ps2_key),
 	.ps2_kbd_clk_out(ps2_kbd_clk_out),
 	.ps2_kbd_data_out(ps2_kbd_data_out),
 	.ps2_kbd_clk_in(ps2_kbd_clk_in),
@@ -246,6 +249,7 @@ hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000), .PS2WE(1), .WIDE(1)) hps_
 
 	.buttons(buttons),
 	.status(status),
+	.status_menumask({status[7],dbg_menu}),
 	.new_vmode(status[4]),
 	.gamma_bus(gamma_bus),
 
@@ -362,8 +366,8 @@ always @(posedge CLK_50M) begin
 	if(sp2 == sp1) uspeed <= sp2;
 end
 
-(* romstyle = "logic" *) wire [27:0] clk_rate[5]  = '{90000000, 100000000, 15000000, 30000000, 56250000};
-(* romstyle = "logic" *) wire [17:0] speed_div[5] = '{  'h0505,   'h20504,   'h1e1e,   'h0f0f,   'h0808};
+(* romstyle = "logic" *) wire [27:0] clk_rate[8]  = '{90000000, 15000000, 30000000, 56250000, 100000000, 100000000, 100000000, 100000000 };
+(* romstyle = "logic" *) wire [17:0] speed_div[8] = '{  'h0505,   'h1e1e,   'h0f0f,   'h0808,   'h20504,   'h20504,   'h20504,   'h20504 };
 
 always @(posedge CLK_50M) begin
 	reg [2:0] old_speed = 0;
@@ -646,6 +650,27 @@ always @(posedge clk_sys) begin
 		rst_q <= '1;
 		init_reset_n <= 1;
 	end
+end
+
+reg dbg_menu = 0;
+always @(posedge clk_sys) begin
+	reg old_stb;
+	reg enter = 0;
+	reg esc = 0;
+	
+	old_stb <= ps2_key[10];
+	if(old_stb ^ ps2_key[10]) begin
+		if(ps2_key[7:0] == 'h5A) enter <= ps2_key[9];
+		if(ps2_key[7:0] == 'h76) esc   <= ps2_key[9];
+	end
+	
+	if(enter & esc) begin
+		dbg_menu <= ~dbg_menu;
+		enter <= 0;
+		esc <= 0;
+	end
+
+	if(status[7]) dbg_menu <= 1;
 end
 
 endmodule
