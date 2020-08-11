@@ -45,7 +45,7 @@ wire mpu_mode = mpu_mode_r & ~xCR_write;
 
 wire uart_strobe = mpu_mode ? (mpu_cs & ~address[0] & ((read & ~read_ack) | write)) : (uart_cs & (read | write));
 
-wire irq, rx_empty, tx_full;
+wire irq, rx_empty, tx_empty;
 wire [7:0] data;
 
 gh_uart_16550 uart_16550
@@ -74,7 +74,7 @@ gh_uart_16550 uart_16550
 
 	.DIV2(midi_rate),
 	.MPU_MODE(mpu_mode),
-	.TX_Full(tx_full),
+	.TX_Empty(tx_empty),
 	.RX_Empty(rx_empty)
 );
 
@@ -89,7 +89,7 @@ always @(posedge clk or posedge reset) begin
 	end
 	else begin
 		if(read & uart_cs) readdata <= data;
-		if(read & mpu_cs)  readdata <= address[0] ? {~(read_ack | ~rx_empty), tx_full, 6'd0} : read_ack ? 8'hFE : data;
+		if(read & mpu_cs)  readdata <= address[0] ? {~(read_ack | ~rx_empty), ~tx_empty, 6'd0} : read_ack ? 8'hFE : data;
 
 		if(write & mpu_cs & address[0]) begin
 			mpu_mode_r <= 1;
