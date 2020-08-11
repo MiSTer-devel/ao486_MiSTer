@@ -40,7 +40,7 @@ module uart (
 assign irq_uart = ~mpu_mode_r & irq;
 assign irq_mpu  = read_ack | (mpu_mode_r & ~rx_empty);
 
-reg read_ack, mpu_mode_r;
+reg read_ack, mpu_mode_r, mpu_intl;
 wire irq, rx_empty, tx_full;
 
 wire [7:0] data;
@@ -79,7 +79,6 @@ gh_uart_16550 uart
 
 	.DIV2(midi_rate),
 	.MPU_MODE(mpu_mode),
-	.TX_Empty(),
 	.TX_Full(tx_full),
 	.RX_Empty(rx_empty)
 );
@@ -88,23 +87,22 @@ always @(posedge clk or posedge reset) begin
 	if(reset) begin
 		mpu_mode_r <= 0;
 		read_ack <= 0;
+		mpu_intl <= 1;
 	end
 	else begin
 		if(read & uart_cs) readdata <= data;
 		if(read & mpu_cs)  readdata <= address[0] ? mpu_status : read_ack ? 8'hFE : data;
 
 		if(write & mpu_cs & address[0]) begin
-			case (writedata)
-				'hFF:    begin mpu_mode_r <= 0; read_ack <= ~mpu_mode_r; end
-				'h3F:    begin mpu_mode_r <= 1; read_ack <= 1;           end
-				default: begin mpu_mode_r <= 1; read_ack <= 1;           end  //answer to any command, fake smart mode
-			endcase
+			mpu_mode_r <= 1;
+			read_ack <= 1;
+			if(writedata == 8'h3F) mpu_intl <= 0;
+			if(writedata == 8'hFF) begin mpu_intl <= 1; read_ack <= mpu_intl; end
 		end
 
-		if(mpu_cs & read & ~address[0]) read_ack   <= 0;
-
 		// write to FCR or LCR to switch MPU off
-		if(xCR_write) mpu_mode_r <= 0;
+		if(xCR_write) begin mpu_mode_r <= 0; mpu_intl <= 1; end
+		if(mpu_cs & read & ~address[0]) read_ack <= 0;
 	end
 end
 

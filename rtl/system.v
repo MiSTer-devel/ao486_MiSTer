@@ -138,7 +138,6 @@ wire        iobus_write;
 wire        iobus_read;
 wire  [2:0] iobus_datasize;
 wire [31:0] iobus_writedata;
-reg   [7:0] iobus_readdata8;
 
 reg         hdd0_cs;
 reg         hdd1_cs;
@@ -296,19 +295,18 @@ always @(posedge clk_sys) begin
 	vga_d_cs      <= ({iobus_address[15:4], 4'd0} == 16'h03D0);
 end
 
-always @* begin
-	     if( floppy0_cs                             ) iobus_readdata8 = floppy0_readdata;
-	else if( dma_master_cs|dma_slave_cs|dma_page_cs ) iobus_readdata8 = dma_io_readdata;
-	else if( pic_master_cs|pic_slave_cs             ) iobus_readdata8 = pic_readdata;
-	else if( pit_cs                                 ) iobus_readdata8 = pit_readdata;
-	else if( ps2_io_cs|ps2_ctl_cs                   ) iobus_readdata8 = ps2_readdata;
-	else if( rtc_cs                                 ) iobus_readdata8 = rtc_readdata;
-	else if( sb_cs|fm_cs                            ) iobus_readdata8 = sound_readdata;
-	else if( uart_cs|mpu_cs                         ) iobus_readdata8 = uart_readdata;
-	else if( vga_b_cs|vga_c_cs|vga_d_cs             ) iobus_readdata8 = vga_io_readdata;
-	else if( joy_cs                                 ) iobus_readdata8 = joystick_readdata;
-	else                                              iobus_readdata8 = 8'hFF;
-end
+wire [7:0] iobus_readdata8 =
+	( floppy0_cs                             ) ? floppy0_readdata  :
+	( dma_master_cs|dma_slave_cs|dma_page_cs ) ? dma_io_readdata   :
+	( pic_master_cs|pic_slave_cs             ) ? pic_readdata      :
+	( pit_cs                                 ) ? pit_readdata      :
+	( ps2_io_cs|ps2_ctl_cs                   ) ? ps2_readdata      :
+	( rtc_cs                                 ) ? rtc_readdata      :
+	( sb_cs|fm_cs                            ) ? sound_readdata    :
+	( uart_cs|mpu_cs                         ) ? uart_readdata     :
+	( vga_b_cs|vga_c_cs|vga_d_cs             ) ? vga_io_readdata   :
+	( joy_cs                                 ) ? joystick_readdata :
+	                                             8'hFF;
 
 iobus iobus
 (
@@ -670,7 +668,6 @@ always @* begin
 	interrupt[14] = irq_14;
 	interrupt[15] = irq_15;
 end
-
 
 always @(posedge clk_sys) begin
 	mgmt_hdd0_cs <= (mgmt_address[15:8] == 8'hF0);
