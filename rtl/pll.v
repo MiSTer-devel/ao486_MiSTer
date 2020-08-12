@@ -11,6 +11,7 @@ module pll (
 		output wire        outclk_0,          //           outclk0.clk
 		output wire        outclk_1,          //           outclk1.clk
 		output wire        outclk_2,          //           outclk2.clk
+		output wire        outclk_3,          //           outclk3.clk
 		output wire        locked,            //            locked.export
 		input  wire [63:0] reconfig_to_pll,   //   reconfig_to_pll.reconfig_to_pll
 		output wire [63:0] reconfig_from_pll  // reconfig_from_pll.reconfig_from_pll
@@ -22,6 +23,7 @@ module pll (
 		.outclk_0          (outclk_0),          //           outclk0.clk
 		.outclk_1          (outclk_1),          //           outclk1.clk
 		.outclk_2          (outclk_2),          //           outclk2.clk
+		.outclk_3          (outclk_3),          //           outclk3.clk
 		.locked            (locked),            //            locked.export
 		.reconfig_to_pll   (reconfig_to_pll),   //   reconfig_to_pll.reconfig_to_pll
 		.reconfig_from_pll (reconfig_from_pll)  // reconfig_from_pll.reconfig_from_pll
@@ -69,7 +71,7 @@ endmodule
 // Retrieval info: 	<generic name="gui_dsm_out_sel" value="1st_order" />
 // Retrieval info: 	<generic name="gui_use_locked" value="true" />
 // Retrieval info: 	<generic name="gui_en_adv_params" value="false" />
-// Retrieval info: 	<generic name="gui_number_of_clocks" value="3" />
+// Retrieval info: 	<generic name="gui_number_of_clocks" value="4" />
 // Retrieval info: 	<generic name="gui_multiply_factor" value="18" />
 // Retrieval info: 	<generic name="gui_frac_multiply_factor" value="1" />
 // Retrieval info: 	<generic name="gui_divide_factor_n" value="1" />
@@ -101,7 +103,7 @@ endmodule
 // Retrieval info: 	<generic name="gui_actual_phase_shift2" value="0" />
 // Retrieval info: 	<generic name="gui_duty_cycle2" value="50" />
 // Retrieval info: 	<generic name="gui_cascade_counter3" value="false" />
-// Retrieval info: 	<generic name="gui_output_clock_frequency3" value="10.0" />
+// Retrieval info: 	<generic name="gui_output_clock_frequency3" value="90.0" />
 // Retrieval info: 	<generic name="gui_divide_factor_c3" value="1" />
 // Retrieval info: 	<generic name="gui_actual_output_clock_frequency3" value="0 MHz" />
 // Retrieval info: 	<generic name="gui_ps_units3" value="ps" />

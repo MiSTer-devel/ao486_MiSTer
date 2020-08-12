@@ -161,8 +161,8 @@ assign VIDEO_ARY = status[1] ? 8'd9  : 8'd3;
 
 assign AUDIO_S   = 1;
 assign AUDIO_MIX = 0;
-assign AUDIO_L   = sb_out_l + {2'b00, {14{speaker_out}}};
-assign AUDIO_R   = sb_out_r + {2'b00, {14{speaker_out}}};
+assign AUDIO_L   = sb_out_l + {1'b0, speaker_out, 14'd0};
+assign AUDIO_R   = sb_out_r + {1'b0, speaker_out, 14'd0};
 
 assign LED_DISK[1] = 0;
 assign LED_POWER   = 0;
@@ -176,7 +176,6 @@ led fdd_led(clk_sys, |mgmt_req[7:6], LED_USER);
 localparam CONF_STR =
 {
 	"AO486;;",
-	"-;",
 	"S0,IMG,Mount Floppy;",
 	"-;",
 	"S2,VHD,Mount Primary HDD;",
@@ -292,7 +291,7 @@ hps_ext hps_ext
 
 //------------------------------------------------------------------------------
 
-wire clk_sys, clk_uart, clk_opl;
+wire clk_sys, clk_uart, clk_opl, clk_vga;
 reg [27:0] cur_rate;
 
 `ifdef DEBUG
@@ -300,9 +299,10 @@ reg [27:0] cur_rate;
 pll2 pll
 (
 	.refclk(CLK_50M),
-	.outclk_0(clk_sys)
+	.outclk_0(clk_vga)
 	.outclk_1(clk_uart),
 	.outclk_2(clk_opl)
+	.outclk_3(clk_sys)
 );
 
 always @(posedge clk_sys) cur_rate <= 30000000;
@@ -317,6 +317,7 @@ pll pll
 	.outclk_0(clk_sys),
 	.outclk_1(clk_uart),
 	.outclk_2(clk_opl),
+	.outclk_3(clk_vga),
 	.locked(pll_locked),
 	.reconfig_to_pll(reconfig_to_pll),
 	.reconfig_from_pll(reconfig_from_pll)
@@ -441,7 +442,7 @@ always @(posedge CLK_VIDEO) if(CE_PIXEL) ded <= (ded<<1) | de;
 
 assign VGA_F1 = 0;
 assign VGA_SL = 0;
-assign CLK_VIDEO = clk_sys;
+assign CLK_VIDEO = clk_vga;
 
 wire [7:0] r,g,b;
 wire       HSync,VSync;
@@ -531,7 +532,7 @@ assign FB_STRIDE      = fb_stride;
 assign FB_FORCE_BLANK = fb_off;
 
 reg f60;
-always @(posedge clk_sys) f60 <= fb_en || (fb_width > 700);
+always @(posedge clk_sys) f60 <= fb_en || (fb_width > 760);
 
 assign DDRAM_ADDR[28:25] = 4'h3;
 
@@ -540,6 +541,7 @@ system system
 	.clk_sys              (clk_sys),
 	.clk_opl              (clk_opl),
 	.clk_uart             (clk_uart),
+	.clk_vga              (clk_vga),
 
 	.reset_sys            (sys_reset),
 	.reset_cpu            (cpu_reset),
@@ -555,6 +557,7 @@ system system
 	.video_g              (g),
 	.video_b              (b),
 
+	.clock_rate_vga       (90000000),
 	.video_pal_a          (vga_pal_a),
 	.video_pal_d          (vga_pal_d),
 	.video_pal_we         (vga_pal_we),
