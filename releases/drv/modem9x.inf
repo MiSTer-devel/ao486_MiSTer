@@ -1,0 +1,68 @@
+; Modified 23 May 98 per e-mail
+
+[Version]
+Signature="$CHICAGO$"
+Class=Modem
+ClassGUID={4D36E96D-E325-11CE-BFC1-08002BE10318}
+Provider=%MC%
+LayoutFile=LAYOUT.INF
+
+[Manufacturer]
+%Man% = Null
+
+[Null]
+%MC02% = MC02, RAS-GENERIC
+
+[MC02]
+AddReg=All, Common, MC02Reg, 115200, EXTERNAL
+
+[All]
+HKR,,FriendlyDriver,,Unimodem.vxd
+HKR,,DevLoader,,*VCOMM
+HKR,,PortSubClass,1,02
+HKR,,ConfigDialog,,modemui.dll
+HKR,,EnumPropPages,,"modemui.dll,EnumPropPages"
+
+[EXTERNAL]
+HKR,, DeviceType, 1, 01
+
+[Common]
+HKR, Answer, 1,,""
+HKR, Hangup, 1,, "Bye"
+HKR, Hangup, 2,, "NoResponse"
+HKR, Settings, DialSuffix,, ""
+
+; DCB's - dwords and words are byte reversed
+;                                                                         ByteSize (Number of bits/byte, 4-8)
+;                                                                             Parity (0-4=None,Odd,Even,Mark,Space)
+;                                                                                 StopBits (0,1,2 = 1, 1.5, 2)
+;            |DCBLength   |BaudRate    |Bit Mask    |Rsvd  |XonLim|XofLim|   |   |   |Xon|Xof|Err|Eof|Evt
+[115200]
+HKR,, DCB, 1, 1C,00,00,00, 00,c2,01,00, 15,20,00,00, 00,00, 0a,00, 0a,00, 08, 00, 00, 11, 13, 00, 00, 00
+
+[MC02Reg] ; Null-Modem
+HKR, Init, 1,, "<cr><cr>"
+HKR, Init, 2,, "NoResponse"
+HKR, Settings, Prefix,,""
+HKR, Settings, DialPrefix,, "HELLO<cr>"
+HKR, Settings, Terminator,, "<cr>"
+HKR, Monitor, 1,, "None"
+HKR, Answer, 1,, "HELLO"
+HKR, Answer, 2,, "NoResponse"
+; Properties - dwords and words are byte reversed
+;                   |Dial Options             |InactivityTimeout        |Speaker Mode             |Max DTE Rate
+;                                |CallSetupFailTimeout     |Speaker Volume           |Modem Options            |Max DCE Rate
+HKR,, Properties, 1, 00,00,00,00, 00,00,00,00, 00,00,00,00, 00,00,00,00, 00,00,00,00, 30,00,00,00, 00,c2,01,00, 00,c2,01,00
+HKR, Responses, "<h00>", 1, 02, 00, 00, 00, 00, 00, 00,00,00,00 ; Accept any recvd data as CONNECTED.
+
+; 23 May 98 added
+HKR, Responses, "<hff>", 1, 02, 00, 00, 00, 00, 00, 00,00,00,00 ; Accept any recvd data as CONNECTED.
+HKR, Responses, "<cr>", 1, 02, 00, 00, 00, 00, 00, 00,00,00,00 ; Accept any recvd data as CONNECTED.
+HKR, Responses, "<lf>", 1, 02, 00, 00, 00, 00, 00, 00,00,00,00 ; Accept any recvd data as CONNECTED.
+HKR, Responses, "<cr><lf>", 1, 02, 00, 00, 00, 00, 00, 00,00,00,00 ; Accept any recvd data as CONNECTED.
+; end of 23 May 98 addition
+
+[Strings]
+MC = "Mark Crossley v2"
+Man = "(NULL Modem Types)"
+MC02 = "Generic NULL Modem" 

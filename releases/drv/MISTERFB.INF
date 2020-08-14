@@ -1,0 +1,63 @@
+
+;
+; MiSTer Display
+;
+[version]
+Class=DISPLAY
+signature="$CHICAGO$"
+Provider=%MiSTer%
+
+[DestinationDirs]
+DefaultDestDir  =11		;LDID_SYS
+
+[SourceDisksNames]
+1="Windows 9x MiSTer Driver Disk",,diskt
+
+[SourceDisksFiles]
+MiSTerFB.drv=1
+
+[Manufacturer]
+%MiSTer%=MiSTer
+
+[MiSTer]
+%*PNP0906.DeviceDesc%=ET4000, *PNP0906
+
+[ET4000]
+CopyFiles=ET4000.Copy
+DelReg=Prev.DelReg
+AddReg=ET4000.AddReg
+
+[ET4000.Copy]
+MiSTerFB.drv
+
+[Prev.DelReg]
+HKR,,Ver
+HKR,,DevLoader
+HKR,,EnumPropPages
+HKR,INFO
+HKR,DEFAULT
+HKR,MODES
+HKR,CURRENT
+
+[ET4000.AddReg]
+HKR,,Ver,,4.0
+HKR,,DevLoader,,*vdd
+HKR,DEFAULT,Mode,,"8,640,480"
+HKR,DEFAULT,drv,,MiSTerFB.drv
+HKR,DEFAULT,vdd,,"*vdd,*vflatd"
+HKR,"MODES\4\640,480",drv,,vga.drv
+HKR,"MODES\4\640,480",vdd,,*vdd
+HKR,"MODES\4\800,600",drv,,supervga.drv
+HKR,"MODES\4\800,600",vdd,,*vdd
+HKR,"MODES\8\640,480"
+HKR,"MODES\8\800,600"
+HKR,"MODES\8\1024,768"
+HKR,"MODES\8\1280,1024"
+HKR,"MODES\16\640,480"
+HKR,"MODES\16\800,600"
+HKR,"MODES\16\1024,768"
+HKR,"MODES\24\640,480"
+
+[Strings]
+MiSTer="MiSTer"
+*PNP0906.DeviceDesc="MiSTer ET4000+"
