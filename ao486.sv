@@ -434,23 +434,19 @@ wire        ps2_reset_n;
 wire        speaker_out;
 wire [15:0] sb_out_l, sb_out_r;
 
-wire        device;
-
-wire        de;
-reg  [15:0] ded;
-always @(posedge CLK_VIDEO) if(CE_PIXEL) ded <= (ded<<1) | de;
-
 assign VGA_F1 = 0;
 assign VGA_SL = 0;
 assign CLK_VIDEO = clk_vga;
+assign CE_PIXEL = vga_ce & vga_out_en;
 
 wire [7:0] r,g,b;
 wire       HSync,VSync;
+wire       ce_pix;
 
 video_cleaner video_cleaner
 (
 	.clk_vid(CLK_VIDEO),
-	.ce_pix(CE_PIXEL),
+	.ce_pix(vga_ce),
 
 	.R(r),
 	.G(g),
@@ -458,7 +454,7 @@ video_cleaner video_cleaner
 
 	.HSync(HSync),
 	.VSync(VSync),
-	.DE_in(de & ded[15]),
+	.DE_in(vga_de),
 
 	.VGA_R(R),
 	.VGA_G(G),
@@ -499,6 +495,25 @@ wire  [8:0] vga_stride;
 wire [10:0] vga_height;
 wire  [3:0] vga_flags;
 wire        vga_off;
+wire        vga_ce;
+wire        vga_de;
+
+reg vga_out_en;
+always @(posedge clk_vga) begin
+	reg old_hs, old_vs;
+	
+	if(vga_flags[3]) begin
+		old_hs <= HSync;
+		if(~old_hs & HSync) begin
+			old_vs <= VSync;
+			vga_out_en <= ~vga_out_en;
+			if(~old_vs & VSync) vga_out_en <= 0;
+		end
+	end
+	else begin
+		vga_out_en <= 1;
+	end
+end
 
 reg         fb_en;
 reg  [31:0] fb_base;
@@ -548,9 +563,9 @@ system system
 
 	.clock_rate           (cur_rate),
 
-	.video_ce             (CE_PIXEL),
+	.video_ce             (vga_ce),
 	.video_f60            (~status[4] | f60),
-	.video_blank_n        (de),
+	.video_blank_n        (vga_de),
 	.video_hsync          (HSync),
 	.video_vsync          (VSync),
 	.video_r              (r),
