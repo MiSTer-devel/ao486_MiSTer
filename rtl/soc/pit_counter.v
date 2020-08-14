@@ -45,19 +45,19 @@ module pit_counter(
 //------------------------------------------------------------------------------
 
 reg [2:0] mode;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           mode <= 3'd2;
     else if(set_control_mode)   mode <= data_in[3:1];
 end
 
 reg bcd;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           bcd <= 1'd0;
     else if(set_control_mode)   bcd <= data_in[0];
 end
 
 reg [1:0] rw_mode;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           rw_mode <= 2'd1;
     else if(set_control_mode)   rw_mode <= data_in[5:4];
 end
@@ -65,7 +65,7 @@ end
 //------------------------------------------------------------------------------
 
 reg [7:0] counter_l;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                         counter_l <= 8'd0;
     else if(set_control_mode)                                 counter_l <= 8'd0;
     else if(write && rw_mode == 2'd3 && msb_write == 1'b0)    counter_l <= data_in;
@@ -73,7 +73,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] counter_m;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                         counter_m <= 8'd0;
     else if(set_control_mode)                                 counter_m <= 8'd0;
     else if(write && rw_mode == 2'd3 && msb_write == 1'b1)    counter_m <= data_in;
@@ -81,21 +81,21 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] output_l;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           output_l <= 8'd0;
     else if(latch_count && ~(output_latched))   output_l <= counter[7:0];
     else if(~(output_latched))                  output_l <= counter[7:0];
 end
 
 reg [7:0] output_m;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           output_m <= 8'd0;
     else if(latch_count && ~(output_latched))   output_m <= counter[15:8];
     else if(~(output_latched))                  output_m <= counter[15:8];
 end
 
 reg output_latched;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               output_latched <= 1'b0;
     else if(set_control_mode)                       output_latched <= 1'b0;
     else if(latch_count)                            output_latched <= 1'b1;
@@ -103,7 +103,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg null_counter;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                   null_counter <= 1'b0;
     else if(set_control_mode)                           null_counter <= 1'b1;
     else if(write && (rw_mode != 2'd3 || msb_write))    null_counter <= 1'b1;
@@ -111,27 +111,27 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg msb_write;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   msb_write <= 1'b0;
     else if(set_control_mode)           msb_write <= 1'b0;
     else if(write && rw_mode == 2'd3)   msb_write <= ~(msb_write);
 end
 
 reg msb_read;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   msb_read <= 1'b0;
     else if(set_control_mode)           msb_read <= 1'b0;
     else if(read && rw_mode == 2'd3)    msb_read <= ~(msb_read);
 end
 
 reg [7:0] status;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           status <= 8'd0;
     else if(latch_status && ~(status_latched))  status <= { out, null_counter, rw_mode, mode, bcd };
 end
 
 reg status_latched;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           status_latched <= 1'b0;
     else if(set_control_mode)   status_latched <= 1'b0;
     else if(latch_status)       status_latched <= 1'b1;
@@ -148,46 +148,46 @@ assign data_out =
 //------------------------------------------------------------------------------
 
 reg clock_last;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   clock_last <= 1'b0;
     else                clock_last <= clock;
 end
 
 reg clock_pulse;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               clock_pulse <= 1'b0;
     else if(clock_last == 1'b1 && clock == 1'b0)    clock_pulse <= 1'b1;
     else                                            clock_pulse <= 1'b0;
 end
 
 reg gate_last;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   gate_last <= 1'b1;
     else                gate_last <= gate;
 end
 
 reg gate_sampled;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               gate_sampled <= 1'b0;
     else if(clock_last == 1'b0 && clock == 1'b1)    gate_sampled <= gate;
 end
 
 reg trigger;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               trigger <= 1'b0;
     else if(gate_last == 1'b0 && gate == 1'b1)      trigger <= 1'b1;
     else if(clock_last == 1'b0 && clock == 1'b1)    trigger <= 1'b0;
 end
 
 reg trigger_sampled;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               trigger_sampled <= 1'b0;
     else if(clock_last == 1'b0 && clock == 1'b1)    trigger_sampled <= trigger;
 end
 
 //------------------------------------------------------------------------------
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                           out <= 1'b1;
     
     else if(set_control_mode && data_in[3:1] == 3'd0)                           out <= 1'b0;
@@ -224,7 +224,7 @@ end
 //------------------------------------------------------------------------------
 
 reg written;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                       written <= 1'b0;
     else if(set_control_mode)                               written <= 1'b0;
     else if(write && rw_mode != 2'd3)                       written <= 1'b1;
@@ -233,7 +233,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg loaded;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           loaded <= 1'b0;
     else if(set_control_mode)   loaded <= 1'b0;
     else if(load)               loaded <= 1'b1;
@@ -281,7 +281,7 @@ wire [15:0] counter_minus_2 =
                                         counter - 16'd2;
 
 reg [15:0] counter;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)       counter <= 16'd0;
     else if(load_even)      counter <= { counter_m, counter_l[7:1], 1'b0 };
     else if(load)           counter <= { counter_m, counter_l };

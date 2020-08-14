@@ -72,7 +72,7 @@ end
 //------------------------------------------------------------------------------
 
 reg io_read_last;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
 	if(rst_n == 1'b0)     io_read_last <= 1'b0;
 	else if(io_read_last) io_read_last <= 1'b0;
 	else                  io_read_last <= io_m_read;
@@ -106,7 +106,7 @@ wire [7:0] sysctl_readdata_next =
 
 assign a20_enable = output_a20_enable;
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               output_a20_enable <= 1'b1;
     else if(cmd_write_output_port)                  output_a20_enable <= io_writedata[1];
     else if(cmd_disable_a20)                        output_a20_enable <= 1'b0;
@@ -114,7 +114,7 @@ always @(posedge clk or negedge rst_n) begin
     else if(sysctl_write && io_address == 4'h2)     output_a20_enable <= io_writedata[1];
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                               output_reset_n <= 1'b1;
     else if(cmd_write_output_port)                                  output_reset_n <= io_writedata[0];
     else if(cmd_reset)                                              output_reset_n <= 1'b0;
@@ -125,34 +125,34 @@ end
 //------------------------------------------------------------------------------
 
 reg status_keyboardparityerror;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                       status_keyboardparityerror <= 1'b0;
     else if(keyb_recv_parity_err || mouse_recv_parity_err)  status_keyboardparityerror <= 1'b1;
     else if(io_read_valid && io_address[2:0] == 3'd4)       status_keyboardparityerror <= 1'b0;
 end
 
 reg status_timeout;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                   status_timeout <= 1'b0;
     else if(keyb_timeout_reset || mouse_timeout_reset)  status_timeout <= 1'b1;
     else if(io_read_valid && io_address[2:0] == 3'd4)   status_timeout <= 1'b0;
 end
 
 reg status_lastcommand;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                  status_lastcommand <= 1'b1;
     else if(io_m_write && io_address[2:0] == 3'd0)     status_lastcommand <= 1'b0;
     else if(io_m_write && io_address[2:0] == 3'd4)     status_lastcommand <= 1'b1;
 end
 
 reg translate;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   translate <= 1'b1;
     else if(cmd_write_command_byte)     translate <= io_writedata[6];
 end
 
 reg disable_mouse;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   disable_mouse <= 1'b0;
     else if(cmd_write_command_byte)     disable_mouse <= io_writedata[5];
     else if(cmd_disable_mouse)          disable_mouse <= 1'b1;
@@ -161,7 +161,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg disable_mouse_visible;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   disable_mouse_visible <= 1'b0;
     else if(cmd_write_command_byte)     disable_mouse_visible <= io_writedata[5];
     else if(cmd_disable_mouse)          disable_mouse_visible <= 1'b1;
@@ -169,7 +169,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg disable_keyboard;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   disable_keyboard <= 1'b0;
     else if(cmd_write_command_byte)     disable_keyboard <= io_writedata[4];
     else if(cmd_disable_keyb)           disable_keyboard <= 1'b1;
@@ -178,33 +178,33 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg status_system;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   status_system <= 1'b0;
     else if(cmd_write_command_byte)     status_system <= io_writedata[2];
     else if(cmd_self_test)              status_system <= 1'b1;
 end
 
 reg allow_irq_mouse;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   allow_irq_mouse <= 1'b1;
     else if(cmd_write_command_byte)     allow_irq_mouse <= io_writedata[1];
 end
 
 reg allow_irq_keyb;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   allow_irq_keyb <= 1'b1;
     else if(cmd_write_command_byte)     allow_irq_keyb <= io_writedata[0];
 end
 
 //------------------------------------------------------------------------------ interrupts
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                                                       irq_keyb <= 1'b0;
     else if(io_read_valid && io_address[2:0] == 3'd0 && status_outputbufferfull && ~(status_mousebufferfull))    irq_keyb <= 1'b0;
     else if(allow_irq_keyb && status_outputbufferfull && ~(status_mousebufferfull))                         irq_keyb <= 1'b1;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                           irq_mouse <= 1'b0;
     else if(io_read_valid && io_address[2:0] == 3'd0 && status_mousebufferfull) irq_mouse <= 1'b0;
     else if(allow_irq_mouse && status_mousebufferfull)                          irq_mouse <= 1'b1;
@@ -213,14 +213,14 @@ end
 wire outputbuffer_idle = ~(status_mousebufferfull) && ~(status_outputbufferfull);
 
 reg status_mousebufferfull;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                   status_mousebufferfull <= 1'b0;
     else if(io_read_valid && io_address[2:0] == 3'd0)   status_mousebufferfull <= 1'b0;
     else if(outputbuffer_idle && ~(mouse_fifo_empty))   status_mousebufferfull <= 1'b1;
 end
 
 reg status_outputbufferfull;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                           status_outputbufferfull <= 1'b0;
     else if(io_read_valid && io_address[2:0] == 3'd0)                           status_outputbufferfull <= 1'b0;
     else if(outputbuffer_idle && (~(mouse_fifo_empty) || ~(keyb_fifo_empty)))   status_outputbufferfull <= 1'b1;
@@ -229,7 +229,7 @@ end
 //------------------------------------------------------------------------------ io write / controller commands
 
 reg expecting_port_60h;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                              expecting_port_60h <= 1'b0;
     else if(io_m_write && io_address[2:0] == 3'd0) expecting_port_60h <= 1'b0;
     else if(cmd_with_param_first_byte)             expecting_port_60h <= 1'b1;
@@ -237,7 +237,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] last_command;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                              last_command <= 8'h00;
     else if(io_m_write && io_address[2:0] == 3'd4) last_command <= io_writedata;
 end
@@ -300,7 +300,7 @@ wire [7:0] output_port = {
 };
 
 reg [7:0] keyb_reply;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   keyb_reply <= 8'h00;
     else if(cmd_write_to_keyb_output)   keyb_reply <= io_writedata;
     else if(cmd_read_command_byte)      keyb_reply <= command_byte;
@@ -313,7 +313,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg keyb_reply_valid;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   keyb_reply_valid <= 1'b0;
     else if(cmd_write_to_keyb_output)   keyb_reply_valid <= 1'b1;
     else if(cmd_read_command_byte)      keyb_reply_valid <= 1'b1;
@@ -327,13 +327,13 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] mouse_reply;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   mouse_reply <= 8'd0;
     else if(cmd_write_to_mouse_output)  mouse_reply <= io_writedata;
 end
 
 reg mouse_reply_valid;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   mouse_reply_valid <= 1'b0;
     else if(cmd_write_to_mouse_output)  mouse_reply_valid <= 1'b1;
     else if(ps2_mouse_reply_done)       mouse_reply_valid <= 1'b0;
@@ -345,28 +345,28 @@ wire write_to_keyb  = io_m_write && io_address[2:0] == 3'd0 && ~(expecting_port_
 wire write_to_mouse = cmd_write_to_mouse;
 
 reg status_inputbufferfull;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                       status_inputbufferfull <= 1'b0;
     else if(write_to_keyb || write_to_mouse)                status_inputbufferfull <= 1'b1;
     else if(input_write_done && status_outputbufferfull)    status_inputbufferfull <= 1'b0;
 end
 
 reg input_write_done;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                   input_write_done <= 1'b0;
     else if(write_to_keyb || write_to_mouse)            input_write_done <= 1'b0;
     else if(ps2_kb_write_done || ps2_mouse_write_done)  input_write_done <= 1'b1;
 end
 
 reg input_for_mouse;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)       input_for_mouse <= 1'b0;
     else if(write_to_keyb)  input_for_mouse <= 1'b0;
     else if(write_to_mouse) input_for_mouse <= 1'b1;
 end
 
 reg [7:0] inputbuffer;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                       inputbuffer <= 8'd0;
     else if(write_to_keyb || write_to_mouse)                inputbuffer <= io_writedata;
     else if(ps2_kb_write_shift || ps2_mouse_write_shift)    inputbuffer <= { 1'b0, inputbuffer[7:1] };
@@ -378,7 +378,7 @@ assign ps2_kbclk_out = ~ps2_kbclk_ena;
 assign ps2_kbdat_out = ~ps2_kbdat_ena | ps2_kbdat_host;
 
 reg ps2_kbclk_ena;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                               ps2_kbclk_ena <= 1'b0;
     else if(keyb_timeout_reset)                                                     ps2_kbclk_ena <= 1'b0;
     else if(keyb_state == PS2_SEND_INHIBIT || keyb_state == PS2_WAIT_START)         ps2_kbclk_ena <= 1'b1;
@@ -386,7 +386,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg ps2_kbdat_ena;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                           ps2_kbdat_ena <= 1'b0;
     else if(keyb_timeout_reset)                                 ps2_kbdat_ena <= 1'b0;
     else if(keyb_state == PS2_SEND_DATA_LOW)                    ps2_kbdat_ena <= 1'b1;
@@ -394,7 +394,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg ps2_kbdat_host;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                       ps2_kbdat_host <= 1'b0;
     else if(keyb_state == PS2_SEND_DATA_LOW)                ps2_kbdat_host <= 1'b0;              //start bit
     else if(ps2_kb_write_shift && keyb_bit_counter < 4'd8)  ps2_kbdat_host <= inputbuffer[0];    //data bits
@@ -404,7 +404,7 @@ end
 reg [15:0] keyb_clk_mv;
 reg keyb_clk_mv_wait;
 reg was_ps2_kbclk;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) begin
         keyb_clk_mv         <= 16'd0;
         keyb_clk_mv_wait    <= 1'b0;
@@ -428,19 +428,19 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg keyb_kbclk;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   keyb_kbclk <= 1'b1;
     else                keyb_kbclk <= ps2_kbclk;
 end    
 
 reg keyb_kbdat;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   keyb_kbdat <= 1'b1;
     else                keyb_kbdat <= ps2_kbdat;
 end    
 
 reg [25:0] keyb_timeout;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                       keyb_timeout <= 26'h0;
     else if(keyb_state == PS2_SEND_INHIBIT || keyb_state == PS2_RECV_START) keyb_timeout <= 26'h3FFFFFF;
     else if(keyb_state == PS2_IDLE)                                         keyb_timeout <= 26'h0;
@@ -450,7 +450,7 @@ end
 wire keyb_timeout_reset = keyb_timeout == 26'd1;
 
 reg [12:0] keyb_timer;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           keyb_timer <= 13'd0;
     else if(keyb_timeout_reset)                 keyb_timer <= 13'd0;                  
     
@@ -461,7 +461,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [3:0] keyb_bit_counter;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               keyb_bit_counter <= 4'd0;
     else if(keyb_timeout_reset)                     keyb_bit_counter <= 4'd0;
     
@@ -473,7 +473,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg keyb_parity;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               keyb_parity <= 1'b0;
     
     else if(keyb_state == PS2_SEND_CLOCK_RELEASE)   keyb_parity <= 1'b0;
@@ -484,7 +484,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] keyb_recv_buffer;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               keyb_recv_buffer <= 8'd0;
     else if(keyb_recv && keyb_bit_counter < 4'd8)   keyb_recv_buffer <= { keyb_kbdat, keyb_recv_buffer[7:1] };
 end
@@ -494,14 +494,14 @@ wire keyb_recv_ok           = keyb_recv && keyb_bit_counter == 4'd8 && ~(keyb_pa
 wire keyb_recv_parity_err   = keyb_recv && keyb_bit_counter == 4'd8 && ~(keyb_parity) != keyb_kbdat;
 
 reg keyb_recv_result;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                      keyb_recv_result <= 1'b0;
     else if(keyb_state == PS2_RECV_BITS)   keyb_recv_result <= keyb_recv_ok;
 end
 wire keyb_recv_final = keyb_state == PS2_RECV_WAIT_FOR_IDLE && keyb_kbclk == 1'b1 && keyb_kbdat == 1'b1 && keyb_recv_result;
 
 reg keyb_translate_escape;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                       keyb_translate_escape <= 1'b0;
     else if(keyb_timeout_reset)                             keyb_translate_escape <= 1'b0;
     else if(keyb_recv_ok && keyb_translate_escape == 1'b0)  keyb_translate_escape <= translate && keyb_recv_buffer == 8'hF0;
@@ -509,7 +509,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] trans;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   trans <= 8'd0;
     else begin
         case(keyb_recv_buffer)
@@ -558,7 +558,7 @@ localparam [3:0] PS2_WAIT_FINISH            = 4'd15;
 
 reg [3:0] keyb_state;
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                                                               keyb_state <= PS2_IDLE;
     else if(keyb_timeout_reset)                                                                                     keyb_state <= PS2_IDLE;
     
@@ -600,7 +600,7 @@ wire        keyb_fifo_empty;
 wire [7:0] keyb_fifo_q_final = (keyb_fifo_empty)? keyb_fifo_q_last : keyb_fifo_q;
 
 reg [7:0] keyb_fifo_q_last;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           keyb_fifo_q_last <= 8'd0;
     else if(~(keyb_fifo_empty)) keyb_fifo_q_last <= keyb_fifo_q;
 end
@@ -637,7 +637,7 @@ assign ps2_mouseclk_out    = ~ps2_mouseclk_ena;
 assign ps2_mousedat_out    = ~ps2_mousedat_ena | ps2_mousedat_host;
 
 reg ps2_mouseclk_ena;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                                   ps2_mouseclk_ena <= 1'b0;
     else if(mouse_timeout_reset)                                                        ps2_mouseclk_ena <= 1'b0;
     else if(mouse_state == PS2_SEND_INHIBIT || mouse_state == PS2_WAIT_START)           ps2_mouseclk_ena <= 1'b1;
@@ -645,7 +645,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg ps2_mousedat_ena;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                               ps2_mousedat_ena <= 1'b0;
     else if(mouse_timeout_reset)                                    ps2_mousedat_ena <= 1'b0;
     else if(mouse_state == PS2_SEND_DATA_LOW)                       ps2_mousedat_ena <= 1'b1;
@@ -653,7 +653,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg ps2_mousedat_host;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                           ps2_mousedat_host <= 1'b0;
     else if(mouse_state == PS2_SEND_DATA_LOW)                   ps2_mousedat_host <= 1'b0;               //start bit
     else if(ps2_mouse_write_shift && mouse_bit_counter < 4'd8)  ps2_mousedat_host <= inputbuffer[0];     //data bits
@@ -663,7 +663,7 @@ end
 reg [15:0] mouse_clk_mv;
 reg mouse_clk_mv_wait;
 reg was_ps2_mouseclk;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0) begin
         mouse_clk_mv         <= 16'd0;
         mouse_clk_mv_wait    <= 1'b0;
@@ -687,19 +687,19 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg mouse_mouseclk;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   mouse_mouseclk <= 1'b1;
     else                mouse_mouseclk <= ps2_mouseclk;
 end    
 
 reg mouse_mousedat;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   mouse_mousedat <= 1'b1;
     else                mouse_mousedat <= ps2_mousedat;
 end
 
 reg [25:0] mouse_timeout;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                           mouse_timeout <= 26'h0;
     else if(mouse_state == PS2_SEND_INHIBIT || mouse_state == PS2_RECV_START)   mouse_timeout <= 26'h3FFFFFF;
     else if(mouse_state == PS2_IDLE)                                            mouse_timeout <= 26'h0;
@@ -709,7 +709,7 @@ end
 wire mouse_timeout_reset = mouse_timeout == 26'd1;
 
 reg [12:0] mouse_timer;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           mouse_timer <= 13'd0;
     else if(mouse_timeout_reset)                mouse_timer <= 13'd0;
     else if(mouse_state == PS2_SEND_INHIBIT)    mouse_timer <= 13'd8191;
@@ -719,7 +719,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [3:0] mouse_bit_counter;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               mouse_bit_counter <= 4'd0;
     else if(mouse_timeout_reset)                    mouse_bit_counter <= 4'd0;
     
@@ -731,7 +731,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg mouse_parity;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               mouse_parity <= 1'b0;
     
     else if(mouse_state == PS2_SEND_CLOCK_RELEASE)  mouse_parity <= 1'b0;
@@ -742,7 +742,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] mouse_recv_buffer;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               mouse_recv_buffer <= 8'd0;
     else if(mouse_recv && mouse_bit_counter < 4'd8) mouse_recv_buffer <= { mouse_mousedat, mouse_recv_buffer[7:1] };
 end
@@ -752,7 +752,7 @@ wire mouse_recv_ok           = mouse_recv && mouse_bit_counter == 4'd8 && ~(mous
 wire mouse_recv_parity_err   = mouse_recv && mouse_bit_counter == 4'd8 && ~(mouse_parity) != mouse_mousedat;
 
 reg mouse_recv_result;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                       mouse_recv_result <= 1'b0;
     else if(mouse_state == PS2_RECV_BITS)   mouse_recv_result <= mouse_recv_ok;
 end
@@ -760,7 +760,7 @@ wire mouse_recv_final = mouse_state == PS2_RECV_WAIT_FOR_IDLE && mouse_mouseclk 
 
 reg [3:0] mouse_state;
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                                                                       mouse_state <= PS2_IDLE;
     else if(mouse_timeout_reset)                                                                                            mouse_state <= PS2_IDLE;
     

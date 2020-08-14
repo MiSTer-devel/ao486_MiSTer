@@ -59,7 +59,7 @@ always @(posedge clk) old_write <= we;
 wire write = (~old_write & we);
 
 reg [8:0] index;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 0) index <= 0;
     else if(~addr[0] && write) index <= {addr[1], din};
 end
@@ -70,14 +70,14 @@ wire [7:0] io_writedata = din;
 //------------------------------------------------------------------------------ timer 1
 
 reg [7:0] timer1_preset;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 0)                  timer1_preset <= 0;
     else if(io_write && index == 2) timer1_preset <= io_writedata;
 end
 
 reg timer1_mask;
 reg timer1_active;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 0)                                      {timer1_mask, timer1_active} <= 0;
     else if(io_write && index == 4 && ~io_writedata[7]) {timer1_mask, timer1_active} <= {io_writedata[6], io_writedata[0]};
 end
@@ -86,7 +86,7 @@ wire timer1_pulse;
 timer timer1( clk, ce_1us, 79, timer1_preset, timer1_active, timer1_pulse );
 
 reg timer1_overflow;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
 	if(rst_n == 0)                                          timer1_overflow <= 0;
 	else begin
 		if(io_write && index == 4 && io_writedata[7])        timer1_overflow <= 0;
@@ -98,14 +98,14 @@ end
 //------------------------------------------------------------------------------ timer 2
 
 reg [7:0] timer2_preset;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 0)                  timer2_preset <= 0;
     else if(io_write && index == 3) timer2_preset <= io_writedata;
 end
 
 reg timer2_mask;
 reg timer2_active;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 0)                                      {timer2_mask, timer2_active} <= 0;
     else if(io_write && index == 4 && ~io_writedata[7]) {timer2_mask, timer2_active} <= {io_writedata[5], io_writedata[1]};
 end
@@ -114,7 +114,7 @@ wire timer2_pulse;
 timer timer2( clk, ce_1us, 319, timer2_preset, timer2_active, timer2_pulse );
 
 reg timer2_overflow;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
 	if(rst_n == 0)                                          timer2_overflow <= 0;
 	else begin
 		if(io_write && index == 4 && io_writedata[7])        timer2_overflow <= 0;

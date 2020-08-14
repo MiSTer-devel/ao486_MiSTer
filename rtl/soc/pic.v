@@ -58,17 +58,17 @@ end
 //------------------------------------------------------------------------------
 
 reg slave_read_last;
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) slave_read_last <= 1'b0; else if(slave_read_last) slave_read_last <= 1'b0; else slave_read_last <= slave_read; end 
+always @(posedge clk) begin if(rst_n == 1'b0) slave_read_last <= 1'b0; else if(slave_read_last) slave_read_last <= 1'b0; else slave_read_last <= slave_read; end 
 wire slave_read_valid = slave_read && slave_read_last == 1'b0;
 
 reg master_read_last;
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) master_read_last <= 1'b0; else if(master_read_last) master_read_last <= 1'b0; else master_read_last <= master_read; end 
+always @(posedge clk) begin if(rst_n == 1'b0) master_read_last <= 1'b0; else if(master_read_last) master_read_last <= 1'b0; else master_read_last <= master_read; end 
 wire master_read_valid = master_read && master_read_last == 1'b0;
 
 //------------------------------------------------------------------------------
 
 reg [15:0] interrupt_last;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   interrupt_last <= 16'd0;
     else                interrupt_last <= interrupt_input;
 end
@@ -99,28 +99,28 @@ wire sla_ocw2 = slave_write && io_address == 1'b0 && io_writedata[4:3] == 2'b00;
 wire sla_ocw3 = slave_write && io_address == 1'b0 && io_writedata[4:3] == 2'b01;
 
 reg sla_polled;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                       sla_polled <= 1'b0;
     else if(sla_polled && slave_read_valid) sla_polled <= 1'b0;
     else if(sla_ocw3)                       sla_polled <= io_writedata[2];
 end
 
 reg sla_read_reg_select;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                 sla_read_reg_select <= 1'b0;
     else if(sla_init_icw1)                                            sla_read_reg_select <= 1'b0;
     else if(sla_ocw3 && io_writedata[2] == 1'b0 && io_writedata[1])   sla_read_reg_select <= io_writedata[0];
 end
 
 reg sla_special_mask;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                 sla_special_mask <= 1'd0;
     else if(sla_init_icw1)                                            sla_special_mask <= 1'd0;
     else if(sla_ocw3 && io_writedata[2] == 1'b0 && io_writedata[6])   sla_special_mask <= io_writedata[5];
 end
 
 reg sla_in_init;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                   sla_in_init <= 1'b0;
     else if(sla_init_icw1)                              sla_in_init <= 1'b1;
     else if(sla_init_icw3 && ~(sla_init_requires_4))    sla_in_init <= 1'b0;
@@ -128,19 +128,19 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg sla_init_requires_4;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)       sla_init_requires_4 <= 1'b0;
     else if(sla_init_icw1)  sla_init_requires_4 <= io_writedata[0];
 end
 
 reg sla_ltim;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)       sla_ltim <= 1'b0;
     else if(sla_init_icw1)  sla_ltim <= io_writedata[3];
 end
 
 reg [2:0] sla_init_byte_expected;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               sla_init_byte_expected <= 3'd0;
     else if(sla_init_icw1)                          sla_init_byte_expected <= 3'd2;
     else if(sla_init_icw2)                          sla_init_byte_expected <= 3'd3;
@@ -148,7 +148,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [2:0] sla_lowest_priority;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                           sla_lowest_priority <= 3'd7;
     else if(sla_init_icw1)                                                      sla_lowest_priority <= 3'd7;
     else if(sla_ocw2 && io_writedata == 8'hA0)                                  sla_lowest_priority <= sla_lowest_priority + 3'd1;  //rotate on non-specific EOI
@@ -158,7 +158,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] sla_imr;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           sla_imr <= 8'hFF;
     else if(sla_init_icw1)      sla_imr <= 8'h00;
     else if(sla_ocw1)           sla_imr <= io_writedata;
@@ -176,7 +176,7 @@ wire [7:0] sla_edge_detect = {
 };
 
 reg [7:0] sla_irr;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                       sla_irr <= 8'h00;
     else if(sla_init_icw1)                  sla_irr <= 8'h00;
     else if(sla_acknowledge_not_spurious)   sla_irr <= (sla_irr & interrupt_input[15:8] & ~(interrupt_vector_bits)) | ((~(sla_ltim))? sla_edge_detect : interrupt_input[15:8]);
@@ -198,7 +198,7 @@ wire sla_isr_clear =
     (sla_ocw2 && (io_writedata == 8'h20 || io_writedata == 8'hA0)); //non-specific EOI or rotate on non-specific EOF
                                         
 reg [7:0] sla_isr;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                               sla_isr <= 8'h00;
     else if(sla_init_icw1)                                          sla_isr <= 8'h00;
     else if(sla_ocw2 && { io_writedata[7:3], 3'b000 } == 8'h60)  sla_isr <= sla_isr & ~(sla_writedata_mask);                     //clear on specific EOI
@@ -208,20 +208,20 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [4:0] sla_interrupt_offset;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)       sla_interrupt_offset <= 5'h0E;
     else if(sla_init_icw2)  sla_interrupt_offset <= io_writedata[7:3];
 end
 
 reg sla_auto_eoi;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)       sla_auto_eoi <= 1'b0;
     else if(sla_init_icw1)  sla_auto_eoi <= 1'b0;
     else if(sla_init_icw4)  sla_auto_eoi <= io_writedata[1];
 end
 
 reg sla_rotate_on_aeoi;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                   sla_rotate_on_aeoi <= 1'b0;
     else if(sla_init_icw1)                              sla_rotate_on_aeoi <= 1'b0;
     else if(sla_ocw2 && io_writedata[6:0] == 7'd0)   sla_rotate_on_aeoi <= io_writedata[7];
@@ -286,7 +286,7 @@ wire sla_irq = sla_selected_prepare != 8'd0 && (sla_special_mask || sla_selected
 wire [2:0] sla_irq_value = (sla_irq)? sla_lowest_priority + sla_selected_index + 3'd1 : 3'd7;
 
 reg sla_current_irq;    
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           sla_current_irq <= 1'b0;
     else if(sla_init_icw1)      sla_current_irq <= 1'b0;
     else if(sla_acknowledge)    sla_current_irq <= 1'b0;
@@ -294,7 +294,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg sla_current_irq_last;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   sla_current_irq_last <= 1'b0;
     else                sla_current_irq_last <= sla_current_irq;
 end
@@ -305,7 +305,7 @@ wire sla_acknowledge              = (sla_polled && slave_read_valid) || (mas_sla
 wire sla_spurious_start = sla_current_irq && ~(interrupt_done) && ~(sla_irq);
 
 reg sla_spurious;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                       sla_spurious <= 1'd0;
     else if(sla_init_icw1)                  sla_spurious <= 1'b0;
     else if(sla_spurious_start)             sla_spurious <= 1'b1;
@@ -324,28 +324,28 @@ wire mas_ocw2 = master_write && io_address == 1'b0 && io_writedata[4:3] == 2'b00
 wire mas_ocw3 = master_write && io_address == 1'b0 && io_writedata[4:3] == 2'b01;
 
 reg mas_polled;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           mas_polled <= 1'b0;
     else if(mas_polled && master_read_valid)    mas_polled <= 1'b0;
     else if(mas_ocw3)                           mas_polled <= io_writedata[2];
 end
 
 reg mas_read_reg_select;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                       mas_read_reg_select <= 1'b0;
     else if(mas_init_icw1)                                                  mas_read_reg_select <= 1'b0;
     else if(mas_ocw3 && io_writedata[2] == 1'b0 && io_writedata[1]) mas_read_reg_select <= io_writedata[0];
 end
 
 reg mas_special_mask;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                       mas_special_mask <= 1'd0;
     else if(mas_init_icw1)                                                  mas_special_mask <= 1'd0;
     else if(mas_ocw3 && io_writedata[2] == 1'b0 && io_writedata[6]) mas_special_mask <= io_writedata[5];
 end
 
 reg mas_in_init;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                   mas_in_init <= 1'b0;
     else if(mas_init_icw1)                              mas_in_init <= 1'b1;
     else if(mas_init_icw3 && ~(mas_init_requires_4))    mas_in_init <= 1'b0;
@@ -353,19 +353,19 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg mas_init_requires_4;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)       mas_init_requires_4 <= 1'b0;
     else if(mas_init_icw1) mas_init_requires_4 <= io_writedata[0];
 end
 
 reg mas_ltim;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)      	mas_ltim <= 1'b0;
     else if(mas_init_icw1) 	mas_ltim <= io_writedata[3];
 end
 
 reg [2:0] mas_init_byte_expected;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               mas_init_byte_expected <= 3'd0;
     else if(mas_init_icw1)                          mas_init_byte_expected <= 3'd2;
     else if(mas_init_icw2)                          mas_init_byte_expected <= 3'd3;
@@ -373,7 +373,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [2:0] mas_lowest_priority;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                               mas_lowest_priority <= 3'd7;
     else if(mas_init_icw1)                                                          mas_lowest_priority <= 3'd7;
     else if(mas_ocw2 && io_writedata == 8'hA0)                                  mas_lowest_priority <= mas_lowest_priority + 3'd1;  //rotate on non-specific EOI
@@ -383,7 +383,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] mas_imr;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           mas_imr <= 8'hFF;
     else if(mas_init_icw1)      mas_imr <= 8'h00;
     else if(mas_ocw1)           mas_imr <= io_writedata;
@@ -403,7 +403,7 @@ wire [7:0] mas_edge_detect = {
 };
 
 reg [7:0] mas_irr;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                       mas_irr <= 8'h00;
     else if(mas_init_icw1)                  mas_irr <= 8'h00;
     else if(mas_acknowledge_not_spurious)   mas_irr <= (mas_irr & mas_interrupt_input & ~(mas_interrupt_vector_bits)) | ((~(mas_ltim))? mas_edge_detect : mas_interrupt_input);
@@ -425,7 +425,7 @@ wire mas_isr_clear =
     (mas_ocw2 && (io_writedata == 8'h20 || io_writedata == 8'hA0)); //non-specific EOI or rotate on non-specific EOF
                                         
 reg [7:0] mas_isr;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   mas_isr <= 8'h00;
     else if(mas_init_icw1)                                              mas_isr <= 8'h00;
     else if(mas_ocw2 && { io_writedata[7:3], 3'b000 } == 8'h60)     mas_isr <= mas_isr & ~(mas_writedata_mask);                     //clear on specific EOI
@@ -435,20 +435,20 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [4:0] mas_interrupt_offset;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)       mas_interrupt_offset <= 5'd1;
     else if(mas_init_icw2)  mas_interrupt_offset <= io_writedata[7:3];
 end
 
 reg mas_auto_eoi;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)       mas_auto_eoi <= 1'b0;
     else if(mas_init_icw1)  mas_auto_eoi <= 1'b0;
     else if(mas_init_icw4)  mas_auto_eoi <= io_writedata[1];
 end
 
 reg mas_rotate_on_aeoi;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                   mas_rotate_on_aeoi <= 1'b0;
     else if(mas_init_icw1)                              mas_rotate_on_aeoi <= 1'b0;
     else if(mas_ocw2 && io_writedata[6:0] == 7'd0)  mas_rotate_on_aeoi <= io_writedata[7];
@@ -513,7 +513,7 @@ wire mas_irq = mas_selected_prepare != 8'd0 && (mas_special_mask || mas_selected
 wire [2:0] mas_irq_value = (mas_irq)? mas_lowest_priority + mas_selected_index + 3'd1 : 3'd7;
 
 reg mas_current_irq;    
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           mas_current_irq <= 1'b0;
     else if(mas_init_icw1)      mas_current_irq <= 1'b0;
     else if(mas_acknowledge)    mas_current_irq <= 1'b0;
@@ -526,7 +526,7 @@ wire mas_acknowledge              = (mas_polled && master_read_valid) || interru
 wire mas_spurious_start = mas_current_irq && ~(interrupt_done) && ~(mas_irq);
 
 reg mas_spurious;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                       mas_spurious <= 1'd0;
     else if(mas_init_icw1)                  mas_spurious <= 1'b0;
     else if(mas_spurious_start)             mas_spurious <= 1'b1;
@@ -534,7 +534,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg mas_sla_active;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                               mas_sla_active <= 1'b0;
     else if(mas_init_icw1)                                          mas_sla_active <= 1'b0;
     else if(mas_acknowledge)                                        mas_sla_active <= 1'b0;
@@ -546,14 +546,14 @@ end
 
 wire [7:0] mas_interrupt_vector_bits = (mas_sla_active)? 8'b00000100 : interrupt_vector_bits;
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           interrupt_do <= 1'b0;
     else if(mas_init_icw1)      interrupt_do <= 1'b0;
     else if(mas_acknowledge)    interrupt_do <= 1'b0;
     else if(mas_irq)            interrupt_do <= 1'b1;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                               interrupt_vector <= 8'd0;
     else if(mas_init_icw1)                                          interrupt_vector <= 8'd0;
     else if((mas_irq || mas_current_irq) && mas_irq_value != 3'd2)  interrupt_vector <= { mas_interrupt_offset, mas_irq_value };

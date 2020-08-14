@@ -127,7 +127,7 @@ wire [8:0] j2y = j2y_r + {j2y_r[8],j2y_r[8:1]} + 9'd200;
 reg [1:0] gravis_out = 0;
 reg gravis_clk = 0;
 
-always @(posedge clk or negedge rst_n) begin : joy_block
+always @(posedge clk) begin : joy_block
 	reg [4:0] gravis_pos;
 
 	if (!rst_n) begin

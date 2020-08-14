@@ -81,7 +81,7 @@ end
 //------------------------------------------------------------------------------
 
 reg io_read_last;
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) io_read_last <= 1'b0; else if(io_read_last) io_read_last <= 1'b0; else io_read_last <= io_read; end 
+always @(posedge clk) begin if(rst_n == 1'b0) io_read_last <= 1'b0; else if(io_read_last) io_read_last <= 1'b0; else io_read_last <= io_read; end 
 wire io_read_valid = io_read && io_read_last == 1'b0;
 
 //------------------------------------------------------------------------------ io read
@@ -118,7 +118,7 @@ wire interrupt_start = irq == 1'b0 && (
     (crb_int_alarm_ena    && alarm_interrupt) ||
     (crb_int_update_ena   && update_interrupt) );
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                       irq <= 1'b0;
     else if(io_read_valid && io_address == 1'b1 && ram_address == 7'h0C)    irq <= 1'b0;
     else if(interrupt_start)                                                irq <= 1'b1;
@@ -134,7 +134,7 @@ localparam [2:0] SEC_STOPPED            = 3'd4;
 
 reg [2:0] sec_state;
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                sec_state <= SEC_UPDATE_START;
     
     else if(crb_freeze || divider[2:1] == 2'b11)                     sec_state <= SEC_STOPPED;
@@ -147,7 +147,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [10:0] sec_timeout;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               sec_timeout <= 4;
     else if(crb_freeze || divider[2:1] == 2'b11)    sec_timeout <= 4;
     else if(!sec_timeout)                           sec_timeout <= 799;
@@ -155,7 +155,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg update_interrupt;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                       update_interrupt <= 1'b0;
     else if(io_read_valid && io_address == 1'b1 && ram_address == 7'h0C)    update_interrupt <= 1'b0;
     else if(sec_state == SEC_SECOND_START)                                  update_interrupt <= 1'b1;
@@ -291,7 +291,7 @@ wire rtc_century_update= rtc_year_update   && max_year;
 //------------------------------------------------------------------------------
 
 reg [7:0] rtc_second;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   rtc_second <= 8'd0;
     else if(mgmt_write && mgmt_address == 8'h00)                        rtc_second <= mgmt_writedata[7:0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h00)     rtc_second <= io_writedata;
@@ -299,7 +299,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] rtc_minute;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   rtc_minute <= 8'd0;
     else if(mgmt_write && mgmt_address == 8'h02)                        rtc_minute <= mgmt_writedata[7:0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h02)     rtc_minute <= io_writedata;
@@ -307,7 +307,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] rtc_hour;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   rtc_hour <= 8'd0;
     else if(mgmt_write && mgmt_address == 8'h04)                        rtc_hour <= mgmt_writedata[7:0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h04)     rtc_hour <= io_writedata;
@@ -315,7 +315,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] rtc_dayofweek;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   rtc_dayofweek <= 8'd0;
     else if(mgmt_write && mgmt_address == 8'h06)                        rtc_dayofweek <= mgmt_writedata[7:0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h06)     rtc_dayofweek <= io_writedata;
@@ -323,7 +323,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] rtc_dayofmonth;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   rtc_dayofmonth <= 8'd0;
     else if(mgmt_write && mgmt_address == 8'h07)                        rtc_dayofmonth <= mgmt_writedata[7:0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h07)     rtc_dayofmonth <= io_writedata;
@@ -331,7 +331,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] rtc_month;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   rtc_month <= 8'd0;
     else if(mgmt_write && mgmt_address == 8'h08)                        rtc_month <= mgmt_writedata[7:0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h08)     rtc_month <= io_writedata;
@@ -339,7 +339,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] rtc_year;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   rtc_year <= 8'd0;
     else if(mgmt_write && mgmt_address == 8'h09)                        rtc_year <= mgmt_writedata[7:0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h09)     rtc_year <= io_writedata;
@@ -347,7 +347,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] rtc_century;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   rtc_century <= 8'd0;
     else if(mgmt_write && mgmt_address == 8'h32)                        rtc_century <= mgmt_writedata[7:0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h32)     rtc_century <= io_writedata;
@@ -358,21 +358,21 @@ end
 //------------------------------------------------------------------------------
 
 reg [7:0] alarm_second;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   alarm_second <= 8'd0;
     else if(mgmt_write && mgmt_address == 8'h01)                        alarm_second <= mgmt_writedata[7:0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h01)     alarm_second <= io_writedata;
 end
 
 reg [7:0] alarm_minute;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   alarm_minute <= 8'd0;
     else if(mgmt_write && mgmt_address == 8'h03)                        alarm_minute <= mgmt_writedata[7:0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h03)     alarm_minute <= io_writedata;
 end
 
 reg [7:0] alarm_hour;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   alarm_hour <= 8'd0;
     else if(mgmt_write && mgmt_address == 8'h05)                        alarm_hour <= mgmt_writedata[7:0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h05)     alarm_hour <= io_writedata;
@@ -384,7 +384,7 @@ wire alarm_interrupt_activate =
     (alarm_hour[7:6] == 2'b11   || (rtc_hour_update && next_hour == alarm_hour)       || (~(rtc_hour_update)   && rtc_hour == alarm_hour));
 
 reg alarm_interrupt;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                       alarm_interrupt <= 1'b0;
     else if(io_read_valid && io_address == 1'b1 && ram_address == 7'h0C)    alarm_interrupt <= 1'b0;
     else if(sec_state == SEC_SECOND_START && alarm_interrupt_activate)      alarm_interrupt <= 1'b1;
@@ -397,49 +397,49 @@ crb_freeze 1: no update, no alarm
 */
 
 reg crb_freeze;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   crb_freeze <= 1'b0;
     else if(mgmt_write && mgmt_address == 8'h0B)                        crb_freeze <= mgmt_writedata[7];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h0B)     crb_freeze <= io_writedata[7];
 end
 
 reg crb_int_periodic_ena;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   crb_int_periodic_ena <= 1'b0;
     else if(mgmt_write && mgmt_address == 8'h0B)                        crb_int_periodic_ena <= mgmt_writedata[6];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h0B)     crb_int_periodic_ena <= io_writedata[6];
 end
 
 reg crb_int_alarm_ena;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   crb_int_alarm_ena <= 1'b0;
     else if(mgmt_write && mgmt_address == 8'h0B)                        crb_int_alarm_ena <= mgmt_writedata[5];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h0B)     crb_int_alarm_ena <= io_writedata[5];
 end
 
 reg crb_int_update_ena;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   crb_int_update_ena <= 1'b0;
     else if(mgmt_write && mgmt_address == 8'h0B)                        crb_int_update_ena <= ~(mgmt_writedata[7]) & mgmt_writedata[4];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h0B)     crb_int_update_ena <= ~(io_writedata[7]) & io_writedata[4];
 end
 
 reg crb_binarymode;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   crb_binarymode <= 1'b0;
     else if(mgmt_write && mgmt_address == 8'h0B)                        crb_binarymode <= mgmt_writedata[2];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h0B)     crb_binarymode <= io_writedata[2];
 end
 
 reg crb_24hour;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   crb_24hour <= 1'b1;
     else if(mgmt_write && mgmt_address == 8'h0B)                        crb_24hour <= mgmt_writedata[1];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h0B)     crb_24hour <= io_writedata[1];
 end
 
 reg crb_daylightsaving;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   crb_daylightsaving <= 1'b0;
     else if(mgmt_write && mgmt_address == 8'h0B)                        crb_daylightsaving <= mgmt_writedata[0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h0B)     crb_daylightsaving <= io_writedata[0]; 
@@ -453,14 +453,14 @@ divider 11x : no update, no alarm
 */
 
 reg [2:0] divider;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   divider <= 3'd2;
     else if(mgmt_write && mgmt_address == 8'h0A)                        divider <= mgmt_writedata[6:4];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h0A)     divider <= io_writedata[6:4];
 end
 
 reg [3:0] periodic_rate;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   periodic_rate <= 4'd6;
     else if(mgmt_write && mgmt_address == 8'h0A)                        periodic_rate <= mgmt_writedata[3:0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h0A)     periodic_rate <= io_writedata[3:0];
@@ -478,7 +478,7 @@ wire [12:0] periodic_major_initial = {
     periodic_rate == 4'd3 };
 
 reg [12:0] periodic_major;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                         periodic_major <= 13'd0;
     else if(~periodic_enabled)                                periodic_major <= 13'd0;
     else if(periodic_start)                                   periodic_major <= periodic_major_initial;
@@ -486,7 +486,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg periodic_interrupt;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                    periodic_interrupt <= 1'b0;
     else if(io_read_valid && io_address == 1'b1 && ram_address == 7'h0C) periodic_interrupt <= 1'b0;
     else if(periodic_enabled && ce_81920hz && periodic_major == 13'd1)   periodic_interrupt <= 1'b1;
@@ -495,7 +495,7 @@ end
 //------------------------------------------------------------------------------
 
 reg [6:0] ram_address;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                       ram_address <= 7'd0;
     else if(io_write && io_address == 1'b0) ram_address <= io_writedata[6:0];
 end

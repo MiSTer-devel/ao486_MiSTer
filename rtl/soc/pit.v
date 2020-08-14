@@ -46,7 +46,7 @@ module pit(
 //------------------------------------------------------------------------------
 
 reg io_read_last;
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) io_read_last <= 1'b0; else if(io_read_last) io_read_last <= 1'b0; else io_read_last <= io_read; end 
+always @(posedge clk) begin if(rst_n == 1'b0) io_read_last <= 1'b0; else if(io_read_last) io_read_last <= 1'b0; else io_read_last <= io_read; end 
 wire io_read_valid = io_read && io_read_last == 1'b0;
 
 //------------------------------------------------------------------------------ system clock
@@ -67,7 +67,7 @@ always @(posedge clk) begin
 end
 
 reg system_clock;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           system_clock <= 1'b0;
     else if(ce_system_counter)  system_clock <= ~system_clock;
 end
@@ -86,27 +86,27 @@ always @(posedge clk) io_readdata <= io_readdata_next;
 //------------------------------------------------------------------------------ speaker
 
 reg [5:0] counter_1_cnt;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                       counter_1_cnt <= 6'd0;
     else if(ce_system_counter && counter_1_cnt == 6'd35)    counter_1_cnt <= 6'd0;
     else if(ce_system_counter)                              counter_1_cnt <= counter_1_cnt + 6'd1;
 end
 
 reg counter_1_toggle;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                       counter_1_toggle <= 1'b0;
     else if(ce_system_counter && counter_1_cnt == 6'd35)    counter_1_toggle <= ~(counter_1_toggle);
 end
 
 
 reg speaker_gate;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                    speaker_gate <= 1'b0;
     else if(io_write && io_address == 5) speaker_gate <= io_writedata[0];
 end
 
 reg speaker_enable;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                    speaker_enable <= 1'b0;
     else if(io_write && io_address == 5) speaker_enable <= io_writedata[1];
 end

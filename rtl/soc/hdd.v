@@ -71,11 +71,11 @@ wire sec_read = mgmt_read && &mgmt_address;
 //------------------------------------------------------------------------------
 
 reg io_read_last;
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) io_read_last <= 1'b0; else if(io_read_last) io_read_last <= 1'b0; else io_read_last <= io_read; end 
+always @(posedge clk) begin if(rst_n == 1'b0) io_read_last <= 1'b0; else if(io_read_last) io_read_last <= 1'b0; else io_read_last <= io_read; end 
 wire io_read_valid = io_read && ~io_read_last;
 
 reg sec_read_last;
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) sec_read_last <= 1'b0; else if(sec_read_last) sec_read_last <= 1'b0; else sec_read_last <= sec_read; end 
+always @(posedge clk) begin if(rst_n == 1'b0) sec_read_last <= 1'b0; else if(sec_read_last) sec_read_last <= 1'b0; else sec_read_last <= sec_read; end 
 wire sec_read_valid = sec_read && ~sec_read_last;
 
 reg present = 0;
@@ -128,37 +128,37 @@ always @(posedge clk) io_readdata <= present ? io_readdata_next : 32'hFFFFFFFF;
 //------------------------------------------------------------------------------ media management
 
 reg [16:0] media_cylinders;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           media_cylinders <= 17'd0;
     else if(mgmt_address == 3'd1 && mgmt_write) media_cylinders <= mgmt_writedata[16:0];
 end
 
 reg [4:0] media_heads;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           media_heads <= 5'd0;
     else if(mgmt_address == 3'd2 && mgmt_write) media_heads <= mgmt_writedata[4:0];
 end
 
 reg [8:0] media_spt;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           media_spt <= 9'd0;
     else if(mgmt_address == 3'd3 && mgmt_write) media_spt <= mgmt_writedata[8:0];
 end
 
 reg [13:0] media_spc; //sectors per cylinder = spt * heads
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           media_spc <= 14'd0; //14'd1008;
     else if(mgmt_address == 3'd4 && mgmt_write) media_spc <= mgmt_writedata[13:0];
 end
 
 reg [31:0] media_sectors;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           media_sectors <= 32'd0; //32'd1032192;
     else if(mgmt_address == 3'd5 && mgmt_write) media_sectors <= mgmt_writedata;
 end
 
 reg [31:0] media_sd_base;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           media_sd_base <= 32'd0;
     else if(mgmt_address == 3'd6 && mgmt_write) media_sd_base <= mgmt_writedata;
 end
@@ -166,7 +166,7 @@ end
 //------------------------------------------------------------------------------
 
 reg status_drq;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   status_drq <= 1'b0;
     else if(sw_reset_start)                                             status_drq <= 1'b0;
     else if(cmd_read_start || cmd_identify_start || cmd_seek_start)     status_drq <= 1'b0;
@@ -180,7 +180,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg status_busy;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   status_busy <= 1'b0;
     else if(sw_reset_start)                                             status_busy <= 1'b1;
     else if(sw_reset_end)                                               status_busy <= 1'b0;
@@ -194,7 +194,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg status_drive_ready;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)               status_drive_ready <= 1'b1;
     else if(sw_reset_start)         status_drive_ready <= 1'b0;
     else if(sw_reset_end)           status_drive_ready <= 1'b1;
@@ -208,7 +208,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg status_err;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)               status_err <= 1'b0;
     else if(sw_reset_start)         status_err <= 1'b0;
     else if(command_requires_drq)   status_err <= 1'b0;
@@ -218,7 +218,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] error_register;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   error_register <= 8'h01;
     else if(sw_reset_start)                                             error_register <= 8'h01;
     else if(cmd_execute_drive_diag)                                     error_register <= 8'h01;
@@ -231,25 +231,25 @@ end
 wire [3:0] status_index_pulse_counter_next = (status_index_pulse_counter == 4'd9)? 4'd0 : status_index_pulse_counter + 4'd1;
 
 reg status_index_pulse_first;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           status_index_pulse_first <= 1'b0;
     else if(status_index_pulse_counter != 4'd0) status_index_pulse_first <= 1'b1;
 end
 
 reg [3:0] status_index_pulse_counter;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                                status_index_pulse_counter <= 4'd0;
     else if(~drive_select && io_read_valid && (io_address == 7 || io_address == 14)) status_index_pulse_counter <= status_index_pulse_counter_next;
 end
 
 reg [7:0] features;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                  features <= 8'h00;
     else if(io_wr && io_address == 1)  features <= io_writedata[7:0];
 end
 
 reg [16:0] num_sectors;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   num_sectors <= 17'd0;
     else if(lba48_transform_active)     num_sectors <= (sector_count == 8'd0 && hob_nsector == 8'd0)? 17'd65536 : { 1'b0, hob_nsector, sector_count };
     else if(lba48_transform_inactive)   num_sectors <= (sector_count == 8'd0)? 17'd256 : { 9'd0, sector_count };
@@ -257,7 +257,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] sector_count;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                 sector_count <= 8'd1;
     else if(set_signature)            sector_count <= 8'd1;
     else if(cmd_checkpower_start)     sector_count <= 8'hFF;
@@ -266,13 +266,13 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] hob_nsector;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                 hob_nsector <= 8'd0;
     else if(io_wr && io_address == 2) hob_nsector <= sector_count;
 end
 
 reg drive_select;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                 drive_select <= 1'b0;
     else if(set_signature)            drive_select <= 1'b0;
     else if(io_wr && io_address == 6) drive_select <= io_writedata[4];
@@ -280,7 +280,7 @@ end
 
 wire ide_3f6_wr = (io_wr && io_address == 14);
 reg disable_irq;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)       disable_irq <= 1'b0;
     else if(sw_reset_start) disable_irq <= 1'b0;
     else if(ide_3f6_wr)     disable_irq <= io_writedata[1];
@@ -290,12 +290,12 @@ wire sw_reset_start = ide_3f6_wr &&  io_writedata[2];
 wire sw_reset_end   = ide_3f6_wr && ~io_writedata[2] && reset_in_progress;
 
 reg reset_in_progress;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)    reset_in_progress <= 1'b0;
     else if(ide_3f6_wr)  reset_in_progress <= io_writedata[2];
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           irq <= 1'b0;
     else if(sw_reset_start)                     irq <= 1'b0;
     else if(raise_interrupt && ~(disable_irq))  irq <= 1'b1; //raise more important than lower
@@ -303,7 +303,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] current_command;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                                   current_command <= 8'b0;
     else if(sw_reset_start)                                                             current_command <= 8'b0;
     else if(cmd_read_start || cmd_write_start || cmd_identify_start || cmd_seek_start)  current_command <= io_writedata[7:0];
@@ -311,14 +311,14 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg lba_mode;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                 lba_mode <= 1'b0;
     else if(sw_reset_start)           lba_mode <= 1'b0;
     else if(io_wr && io_address == 6) lba_mode <= io_writedata[6];
 end
 
 reg [4:0] multiple_sectors;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           multiple_sectors <= 5'd0;
     else if(sw_reset_start)     multiple_sectors <= 5'd0;
     else if(cmd_multiple_start) multiple_sectors <= sector_count[4:0];
@@ -329,7 +329,7 @@ end
 wire [16:0] media_cylinders_minus_1 = media_cylinders - 17'd1;
 
 reg [15:0] cylinder;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                                           cylinder <= 16'd0;
     else if(set_signature)                                                                      cylinder <= 16'd0;
     else if(io_wr && io_address == 4)                                                           cylinder <= { cylinder[15:8], io_writedata[7:0] };
@@ -347,7 +347,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [3:0] head;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   head <= 4'd0;
     else if(set_signature)                                                      head <= 4'd0;
     else if(io_wr && io_address == 6)                                           head <= io_writedata[3:0];
@@ -359,7 +359,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] sector;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                           sector <= 8'd1;
     else if(set_signature)                                                      sector <= 8'd1;
     else if(io_wr && io_address == 3)                                           sector <= io_writedata[7:0];
@@ -373,7 +373,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] hob_hcyl;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   hob_hcyl <= 8'd0;
     else if(io_wr && io_address == 5)                                           hob_hcyl <= cylinder[7:0];
     else if(update_location_to_overflow && current_command_read_lba48)          hob_hcyl <= 8'd0;
@@ -382,7 +382,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] hob_lcyl;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   hob_lcyl <= 8'd0;
     else if(io_wr && io_address == 4)                                           hob_lcyl <= cylinder[7:0];
     else if(update_location_to_overflow && current_command_read_lba48)          hob_lcyl <= 8'd0;
@@ -391,7 +391,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] hob_sector;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   hob_sector <= 8'd0;
     else if(io_wr && io_address == 3)                                           hob_sector <= sector;
     else if(update_location_to_overflow && current_command_read_lba48)          hob_sector <= media_sectors[31:24];
@@ -593,7 +593,7 @@ localparam [3:0] S_SD_WRITE_WAIT_FOR_DATA   = 4'd14;
 localparam [3:0] S_IDENTIFY_FILL            = 4'd15;
 
 reg [3:0] state;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                                                                    state <= S_IDLE;
     
     //read
@@ -700,7 +700,7 @@ wire [4:0] multiple_final_read =
     (num_sectors >= { 12'd0, multiple_sectors })? multiple_sectors : num_sectors[4:0];
 
 reg [4:0] logical_sector_count;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                                                                    logical_sector_count <= 5'd0;
     else if(state == S_PREPARE && current_command_read_multiple)                                                         logical_sector_count <= multiple_final_read;
     else if(state == S_PREPARE && current_command_write_multiple)                                                        logical_sector_count <= multiple_final_write;
@@ -718,49 +718,49 @@ wire count_decision_immediate_error =
 //------------------------------------------------------------------------------ count logical sector
 
 reg [29:0] mult1_a; //cylinder
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)	                mult1_a <= 30'd0;
     else if(state == S_PREPARE_COUNT)   mult1_a <= { 14'd0, cylinder };
     else if(state == S_COUNT_LOGICAL)   mult1_a <= { mult1_a[28:0], 1'b0 };
 end
 
 reg [13:0] mult1_b; //media_spc
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   mult1_b <= 14'd0;
     else if(state == S_PREPARE_COUNT)   mult1_b <= media_spc;
     else if(state == S_COUNT_LOGICAL)   mult1_b <= { 1'b0, mult1_b[13:1] };
 end
 
 reg [29:0] logical_sector1; //cylinder * media_spc
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               logical_sector1 <= 30'd0;
     else if(state == S_PREPARE_COUNT)               logical_sector1 <= { 22'd0, sector } - 30'd1;
     else if(state == S_COUNT_LOGICAL && mult1_b[0]) logical_sector1 <= logical_sector1 + mult1_a;
 end
 
 reg [12:0] mult2_a; //head
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)	                mult2_a <= 13'd0;
     else if(state == S_PREPARE_COUNT)   mult2_a <= { 9'd0, head };
     else if(state == S_COUNT_LOGICAL)   mult2_a <= { mult2_a[11:0], 1'b0 };
 end
 
 reg [8:0] mult2_b; //media_spt
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   mult2_b <= 9'd0;
     else if(state == S_PREPARE_COUNT)   mult2_b <= media_spt;
     else if(state == S_COUNT_LOGICAL)   mult2_b <= { 1'b0, mult2_b[8:1] };
 end
 
 reg [12:0] logical_sector2; //head * media_spt
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               logical_sector2 <= 13'd0;
     else if(state == S_PREPARE_COUNT)               logical_sector2 <= 13'd0;
     else if(state == S_COUNT_LOGICAL && mult2_b[0]) logical_sector2 <= logical_sector2 + mult2_a;
 end
 
 reg [47:0] logical_sector;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                       logical_sector <= 48'd0;
     else if(state == S_COUNT_FINAL && lba_mode && current_command_lba48)    logical_sector <= { hob_hcyl, hob_lcyl, hob_sector, cylinder, sector };
     else if(state == S_COUNT_FINAL && lba_mode)                             logical_sector <= { 20'd0, head, cylinder, sector };
@@ -770,26 +770,26 @@ end
 //------------------------------------------------------------------------------ sd
 
 reg [6:0] sd_counter;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)	                                                            sd_counter <= 7'd0;
     else if(state != S_SD_READ_WAIT_FOR_DATA && state != S_SD_WRITE_WAIT_FOR_DATA)  sd_counter <= 7'd0;
     else if(sec_write || sec_read_valid)                                            sd_counter <= sd_counter + 7'd1;
 end
 
 reg [31:0] sd_sector;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           sd_sector <= 32'd0;
     else if(state == S_PREPARE) sd_sector <= (logical_sector >= { 16'd0, media_sectors })? media_sd_base + media_sectors - 32'd1 : media_sd_base + logical_sector[31:0];
 end
 
 reg [31:0] sd_sector_next;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)              sd_sector_next <= 32'hFFFFFFFF;
     else if(state == S_SD_CONTROL) sd_sector_next <= sd_sector + logical_sector_count;
 end
 
 reg is_next;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)              is_next <= 0;
     else if(state == S_SD_CONTROL) is_next <= ~cache_empty && cmd_read_in_progress && (sd_sector == sd_sector_next) && (logical_sector_count == 1);
 end
@@ -831,7 +831,7 @@ end
 //------------------------------------------------------------------------------ fifo for identify
 
 reg [6:0] identify_counter;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   identify_counter <= 7'd0;
     else if(state != S_IDENTIFY_FILL)   identify_counter <= 7'd0;
     else                                identify_counter <= identify_counter + 7'd1;
@@ -870,7 +870,7 @@ fifo_identify_inst(
 wire [2:0] from_hdd_stored_index_next = 3'd4 + { 1'b0, from_hdd_stored_index } - io_data_size;
 
 reg [1:0] from_hdd_stored_index;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                           from_hdd_stored_index <= 2'd0;
     else if(state == S_IDLE)                                                    from_hdd_stored_index <= 2'd0;
     else if(read_data_io && { 1'b0, from_hdd_stored_index } >= io_data_size)    from_hdd_stored_index <= from_hdd_stored_index - io_data_size[1:0];
@@ -885,7 +885,7 @@ wire [55:0] from_hdd_result =
                                             {        from_hdd_q, from_hdd_stored[23:0] };
     
 reg [23:0] from_hdd_stored;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               from_hdd_stored <= 24'd0;
     else if(read_data_io && io_data_size == 3'd1)   from_hdd_stored <= from_hdd_result[31:8];
     else if(read_data_io && io_data_size == 3'd2)   from_hdd_stored <= from_hdd_result[39:16];
@@ -924,7 +924,7 @@ fifo_from_hdd_inst(
 //------------------------------------------------------------------------------ fifo to hdd
 
 reg [1:0] to_hdd_stored_index;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)       to_hdd_stored_index <= 2'd0;
     else if(write_data_io)  to_hdd_stored_index <= to_hdd_sum[1:0];
 end
@@ -938,7 +938,7 @@ wire [55:0] to_hdd_result =
 wire [2:0] to_hdd_sum = io_data_size + { 1'b0, to_hdd_stored_index };
 
 reg [23:0] to_hdd_stored;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               to_hdd_stored <= 24'd0;
     else if(write_data_io && to_hdd_sum == 3'd1)    to_hdd_stored <= { 16'd0, to_hdd_result[7:0] };
     else if(write_data_io && to_hdd_sum == 3'd2)    to_hdd_stored <= { 8'd0,  to_hdd_result[15:0] };
@@ -949,7 +949,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [31:0] sec_readdata;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   sec_readdata <= 32'b0;
     else                sec_readdata <= to_hdd_q;
 end

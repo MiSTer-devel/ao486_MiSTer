@@ -149,10 +149,9 @@ opl3 #(50000000) opl
 //------------------------------------------------------------------------------
 
 reg [15:0] sample_dsp;
-always @(posedge clk or negedge rst_n) begin
-    if(rst_n == 0)        sample_dsp <= 0;
-    else if(dsp_disabled) sample_dsp <= 0;
-    else if(dsp_do)       sample_dsp <= {~dsp_value[7], dsp_value[6:0], dsp_value};  //unsigned to signed
+always @(posedge clk) begin
+    if(dsp_disabled) sample_dsp <= 0;
+    else if(dsp_do)  sample_dsp <= {~dsp_value[7], dsp_value[6:0], dsp_value};  //unsigned to signed
 end
 
 assign sample_l = {{2{sample_dsp[15]}}, sample_dsp[15:2]} + {sample_from_opl_l[15], sample_from_opl_l[15:1]};

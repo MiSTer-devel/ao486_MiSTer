@@ -2,7 +2,7 @@
 //  ao486
 // 
 //  Port to MiSTer.
-//  Copyright (C) 2017-2019 Alexey Melnikov
+//  Copyright (C) 2017-2020 Alexey Melnikov
 //
 //  This program is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU General Public License as published by the Free
@@ -206,7 +206,8 @@ localparam CONF_STR =
 };
 
 
-//////////////////   MIST ARM I/O   ///////////////////
+//------------------------------------------------------------------------------
+
 wire        ps2_kbd_clk_out;
 wire        ps2_kbd_data_out;
 wire        ps2_kbd_clk_in;

@@ -81,7 +81,7 @@ gh_uart_16550 uart_16550
 reg read_ack;
 reg mpu_mode_r;
 reg mpu_dumb;
-always @(posedge clk or posedge reset) begin
+always @(posedge clk) begin
 	if(reset) begin
 		mpu_mode_r <= 0;
 		read_ack <= 0;

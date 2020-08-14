@@ -54,7 +54,7 @@ module sound_dsp(
 //------------------------------------------------------------------------------
 
 reg io_read_last;
-always @(posedge clk or negedge rst_n) begin if(rst_n == 1'b0) io_read_last <= 1'b0; else if(io_read_last) io_read_last <= 1'b0; else io_read_last <= io_read; end 
+always @(posedge clk) begin if(rst_n == 1'b0) io_read_last <= 1'b0; else if(io_read_last) io_read_last <= 1'b0; else io_read_last <= io_read; end 
 wire io_read_valid = io_read && io_read_last == 1'b0;
 
 //------------------------------------------------------------------------------
@@ -71,7 +71,7 @@ assign io_readdata =
 wire highspeed_start = cmd_high_auto_dma_out || cmd_high_single_dma_out || cmd_high_auto_dma_input || cmd_high_single_dma_input;
 
 reg highspeed_mode;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           highspeed_mode <= 1'b0;
     else if(highspeed_reset)    highspeed_mode <= 1'b0;
     else if(highspeed_start)    highspeed_mode <= 1'b1;
@@ -79,14 +79,14 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg midi_uart_mode;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           midi_uart_mode <= 1'b0;
     else if(midi_uart_reset)    midi_uart_mode <= 1'b0;
     else if(cmd_midi_uart)      midi_uart_mode <= 1'b1;
 end
 
 reg reset_reg;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                               reset_reg <= 1'b0;
     else if(io_write && io_address == 4'h6 && ~(highspeed_mode))    reset_reg <= io_writedata[0];
 end
@@ -100,7 +100,7 @@ wire sw_reset        = reset_reg && io_write && io_address == 4'h6 && ~(highspee
 wire input_strobe = cmd_direct_input || dma_input;
 
 reg input_direction;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                       input_direction <= 1'b0;
     else if(sw_reset)                                                       input_direction <= 1'b0;
     else if(input_strobe && ~(input_direction) && input_sample == 8'd254)   input_direction <= 1'b1;
@@ -108,7 +108,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] input_sample;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           input_sample <= 8'd128;
     else if(sw_reset)                           input_sample <= 8'd128;
     else if(input_strobe && ~(input_direction)) input_sample <= input_sample + 8'd1;
@@ -203,21 +203,21 @@ wire cmd_dma_id                 = cmd_multiple_byte && write_length == 2'd2 && w
 //------------------------------------------------------------------------------ 'weird dma identification' from DosBox
 
 reg [1:0] dma_id_count;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   dma_id_count <= 2'd0;
     else if(sw_reset)   dma_id_count <= 2'd0;
     else if(cmd_dma_id) dma_id_count <= dma_id_count + 2'd1;
 end
 
 reg [7:0] dma_id_value;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   dma_id_value <= 8'hAA;
     else if(sw_reset)   dma_id_value <= 8'hAA;
     else if(cmd_dma_id) dma_id_value <= dma_id_value + dma_id_q;
 end
 
 reg dma_id_active;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   dma_id_active <= 1'b0;
     else if(sw_reset)   dma_id_active <= 1'b0;
     else if(cmd_dma_id) dma_id_active <= 1'b1;
@@ -241,7 +241,7 @@ dma_id_rom_inst (
 //------------------------------------------------------------------------------ copyright
 
 reg [5:0] copy_cnt;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                               copy_cnt <= 6'd0;
     else if(cmd_copyright)                                          copy_cnt <= 6'd45;
     else if(io_read_valid && io_address == 4'hA && copy_cnt > 6'd0) copy_cnt <= copy_cnt - 6'd1;
@@ -276,13 +276,13 @@ wire [7:0] copyright_byte =
 //------------------------------------------------------------------------------
 
 reg [7:0] test_register;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                   test_register <= 8'd0;
     else if(cmd_test_register_write)    test_register <= write_buffer[7:0];
 end
 
 reg speaker_on;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           speaker_on <= 1'b0;
     else if(sw_reset)           speaker_on <= 1'b0;
     else if(cmd_speaker_on)     speaker_on <= 1'b1;
@@ -290,14 +290,14 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [15:0] block_size;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           block_size <= 16'd0;
     else if(sw_reset)           block_size <= 16'd0;
     else if(cmd_set_block_size) block_size <= { write_buffer[7:0], write_buffer[15:8] };
 end
 
 reg pause_dma;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   pause_dma <= 1'b0;
     else if(sw_reset)                                                   pause_dma <= 1'b0;
     else if(cmd_dma_pause_start)                                        pause_dma <= 1'b1;
@@ -309,7 +309,7 @@ end
 wire pause_interrupt = !pause_counter && ce_1us && &pause_period;
 
 reg pause_active;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                        pause_active <= 1'b0;
     else if(sw_reset)                        pause_active <= 1'b0;
     else if(cmd_pause_dac)                   pause_active <= 1'b1;
@@ -317,7 +317,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [15:0] pause_counter;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                        pause_counter <= 16'd0;
     else if(sw_reset)                        pause_counter <= 16'd0;
     else if(cmd_pause_dac)                   pause_counter <= { write_buffer[7:0], write_buffer[15:8] };
@@ -325,7 +325,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] pause_period;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                       pause_period <= 8'd0;
     else if(sw_reset)                       pause_period <= 8'd0;
     else if(cmd_pause_dac)                  pause_period <= period;
@@ -334,7 +334,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] period;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                       period <= 128;
     else if(sw_reset)                       period <= 128;
     else if(cmd_set_time_constant)          period <= write_buffer[7:0];
@@ -345,7 +345,7 @@ end
 wire write_ready = midi_uart_mode || highspeed_mode;
 
 reg [1:0] write_length;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           write_length <= 2'd0;
     else if(sw_reset)                           write_length <= 2'd0;
     else if(cmd_midi_uart || highspeed_start)   write_length <= 2'd0;
@@ -355,7 +355,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [1:0] write_left;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                               write_left <= 2'd0;
     else if(sw_reset)                                               write_left <= 2'd0;
     else if(cmd_midi_uart || highspeed_start)                       write_left <= 2'd0;
@@ -365,7 +365,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [23:0] write_buffer;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                               write_buffer <= 24'd0;
     else if(sw_reset)                                               write_buffer <= 24'd0;
     else if(cmd_wait_for_2byte || cmd_wait_for_3byte)               write_buffer <= { write_buffer[15:0], io_writedata };
@@ -377,7 +377,7 @@ end
 wire read_ready = ~(midi_uart_mode) && read_buffer_size > 2'd0;
 
 reg [1:0] read_buffer_size;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   read_buffer_size <= 2'd0;
     else if(sw_reset)                                                   read_buffer_size <= 2'd1;
     else if(cmd_dsp_version)                                            read_buffer_size <= 2'd2;
@@ -393,7 +393,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [15:0] read_buffer;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                   read_buffer <= 16'd0;
     else if(sw_reset)                                                   read_buffer <= { 8'hAA, 8'h00 };
     else if(cmd_dsp_version)                                            read_buffer <= { 8'h02, 8'h01 };
@@ -408,7 +408,7 @@ end
 
 //------------------------------------------------------------------------------ irq
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                               irq <= 1'b0;
     else if(sw_reset)                                               irq <= 1'b0;
     
@@ -441,7 +441,7 @@ localparam [4:0] S_IN_AUTO_HIGH         = 5'd17;
 
 reg [4:0] dma_command;
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           dma_command <= S_IDLE;
     else if(sw_reset)                           dma_command <= S_IDLE;
     
@@ -507,7 +507,7 @@ wire dma_auto_restart = dma_in_progress && dma_autoinit && (
 wire dma_restart_possible = !dma_wait && (!adpcm_wait || (adpcm_type != ADPCM_NONE && adpcm_wait == 2'd1)) && (~(dma_in_progress) || dma_auto_restart || pause_dma);
 
 reg [16:0] dma_left;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           dma_left <= 17'd0;
     else if(sw_reset)                           dma_left <= 17'd0;
     else if(dma_single_start)                   dma_left <= { write_buffer[7:0], write_buffer[15:8] } + 16'd1;
@@ -517,7 +517,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg dma_in_progress;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                           dma_in_progress <= 1'b0;
     else if(sw_reset)                           dma_in_progress <= 1'b0;
     else if(dma_single_start || dma_auto_start) dma_in_progress <= 1'b1;
@@ -525,7 +525,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg dma_is_input;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                                                                                                                               dma_is_input <= 1'b0;
     else if(sw_reset)                                                                                                                                                               dma_is_input <= 1'b0;
     else if((dma_single_start || dma_auto_start) && (dma_command == S_IN_SINGLE || dma_command == S_IN_AUTO || dma_command == S_IN_SINGLE_HIGH || dma_command == S_IN_AUTO_HIGH))   dma_is_input <= 1'b1;
@@ -533,7 +533,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg dma_autoinit;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)           dma_autoinit <= 1'b0;
     else if(sw_reset)           dma_autoinit <= 1'b0;
     else if(dma_single_start)   dma_autoinit <= 1'b0;
@@ -542,7 +542,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] dma_wait;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                                                                   dma_wait <= 8'd0;
     else if(sw_reset)                                                                                                   dma_wait <= 8'd0;
     else if(dma_finished || dma_valid || adpcm_output || (~(dma_in_progress) && (dma_single_start || dma_auto_start)))  dma_wait <= period;
@@ -565,7 +565,7 @@ wire adpcm_reference_start =
 wire adpcm_output = !dma_wait && adpcm_wait;
 
 reg adpcm_reference_awaiting;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               adpcm_reference_awaiting <= 1'b0;
     else if(sw_reset)                               adpcm_reference_awaiting <= 1'b0;
     else if(adpcm_reference_start)                  adpcm_reference_awaiting <= 1'b1;
@@ -575,13 +575,13 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg adpcm_reference_output;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)   adpcm_reference_output <= 1'b0;
     else                adpcm_reference_output <= adpcm_reference_awaiting;
 end
 
 reg [1:0] adpcm_wait;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                               adpcm_wait <= 2'd0;
     else if(sw_reset)                               adpcm_wait <= 2'd0;
     else if(dma_single_start || dma_auto_start)     adpcm_wait <= 2'd0;
@@ -593,7 +593,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] adpcm_sample;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                   adpcm_sample <= 8'd0;
     else if(sw_reset)                                   adpcm_sample <= 8'd0;
     else if(dma_output)                                 adpcm_sample <= dma_readdata;
@@ -603,7 +603,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg adpcm_active;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                   adpcm_active <= 1'b0;
     else if(sw_reset)                                   adpcm_active <= 1'b0;
     else if(adpcm_reference_awaiting && dma_output)     adpcm_active <= 1'b0;
@@ -618,7 +618,7 @@ wire [7:0] adpcm_active_value =
                                     adpcm_4bit_reference_next;
 
 reg [1:0] adpcm_type;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                                                                                                                                       adpcm_type <= ADPCM_NONE;
     else if(sw_reset)                                                                                                                                                       adpcm_type <= ADPCM_NONE;
     else if((dma_single_start || dma_auto_start) && (dma_command == S_OUT_SINGLE_2_BIT_REF || dma_command == S_OUT_SINGLE_2_BIT || dma_command == S_OUT_AUTO_2_BIT_REF))    adpcm_type <= ADPCM_2BIT;
@@ -629,7 +629,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [2:0] adpcm_step;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                   adpcm_step <= 3'd0;
     else if(sw_reset)                                   adpcm_step <= 3'd0;
     else if(adpcm_active && adpcm_type == ADPCM_2BIT)   adpcm_step <= adpcm_2bit_step_next;
@@ -639,7 +639,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 reg [7:0] adpcm_reference;
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk) begin
     if(rst_n == 1'b0)                                   adpcm_reference <= 8'd0;
     else if(sw_reset)                                   adpcm_reference <= 8'd0;
     else if(adpcm_active && adpcm_type == ADPCM_2BIT)   adpcm_reference <= adpcm_2bit_reference_next;

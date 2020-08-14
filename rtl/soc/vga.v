@@ -144,19 +144,19 @@ always @(posedge clk_vga) begin
 end
 
 reg io_b_read_last;
-always @(posedge clk_sys or negedge rst_n) if(~rst_n) io_b_read_last <= 1'b0; else if(io_b_read_last) io_b_read_last <= 1'b0; else io_b_read_last <= io_b_read;
+always @(posedge clk_sys) if(~rst_n) io_b_read_last <= 1'b0; else if(io_b_read_last) io_b_read_last <= 1'b0; else io_b_read_last <= io_b_read;
 wire io_b_read_valid = io_b_read && ~io_b_read_last;
 
 reg io_c_read_last;
-always @(posedge clk_sys or negedge rst_n) if(~rst_n) io_c_read_last <= 1'b0; else if(io_c_read_last) io_c_read_last <= 1'b0; else io_c_read_last <= io_c_read;
+always @(posedge clk_sys) if(~rst_n) io_c_read_last <= 1'b0; else if(io_c_read_last) io_c_read_last <= 1'b0; else io_c_read_last <= io_c_read;
 wire io_c_read_valid = io_c_read && ~io_c_read_last;
 
 reg io_d_read_last;
-always @(posedge clk_sys or negedge rst_n) if(~rst_n) io_d_read_last <= 1'b0; else if(io_d_read_last) io_d_read_last <= 1'b0; else io_d_read_last <= io_d_read;
+always @(posedge clk_sys) if(~rst_n) io_d_read_last <= 1'b0; else if(io_d_read_last) io_d_read_last <= 1'b0; else io_d_read_last <= io_d_read;
 wire io_d_read_valid = io_d_read && ~io_d_read_last;
 
 reg mem_read_last;
-always @(posedge clk_sys or negedge rst_n) if(~rst_n) mem_read_last <= 1'b0; else if(mem_read_last) mem_read_last <= 1'b0; else mem_read_last <= mem_read;
+always @(posedge clk_sys) if(~rst_n) mem_read_last <= 1'b0; else if(mem_read_last) mem_read_last <= 1'b0; else mem_read_last <= mem_read;
 wire mem_read_valid = mem_read && ~mem_read_last;
 
 //------------------------------------------------------------------------------ sequencer io
@@ -288,7 +288,7 @@ reg         crtc_clear_vert_int;
 reg         crtc_enable_vert_int;
 
 reg         interrupt = 0;
-always @(posedge clk_sys or negedge rst_n) begin
+always @(posedge clk_sys) begin
 	reg old_r1, old_r2;
 	if(~rst_n) interrupt <=0;
 	else begin
@@ -309,16 +309,16 @@ assign irq = interrupt;
 //------------------------------------------------------------------------------
 
 reg [7:0] crtc_reg31, crtc_reg32, crtc_reg33, crtc_reg34, crtc_reg35, crtc_reg36, crtc_reg37, crtc_reg3f;
-always @(posedge clk_sys or negedge rst_n) if(~rst_n) crtc_reg31 <= 0; else if(crtc_io_write && crtc_io_index == 'h31) crtc_reg31 <= io_writedata;
-always @(posedge clk_sys or negedge rst_n) if(~rst_n) crtc_reg32 <= 0; else if(crtc_io_write && crtc_io_index == 'h32) crtc_reg32 <= io_writedata;
-always @(posedge clk_sys or negedge rst_n) if(~rst_n) crtc_reg33 <= 0; else if(crtc_io_write && crtc_io_index == 'h33) crtc_reg33 <= io_writedata;
-always @(posedge clk_sys or negedge rst_n) if(~rst_n) crtc_reg34 <= 0; else if(crtc_io_write && crtc_io_index == 'h34) crtc_reg34 <= io_writedata;
-always @(posedge clk_sys or negedge rst_n) if(~rst_n) crtc_reg35 <= 0; else if(crtc_io_write && crtc_io_index == 'h35) crtc_reg35 <= io_writedata;
-always @(posedge clk_sys or negedge rst_n) if(~rst_n) crtc_reg36 <= 0; else if(crtc_io_write && crtc_io_index == 'h36) crtc_reg36 <= io_writedata;
-always @(posedge clk_sys or negedge rst_n) if(~rst_n) crtc_reg37 <= 0; else if(crtc_io_write && crtc_io_index == 'h37) crtc_reg37 <= io_writedata;
-always @(posedge clk_sys or negedge rst_n) if(~rst_n) crtc_reg3f <= 0; else if(crtc_io_write && crtc_io_index == 'h3f) crtc_reg3f <= io_writedata;
+always @(posedge clk_sys) if(~rst_n) crtc_reg31 <= 0; else if(crtc_io_write && crtc_io_index == 'h31) crtc_reg31 <= io_writedata;
+always @(posedge clk_sys) if(~rst_n) crtc_reg32 <= 0; else if(crtc_io_write && crtc_io_index == 'h32) crtc_reg32 <= io_writedata;
+always @(posedge clk_sys) if(~rst_n) crtc_reg33 <= 0; else if(crtc_io_write && crtc_io_index == 'h33) crtc_reg33 <= io_writedata;
+always @(posedge clk_sys) if(~rst_n) crtc_reg34 <= 0; else if(crtc_io_write && crtc_io_index == 'h34) crtc_reg34 <= io_writedata;
+always @(posedge clk_sys) if(~rst_n) crtc_reg35 <= 0; else if(crtc_io_write && crtc_io_index == 'h35) crtc_reg35 <= io_writedata;
+always @(posedge clk_sys) if(~rst_n) crtc_reg36 <= 0; else if(crtc_io_write && crtc_io_index == 'h36) crtc_reg36 <= io_writedata;
+always @(posedge clk_sys) if(~rst_n) crtc_reg37 <= 0; else if(crtc_io_write && crtc_io_index == 'h37) crtc_reg37 <= io_writedata;
+always @(posedge clk_sys) if(~rst_n) crtc_reg3f <= 0; else if(crtc_io_write && crtc_io_index == 'h3f) crtc_reg3f <= io_writedata;
 
-always @(posedge clk_sys or negedge rst_n) begin
+always @(posedge clk_sys) begin
 	if(~rst_n) begin
 		crtc_address_start[19:16]  <= 0;
 		crtc_address_cursor[19:16] <= 0;
@@ -329,7 +329,7 @@ always @(posedge clk_sys or negedge rst_n) begin
 	end
 end
 
-always @(posedge clk_sys or negedge rst_n) begin
+always @(posedge clk_sys) begin
 	if(~rst_n) begin
 		crtc_vertical_blanking_start[10] <= 0;
 		crtc_vertical_total[10]          <= 0;
@@ -346,7 +346,7 @@ always @(posedge clk_sys or negedge rst_n) begin
 	end
 end
 
-always @(posedge clk_sys or negedge rst_n) begin
+always @(posedge clk_sys) begin
 	if(~rst_n) begin
 		crtc_horizontal_total[8]          <= 0;
 		crtc_horizontal_blanking_start[8] <= 0;
@@ -427,8 +427,8 @@ end
 
 always @(posedge clk_sys) if(crtc_io_write && crtc_io_index == 5'h11) crtc_protect                   <= io_writedata[7];
 always @(posedge clk_sys) if(crtc_io_write && crtc_io_index == 5'h11) crtc_not_impl_5_refresh_cycles <= io_writedata[6];
-always @(posedge clk_sys or negedge rst_n) if(~rst_n) crtc_enable_vert_int <=1; else if(crtc_io_write && crtc_io_index == 5'h11) crtc_enable_vert_int  <= io_writedata[5];
-always @(posedge clk_sys or negedge rst_n) if(~rst_n) crtc_clear_vert_int  <=1; else if(crtc_io_write && crtc_io_index == 5'h11) crtc_clear_vert_int   <= io_writedata[4];
+always @(posedge clk_sys) if(~rst_n) crtc_enable_vert_int <=1; else if(crtc_io_write && crtc_io_index == 5'h11) crtc_enable_vert_int  <= io_writedata[5];
+always @(posedge clk_sys) if(~rst_n) crtc_clear_vert_int  <=1; else if(crtc_io_write && crtc_io_index == 5'h11) crtc_clear_vert_int   <= io_writedata[4];
 always @(posedge clk_sys) if(crtc_io_write && crtc_io_index == 5'h11) crtc_vertical_retrace_end      <= io_writedata[3:0];
 
 always @(posedge clk_sys) if(crtc_io_write && crtc_io_index == 5'h13) crtc_address_offset[7:0]       <= io_writedata[7:0];
@@ -596,7 +596,7 @@ always @(posedge clk_sys) if(attrib_io_write && attrib_io_index == 5'h10) attrib
 always @(posedge clk_sys) if(attrib_io_write && attrib_io_index == 5'h10) attrib_not_impl_mono_emulation     <= io_writedata[1];
 always @(posedge clk_sys) if(attrib_io_write && attrib_io_index == 5'h10) attrib_graphic_mode                <= io_writedata[0];
 
-always @(posedge clk_sys or negedge rst_n) if(~rst_n) attrib_color_overscan <= 8'd0; else if(attrib_io_write && attrib_io_index == 5'h11) attrib_color_overscan <= io_writedata[7:0];
+always @(posedge clk_sys) if(~rst_n) attrib_color_overscan <= 8'd0; else if(attrib_io_write && attrib_io_index == 5'h11) attrib_color_overscan <= io_writedata[7:0];
 
 always @(posedge clk_sys) if(attrib_io_write && attrib_io_index == 5'h12) attrib_mask <= io_writedata[3:0];
 
@@ -649,12 +649,12 @@ wire host_io_ignored =
 	(~(general_io_space) && (io_d_read_valid || io_d_write));
     
 reg [2:0] seq_io_index;
-always @(posedge clk_sys or negedge rst_n) if(~rst_n) seq_io_index <= 3'd0; else if(io_c_write && io_address == 4'h4) seq_io_index <= io_writedata[2:0];
+always @(posedge clk_sys) if(~rst_n) seq_io_index <= 3'd0; else if(io_c_write && io_address == 4'h4) seq_io_index <= io_writedata[2:0];
 
 wire seq_io_write = io_c_write && io_address == 4'h5;
 
 reg [5:0] crtc_io_index;
-always @(posedge clk_sys or negedge rst_n) begin
+always @(posedge clk_sys) begin
 	if(~rst_n)                                                      crtc_io_index <= 6'd0;
 	else if(io_b_write && io_address == 4'h4 && ~(host_io_ignored)) crtc_io_index <= io_writedata[5:0];
 	else if(io_d_write && io_address == 4'h4 && ~(host_io_ignored)) crtc_io_index <= io_writedata[5:0];
@@ -665,7 +665,7 @@ wire crtc_io_write = ((io_b_write && io_address == 4'd5) || (io_d_write && io_ad
 wire crtc_io_write_compare = ((io_b_write && io_address == 4'd5) || (io_d_write && io_address == 4'd5)) && ~(host_io_ignored);
 
 reg [3:0]   graph_io_index;
-always @(posedge clk_sys or negedge rst_n) if(~rst_n) graph_io_index <= 4'd0; else if(io_c_write && io_address == 4'hE) graph_io_index <= io_writedata[3:0];
+always @(posedge clk_sys) if(~rst_n) graph_io_index <= 4'd0; else if(io_c_write && io_address == 4'hE) graph_io_index <= io_writedata[3:0];
 
 wire        graph_io_write = io_c_write && io_address == 4'hF;
 
@@ -673,7 +673,7 @@ reg [4:0]   attrib_io_index;
 reg         attrib_video_enable;
 reg         attrib_flip_flop;
 reg         output_enable;
-always @(posedge clk_sys or negedge rst_n) begin
+always @(posedge clk_sys) begin
 	if(~rst_n) {output_enable, attrib_video_enable} <= 0;
 	else if(io_c_write && io_address == 4'h0 && ~(attrib_flip_flop)) begin
 		attrib_video_enable <= io_writedata[5];
@@ -681,9 +681,9 @@ always @(posedge clk_sys or negedge rst_n) begin
 	end
 end
 
-always @(posedge clk_sys or negedge rst_n) if(~rst_n) attrib_io_index <= 5'd0; else if(io_c_write && io_address == 4'h0 && ~(attrib_flip_flop)) attrib_io_index <= io_writedata[4:0];
+always @(posedge clk_sys) if(~rst_n) attrib_io_index <= 5'd0; else if(io_c_write && io_address == 4'h0 && ~(attrib_flip_flop)) attrib_io_index <= io_writedata[4:0];
 
-always @(posedge clk_sys or negedge rst_n) begin
+always @(posedge clk_sys) begin
 	if(~rst_n)                                                                                                          attrib_flip_flop <= 1'b0;
 	else if(((io_b_read_valid && io_address == 4'hA) || (io_d_read_valid && io_address == 4'hA)) && ~(host_io_ignored)) attrib_flip_flop <= 1'b0;
 	else if(io_c_write && io_address == 4'h0)                                                                           attrib_flip_flop <= ~attrib_flip_flop;
@@ -694,7 +694,7 @@ wire attrib_io_write = io_c_write && io_address == 4'h0 && attrib_flip_flop;
 wire general_io_write_misc = io_c_write && io_address == 4'h2;
 
 reg [5:0] seg_rd, seg_wr;
-always @(posedge clk_sys or negedge rst_n) begin
+always @(posedge clk_sys) begin
 	if(~rst_n) {seg_rd, seg_wr} <= 0;
 	else if(~seq_sync_reset_n || ~seq_async_reset_n) {seg_rd, seg_wr} <= 0;
 	else if(io_c_write && io_address == 'hD) {seg_rd[3:0], seg_wr[3:0]} <= io_writedata;
@@ -704,43 +704,43 @@ end
 //------------------------------------------------------------------------------
 
 reg [7:0] dac_mask;
-always @(posedge clk_sys or negedge rst_n) if(~rst_n) dac_mask <= 8'hFF; else if(io_c_write && io_address == 4'h6) dac_mask <= io_writedata[7:0];
+always @(posedge clk_sys) if(~rst_n) dac_mask <= 8'hFF; else if(io_c_write && io_address == 4'h6) dac_mask <= io_writedata[7:0];
 
 reg       dac_is_read;
-always @(posedge clk_sys or negedge rst_n) begin
+always @(posedge clk_sys) begin
 	if(~rst_n)                                dac_is_read <= 1'd0;
 	else if(io_c_write && io_address == 4'h7) dac_is_read <= 1'b1;
 	else if(io_c_write && io_address == 4'h8) dac_is_read <= 1'b0;
 end
 
 reg [11:0] dac_write_buffer;
-always @(posedge clk_sys or negedge rst_n) begin
+always @(posedge clk_sys) begin
 	if(~rst_n)                                dac_write_buffer <= 12'd0;
 	else if(io_c_write && io_address == 4'h9) dac_write_buffer <= { dac_write_buffer[5:0], io_writedata[5:0] };
 end
 
 reg [7:0] dac_write_index;
-always @(posedge clk_sys or negedge rst_n) begin
+always @(posedge clk_sys) begin
 	if(~rst_n)                                                    dac_write_index <= 8'd0;
 	else if(io_c_write && io_address == 4'h8)                     dac_write_index <= io_writedata[7:0];
 	else if(io_c_write && io_address == 4'h9 && dac_cnt == 2'd2)  dac_write_index <= dac_write_index + 8'd1;
 end
 
 reg [7:0] dac_reg9;
-always @(posedge clk_sys or negedge rst_n) begin
+always @(posedge clk_sys) begin
 	if(~rst_n)                            dac_reg9 <= 8'd0;
 	else if(io_c_write && io_address == 4'h9)  dac_reg9 <= io_writedata;
 end
 
 reg [7:0] dac_read_index;
-always @(posedge clk_sys or negedge rst_n) begin
+always @(posedge clk_sys) begin
 	if(~rst_n)                                                            dac_read_index <= 8'd0;
 	else if(io_c_write && io_address == 4'h7)                             dac_read_index <= io_writedata[7:0];
 	else if(io_c_read_valid  && io_address == 4'h9 && dac_cnt == 2'd2)    dac_read_index <= dac_read_index + 8'd1;
 end
 
 reg [1:0] dac_cnt;
-always @(posedge clk_sys or negedge rst_n) begin
+always @(posedge clk_sys) begin
 	if(~rst_n)                                                                        dac_cnt <= 2'd0;
 	else if(io_c_write && io_address == 4'h7)                                         dac_cnt <= 2'd0;
 	else if(io_c_write && io_address == 4'h8)                                         dac_cnt <= 2'd0;
@@ -809,20 +809,20 @@ reg [7:0] host_ram2_reg;
 reg [7:0] host_ram3_reg;
 
 reg host_read_out_of_bounds;
-always @(posedge clk_sys or negedge rst_n) begin
+always @(posedge clk_sys) begin
 	if(~rst_n)                                           host_read_out_of_bounds <= 1'b0;
 	else if(mem_read_valid && host_memory_out_of_bounds) host_read_out_of_bounds <= 1'b1;
 	else                                                 host_read_out_of_bounds <= 1'b0;
 end
 
 reg [16:0] host_address_reduced_last;
-always @(posedge clk_sys or negedge rst_n) begin
+always @(posedge clk_sys) begin
 	if(~rst_n)              host_address_reduced_last <= 17'd0;
 	else if(mem_read_valid) host_address_reduced_last <= host_address_reduced;
 end
 
 reg host_read_last;
-always @(posedge clk_sys or negedge rst_n) begin
+always @(posedge clk_sys) begin
 	if(~rst_n)   host_read_last <= 1'd0;
 	else         host_read_last <= mem_read_valid && ~(host_memory_out_of_bounds);
 end
@@ -860,7 +860,7 @@ assign mem_readdata =
 	(~graph_read_mode  && graph_read_map_select == 2'd3)                                    ? host_ram3_q:
 																			                                    host_read_mode_1;
 
-always @(posedge clk_sys or negedge rst_n) begin
+always @(posedge clk_sys) begin
 	if(~rst_n) begin
 		{ host_ram0_reg, host_ram1_reg, host_ram2_reg, host_ram3_reg } <= 0;
 	end
