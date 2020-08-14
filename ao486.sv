@@ -183,21 +183,30 @@ localparam CONF_STR =
 	"-;",
 	"OX2,Boot order,FDD/HDD,HDD/FDD;",
 	"-;",
-	"O1,Aspect ratio,4:3,16:9;",
-	"O4,VSync,60Hz,Variable;",
-	"O8,16/24bit mode,BGR,RGB;",
-	"O9,16bit format,1555,565;",
-	"-;",
-	"O3,FM mode,OPL2,OPL3;",
+	
+	"P1,Audio & Video;",
+	"P1-;",
+	"P1O1,Aspect ratio,4:3,16:9;",
+	"P1O4,VSync,60Hz,Variable;",
+	"P1O8,16/24bit mode,BGR,RGB;",
+	"P1O9,16bit format,1555,565;",
+	"P1OE,Low-Res,Native,4x;",
+	"P1-;",
+	"P1O3,FM mode,OPL2,OPL3;",
+
+	"P2,Hardware;",
+	"P2-;",
+	"P2OB,RAM Size,256MB,16MB;",
+`ifndef DEBUG
+	"P2-;",
+	"D1P2O56,CPU Clock,90MHz,15MHz,30MHz,56MHz;",
+	"h0P2O7,Overclock,Off,100Mhz;",
+	"P2-;",
+	"P2OA,UART Speed,Normal,30x;",
+`endif
+
 	"-;",
 	"OCD,Joystick type,2 Buttons,4 Buttons,Gravis Pro;",
-	"-;",
-	"OB,RAM Size,256MB,16MB;",
-`ifndef DEBUG
-	"D1O56,Speed,90MHz,15MHz,30MHz,56MHz;",
-	"h0O7,Turbo 100Mhz,Off,On;",
-	"OA,UART Speed,Normal,30x;",
-`endif
 	"-;",
 	"R0,Reset and apply HDD;",
 	"J,Button 1,Button 2,Button 3,Button 4,Start,Select,R1,L1,R2,L2;",
@@ -498,12 +507,13 @@ wire  [3:0] vga_flags;
 wire        vga_off;
 wire        vga_ce;
 wire        vga_de;
+wire        vga_lores = ~status[14];
 
 reg vga_out_en;
 always @(posedge clk_vga) begin
 	reg old_hs, old_vs;
 	
-	if(vga_flags[3]) begin
+	if(vga_flags[3] & vga_lores) begin
 		old_hs <= HSync;
 		if(~old_hs & HSync) begin
 			old_vs <= VSync;
@@ -584,6 +594,7 @@ system system
 	.video_flags          (vga_flags),
 	.video_off            (vga_off),
 	.video_fb_en          (fb_en),
+	.video_lores          (vga_lores),
 
 	.sound_sample_l       (sb_out_l),
 	.sound_sample_r       (sb_out_r),

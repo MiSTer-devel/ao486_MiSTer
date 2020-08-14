@@ -74,7 +74,9 @@ module vga
 	output reg  [8:0]   vga_width,
 	output reg  [8:0]   vga_stride,
 	output reg [10:0]   vga_height,
-	output reg  [3:0]   vga_flags
+	output reg  [3:0]   vga_flags,
+	
+	input               vga_lores
 );
 
 wire io_b_read  = io_read  & io_b_cs;
@@ -1472,7 +1474,7 @@ always @(posedge clk_vga) begin
 	end
 end
 
-assign vga_ce = ce_video & ((vga_flags[1:0] == 3) ? ce_div3 : attrib_pelclock_div2 ? pel_color_8bit_cnt : dot_cnt_enable);
+assign vga_ce = ce_video & ((vga_flags[1:0] == 3) ? ce_div3 : (~vga_lores | (attrib_pelclock_div2 ? pel_color_8bit_cnt : dot_cnt_enable)));
 
 always @(posedge clk_sys) begin
 	vga_rd_seg     <= seg_rd;
