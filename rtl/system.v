@@ -682,12 +682,11 @@ always @* begin
 
 	interrupt[0]  = irq_0;
 	interrupt[1]  = irq_1;
-	interrupt[2]  = irq_2;
 	interrupt[4]  = irq_4;
 	interrupt[5]  = irq_5;
 	interrupt[6]  = irq_6;
 	interrupt[8]  = irq_8;
-	interrupt[9]  = irq_9;
+	interrupt[9]  = irq_9 | irq_2;
 	interrupt[12] = irq_12; 
 	interrupt[14] = irq_14;
 	interrupt[15] = irq_15;
