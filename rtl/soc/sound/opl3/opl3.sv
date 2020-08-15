@@ -83,13 +83,13 @@ always @(posedge clk) begin
 end
 
 wire timer1_pulse;
-timer timer1( clk, ce_1us, 79, timer1_preset, timer1_active, timer1_pulse );
+timer #(79) timer1( clk, ce_1us, timer1_preset, timer1_active, timer1_pulse );
 
 reg timer1_overflow;
 always @(posedge clk) begin
 	if(rst_n == 0)                                          timer1_overflow <= 0;
 	else begin
-		if(io_write && index == 4 && io_writedata[7])        timer1_overflow <= 0;
+		if(io_write && index == 4 /*&& io_writedata[7]*/)    timer1_overflow <= 0;
 		if((timer1_pulse || force_overflow) && ~timer1_mask) timer1_overflow <= 1;
 	end
 end
@@ -111,13 +111,13 @@ always @(posedge clk) begin
 end
 
 wire timer2_pulse;
-timer timer2( clk, ce_1us, 319, timer2_preset, timer2_active, timer2_pulse );
+timer #(319) timer2( clk, ce_1us, timer2_preset, timer2_active, timer2_pulse );
 
 reg timer2_overflow;
 always @(posedge clk) begin
 	if(rst_n == 0)                                          timer2_overflow <= 0;
 	else begin
-		if(io_write && index == 4 && io_writedata[7])        timer2_overflow <= 0;
+		if(io_write && index == 4 /*&& io_writedata[7]*/)    timer2_overflow <= 0;
 		if((timer2_pulse || force_overflow) && ~timer2_mask) timer2_overflow <= 1;
 	end
 end
@@ -164,12 +164,11 @@ opl3sw #(OPLCLK) opl3
 
 endmodule
 
-module timer
+module timer #(parameter RES)
 (
 	input         clk,
 	input         ce_1us,
-	input   [8:0] resolution,
-	input   [7:0] init,
+	input   [7:0] preset,
 	input         active,
 	output reg    overflow_pulse
 );
@@ -177,25 +176,25 @@ module timer
 always @(posedge clk) begin
 	reg [7:0] counter;
 	reg [8:0] sub_counter;
-	reg       old_act;
 
-	old_act <= active;
 	overflow_pulse <= 0;
 
-	if(~old_act && active) begin
-		counter <= init;
-		sub_counter <= resolution;
-	end
-	else if(active & ce_1us) begin
-		sub_counter <= sub_counter - 1'd1;
-		if(!sub_counter) begin
-			sub_counter <= resolution;
-			counter     <= counter + 1'd1;
-			if(&counter) begin
-				overflow_pulse <= 1;
-				counter <= init;
+	if(active) begin
+		if(ce_1us) begin
+			sub_counter <= sub_counter - 1'd1;
+			if(!sub_counter) begin
+				sub_counter <= RES[8:0];
+				counter     <= counter + 1'd1;
+				if(&counter) begin
+					overflow_pulse <= 1;
+					counter <= preset;
+				end
 			end
 		end
+	end
+	else begin
+		counter <= preset;
+		sub_counter <= RES[8:0];
 	end
 end
     
