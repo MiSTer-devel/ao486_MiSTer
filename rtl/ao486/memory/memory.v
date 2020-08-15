@@ -30,6 +30,8 @@ module memory(
     input               clk,
     input               rst_n,
     
+    input               cache_disable,
+
     //REQ:
     input               read_do,
     output              read_done,
@@ -393,6 +395,8 @@ icache icache_inst(
     .clk            (clk),
     .rst_n          (rst_n),
     
+    .cache_disable  (cache_disable),
+
     //RESP:
     .pr_reset       (pr_reset),   //input
     //END

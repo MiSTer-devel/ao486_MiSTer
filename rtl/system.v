@@ -7,6 +7,9 @@ module system
 	input         reset_sys,
 
 	input  [27:0] clock_rate,
+	
+	input         l1_disable,
+	input         l2_disable,
 
 	output [1:0]  fdd0_request,
 	output [2:0]  hdd0_request,
@@ -37,6 +40,7 @@ module system
 	output        ps2_reset_n,
 
 	input         memcfg,
+	output  [7:0] syscfg,
 
 	input         clk_uart,
 	input         serial_rx,
@@ -163,6 +167,7 @@ reg         mpu_cs;
 reg         vga_b_cs;
 reg         vga_c_cs;
 reg         vga_d_cs;
+reg         sysctl_cs;
 
 wire  [7:0] sound_readdata;
 wire  [7:0] floppy0_readdata;
@@ -202,6 +207,8 @@ l2_cache cache
 (
 	.CLK              (clk_sys),
 	.RESET            (reset_cpu),
+	
+	.DISABLE          (l2_disable),
 
 	.CPU_ADDR         (mem_address),
 	.CPU_DIN          (mem_writedata),
@@ -239,6 +246,8 @@ ao486 ao486
 (
 	.clk                  (clk_sys),
 	.rst_n                (~reset_cpu),
+	
+	.cache_disable        (l1_disable),
 
 	.avm_address          (mem_address),
 	.avm_writedata        (mem_writedata),
@@ -297,7 +306,16 @@ always @(posedge clk_sys) begin
 	vga_b_cs      <= ({iobus_address[15:4], 4'd0} == 16'h03B0);
 	vga_c_cs      <= ({iobus_address[15:4], 4'd0} == 16'h03C0);
 	vga_d_cs      <= ({iobus_address[15:4], 4'd0} == 16'h03D0);
+	sysctl_cs     <= ({iobus_address[15:0]      } == 16'h8888);
 end
+
+reg [7:0] ctlport = 0;
+always @(posedge clk_sys) begin
+	if(reset_cpu) ctlport <= 0;
+	else if(iobus_write && sysctl_cs && iobus_datasize == 2 && iobus_writedata[15:8] == 8'hA1) ctlport <= iobus_writedata[7:0];
+end
+
+assign syscfg = ctlport;
 
 wire [7:0] iobus_readdata8 =
 	( floppy0_cs                             ) ? floppy0_readdata  :
@@ -331,7 +349,7 @@ iobus iobus
 	.bus_address       (iobus_address),
 	.bus_write         (iobus_write),
 	.bus_read          (iobus_read),
-	.bus_io32          ((hdd0_cs | hdd1_cs) & ~iobus_address[9]),
+	.bus_io32          (((hdd0_cs | hdd1_cs) & ~iobus_address[9]) | sysctl_cs),
 	.bus_datasize      (iobus_datasize),
 	.bus_writedata     (iobus_writedata),
 	.bus_readdata      (hdd0_cs ? hdd0_readdata : hdd1_cs ? hdd1_readdata : iobus_readdata8)

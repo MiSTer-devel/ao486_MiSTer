@@ -5,6 +5,8 @@ module l1_icache
 	input             RESET,
 	input             pr_reset,
 	
+	input             DISABLE,
+
 	input             CPU_REQ,
 	input      [31:0] CPU_ADDR,
 	output reg        CPU_VALID,
@@ -96,7 +98,10 @@ isimple_fifo (
 );
 	
 assign CPU_DATA = readdata_cache[cache_mux];
-	
+
+reg force_fetch;
+reg force_next;
+
 always @(posedge CLK) begin : mainfsm
 	reg [ASSO_BITS:0]   i;
 	reg [ASSO_BITS-1:0] match;
@@ -159,6 +164,8 @@ always @(posedge CLK) begin : mainfsm
 						memory_be     <= Fifo_dout[61:58];
 					end
 					else if (CPU_REQ || CPU_REQ_hold) begin
+						force_fetch   <= DISABLE;
+						force_next    <= DISABLE;
 						state         <= READONE;
 						read_addr     <= CPU_ADDR[31:2];
 						CPU_REQ_hold  <= 1'b0;
@@ -190,22 +197,31 @@ always @(posedge CLK) begin : mainfsm
 						tags_dirty_in   <= tags_dirty_out;
 						update_tag_addr <= read_addr[LINEMASKMSB:LINEMASKLSB];
 						LRU_addr        <= read_addr[LINEMASKMSB:LINEMASKLSB];
-						for (i = 0; i < ASSOCIATIVITY; i = i + 1'd1) begin
-							if (~tags_dirty_out[i]) begin
-								if (tags_read[i] == read_addr[ADDRBITS:RAMSIZEBITS]) begin
-									MEM_REQ   <= 1'b0;
-									cache_mux <= i[ASSO_BITS-1:0];
-									CPU_VALID <= 1'b1;
-									if (!burstleft) begin
-										state    <= IDLE;
-										CPU_DONE <= 1'b1;
-									end else begin
-										state     <= READONE;
-										burstleft <= burstleft - 1'd1;
-										read_addr <= read_addr + 1'd1;
+
+						if (force_fetch) force_next <= ~force_next;
+
+						if (~force_next) begin
+							for (i = 0; i < ASSOCIATIVITY; i = i + 1'd1) begin
+								if (~tags_dirty_out[i]) begin
+									if (tags_read[i] == read_addr[ADDRBITS:RAMSIZEBITS]) begin
+										MEM_REQ   <= 1'b0;
+										cache_mux <= i[ASSO_BITS-1:0];
+										CPU_VALID <= 1'b1;
+										if (!burstleft) begin
+											state    <= IDLE;
+											CPU_DONE <= 1'b1;
+										end else begin
+											state     <= READONE;
+											burstleft <= burstleft - 1'd1;
+											read_addr <= read_addr + 1'd1;
+										end
 									end
 								end
 							end
+						end
+						else begin
+							tags_dirty_in <= {ASSOCIATIVITY{1'b1}};
+							update_tag_we <= 1'b1;
 						end
 					end
 				end

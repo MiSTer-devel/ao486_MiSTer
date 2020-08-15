@@ -31,6 +31,8 @@ module ao486 (
 	input               rst_n,
 
 	input               a20_enable,
+	
+	input               cache_disable,
 
 	//--------------------------------------------------------------------------
 	input               interrupt_do,
@@ -416,6 +418,8 @@ memory memory_inst(
     .clk                (clk),
     .rst_n              (rst_n),
     
+    .cache_disable      (cache_disable),
+
     //REQ:
     .read_do                       (read_do),                       //input
     .read_done                     (read_done),                     //output

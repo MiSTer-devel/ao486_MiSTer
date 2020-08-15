@@ -30,6 +30,8 @@ module icache(
     input           clk,
     input           rst_n,
     
+    input           cache_disable,
+
     //RESP:
     input           pr_reset,
     //END
@@ -119,6 +121,8 @@ l1_icache l1_icache_inst(
     .CLK             (clk),
     .RESET           (~rst_n),
     .pr_reset        (pr_reset),
+	 
+    .DISABLE         (cache_disable),
 
     .CPU_REQ         (readcode_cache_do),
     .CPU_ADDR        (readcode_cache_address),

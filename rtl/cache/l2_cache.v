@@ -3,6 +3,8 @@ module l2_cache #(parameter ADDRBITS = 24)
 (
    input         CLK,
    input         RESET,
+	
+   input         DISABLE,
    
    // CPU bus, master, 32bit
    input  [29:0] CPU_ADDR,
@@ -280,8 +282,8 @@ always @(posedge CLK) begin
 						memory_addr_b <= CPU_ADDR[RAMSIZEBITS:1];
 
 						read_behind   <= ~ram_rgn;
-						force_fetch   <= shr_rgn;
-						force_next    <= shr_rgn;
+						force_fetch   <= shr_rgn | DISABLE;
+						force_next    <= shr_rgn | DISABLE;
 
 						if (CPU_RD) begin
 							state     <= READONE;

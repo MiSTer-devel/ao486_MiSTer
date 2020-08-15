@@ -199,8 +199,10 @@ localparam CONF_STR =
 	"P2OB,RAM Size,256MB,16MB;",
 `ifndef DEBUG
 	"P2-;",
-	"D1P2O56,CPU Clock,90MHz,15MHz,30MHz,56MHz;",
+	"D2D1P2O56,CPU Clock,90MHz,15MHz,30MHz,56MHz;",
 	"h0P2O7,Overclock,Off,100Mhz;",
+	"D2P2OF,L1 Cache,On,Off;",
+	"D2P2OG,L2 Cache,On,Off;",
 	"P2-;",
 	"P2OA,UART Speed,Normal,30x;",
 `endif
@@ -258,7 +260,7 @@ hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000), .PS2WE(1), .WIDE(1)) hps_
 
 	.buttons(buttons),
 	.status(status),
-	.status_menumask({status[7],dbg_menu}),
+	.status_menumask({syscfg[7],status[7],dbg_menu}),
 	.new_vmode(status[4]),
 	.gamma_bus(gamma_bus),
 
@@ -354,11 +356,13 @@ pll_cfg pll_cfg
 	.reconfig_from_pll(reconfig_from_pll)
 );
 
+wire [2:0] clk_req = {status[7], syscfg[7] ? syscfg[1:0] : status[6:5]};
+
 reg [2:0] speed;
 always @(posedge CLK_50M) begin
 	reg [2:0] sp1, sp2;
 	
-	sp1 <= status[7:5];
+	sp1 <= clk_req;
 	sp2 <= sp1;
 	
 	if(sp2 == sp1) speed <= sp2;
@@ -424,7 +428,7 @@ always @(posedge CLK_50M) begin
 	end
 end
 
-always @(posedge clk_sys) cur_rate <= clk_rate[status[7:5]];
+always @(posedge clk_sys) cur_rate <= clk_rate[clk_req];
 
 `endif
 
@@ -574,6 +578,10 @@ system system
 
 	.clock_rate           (cur_rate),
 
+	.syscfg               (syscfg),
+	.l1_disable           (syscfg[7] ? syscfg[4] : status[15]),
+	.l2_disable           (syscfg[7] ? syscfg[5] : status[16]),
+
 	.video_ce             (vga_ce),
 	.video_f60            (~status[4] | f60),
 	.video_blank_n        (vga_de),
@@ -654,6 +662,8 @@ system system
 	.DDRAM_RD             (DDRAM_RD),
 	.DDRAM_WE             (DDRAM_WE)
 );
+
+wire [7:0] syscfg;
 
 reg memcfg = 0;
 always @(posedge clk_sys) if(cpu_reset) memcfg <= status[11];
