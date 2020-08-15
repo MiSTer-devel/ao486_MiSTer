@@ -40,4 +40,8 @@ Windows 9x drivers for video and modem are [here](https://github.com/MiSTer-deve
 ### Note:
 * Press **WIN+F12** to access **OSD on ao486 core**. F12 alone acts as generic F12 PC key.
 
+### Known issues
+* FDD doesn't work under Win9x. To fix it simply delete floppy device from device manager and reboot.
+Windows will still provide flopy access through BIOS in compatibility mode.
+
 Original core [repository](https://github.com/alfikpl/ao486)
