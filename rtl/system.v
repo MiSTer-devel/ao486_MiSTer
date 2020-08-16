@@ -311,8 +311,19 @@ end
 
 reg [7:0] ctlport = 0;
 always @(posedge clk_sys) begin
-	if(reset_cpu) ctlport <= 0;
-	else if(iobus_write && sysctl_cs && iobus_datasize == 2 && iobus_writedata[15:8] == 8'hA1) ctlport <= iobus_writedata[7:0];
+	reg in_reset = 1;
+	if(reset_cpu) begin
+		ctlport <= 8'hA2;
+		in_reset <= 1;
+	end
+	else if((hdd0_cs|hdd1_cs|floppy0_cs) && in_reset) begin
+		ctlport <= 0;
+		in_reset <= 0;
+	end
+	else if(iobus_write && sysctl_cs && iobus_datasize == 2 && iobus_writedata[15:8] == 8'hA1) begin
+		ctlport <= iobus_writedata[7:0];
+		in_reset <= 0;
+	end
 end
 
 assign syscfg = ctlport;
