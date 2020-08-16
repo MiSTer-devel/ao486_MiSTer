@@ -161,13 +161,20 @@ always @(posedge clk) begin : joy_block
 			endcase
 		end
 		
-		if((ana_1[7:0] > 100 && ana_1[7:0] < 156) || (ana_1[15:8] > 100 && ana_1[15:8] < 156)) use_dpad1 <= 0;
-		if(dig_1[3:0]) use_dpad1 <= 1;
-
-		if((ana_2[7:0] > 100 && ana_2[7:0] < 156) || (ana_2[15:8] > 100 && ana_2[15:8] < 156)) use_dpad2 <= 0;
-		if(dig_2[3:0]) use_dpad2 <= 1;
-
 		CLK_DIV <= CLK_DIV + 1'b1;
+		if (CLK_DIV==100) begin
+			CLK_DIV <= 0;
+			if (JOY1_X) JOY1_X <= JOY1_X - 1'b1;
+			if (JOY1_Y) JOY1_Y <= JOY1_Y - 1'b1;
+			if (JOY2_X) JOY2_X <= JOY2_X - 1'b1;
+			if (JOY2_Y) JOY2_Y <= JOY2_Y - 1'b1;
+		end
+
+		if((ana_1[7:0] > 60 && ana_1[7:0] < 196) || (ana_1[15:8] > 60 && ana_1[15:8] < 196)) use_dpad1 <= 0;
+		else if(dig_1[3:0]) use_dpad1 <= 1;
+
+		if((ana_2[7:0] > 60 && ana_2[7:0] < 196) || (ana_2[15:8] > 60 && ana_2[15:8] < 196)) use_dpad2 <= 0;
+		else if(dig_2[3:0]) use_dpad2 <= 1;
 
 		if (write) begin
 			JOY1_X <= ~use_dpad1 ? {~ana_1[7],  ana_1[6:0]}  : JOY1_LEFT  ? 8'd4 : JOY1_RIGHT ? 8'd252 : 8'd128;
@@ -176,15 +183,7 @@ always @(posedge clk) begin : joy_block
 			JOY2_X <= ~use_dpad2 ? {~ana_2[7],  ana_2[6:0]}  : JOY2_LEFT  ? 8'd4 : JOY2_RIGHT ? 8'd252 : 8'd128;
 			JOY2_Y <= ~use_dpad2 ? {~ana_2[15], ana_2[14:8]} : JOY2_UP    ? 8'd4 : JOY2_DOWN  ? 8'd252 : 8'd128;
 
-			CLK_DIV <= 1;
-		end
-
-		if (CLK_DIV==100) begin
 			CLK_DIV <= 0;
-			if (JOY1_X) JOY1_X <= JOY1_X - 1'b1;
-			if (JOY1_Y) JOY1_Y <= JOY1_Y - 1'b1;
-			if (JOY2_X) JOY2_X <= JOY2_X - 1'b1;
-			if (JOY2_Y) JOY2_Y <= JOY2_Y - 1'b1;
 		end
 	end
 end
