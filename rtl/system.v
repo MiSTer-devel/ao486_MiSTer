@@ -56,6 +56,7 @@ module system
 	output [15:0] sound_sample_l,
 	output [15:0] sound_sample_r,
 	input         sound_fm_mode,
+	input         sound_cms_en,
 
 	output        speaker_out,
 
@@ -587,6 +588,7 @@ sound sound
 	.sample_r       (sound_sample_r),
 
 	.fm_mode        (sound_fm_mode),
+	.cms_en         (sound_cms_en),
 
 	.irq            (irq_5)
 );

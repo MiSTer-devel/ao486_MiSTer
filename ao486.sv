@@ -159,11 +159,6 @@ assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 assign VIDEO_ARX = status[1] ? 8'd16 : 8'd4;
 assign VIDEO_ARY = status[1] ? 8'd9  : 8'd3;
 
-assign AUDIO_S   = 1;
-assign AUDIO_MIX = 0;
-assign AUDIO_L   = sb_out_l + {1'b0, speaker_out, 14'd0};
-assign AUDIO_R   = sb_out_r + {1'b0, speaker_out, 14'd0};
-
 assign LED_DISK[1] = 0;
 assign LED_POWER   = 0;
 assign BUTTONS   = 0;
@@ -193,6 +188,8 @@ localparam CONF_STR =
 	"P1OE,Low-Res,Native,4x;",
 	"P1-;",
 	"P1O3,FM mode,OPL2,OPL3;",
+	"P1OH,C/MS,Disable,Enable;",
+	"P1OIJ,Speaker Volume,1,2,3,4;",
 
 	"P2,Hardware;",
 	"P2-;",
@@ -443,10 +440,21 @@ always @(posedge clk_sys) begin
 	end
 end
 
-wire        ps2_reset_n;
 
 wire        speaker_out;
+reg  [15:0] spk_vol;
+always @(posedge clk_sys) spk_vol <= {1'b0, {3'b000,speaker_out} << status[19:18], 11'd0};
+
 wire [15:0] sb_out_l, sb_out_r;
+reg  [15:0] out_l, out_r;
+always @(posedge clk_sys) out_l <= sb_out_l + spk_vol;
+always @(posedge clk_sys) out_r <= sb_out_r + spk_vol;
+
+assign AUDIO_S   = 1;
+assign AUDIO_MIX = 0;
+assign AUDIO_L   = out_l;
+assign AUDIO_R   = out_r;
+
 
 assign VGA_F1 = 0;
 assign VGA_SL = 0;
@@ -607,7 +615,8 @@ system system
 	.sound_sample_l       (sb_out_l),
 	.sound_sample_r       (sb_out_r),
 	.sound_fm_mode        (status[3]),
-	
+	.sound_cms_en         (status[17]),
+
 	.speaker_out          (speaker_out),
 
 	.ps2_reset_n          (ps2_reset_n),
@@ -671,7 +680,9 @@ always @(posedge clk_sys) if(cpu_reset) memcfg <= status[11];
 reg cpu_reset;
 always @(posedge clk_sys) cpu_reset <= cpu_rst1 | sys_reset;
 
+wire ps2_reset_n;
 wire sys_reset = rst_q[7] | ~init_reset_n | RESET;
+
 reg  cpu_rst1 = 0;
 reg  init_reset_n = 0;
 
