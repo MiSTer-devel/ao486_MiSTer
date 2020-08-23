@@ -202,18 +202,18 @@ wire cmd_dma_id                 = cmd_multiple_byte && write_length == 2'd2 && w
 
 //------------------------------------------------------------------------------ 'weird dma identification' from DosBox
 
-reg [1:0] dma_id_count;
-always @(posedge clk) begin
-    if(rst_n == 1'b0)   dma_id_count <= 2'd0;
-    else if(sw_reset)   dma_id_count <= 2'd0;
-    else if(cmd_dma_id) dma_id_count <= dma_id_count + 2'd1;
-end
-
 reg [7:0] dma_id_value;
 always @(posedge clk) begin
     if(rst_n == 1'b0)   dma_id_value <= 8'hAA;
     else if(sw_reset)   dma_id_value <= 8'hAA;
-    else if(cmd_dma_id) dma_id_value <= dma_id_value + dma_id_q;
+    else if(cmd_dma_id) dma_id_value <= dma_id_value + (io_writedata ^ dma_xor_value);
+end
+
+reg [7:0] dma_xor_value;
+always @(posedge clk) begin
+    if(rst_n == 1'b0)   dma_xor_value <= 8'h96;
+    else if(sw_reset)   dma_xor_value <= 8'h96;
+    else if(cmd_dma_id) dma_xor_value <= {dma_xor_value[1:0],dma_xor_value[7:2]};
 end
 
 reg dma_id_active;
@@ -223,20 +223,6 @@ always @(posedge clk) begin
     else if(cmd_dma_id) dma_id_active <= 1'b1;
     else if(dma_ack)    dma_id_active <= 1'b0;
 end
-
-wire [7:0] dma_id_q;
-
-simple_single_rom #(
-    .widthad    (10),
-    .width      (8),
-    .datafile   ("rtl/soc/sound/sound_dsp_dma_id.hex")
-)
-dma_id_rom_inst (
-    .clk        (clk),
-    
-    .addr       ({dma_id_count, io_writedata}),
-    .q          (dma_id_q)
-);
 
 //------------------------------------------------------------------------------ copyright
 
