@@ -734,7 +734,7 @@ function [15:0] compr; input [15:0] inp;
 		v  = inp[15] ? (~inp) + 1'd1 : inp;
 		v1 = (v < comp_x1[15:0]) ? (v * comp_a1) : (((v - comp_x1[15:0])/comp_f1) + comp_b1[15:0]);
 		v2 = (v < comp_x2[15:0]) ? (v * comp_a2) : (((v - comp_x2[15:0])/comp_f2) + comp_b2[15:0]);
-		v  = boost4x ? v2 : v1;
+		v  = status[21] ? v2 : v1;
 		compr = inp[15] ? ~(v-1'd1) : v;
 	end
 endfunction 
@@ -748,7 +748,6 @@ always @(posedge clk_sys) begin
 	cmp_r <= compr(out_r);
 end
 
-wire   boost4x   = status[21];
 assign AUDIO_L   = status[21:20] ? cmp_l : out_l;
 assign AUDIO_R   = status[21:20] ? cmp_r : out_r;
 assign AUDIO_S   = 1;
