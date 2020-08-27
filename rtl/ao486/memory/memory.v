@@ -150,10 +150,11 @@ module memory(
     input       [31:0]  avm_readdata,
     
     input       [23:0]  dma_address,
+    input               dma_16bit,
     input               dma_write,
-    input        [7:0]  dma_writedata,
+    input       [15:0]  dma_writedata,
     input               dma_read,
-    output       [7:0]  dma_readdata,
+    output      [15:0]  dma_readdata,
     output              dma_readdatavalid,
     output              dma_waitrequest
 );
@@ -377,6 +378,7 @@ avalon_mem avalon_mem_inst(
     .avm_readdata               (avm_readdata),                 //input [31:0]
 
     .dma_address                (dma_address),
+    .dma_16bit                  (dma_16bit),
     .dma_write                  (dma_write),
     .dma_writedata              (dma_writedata),
     .dma_read                   (dma_read),

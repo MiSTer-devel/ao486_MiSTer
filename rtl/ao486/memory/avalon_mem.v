@@ -71,16 +71,16 @@ module avalon_mem(
     output      [3:0]   avm_burstcount,
     output              avm_write,
     output              avm_read,
-    
     input               avm_waitrequest,
     input               avm_readdatavalid,
     input       [31:0]  avm_readdata,
 
     input       [23:0]  dma_address,
+    input               dma_16bit,
     input               dma_write,
-    input        [7:0]  dma_writedata,
+    input       [15:0]  dma_writedata,
     input               dma_read,
-    output       [7:0]  dma_readdata,
+    output      [15:0]  dma_readdata,
     output              dma_readdatavalid,
     output              dma_waitrequest
 );
@@ -187,7 +187,7 @@ assign writeburst_data =
 
 //------------------------------------------------------------------------------
 
-assign dma_readdata      = avm_readdata[{dma_address[1:0],3'b000} +:8];
+assign dma_readdata      = dma_16bit ? avm_readdata[{dma_address[1],4'b0000} +:16] : avm_readdata[{dma_address[1:0],3'b000} +:8];
 assign dma_waitrequest   = state != STATE_READ_DMA  && state != STATE_WRITE_DMA;
 assign dma_readdatavalid = state == STATE_READ_DMA  && avm_readdatavalid;
 
@@ -205,12 +205,14 @@ assign avm_address =
 assign avm_writedata  =
    (state != STATE_IDLE) ? writedata_next :
    writeburst_do         ? writeburst_data[31:0] :
-                           {4{dma_writedata}};
+   dma_16bit             ? {2{dma_writedata[15:0]}} :
+                           {4{dma_writedata[7:0]}};
 	
 assign avm_byteenable = 
    (state != STATE_IDLE)         ? byteenable_next :
    writeburst_do                 ? writeburst_byteenable_0 : 
    (readburst_do || readcode_do) ? read_burst_byteenable : 
+   dma_16bit                     ? {dma_address[1],dma_address[1],~dma_address[1],~dma_address[1]} :
                                    (4'b0001 << dma_address[1:0]);
 
 assign avm_burstcount = 
@@ -227,6 +229,7 @@ assign snoop_data = avm_writedata;
 assign snoop_be   =  // does never need read_byte enable
    (state != STATE_IDLE)         ? byteenable_next :
    writeburst_do                 ? writeburst_byteenable_0 : 
+   dma_16bit                     ? {dma_address[1],dma_address[1],~dma_address[1],~dma_address[1]} : 
                                    (4'b0001 << dma_address[1:0]);
 
 assign snoop_we   = (!avm_address[31:28] && ~avm_waitrequest && avm_write);
