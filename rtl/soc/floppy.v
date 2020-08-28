@@ -117,52 +117,28 @@ always @(posedge clk) io_readdata <= io_readdata_prepare;
 //------------------------------------------------------------------------------ media management
 
 reg media_present;
-always @(posedge clk) begin
-    if(rst_n == 1'b0)                           media_present <= 1'b0;
-    else if(mgmt_write && mgmt_address == 4'd0) media_present <= mgmt_writedata[0];
-end
+always @(posedge clk) if(mgmt_write && mgmt_address == 4'd0) media_present <= mgmt_writedata[0];
 
 reg media_writeprotected;
-always @(posedge clk) begin
-    if(rst_n == 1'b0)                           media_writeprotected <= 1'b0;
-    else if(mgmt_write && mgmt_address == 4'd1) media_writeprotected <= mgmt_writedata[0];
-end
+always @(posedge clk) if(mgmt_write && mgmt_address == 4'd1) media_writeprotected <= mgmt_writedata[0];
 
 reg [7:0] media_cylinders;
-always @(posedge clk) begin
-    if(rst_n == 1'b0)                           media_cylinders <= 8'd0;
-    else if(mgmt_write && mgmt_address == 4'd2) media_cylinders <= mgmt_writedata[7:0];
-end
+always @(posedge clk) if(mgmt_write && mgmt_address == 4'd2) media_cylinders <= mgmt_writedata[7:0];
 
 reg [7:0] media_sectors_per_track;
-always @(posedge clk) begin
-    if(rst_n == 1'b0)                           media_sectors_per_track <= 8'd0;
-    else if(mgmt_write && mgmt_address == 4'd3) media_sectors_per_track <= mgmt_writedata[7:0];
-end
+always @(posedge clk) if(mgmt_write && mgmt_address == 4'd3) media_sectors_per_track <= mgmt_writedata[7:0];
 
 reg [31:0] media_sector_count;
-always @(posedge clk) begin
-    if(rst_n == 1'b0)                           media_sector_count <= 32'd0;
-    else if(mgmt_write && mgmt_address == 4'd4) media_sector_count <= mgmt_writedata;
-end
+always @(posedge clk) if(mgmt_write && mgmt_address == 4'd4) media_sector_count <= mgmt_writedata;
 
 reg [1:0] media_heads;
-always @(posedge clk) begin
-    if(rst_n == 1'b0)                           media_heads <= 2'd2;
-    else if(mgmt_write && mgmt_address == 4'd5) media_heads <= mgmt_writedata[1:0];
-end
+always @(posedge clk) if(mgmt_write && mgmt_address == 4'd5) media_heads <= mgmt_writedata[1:0];
 
 reg [31:0] media_sd_base;
-always @(posedge clk) begin
-    if(rst_n == 1'b0)                           media_sd_base <= 32'd0;
-    else if(mgmt_write && mgmt_address == 4'd6) media_sd_base <= mgmt_writedata;
-end
+always @(posedge clk) if(mgmt_write && mgmt_address == 4'd6) media_sd_base <= mgmt_writedata;
 
 reg [7:0] media_type;
-always @(posedge clk) begin
-    if(rst_n == 1'b0)                           media_type <= 8'h20;
-    else if(mgmt_write && mgmt_address == 4'hC) media_type <= mgmt_writedata[7:0];
-end
+always @(posedge clk) if(mgmt_write && mgmt_address == 4'hC) media_type <= mgmt_writedata[7:0];
 
 //------------------------------------------------------------------------------
 

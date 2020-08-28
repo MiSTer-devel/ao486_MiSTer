@@ -292,64 +292,56 @@ wire rtc_century_update= rtc_year_update   && max_year;
 
 reg [7:0] rtc_second;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                                   rtc_second <= 8'd0;
-    else if(mgmt_write && mgmt_address == 8'h00)                        rtc_second <= mgmt_writedata[7:0];
+    if(mgmt_write && mgmt_address == 8'h00)                             rtc_second <= mgmt_writedata[7:0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h00)     rtc_second <= io_writedata;
     else if(rtc_second_update)                                          rtc_second <= next_second; 
 end
 
 reg [7:0] rtc_minute;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                                   rtc_minute <= 8'd0;
-    else if(mgmt_write && mgmt_address == 8'h02)                        rtc_minute <= mgmt_writedata[7:0];
+    if(mgmt_write && mgmt_address == 8'h02)                             rtc_minute <= mgmt_writedata[7:0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h02)     rtc_minute <= io_writedata;
     else if(rtc_minute_update)                                          rtc_minute <= next_minute;
 end
 
 reg [7:0] rtc_hour;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                                   rtc_hour <= 8'd0;
-    else if(mgmt_write && mgmt_address == 8'h04)                        rtc_hour <= mgmt_writedata[7:0];
+    if(mgmt_write && mgmt_address == 8'h04)                             rtc_hour <= mgmt_writedata[7:0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h04)     rtc_hour <= io_writedata;
     else if(rtc_hour_update)                                            rtc_hour <= next_hour;
 end
 
 reg [7:0] rtc_dayofweek;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                                   rtc_dayofweek <= 8'd0;
-    else if(mgmt_write && mgmt_address == 8'h06)                        rtc_dayofweek <= mgmt_writedata[7:0];
+    if(mgmt_write && mgmt_address == 8'h06)                             rtc_dayofweek <= mgmt_writedata[7:0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h06)     rtc_dayofweek <= io_writedata;
     else if(rtc_day_update)                                             rtc_dayofweek <= next_dayofweek;
 end
 
 reg [7:0] rtc_dayofmonth;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                                   rtc_dayofmonth <= 8'd0;
-    else if(mgmt_write && mgmt_address == 8'h07)                        rtc_dayofmonth <= mgmt_writedata[7:0];
+    if(mgmt_write && mgmt_address == 8'h07)                             rtc_dayofmonth <= mgmt_writedata[7:0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h07)     rtc_dayofmonth <= io_writedata;
     else if(rtc_day_update)                                             rtc_dayofmonth <= next_dayofmonth;
 end
 
 reg [7:0] rtc_month;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                                   rtc_month <= 8'd0;
-    else if(mgmt_write && mgmt_address == 8'h08)                        rtc_month <= mgmt_writedata[7:0];
+    if(mgmt_write && mgmt_address == 8'h08)                             rtc_month <= mgmt_writedata[7:0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h08)     rtc_month <= io_writedata;
     else if(rtc_month_update)                                           rtc_month <= next_month;
 end
 
 reg [7:0] rtc_year;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                                   rtc_year <= 8'd0;
-    else if(mgmt_write && mgmt_address == 8'h09)                        rtc_year <= mgmt_writedata[7:0];
+    if(mgmt_write && mgmt_address == 8'h09)                             rtc_year <= mgmt_writedata[7:0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h09)     rtc_year <= io_writedata;
     else if(rtc_year_update)                                            rtc_year <= next_year;
 end
 
 reg [7:0] rtc_century;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                                   rtc_century <= 8'd0;
-    else if(mgmt_write && mgmt_address == 8'h32)                        rtc_century <= mgmt_writedata[7:0];
+    if(mgmt_write && mgmt_address == 8'h32)                             rtc_century <= mgmt_writedata[7:0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h32)     rtc_century <= io_writedata;
     else if(io_write && io_address == 1'b1 && ram_address == 7'h37)     rtc_century <= io_writedata;
     else if(rtc_century_update)                                         rtc_century <= next_century;
@@ -359,22 +351,19 @@ end
 
 reg [7:0] alarm_second;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                                   alarm_second <= 8'd0;
-    else if(mgmt_write && mgmt_address == 8'h01)                        alarm_second <= mgmt_writedata[7:0];
+    if(mgmt_write && mgmt_address == 8'h01)                             alarm_second <= mgmt_writedata[7:0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h01)     alarm_second <= io_writedata;
 end
 
 reg [7:0] alarm_minute;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                                   alarm_minute <= 8'd0;
-    else if(mgmt_write && mgmt_address == 8'h03)                        alarm_minute <= mgmt_writedata[7:0];
+    if(mgmt_write && mgmt_address == 8'h03)                             alarm_minute <= mgmt_writedata[7:0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h03)     alarm_minute <= io_writedata;
 end
 
 reg [7:0] alarm_hour;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                                   alarm_hour <= 8'd0;
-    else if(mgmt_write && mgmt_address == 8'h05)                        alarm_hour <= mgmt_writedata[7:0];
+    if(mgmt_write && mgmt_address == 8'h05)                             alarm_hour <= mgmt_writedata[7:0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h05)     alarm_hour <= io_writedata;
 end
 
@@ -385,9 +374,9 @@ wire alarm_interrupt_activate =
 
 reg alarm_interrupt;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                                       alarm_interrupt <= 1'b0;
-    else if(io_read_valid && io_address == 1'b1 && ram_address == 7'h0C)    alarm_interrupt <= 1'b0;
-    else if(sec_state == SEC_SECOND_START && alarm_interrupt_activate)      alarm_interrupt <= 1'b1;
+    if(rst_n == 1'b0)                                                   alarm_interrupt <= 1'b0;
+    else if(io_read_valid && io_address == 1'b1 && ram_address == 7'h0C)alarm_interrupt <= 1'b0;
+    else if(sec_state == SEC_SECOND_START && alarm_interrupt_activate)  alarm_interrupt <= 1'b1;
 end
 
 //------------------------------------------------------------------------------
@@ -398,50 +387,43 @@ crb_freeze 1: no update, no alarm
 
 reg crb_freeze;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                                   crb_freeze <= 1'b0;
-    else if(mgmt_write && mgmt_address == 8'h0B)                        crb_freeze <= mgmt_writedata[7];
+    if(mgmt_write && mgmt_address == 8'h0B)                             crb_freeze <= mgmt_writedata[7];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h0B)     crb_freeze <= io_writedata[7];
 end
 
 reg crb_int_periodic_ena;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                                   crb_int_periodic_ena <= 1'b0;
-    else if(mgmt_write && mgmt_address == 8'h0B)                        crb_int_periodic_ena <= mgmt_writedata[6];
+    if(mgmt_write && mgmt_address == 8'h0B)                             crb_int_periodic_ena <= mgmt_writedata[6];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h0B)     crb_int_periodic_ena <= io_writedata[6];
 end
 
 reg crb_int_alarm_ena;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                                   crb_int_alarm_ena <= 1'b0;
-    else if(mgmt_write && mgmt_address == 8'h0B)                        crb_int_alarm_ena <= mgmt_writedata[5];
+    if(mgmt_write && mgmt_address == 8'h0B)                             crb_int_alarm_ena <= mgmt_writedata[5];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h0B)     crb_int_alarm_ena <= io_writedata[5];
 end
 
 reg crb_int_update_ena;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                                   crb_int_update_ena <= 1'b0;
-    else if(mgmt_write && mgmt_address == 8'h0B)                        crb_int_update_ena <= ~(mgmt_writedata[7]) & mgmt_writedata[4];
+    if(mgmt_write && mgmt_address == 8'h0B)                             crb_int_update_ena <= ~(mgmt_writedata[7]) & mgmt_writedata[4];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h0B)     crb_int_update_ena <= ~(io_writedata[7]) & io_writedata[4];
 end
 
 reg crb_binarymode;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                                   crb_binarymode <= 1'b0;
-    else if(mgmt_write && mgmt_address == 8'h0B)                        crb_binarymode <= mgmt_writedata[2];
+    if(mgmt_write && mgmt_address == 8'h0B)                             crb_binarymode <= mgmt_writedata[2];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h0B)     crb_binarymode <= io_writedata[2];
 end
 
 reg crb_24hour;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                                   crb_24hour <= 1'b1;
-    else if(mgmt_write && mgmt_address == 8'h0B)                        crb_24hour <= mgmt_writedata[1];
+    if(mgmt_write && mgmt_address == 8'h0B)                             crb_24hour <= mgmt_writedata[1];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h0B)     crb_24hour <= io_writedata[1];
 end
 
 reg crb_daylightsaving;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                                   crb_daylightsaving <= 1'b0;
-    else if(mgmt_write && mgmt_address == 8'h0B)                        crb_daylightsaving <= mgmt_writedata[0];
+    if(mgmt_write && mgmt_address == 8'h0B)                             crb_daylightsaving <= mgmt_writedata[0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h0B)     crb_daylightsaving <= io_writedata[0]; 
 end
 
@@ -454,15 +436,13 @@ divider 11x : no update, no alarm
 
 reg [2:0] divider;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                                   divider <= 3'd2;
-    else if(mgmt_write && mgmt_address == 8'h0A)                        divider <= mgmt_writedata[6:4];
+    if(mgmt_write && mgmt_address == 8'h0A)                             divider <= mgmt_writedata[6:4];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h0A)     divider <= io_writedata[6:4];
 end
 
 reg [3:0] periodic_rate;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                                   periodic_rate <= 4'd6;
-    else if(mgmt_write && mgmt_address == 8'h0A)                        periodic_rate <= mgmt_writedata[3:0];
+    if(mgmt_write && mgmt_address == 8'h0A)                             periodic_rate <= mgmt_writedata[3:0];
     else if(io_write && io_address == 1'b1 && ram_address == 7'h0A)     periodic_rate <= io_writedata[3:0];
 end
 

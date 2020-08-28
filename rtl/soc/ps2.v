@@ -107,19 +107,18 @@ wire [7:0] sysctl_readdata_next =
 assign a20_enable = output_a20_enable;
 
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                               output_a20_enable <= 1'b1;
-    else if(cmd_write_output_port)                  output_a20_enable <= io_writedata[1];
-    else if(cmd_disable_a20)                        output_a20_enable <= 1'b0;
-    else if(cmd_enable_a20)                         output_a20_enable <= 1'b1;
-    else if(sysctl_write && io_address == 4'h2)     output_a20_enable <= io_writedata[1];
+    if(rst_n == 1'b0)                           output_a20_enable <= 1'b1;
+    else if(cmd_write_output_port)              output_a20_enable <= io_writedata[1];
+    else if(cmd_disable_a20)                    output_a20_enable <= 1'b0;
+    else if(cmd_enable_a20)                     output_a20_enable <= 1'b1;
+    else if(sysctl_write && io_address == 4'h2) output_a20_enable <= io_writedata[1];
 end
 
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                               output_reset_n <= 1'b1;
-    else if(cmd_write_output_port)                                  output_reset_n <= io_writedata[0];
-    else if(cmd_reset)                                              output_reset_n <= 1'b0;
-    else if(sysctl_write && io_address == 4'h2 && io_writedata[0])  output_reset_n <= 1'b0;
-    else                                                            output_reset_n <= 1'b1;
+    if(rst_n == 1'b0)                           output_reset_n <= 1'b1;
+    else if(cmd_write_output_port)              output_reset_n <= io_writedata[0];
+    else if(cmd_reset)                          output_reset_n <= 1'b0;
+    else if(sysctl_write && io_address == 4'h2) output_reset_n <= ~io_writedata[0];
 end
 
 //------------------------------------------------------------------------------

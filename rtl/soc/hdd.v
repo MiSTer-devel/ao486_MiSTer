@@ -78,14 +78,18 @@ reg sec_read_last;
 always @(posedge clk) begin if(rst_n == 1'b0) sec_read_last <= 1'b0; else if(sec_read_last) sec_read_last <= 1'b0; else sec_read_last <= sec_read; end 
 wire sec_read_valid = sec_read && ~sec_read_last;
 
-reg present = 0;
+reg pulse_rst;
 always @(posedge clk) begin
 	reg old_rst;
-
 	old_rst <= rst_n;
-	if(old_rst && !rst_n) present <= 0;
-	if(mgmt_write) present <= 1;
+	pulse_rst <= old_rst && !rst_n;
 end 
+
+reg present = 0;
+always @(posedge clk) begin
+	if(pulse_rst)  present <= 0;
+	if(mgmt_write) present <= 1;
+end
 
 //------------------------------------------------------------------------------
 
@@ -128,40 +132,22 @@ always @(posedge clk) io_readdata <= present ? io_readdata_next : 32'hFFFFFFFF;
 //------------------------------------------------------------------------------ media management
 
 reg [16:0] media_cylinders;
-always @(posedge clk) begin
-    if(rst_n == 1'b0)                           media_cylinders <= 17'd0;
-    else if(mgmt_address == 3'd1 && mgmt_write) media_cylinders <= mgmt_writedata[16:0];
-end
+always @(posedge clk) if(mgmt_address == 3'd1 && mgmt_write) media_cylinders <= mgmt_writedata[16:0];
 
 reg [4:0] media_heads;
-always @(posedge clk) begin
-    if(rst_n == 1'b0)                           media_heads <= 5'd0;
-    else if(mgmt_address == 3'd2 && mgmt_write) media_heads <= mgmt_writedata[4:0];
-end
+always @(posedge clk) if(mgmt_address == 3'd2 && mgmt_write) media_heads <= mgmt_writedata[4:0];
 
 reg [8:0] media_spt;
-always @(posedge clk) begin
-    if(rst_n == 1'b0)                           media_spt <= 9'd0;
-    else if(mgmt_address == 3'd3 && mgmt_write) media_spt <= mgmt_writedata[8:0];
-end
+always @(posedge clk) if(mgmt_address == 3'd3 && mgmt_write) media_spt <= mgmt_writedata[8:0];
 
 reg [13:0] media_spc; //sectors per cylinder = spt * heads
-always @(posedge clk) begin
-    if(rst_n == 1'b0)                           media_spc <= 14'd0; //14'd1008;
-    else if(mgmt_address == 3'd4 && mgmt_write) media_spc <= mgmt_writedata[13:0];
-end
+always @(posedge clk) if(mgmt_address == 3'd4 && mgmt_write) media_spc <= mgmt_writedata[13:0];
 
 reg [31:0] media_sectors;
-always @(posedge clk) begin
-    if(rst_n == 1'b0)                           media_sectors <= 32'd0; //32'd1032192;
-    else if(mgmt_address == 3'd5 && mgmt_write) media_sectors <= mgmt_writedata;
-end
+always @(posedge clk) if(mgmt_address == 3'd5 && mgmt_write) media_sectors <= mgmt_writedata;
 
 reg [31:0] media_sd_base;
-always @(posedge clk) begin
-    if(rst_n == 1'b0)                           media_sd_base <= 32'd0;
-    else if(mgmt_address == 3'd6 && mgmt_write) media_sd_base <= mgmt_writedata;
-end
+always @(posedge clk) if(mgmt_address == 3'd6 && mgmt_write) media_sd_base <= mgmt_writedata;
 
 //------------------------------------------------------------------------------
 
@@ -848,7 +834,7 @@ simple_fifo #(
 )
 fifo_identify_inst(
     .clk        (clk),
-    .rst_n      (rst_n),
+    .rst_n      (~pulse_rst),
     
     .sclr       (1'b0),                                                                 //input
     

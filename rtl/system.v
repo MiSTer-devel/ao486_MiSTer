@@ -2,9 +2,7 @@
 module system
 (
 	input         clk_sys,
-
-	input         reset_cpu,
-	input         reset_sys,
+	input         reset,
 
 	input  [27:0] clock_rate,
 	
@@ -210,7 +208,7 @@ assign      DDRAM_CLK = clk_sys;
 l2_cache cache
 (
 	.CLK               (clk_sys),
-	.RESET             (reset_cpu),
+	.RESET             (reset),
 
 	.DISABLE           (l2_disable),
 
@@ -249,7 +247,7 @@ l2_cache cache
 ao486 ao486
 (
 	.clk               (clk_sys),
-	.rst_n             (~reset_cpu),
+	.rst_n             (~reset),
 
 	.cache_disable     (l1_disable),
 
@@ -317,7 +315,7 @@ end
 reg [7:0] ctlport = 0;
 always @(posedge clk_sys) begin
 	reg in_reset = 1;
-	if(reset_cpu) begin
+	if(reset) begin
 		ctlport <= 8'hA2;
 		in_reset <= 1;
 	end
@@ -349,7 +347,7 @@ wire [7:0] iobus_readdata8 =
 iobus iobus
 (
 	.clk               (clk_sys),
-	.reset             (reset_sys),
+	.reset             (reset),
 
 	.cpu_read_do       (cpu_io_read_do),
 	.cpu_read_address  (cpu_io_read_address),
@@ -374,7 +372,7 @@ iobus iobus
 dma dma
 (
 	.clk               (clk_sys),
-	.rst_n             (~reset_sys),
+	.rst_n             (~reset),
 
 	.avm_address       (dma_address),
 	.avm_16bit         (dma_16bit),
@@ -414,7 +412,7 @@ dma dma
 floppy floppy0
 (
 	.clk               (clk_sys),
-	.rst_n             (~reset_sys),
+	.rst_n             (~reset),
 
 	.clock_rate        (clock_rate),
 
@@ -443,7 +441,7 @@ floppy floppy0
 hdd hdd0
 (
 	.clk               (clk_sys),
-	.rst_n             (~reset_sys),
+	.rst_n             (~reset),
 
 	.io_address        ({iobus_address[9],iobus_address[2:0]}),
 	.io_writedata      (iobus_writedata),
@@ -465,7 +463,7 @@ hdd hdd0
 hdd hdd1
 (
 	.clk               (clk_sys),
-	.rst_n             (~reset_sys),
+	.rst_n             (~reset),
 
 	.io_address        ({iobus_address[9],iobus_address[2:0]}),
 	.io_writedata      (iobus_writedata),
@@ -487,7 +485,7 @@ hdd hdd1
 joystick joystick
 (
 	.clk               (clk_sys),
-	.rst_n             (~reset_sys),
+	.rst_n             (~reset),
 
 	.clk_grav          (joystick_clk_grav),
 
@@ -504,7 +502,7 @@ joystick joystick
 pit pit
 (
 	.clk               (clk_sys),
-	.rst_n             (~reset_sys),
+	.rst_n             (~reset),
 
 	.clock_rate        (clock_rate),
 
@@ -521,7 +519,7 @@ pit pit
 ps2 ps2
 (
 	.clk               (clk_sys),
-	.rst_n             (~reset_sys),
+	.rst_n             (~reset),
 
 	.io_address        (iobus_address[3:0]),
 	.io_writedata      (iobus_writedata[7:0]),
@@ -552,7 +550,7 @@ ps2 ps2
 rtc rtc
 (
 	.clk               (clk_sys),
-	.rst_n             (~reset_sys),
+	.rst_n             (~reset),
 
 	.clock_rate        (clock_rate),
 
@@ -575,7 +573,7 @@ sound sound
 (
 	.clk               (clk_sys),
 	.clk_opl           (clk_opl),
-	.rst_n             (~reset_sys),
+	.rst_n             (~reset),
 
 	.clock_rate        (clock_rate),
 
@@ -606,7 +604,7 @@ uart uart
 (
 	.clk               (clk_sys),
 	.br_clk            (clk_uart),
-	.reset             (reset_sys|reset_cpu),
+	.reset             (reset),
 
 	.address           (iobus_address[2:0]),
 	.writedata         (iobus_writedata[7:0]),
@@ -635,7 +633,7 @@ uart uart
 vga vga
 (
 	.clk_sys           (clk_sys),
-	.rst_n             (~reset_sys),
+	.rst_n             (~reset),
 
 	.clk_vga           (clk_vga),
 	.clock_rate_vga    (clock_rate_vga),
@@ -683,7 +681,7 @@ vga vga
 pic pic
 (
 	.clk               (clk_sys),
-	.rst_n             (~reset_sys),
+	.rst_n             (~reset),
 
 	.io_address        (iobus_address[0]),
 	.io_writedata      (iobus_writedata[7:0]),

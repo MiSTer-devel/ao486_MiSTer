@@ -161,7 +161,7 @@ assign VIDEO_ARY = status[1] ? 8'd9  : 8'd3;
 
 assign LED_DISK[1] = 0;
 assign LED_POWER   = 0;
-assign BUTTONS   = 0;
+assign BUTTONS     = {~ps2_reset_n, 1'b0};
 
 led hdd_led(clk_sys, |mgmt_req[5:0], LED_DISK[0]);
 led fdd_led(clk_sys, |mgmt_req[7:6], LED_USER);
@@ -396,10 +396,10 @@ always @(posedge CLK_50M) begin
 			if(state) state<=state+1'd1;
 			case(state)
 				0: begin
-						old_rst <= cpu_reset;
+						old_rst <= reset;
 						old_speed <= speed;
 						old_uspeed <= uspeed;
-						if((old_speed != speed) || (old_uspeed != uspeed) || (old_rst & ~cpu_reset)) state <= 1;
+						if((old_speed != speed) || (old_uspeed != uspeed) || (old_rst & ~reset)) state <= 1;
 					end
 				1: begin
 						cfg_address <= 0;
@@ -573,8 +573,7 @@ system system
 	.clk_uart             (clk_uart),
 	.clk_vga              (clk_vga),
 
-	.reset_sys            (sys_reset),
-	.reset_cpu            (cpu_reset),
+	.reset                (reset),
 
 	.clock_rate           (cur_rate),
 
@@ -665,34 +664,20 @@ system system
 );
 
 wire [7:0] syscfg;
+wire       ps2_reset_n;
 
 reg memcfg = 0;
-always @(posedge clk_sys) if(cpu_reset) memcfg <= status[11];
+always @(posedge clk_sys) if(reset) memcfg <= status[11];
 
-reg cpu_reset;
-always @(posedge clk_sys) cpu_reset <= cpu_rst1 | sys_reset;
-
-wire ps2_reset_n;
-wire sys_reset = rst_q[7] | ~init_reset_n | RESET;
-
-reg  cpu_rst1 = 0;
-reg  init_reset_n = 0;
-
-reg  [7:0] rst_q;
+reg reset;
 always @(posedge clk_sys) begin
-	reg  old_rst1 = 0;
-	reg  old_rst2 = 0;
+	reg init_reset_n = 0;
+	reg old_rst = 0;
 
-	old_rst1 <= status[0];
-	old_rst2 <= old_rst1;
+	reset <= buttons[1] | status[0] | RESET | ~init_reset_n;
 
-	cpu_rst1 <= buttons[1] | status[0] | ~ps2_reset_n;
-
-	rst_q <= rst_q << 1;
-	if(~old_rst2 & old_rst1) begin
-		rst_q <= '1;
-		init_reset_n <= 1;
-	end
+	old_rst <= status[0];
+	if(old_rst & ~status[0]) init_reset_n <= 1;
 end
 
 reg dbg_menu = 0;

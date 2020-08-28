@@ -15,7 +15,5 @@ set_false_path -from [get_clocks $clk_opl] -to [get_clocks $clk_sys]
 set_false_path -from [get_clocks $clk_sys]  -to [get_clocks $clk_uart]
 set_false_path -from [get_clocks $clk_uart] -to [get_clocks $clk_sys]
 
-set_multicycle_path -from {emu:emu|cpu_reset*} -setup 2
-set_multicycle_path -from {emu:emu|cpu_reset*} -hold 1
-set_multicycle_path -from {emu:emu|sys_reset*} -setup 2
-set_multicycle_path -from {emu:emu|sys_reset*} -hold 1
+set_multicycle_path -from {emu:emu|reset*} -setup 2
+set_multicycle_path -from {emu:emu|reset*} -hold 1
