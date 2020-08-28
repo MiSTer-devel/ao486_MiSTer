@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2014, Aleksander Osman
+ * Copyright (C) 2017-2020 Alexey Melnikov
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -24,38 +25,39 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-module sound(
-	input               clk,
-	input               clk_opl,
-	input               rst_n,
+module sound
+(
+	input             clk,
+	input             clk_opl,
+	input             rst_n,
 
-	output              irq,
+	output            irq,
 
 	
-	input       [3:0]   address,
-	input               read,
-	output reg  [7:0]   readdata,
-	input               write,
-	input       [7:0]   writedata,
+	input       [3:0] address,
+	input             read,
+	output reg  [7:0] readdata,
+	input             write,
+	input       [7:0] writedata,
 
-	input               sb_cs,   //220h-22Fh
-	input               fm_cs,   //388h-38Bh (228h-229h)
+	input             sb_cs,   //220h-22Fh
+	input             fm_cs,   //388h-38Bh (228h-229h)
 
-	input               fm_mode,
-	input               cms_en,
+	input             fm_mode,
+	input             cms_en,
 
 	//dma
-	output              dma_req,
-	input               dma_ack,
-	input               dma_terminal,
-	input       [7:0]   dma_readdata,
-	output      [7:0]   dma_writedata,
+	output            dma_req8,
+	output            dma_req16,
+	input             dma_ack,
+	input      [15:0] dma_readdata,
+	output     [15:0] dma_writedata,
 
 	//sound output
-	output     [15:0]   sample_l,
-	output     [15:0]   sample_r,
+	output reg [15:0] sample_l,
+	output reg [15:0] sample_r,
 
-	input      [27:0]   clock_rate
+	input      [27:0] clock_rate
 );
 
 wire sb_read  = read  & sb_cs;
@@ -63,7 +65,7 @@ wire sb_write = write & sb_cs;
 wire fm_read  = read  & fm_cs;
 wire fm_write = write & fm_cs;
 
-always @(posedge clk) readdata <= cms_rd ? data_from_cms : (!address[2:0]) ? (opl_dout | (fm_mode ? 8'h00 : 8'h06)) : data_from_dsp;
+always @(posedge clk) readdata <= mixer_rd ? mixer_val : cms_rd ? data_from_cms : (!address[2:0]) ? (opl_dout | (fm_mode ? 8'h00 : 8'h06)) : data_from_dsp;
 
 //------------------------------------------------------------------------------
 
@@ -84,39 +86,40 @@ end
 
 //------------------------------------------------------------------------------ dsp
 
-wire [7:0] data_from_dsp;
+wire  [7:0] data_from_dsp;
+wire [15:0] dsp_value_l, dsp_value_r;
+wire        irq8, irq16;
 
-wire       dsp_disabled;
-wire       dsp_do;
-wire [7:0] dsp_value;
-
-sound_dsp sound_dsp_inst(
+sound_dsp sound_dsp_inst
+(
 	.clk             (clk),
 	.rst_n           (rst_n),
 
-	.ce_1us          (ce_1us),
+	.clock_rate      (clk_rate),
 
-	.irq             (irq),           //output
+	.irq8            (irq8),
+	.irq16           (irq16),
 
 	//io slave 220h-22Fh
-	.io_address      (address),       //input [3:0]
-	.io_read         (sb_read),       //input
-	.io_readdata     (data_from_dsp), //output [7:0]
-	.io_write        (sb_write),      //input
-	.io_writedata    (writedata),     //input [7:0]
+	.io_address      (address),
+	.io_read         (sb_read),
+	.io_readdata     (data_from_dsp),
+	.io_write        (sb_write),
+	.io_writedata    (writedata),
 
 	//dma
-	.dma_req         (dma_req),       //output
-	.dma_ack         (dma_ack),       //input
-	.dma_terminal    (dma_terminal),  //input
-	.dma_readdata    (dma_readdata),  //input [7:0]
-	.dma_writedata   (dma_writedata), //output [7:0]
+	.dma_req8        (dma_req8),
+	.dma_req16       (dma_req16),
+	.dma_ack         (dma_ack),
+	.dma_readdata    (dma_readdata),
+	.dma_writedata   (dma_writedata),
 
 	//sample
-	.sample_disabled (dsp_disabled),  //output
-	.sample_do       (dsp_do),        //output
-	.sample_value    (dsp_value)      //output [7:0] unsigned
+	.sample_value_l  (dsp_value_l),
+	.sample_value_r  (dsp_value_r)
 );
+
+assign irq = irq8 | irq16;
 
 //------------------------------------------------------------------------------ opl
 
@@ -200,15 +203,52 @@ saa1099 ssa2
 wire [8:0] cms_l = {1'b0, saa1_l} + {1'b0, saa2_l};
 wire [8:0] cms_r = {1'b0, saa1_r} + {1'b0, saa2_r};
 
-//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------ output mixer
 
-reg [15:0] sample_dsp;
+wire mixer_rd = (address == 4'h5) && sb_cs;
+
+reg [7:0] mixer_reg;
 always @(posedge clk) begin
-	if(dsp_disabled) sample_dsp <= 0;
-	else if(dsp_do)  sample_dsp <= {~dsp_value[7], dsp_value[6:0], dsp_value};  //unsigned to signed
+	if(~rst_n)                                 mixer_reg <= 0;
+	else if(write && sb_cs && address == 4'h4) mixer_reg <= writedata;
 end
 
-assign sample_l = {{2{sample_dsp[15]}}, sample_dsp[15:2]} + {sample_from_opl_l[15], sample_from_opl_l[15:1]} + {2'b00, cms_l, cms_l[8:4]};
-assign sample_r = {{2{sample_dsp[15]}}, sample_dsp[15:2]} + {sample_from_opl_r[15], sample_from_opl_r[15:1]} + {2'b00, cms_r, cms_r[8:4]};
+reg [4:0] vol_l, vol_r;
+always @(posedge clk) begin
+	if(~rst_n) {vol_l, vol_r} <= 10'h3FF;
+	else if(write && sb_cs && address == 4'h5) begin
+		if(mixer_reg == 8'h00) {vol_l, vol_r} <= 10'h3FF;
+		if(mixer_reg == 8'h22) {vol_l, vol_r} <= {writedata[7:4], writedata[7], writedata[3:0], writedata[3]};
+		if(mixer_reg == 8'h30) vol_l <= writedata[7:3];
+		if(mixer_reg == 8'h31) vol_r <= writedata[7:3];
+	end
+end
+	
+reg [7:0] mixer_val;
+always @(posedge clk) begin
+	case(mixer_reg)
+		'h04: mixer_val <= 8'hFF;
+		'h22: mixer_val <= {vol_l[4:1],vol_r[4:1]};
+		'h30: mixer_val <= {vol_l, 3'd0};
+		'h31: mixer_val <= {vol_r, 3'd0};
+		'h32: mixer_val <= 8'hFF;
+		'h33: mixer_val <= 8'hFF;
+		'h80: mixer_val <= 8'h02; //IRQ 5
+		'h81: mixer_val <= 8'h22; //DMA 5/1
+		'h82: mixer_val <= {6'd0, irq16, irq8};
+	default: mixer_val <= 8'h00;
+	endcase;
+end
+
+reg [15:0] sample_pre_l, sample_pre_r;
+always @(posedge clk) begin
+	sample_pre_l <= {{2{dsp_value_l[15]}}, dsp_value_l[15:2]} + {sample_from_opl_l[15], sample_from_opl_l[15:1]} + {2'b00, cms_l, cms_l[8:4]};
+	sample_pre_r <= {{2{dsp_value_r[15]}}, dsp_value_r[15:2]} + {sample_from_opl_r[15], sample_from_opl_r[15:1]} + {2'b00, cms_r, cms_r[8:4]};
+end
+
+always @(posedge clk) begin
+	sample_l <= $signed(sample_pre_l) >>> ~vol_l[4:1];
+	sample_r <= $signed(sample_pre_r) >>> ~vol_l[4:1];
+end
 
 endmodule

@@ -101,11 +101,13 @@ wire        dma_floppy_terminal;
 wire  [7:0] dma_floppy_writedata;
 wire        dma_floppy_req;
 wire        dma_floppy_ack;
-wire        dma_soundblaster_req;
-wire        dma_soundblaster_terminal;
-wire  [7:0] dma_soundblaster_readdata;
-wire  [7:0] dma_soundblaster_writedata;
-wire        dma_soundblaster_ack;
+wire        dma_sb_req_8;
+wire        dma_sb_req_16;
+wire        dma_sb_ack_8;
+wire        dma_sb_ack_16;
+wire  [7:0] dma_sb_readdata_8;
+wire [15:0] dma_sb_readdata_16;
+wire [15:0] dma_sb_writedata;
 wire [15:0] dma_readdata;
 wire        dma_waitrequest;
 wire [23:0] dma_address;
@@ -398,11 +400,15 @@ dma dma
 	.dma_2_readdata    (dma_floppy_readdata),
 	.dma_2_writedata   (dma_floppy_writedata),
 
-	.dma_1_req         (dma_soundblaster_req),
-	.dma_1_ack         (dma_soundblaster_ack),
-	.dma_1_terminal    (dma_soundblaster_terminal),
-	.dma_1_readdata    (dma_soundblaster_readdata),
-	.dma_1_writedata   (dma_soundblaster_writedata)
+	.dma_1_req         (dma_sb_req_8),
+	.dma_1_ack         (dma_sb_ack_8),
+	.dma_1_readdata    (dma_sb_readdata_8),
+	.dma_1_writedata   (dma_sb_writedata[7:0]),
+
+	.dma_5_req         (dma_sb_req_16),
+	.dma_5_ack         (dma_sb_ack_16),
+	.dma_5_readdata    (dma_sb_readdata_16),
+	.dma_5_writedata   (dma_sb_writedata)
 );
 
 floppy floppy0
@@ -581,11 +587,11 @@ sound sound
 	.sb_cs             (sb_cs),
 	.fm_cs             (fm_cs),
 
-	.dma_req           (dma_soundblaster_req),
-	.dma_ack           (dma_soundblaster_ack),
-	.dma_terminal      (dma_soundblaster_terminal),
-	.dma_readdata      (dma_soundblaster_readdata),
-	.dma_writedata     (dma_soundblaster_writedata),
+	.dma_req8          (dma_sb_req_8),
+	.dma_req16         (dma_sb_req_16),
+	.dma_ack           (dma_sb_ack_16 | dma_sb_ack_8),
+	.dma_readdata      (dma_sb_req_16 ? dma_sb_readdata_16 : dma_sb_readdata_8),
+	.dma_writedata     (dma_sb_writedata),
 
 	.sample_l          (sound_sample_l),
 	.sample_r          (sound_sample_r),
