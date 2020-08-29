@@ -31,9 +31,10 @@ module sound
 	input             clk_opl,
 	input             rst_n,
 
-	output            irq,
+	output            irq_5,
+	output            irq_7,
+	output            irq_10,
 
-	
 	input       [3:0] address,
 	input             read,
 	output reg  [7:0] readdata,
@@ -113,13 +114,18 @@ sound_dsp sound_dsp_inst
 	.dma_ack         (dma_ack),
 	.dma_readdata    (dma_readdata),
 	.dma_writedata   (dma_writedata),
+	
+	.dma_16_en       (dma_16_en),
 
 	//sample
 	.sample_value_l  (dsp_value_l),
 	.sample_value_r  (dsp_value_r)
 );
 
-assign irq = irq8 | irq16;
+wire   irq    = irq8 | irq16;
+assign irq_5  = irq & irq_5_en;
+assign irq_7  = irq & irq_7_en;
+assign irq_10 = irq & irq_10_en;
 
 //------------------------------------------------------------------------------ opl
 
@@ -213,6 +219,20 @@ always @(posedge clk) begin
 	else if(write && sb_cs && address == 4'h4) mixer_reg <= writedata;
 end
 
+reg dma_16_en;
+always @(posedge clk) begin
+	if(~rst_n)                                                      dma_16_en <= 1;
+	else if(write && sb_cs && address == 4'h5 && mixer_reg == 'h81) dma_16_en <= writedata[5];
+end
+
+reg irq_7_en, irq_10_en;
+always @(posedge clk) begin
+	if(~rst_n)                                                      {irq_10_en,irq_7_en} <= 0;
+	else if(write && sb_cs && address == 4'h5 && mixer_reg == 'h80) {irq_10_en,irq_7_en} <= {writedata[3:2] == 2'b10, writedata[3:2] == 2'b01};
+end
+
+wire irq_5_en = ~irq_7_en & ~irq_10_en;
+
 reg [4:0] vol_l, vol_r;
 always @(posedge clk) begin
 	if(~rst_n) {vol_l, vol_r} <= 10'h3FF;
@@ -223,7 +243,7 @@ always @(posedge clk) begin
 		if(mixer_reg == 8'h31) vol_r <= writedata[7:3];
 	end
 end
-	
+
 reg [7:0] mixer_val;
 always @(posedge clk) begin
 	case(mixer_reg)
@@ -233,8 +253,8 @@ always @(posedge clk) begin
 		'h31: mixer_val <= {vol_r, 3'd0};
 		'h32: mixer_val <= 8'hFF;
 		'h33: mixer_val <= 8'hFF;
-		'h80: mixer_val <= 8'h02; //IRQ 5
-		'h81: mixer_val <= 8'h22; //DMA 5/1
+		'h80: mixer_val <= {4'h0, irq_10_en, irq_7_en, irq_5_en, 1'b0}; //IRQ 7 or 5
+		'h81: mixer_val <= {2'b00,dma_16_en,1'b0,4'h2}; //DMA 5/1
 		'h82: mixer_val <= {6'd0, irq16, irq8};
 	default: mixer_val <= 8'h00;
 	endcase;

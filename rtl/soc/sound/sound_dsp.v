@@ -49,6 +49,7 @@ module sound_dsp
 	input             dma_ack,
 	input      [15:0] dma_readdata,
 	output     [15:0] dma_writedata,
+	input             dma_16_en,
 
 	//audio
 	output reg [15:0] sample_value_l,
@@ -457,17 +458,17 @@ end
 //------------------------------------------------------------------------------ irq
 
 always @(posedge clk) begin
-	if(~rst_n || sw_reset)                                                           irq8 <= 1'b0;
-	else if((dma_finished || dma_auto_restart || pause_interrupt) && ~dma_format[2]) irq8 <= 1'b1;
-	else if(cmd_trigger_irq8)                                                        irq8 <= 1'b1;
-	else if(io_read_valid && io_address == 4'hE)                                     irq8 <= 1'b0;
+	if(~rst_n || sw_reset)                                                        irq8 <= 1'b0;
+	else if((dma_finished || dma_auto_restart || pause_interrupt) && ~dma_16_req) irq8 <= 1'b1;
+	else if(cmd_trigger_irq8)                                                     irq8 <= 1'b1;
+	else if(io_read_valid && io_address == 4'hE)                                  irq8 <= 1'b0;
 end
 
 always @(posedge clk) begin
-	if(~rst_n || sw_reset)                                                          irq16 <= 1'b0;
-	else if((dma_finished || dma_auto_restart || pause_interrupt) && dma_format[2]) irq16 <= 1'b1;
-	else if(cmd_trigger_irq16)                                                      irq16 <= 1'b1;
-	else if(io_read_valid && io_address == 4'hF)                                    irq16 <= 1'b0;
+	if(~rst_n || sw_reset)                                                        irq16 <= 1'b0;
+	else if((dma_finished || dma_auto_restart || pause_interrupt) && dma_16_req)  irq16 <= 1'b1;
+	else if(cmd_trigger_irq16)                                                    irq16 <= 1'b1;
+	else if(io_read_valid && io_address == 4'hF)                                  irq16 <= 1'b0;
 end
 
 //------------------------------------------------------------------------------ dma commands
@@ -627,24 +628,34 @@ always @(posedge clk) begin
 	else if(dma_single_start | dma_auto_start) dma_format <= 0;
 end
 
-wire       dma_req   = dma_id_active || dma_normal_req;
-assign     dma_req8  = dma_req & ~dma_format[2];
-assign     dma_req16 = dma_req &  dma_format[2];
+wire   dma_16_req = dma_format[2];
+wire   dma_16_use = dma_16_req & dma_16_en;
 
-wire       dma_ack_w      = dma_ack & (~dma_format[1] |  sample_lr);
-wire       dma_ack_stereo = dma_ack & ( dma_format[1] & ~sample_lr);
+wire   dma_req   = dma_id_active || dma_normal_req;
+assign dma_req8  = dma_req & ~dma_16_use;
+assign dma_req16 = dma_req &  dma_16_use;
+
+wire   dma_ack_w      = dma_ack_f & (~dma_format[1] |  sample_lr);
+wire   dma_ack_stereo = dma_ack_f & ( dma_format[1] & ~sample_lr);
 
 reg        sample_output;
 reg        sample_lr;
 reg [15:0] sample_dma[2];
 always @(posedge clk) begin
-	
-	sample_lr <= dma_req & (sample_lr ^ (dma_ack & dma_format[1]));
+	sample_lr <= dma_req & (sample_lr ^ (dma_ack_f & dma_format[1]));
 	sample_output <= dma_output;
 
-	if(dma_ack) sample_dma[sample_lr] <= dma_format[2] ? dma_readdata : {dma_readdata[7:0],8'd0};
+	if(dma_ack) begin
+		if(~dma_16_req)    sample_dma[sample_lr]       <= {dma_readdata[7:0],8'd0};
+		else if(dma_16_en) sample_dma[sample_lr]       <= dma_readdata;
+		else if(~dma_hcnt) sample_dma[sample_lr][7:0]  <= dma_readdata[7:0];
+		else               sample_dma[sample_lr][15:8] <= dma_readdata[7:0];
+	end
 end
 
+wire dma_ack_f = dma_ack & (dma_hcnt | dma_16_en | ~dma_16_req);
+reg  dma_hcnt;
+always @(posedge clk) dma_hcnt <= dma_req & (dma_hcnt ^ dma_ack);
 
 //------------------------------------------------------------------------------ adpcm
 

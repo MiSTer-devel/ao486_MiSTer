@@ -131,7 +131,7 @@ wire        interrupt_done;
 wire        interrupt_do;
 wire  [7:0] interrupt_vector;
 reg  [15:0] interrupt;
-wire        irq_0, irq_1, irq_2, irq_4, irq_5, irq_6, irq_8, irq_9, irq_12, irq_14, irq_15;
+wire        irq_0, irq_1, irq_2, irq_4, irq_5, irq_6, irq_7, irq_8, irq_9, irq_10, irq_12, irq_14, irq_15;
 
 wire        cpu_io_read_do;
 wire [15:0] cpu_io_read_address;
@@ -597,7 +597,9 @@ sound sound
 	.fm_mode           (sound_fm_mode),
 	.cms_en            (sound_cms_en),
 
-	.irq               (irq_5)
+	.irq_5             (irq_5),
+	.irq_7             (irq_7),
+	.irq_10            (irq_10)
 );
 
 uart uart
@@ -705,9 +707,11 @@ always @* begin
 	interrupt[4]  = irq_4;
 	interrupt[5]  = irq_5;
 	interrupt[6]  = irq_6;
+	interrupt[7]  = irq_7;
 	interrupt[8]  = irq_8;
 	interrupt[9]  = irq_9 | irq_2;
-	interrupt[12] = irq_12; 
+	interrupt[10] = irq_10;
+	interrupt[12] = irq_12;
 	interrupt[14] = irq_14;
 	interrupt[15] = irq_15;
 end
