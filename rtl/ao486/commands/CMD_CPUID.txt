@@ -34,8 +34,8 @@ IF(wr_cmd == `CMD_CPUID);
     
     IF(eax == 32'd0);
         SAVE(eax, 32'd1);
-        SAVE(ebx, "ineG");
-        SAVE(edx, "Aenu");
+        SAVE(ebx, "uneG");
+        SAVE(edx, "Aeni");
         SAVE(ecx, "684O");
     ENDIF();
     
