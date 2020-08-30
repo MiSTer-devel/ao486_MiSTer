@@ -95,7 +95,7 @@ module system
 
 wire        a20_enable;
 wire  [7:0] dma_floppy_readdata;
-wire        dma_floppy_terminal;
+wire        dma_floppy_tc;
 wire  [7:0] dma_floppy_writedata;
 wire        dma_floppy_req;
 wire        dma_floppy_ack;
@@ -374,14 +374,14 @@ dma dma
 	.clk               (clk_sys),
 	.rst_n             (~reset),
 
-	.avm_address       (dma_address),
-	.avm_16bit         (dma_16bit),
-	.avm_waitrequest   (dma_waitrequest),
-	.avm_read          (dma_read),
-	.avm_readdatavalid (dma_readdatavalid),
-	.avm_readdata      (dma_readdata),
-	.avm_write         (dma_write),
-	.avm_writedata     (dma_writedata),
+	.mem_address       (dma_address),
+	.mem_16bit         (dma_16bit),
+	.mem_waitrequest   (dma_waitrequest),
+	.mem_read          (dma_read),
+	.mem_readdatavalid (dma_readdatavalid),
+	.mem_readdata      (dma_readdata),
+	.mem_write         (dma_write),
+	.mem_writedata     (dma_writedata),
 
 	.io_address        (iobus_address[4:0]),
 	.io_writedata      (iobus_writedata[7:0]),
@@ -394,7 +394,7 @@ dma dma
 	
 	.dma_2_req         (dma_floppy_req),
 	.dma_2_ack         (dma_floppy_ack),
-	.dma_2_terminal    (dma_floppy_terminal),
+	.dma_2_tc          (dma_floppy_tc),
 	.dma_2_readdata    (dma_floppy_readdata),
 	.dma_2_writedata   (dma_floppy_writedata),
 
@@ -424,7 +424,7 @@ floppy floppy0
 
 	.dma_req           (dma_floppy_req),
 	.dma_ack           (dma_floppy_ack),
-	.dma_terminal      (dma_floppy_terminal),
+	.dma_tc            (dma_floppy_tc),
 	.dma_readdata      (dma_floppy_readdata),
 	.dma_writedata     (dma_floppy_writedata),
 

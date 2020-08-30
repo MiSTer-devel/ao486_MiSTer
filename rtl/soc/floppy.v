@@ -32,7 +32,7 @@ module floppy
 	//dma
 	output              dma_req,
 	input               dma_ack,
-	input               dma_terminal,
+	input               dma_tc,
 	input       [7:0]   dma_readdata,
 	output      [7:0]   dma_writedata,
 
@@ -393,7 +393,7 @@ end
 
 wire cmd_read_write_finish =
     (cmd_read_normal_in_progress || cmd_write_normal_in_progress) && (
-        (~(execute_ndma) && was_dma_terminal) ||
+        (~(execute_ndma) && dma_has_terminated) ||
         (execute_ndma && cmd_read_write_was_ndma_terminal)
 );
 
@@ -594,7 +594,7 @@ always @(posedge clk) begin
     else if(state == S_SD_FORMAT_WAIT_FOR_FILL && sd_read_counter == 9'd511 && sd_slave_read_valid) format_sector_count <= format_sector_count - 8'd1;
 end
 
-wire cmd_format_in_input_finish = ~(execute_ndma) && was_dma_terminal;
+wire cmd_format_in_input_finish = ~(execute_ndma) && dma_has_terminated;
 
 wire cmd_format_finish = cmd_format_in_progress && (
     cmd_format_in_input_finish ||
@@ -826,17 +826,17 @@ end
 
 assign dma_writedata = from_floppy_q;
 
-assign dma_req = ~(execute_ndma) && ~(was_dma_terminal) && dma_irq_enable && ~(dma_ack) && (
+assign dma_req = ~(execute_ndma) && ~(dma_has_terminated) && dma_irq_enable && ~(dma_ack) && (
     (cmd_read_normal_in_progress  && ~(from_floppy_empty) && state == S_WAIT_FOR_EMPTY_READ_FIFO) ||
     (cmd_write_normal_in_progress && to_floppy_count <= 11'd511 && state == S_WAIT_FOR_FULL_WRITE_FIFO) ||
     (cmd_format_in_progress       && format_data_count < 3'd4 && state == S_WAIT_FOR_FORMAT_INPUT)
 );
 
-reg was_dma_terminal;
+reg dma_has_terminated;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)               was_dma_terminal <= 1'd0;
-    else if(state == S_IDLE)        was_dma_terminal <= 1'd0;
-    else if(dma_terminal)    was_dma_terminal <= 1'd1;
+    if(rst_n == 1'b0)        dma_has_terminated <= 1'd0;
+    else if(state == S_IDLE) dma_has_terminated <= 1'd0;
+    else if(dma_tc)          dma_has_terminated <= 1'd1;
 end
 
 //------------------------------------------------------------------------------ fifo
@@ -864,8 +864,8 @@ fifo_to_floppy_inst(
     
     .sclr       (state == S_IDLE), //input
     
-    .data       ((execute_ndma)? io_writedata : (was_dma_terminal)? 8'h00 : dma_readdata),                                                                                           //input [7:0]
-    .wrreq      (state == S_WAIT_FOR_FULL_WRITE_FIFO && (write_in_io_mode || (~(execute_ndma) && dma_ack) || (~(execute_ndma) && was_dma_terminal)) && to_floppy_count < 11'd512),   //input
+    .data       ((execute_ndma)? io_writedata : (dma_has_terminated)? 8'h00 : dma_readdata),                                                                                           //input [7:0]
+    .wrreq      (state == S_WAIT_FOR_FULL_WRITE_FIFO && (write_in_io_mode || (~(execute_ndma) && dma_ack) || (~(execute_ndma) && dma_has_terminated)) && to_floppy_count < 11'd512),   //input
     .full       (to_floppy_full),   //output
     
     .rdreq      (sd_slave_read_valid),  //input
@@ -886,7 +886,7 @@ fifo_from_floppy_inst(
     .clk        (clk),
     .rst_n      (rst_n),
     
-     .sclr      (state == S_IDLE || (state == S_WAIT_FOR_EMPTY_READ_FIFO && ~(execute_ndma) && dma_terminal)),   //input
+     .sclr      (state == S_IDLE || (state == S_WAIT_FOR_EMPTY_READ_FIFO && ~(execute_ndma) && dma_tc)),   //input
     
     .data       (mgmt_writedata[7:0]),   //input [7:0]
     .wrreq      (mgmt_write && &mgmt_address),       //input
