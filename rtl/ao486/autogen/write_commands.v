@@ -448,7 +448,7 @@ assign ss_to_reg =
     (cond_240)? (                task_ss) :
     ss;
 assign ebx_to_reg =
-    (cond_164 && cond_165)? ( "ineG") :
+    (cond_164 && cond_165)? ( "TSiM") :
     (cond_164 && cond_166)? ( 32'h00010000) :
     (cond_240)? ( (glob_descriptor[`DESC_BITS_TYPE] <= 4'd3)? { 16'hFFFF, exe_buffer_shifted[255:240] } : exe_buffer_shifted[271:240]) :
     (cond_263 && cond_264)? ( { wr_operand_16bit? ebx[31:16] : exe_buffer_shifted[95:80],   exe_buffer_shifted[79:64] }) :
@@ -657,7 +657,7 @@ assign edx_to_reg =
     (cond_100 && cond_101)? ( (wr_operand_16bit)? { edx[31:16], result[31:16] } : result2) :
     (cond_133 && cond_134 && cond_101)? ( (wr_operand_16bit)? { edx[31:16], result[31:16] } : result2) :
     (cond_142 && cond_134 && cond_101)? ( (wr_operand_16bit)? { edx[31:16], result[31:16] } : result2) :
-    (cond_164 && cond_165)? ( "Aenu") :
+    (cond_164 && cond_165)? ( "A re") :
     (cond_164 && cond_166)? ( 32'd0) :
     (cond_215 && cond_83)? ( {32{eax[31]}}) :
     (cond_215 && ~cond_83)? ( { edx[31:16], {16{eax[15]}} }) :
