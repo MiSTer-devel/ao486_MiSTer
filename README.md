@@ -6,7 +6,7 @@ Core was greatly reworked with many new features and performance added.
 * 486DX33 performance (no-FPU).
 * 256MB RAM
 * SVGA with up to 1280x1024@256, 1024x768@64K, 640x480@16M resolutions
-* SoundBlaster 2.0 with OPL3
+* Sound Blaster 16 (DSP v4.05) with OPL3 and C/MS
 * High speed UART (3Mbps) internet connection
 * MIDI port (dumb and fake-smart modes)
 * Dual HDD with up to 8GB each
@@ -24,11 +24,22 @@ Core was greatly reworked with many new features and performance added.
 HDD image is a raw image with MBR. It can be opened in Windows/Linux by many applications,
 so it's possible to prepare a HDD in windows/linux (in most cases you need to work with .img files, then just rename it to .vhd extension)
 
-### SoundBlaster settings:
-* address: 220h
-* IRQ: 5
-* DMA: 1
-* type SoundBlaster 2.0
+### Sound Blaster
+Default config: A220 I5 D1 H5 T6
+Supported alternative configs with IRQ 7 or 10 and/or no-HDMA (16bit DMA through 8bit DMA).
+Standard SB16 config (diagnose) can be used to set alternative settings, or included sbctl util. Windows driver manages alternative settings by itself when manually configured.
+
+Current implementation supports SoundBlaster 2.0 specific commands (not available in SB16 originally) as well. Compatible config for SB2.0 is "A220 I5 D1 T3" in case if some game will require it.
+
+ASP/CSP is not implemented, but some specific commands with dummy replies are added to let Windows driver work.
+
+Simple volume (only master volume) is implemented in mixer so windows volume can be used in additional to standard MiSTer volume control.
+
+### C/MS Audio
+C/MS (dual SAA1099) can be enabled in OSD. When enabled it prevents OPL2/3 access on ports 220-223. OPL2/3 still can be accessed on ports 388-38B (AdLib).
+
+### OPL2/3 (Adlib)
+OPL2/3 can be accessed as a part of Sound Blaster board at ports 220-223 (if C/MS is not enabled) and 228-229(OPL2 only). However it's recommended to use AdLib ports 388-38B instead.
 
 ### MIDI settings:
 * address: 330h
