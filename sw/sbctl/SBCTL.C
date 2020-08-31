@@ -44,7 +44,19 @@ int main(int argc, char **argv)
          continue;
      }
      
-     printf("Invalid parameter. Supported: I5,I7,I10,H5,H1\n");
+     if(!strcasecmp(argv[i], "T4"))
+     {
+         outpw(0x224, 0xAD80);
+         continue;
+     }
+
+     if(!strcasecmp(argv[i], "T6"))
+     {
+         outpw(0x224, 0xAE80);
+         continue;
+     }
+
+     printf("Invalid parameter. Supported: I5,I7,I10,H5,H1,T4,T6\n");
      return -1;
   }
   return 0;

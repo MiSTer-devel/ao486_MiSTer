@@ -50,6 +50,8 @@ module sound_dsp
 	input      [15:0] dma_readdata,
 	output     [15:0] dma_writedata,
 	input             dma_16_en,
+	input             sbp,
+	input             sbp_stereo,
 
 	//audio
 	output reg [15:0] sample_value_l,
@@ -192,10 +194,10 @@ end
 
 //------------------------------------------------------------------------------
 
-wire cmd_csp_cmd3               = cmd == 8'h03;
+//wire cmd_csp_cmd3               = cmd == 8'h03;
 //wire cmd_csp_set_mode           = cmd == 8'h04;
 //wire cmd_csp_set_par            = cmd == 8'h05;
-wire cmd_csp_cmd8               = cmd == 8'h08;
+wire cmd_csp_get_ver            = cmd == 8'h08;
 //wire cmd_csp_set_reg            = cmd == 8'h0E;
 wire cmd_csp_get_reg            = cmd == 8'h0F;
 
@@ -216,8 +218,8 @@ wire cmd_midi_uart              = { cmd[7:2], 2'b00 } == 8'h34;
 //wire cmd_midi_output            = cmd == 8'h38;
 
 wire cmd_set_time_constant      = cmd == 8'h40;
-wire cmd_set_sample_rate        = cmd == 8'h41 || cmd == 8'h42;
-wire cmd_auto_dma_continue      = cmd == 8'h45 || cmd == 8'h47;
+wire cmd_set_sample_rate        =(cmd == 8'h41 || cmd == 8'h42) && ~sbp;
+wire cmd_auto_dma_continue      =(cmd == 8'h45 || cmd == 8'h47) && ~sbp;
 wire cmd_set_block_size         = cmd == 8'h48;
 
 wire cmd_single_4_adpcm_out     = cmd == 8'h74;
@@ -234,14 +236,14 @@ wire cmd_high_single_dma_out    = cmd == 8'h91;
 wire cmd_high_auto_dma_input    = cmd == 8'h98;
 wire cmd_high_single_dma_input  = cmd == 8'h99;
 
-wire cmd_new_dma                = cmd[7:4] == 4'hB || cmd[7:4] == 4'hC;
+wire cmd_new_dma                =(cmd[7:4] == 4'hB || cmd[7:4] == 4'hC) && ~sbp;
 
-wire cmd_dma_pause_start        = cmd == 8'hD0 || cmd == 8'hD5;
+wire cmd_dma_pause_start        = cmd == 8'hD0 || (cmd == 8'hD5 && ~sbp);
 wire cmd_speaker_on             = cmd == 8'hD1;
 wire cmd_speaker_off            = cmd == 8'hD3;
-wire cmd_dma_pause_end          = cmd == 8'hD4 || cmd == 8'hD6;
+wire cmd_dma_pause_end          = cmd == 8'hD4 || (cmd == 8'hD6 && ~sbp);
 wire cmd_speaker_status         = cmd == 8'hD8;
-wire cmd_auto_dma_exit          = cmd == 8'hD9 || cmd == 8'hDA;
+wire cmd_auto_dma_exit          = cmd == 8'hDA || (cmd == 8'hD9 && ~sbp);
 
 wire cmd_dsp_identification     = cmd == 8'hE0;
 wire cmd_dsp_version            = cmd == 8'hE1;
@@ -251,7 +253,7 @@ wire cmd_test_register_write    = cmd == 8'hE4;
 wire cmd_test_register_read     = cmd == 8'hE8;
 
 wire cmd_trigger_irq8           = cmd == 8'hF2;
-wire cmd_trigger_irq16          = cmd == 8'hF3;
+wire cmd_trigger_irq16          =(cmd == 8'hF3 && ~sbp);
 wire cmd_f8_zero                = cmd == 8'hF8;
 wire cmd_f9_test                = cmd == 8'hF9;
 
@@ -306,9 +308,9 @@ always @(posedge clk) begin
 	else if(cmd_dsp_identification)         read_buffer_size <= 2'd1;
 	else if(cmd_f8_zero)                    read_buffer_size <= 2'd1;
 	else if(cmd_test_register_read)         read_buffer_size <= 2'd1;
-	else if(cmd_csp_cmd3 | cmd_csp_cmd8)    read_buffer_size <= 2'd1;
-	else if(cmd_csp_get_reg)                read_buffer_size <= 2'd1;
-	else if(cmd_f9_test)                    read_buffer_size <= 2'd1;
+	else if(cmd_csp_get_ver & ~sbp)         read_buffer_size <= 2'd1;
+	else if(cmd_csp_get_reg & ~sbp)         read_buffer_size <= 2'd1;
+	else if(cmd_f9_test & ~sbp)             read_buffer_size <= 2'd1;
 	else if(cmd)                            read_buffer_size <= 2'd0; // all other commands
 
 	else if(read_reply && read_buffer_size) read_buffer_size <= read_buffer_size - 2'd1;
@@ -328,16 +330,16 @@ reg [15:0] read_buffer;
 always @(posedge clk) begin
 	if(rst_n == 1'b0)                       read_buffer <= 16'd0;
 	else if(sw_reset)                       read_buffer <= { 8'hAA, 8'hAA };
-	else if(cmd_dsp_version)                read_buffer <= { 8'h04, 8'h05 };
+	else if(cmd_dsp_version)                read_buffer <= sbp ? { 8'h03, 8'h02 } : { 8'h04, 8'h05 };
 	else if(cmd_direct_input)               read_buffer <= { input_sample, input_sample };
 	else if(cmd_speaker_status)             read_buffer <= (speaker_on)? 16'hFFFF : 16'h0000;
 	else if(cmd_dsp_identification)         read_buffer <= { ~write_buffer[7:0], ~write_buffer[7:0] };
 	else if(cmd_f8_zero)                    read_buffer <= { 8'h00, 8'h00 };
 	else if(cmd_test_register_read)         read_buffer <= { test_register, test_register };
 	else if(cmd_copyright)                  read_buffer <= 16'd0;
-	else if(cmd_csp_cmd3 | cmd_csp_cmd8)    read_buffer <= 16'd0;
-	else if(cmd_csp_get_reg)                read_buffer <= (write_buffer[7:0] == 8'h09) ? 16'hF8F8 : 16'hFFFF;
-	else if(cmd_f9_test)                    read_buffer <= (write_buffer[7:0] == 8'h0E) ? 16'hFFFF :
+	else if(cmd_csp_get_ver & ~sbp)         read_buffer <= 16'hFFFF;
+	else if(cmd_csp_get_reg & ~sbp)         read_buffer <= (write_buffer[7:0] == 8'h09) ? 16'hF8F8 : 16'hFFFF;
+	else if(cmd_f9_test & ~sbp)             read_buffer <= (write_buffer[7:0] == 8'h0E) ? 16'hFFFF :
                                                           (write_buffer[7:0] == 8'h0F) ? 16'h0707 :
 																			 (write_buffer[7:0] == 8'h37) ? 16'h3838 : 16'h0000;	
 
@@ -621,14 +623,20 @@ always @(posedge clk) begin
 	else if(ce_smp && dma_wait)                                                                                       dma_wait <= dma_wait + 1'd1;
 end
 
-reg [2:0] dma_format; // 16/8, stereo/mono, signed/unsigned
+reg [3:0] dma_format; // 16/8, sbp_stereo/mono, sb16_stereo/mono, signed/unsigned
 always @(posedge clk) begin
 	if(~rst_n || sw_reset)                     dma_format <= 0;
-	else if(dma_new_start)                     dma_format <= {cmd_curr[4], write_buffer[21:20]};
-	else if(dma_single_start | dma_auto_start) dma_format <= 0;
+	else if(dma_new_start)                     dma_format <= {cmd_curr[4], 1'b0, write_buffer[21:20]};
+	else if(dma_single_start | dma_auto_start) dma_format <= {1'b0, sbp_stereo, 2'b00};
 end
 
-wire   dma_16_req = dma_format[2];
+reg sbp_lr;
+always @(posedge clk) begin
+	if(dma_single_start|dma_auto_start) sbp_lr <= 0;
+	else if(sample_output)              sbp_lr <= ~sbp_lr;
+end
+
+wire   dma_16_req = dma_format[3];
 wire   dma_16_use = dma_16_req & dma_16_en;
 
 wire   dma_req   = dma_id_active || dma_normal_req;
@@ -839,13 +847,19 @@ wire [15:0] sample =
                                 {write_buffer[7:0], write_buffer[7:0]};
 
 always @(posedge clk) begin
-	if(/*~speaker_on |*/ pause_active) begin
+	if((~speaker_on & sbp) | pause_active) begin
 		sample_value_l <= 0;
 		sample_value_r <= 0;
 	end
 	else if(sample_output && adpcm_type == ADPCM_NONE) begin
-		sample_value_l <= {            sample_dma[0][15] ^ ~dma_format[0],             sample_dma[0][14:0]};
-		sample_value_r <= {sample_dma[dma_format[1]][15] ^ ~dma_format[0], sample_dma[dma_format[1]][14:0]};
+		if(dma_format[2]) begin
+			if(~sbp_lr) sample_value_l <= {sample_dma[0][15] ^ ~dma_format[0], sample_dma[0][14:0]};
+			else        sample_value_r <= {sample_dma[0][15] ^ ~dma_format[0], sample_dma[0][14:0]};
+		end
+		else begin
+			sample_value_l <= {            sample_dma[0][15] ^ ~dma_format[0],            sample_dma[0][14:0]};
+			sample_value_r <= {sample_dma[dma_format[1]][15] ^ ~dma_format[0], sample_dma[dma_format[1]][14:0]};
+		end
 	end
 	else if(cmd_direct_output | adpcm_active | (~adpcm_reference_awaiting & adpcm_reference_output)) begin
 		sample_value_l <= {~sample[15], sample[14:0]};

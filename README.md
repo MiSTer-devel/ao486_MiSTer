@@ -6,7 +6,7 @@ Core was greatly reworked with many new features and performance added.
 * 486DX33 performance (no-FPU).
 * 256MB RAM
 * SVGA with up to 1280x1024@256, 1024x768@64K, 640x480@16M resolutions
-* Sound Blaster 16 (DSP v4.05) with OPL3 and C/MS
+* Sound Blaster 16 (DSP v4.05) and Sound Blaster Pro (DSP v3.02) with OPL3 and C/MS
 * High speed UART (3Mbps) internet connection
 * MIDI port (dumb and fake-smart modes)
 * Dual HDD with up to 8GB each
@@ -29,7 +29,7 @@ Default config: A220 I5 D1 H5 T6
 Supported alternative configs with IRQ 7 or 10 and/or no-HDMA (16bit DMA through 8bit DMA).
 Standard SB16 config (diagnose) can be used to set alternative settings, or included sbctl util. Windows driver manages alternative settings by itself when manually configured.
 
-Current implementation supports SoundBlaster 2.0 specific commands (not available in SB16 originally) as well. Compatible config for SB2.0 is "A220 I5 D1 T3" in case if some game will require it.
+Current implementation supports SoundBlaster Pro specific commands (not available in SB16 originally) as well. Compatible config for SBPro is "A220 I5 D1 T4" in case if some game will require it.
 
 ASP/CSP is not implemented, but some specific commands with dummy replies are added to let Windows driver work.
 
