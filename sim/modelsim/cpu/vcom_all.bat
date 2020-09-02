@@ -56,11 +56,10 @@ vlog -O0 +incdir+./../../../rtl/ao486/ ../../../rtl/ao486/pipeline/condition.v ^
 vlog -sv -O0 ../../../rtl/cache/l2_cache.v ^
 ../../../rtl/cache/l1_icache.v
 
-vlog -vlog01compat -O0 ../../../rtl/ao486/avalon_io.v ^
+vlog -vlog01compat -O0 ^
 ../../../rtl/ao486/exception.v ^
 ../../../rtl/ao486/global_regs.v ^
-../../../rtl/ao486/ao486.v ^
-../../../rtl/soc/rtc/rtc_sim.v
+../../../rtl/ao486/ao486.v
 
 vcom -O5 -2008 -vopt -quiet -work work ^
 cpu_export.vhd

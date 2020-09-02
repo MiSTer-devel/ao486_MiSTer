@@ -34,6 +34,10 @@ module icache(
 
     //RESP:
     input           pr_reset,
+    
+    input [31:0]    prefetch_address,
+    input [31:0]    delivered_eip,
+    output reg      reset_prefetch = 1'd0,
     //END
     
     //RESP:
@@ -86,6 +90,37 @@ wire         readcode_cache_valid;
 wire         readcode_cache_done;
 wire [31:0]  readcode_cache_data;
 
+reg          prefetch_checknext;
+reg  [31:0]  prefetch_checkaddr;
+reg  [31:0]  min_check;
+reg  [31:0]  max_check;
+reg   [1:0]  reset_prefetch_count = 2'd0;
+
+
+//------------------------------------------------------------------------------
+
+wire reset_combined = reset_prefetch | pr_reset;
+
+always @(posedge clk) begin
+   prefetch_checknext <= 1'b0;
+   prefetch_checkaddr <= { 4'd0, snoop_addr, 2'd0 };
+   min_check          <= delivered_eip;
+   max_check          <= prefetch_address + 5'd20; // cache read burst is 16 bytes, so we need to look a bit further, additional + 4 because of 1 cycle delay.
+   
+   if (snoop_we) prefetch_checknext <= 1'b1;
+   
+   if (prefetch_checknext && prefetch_checkaddr >= min_check && prefetch_checkaddr <= max_check) begin
+      reset_prefetch       <= 1'b1;
+      reset_prefetch_count <= 2'd2;
+   end
+   
+   if (reset_prefetch_count > 2'd0) begin
+      reset_prefetch_count <= reset_prefetch_count - 1'd1;
+      if (reset_prefetch_count == 2'd1) reset_prefetch <= 1'd0;
+   end
+   
+end
+
 //------------------------------------------------------------------------------
 
 //MIN(partial_length, length_saved)
@@ -95,9 +130,9 @@ assign partial_length_current =
 //------------------------------------------------------------------------------
 
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                           reset_waiting <= `FALSE;
-    else if(pr_reset && state != STATE_IDLE)    reset_waiting <= `TRUE;
-    else if(state == STATE_IDLE)                reset_waiting <= `FALSE;
+    if(rst_n == 1'b0)                                 reset_waiting <= `FALSE;
+    else if(reset_combined && state != STATE_IDLE)    reset_waiting <= `TRUE;
+    else if(state == STATE_IDLE)                      reset_waiting <= `FALSE;
 end
 
 //------------------------------------------------------------------------------
@@ -120,7 +155,7 @@ l1_icache l1_icache_inst(
    
     .CLK             (clk),
     .RESET           (~rst_n),
-    .pr_reset        (pr_reset),
+    .pr_reset        (reset_combined),
 	 
     .DISABLE         (cache_disable),
 
@@ -143,21 +178,21 @@ l1_icache l1_icache_inst(
 
 assign readcode_cache_do =
    (~rst_n) ? (`FALSE) :
-   (state == STATE_IDLE && ~(pr_reset) && icacheread_do && icacheread_length > 5'd0) ? (`TRUE) :
+   (state == STATE_IDLE && ~(reset_combined) && icacheread_do && icacheread_length > 5'd0) ? (`TRUE) :
    `FALSE;
    
 assign readcode_cache_address = { icacheread_address[31:2], 2'd0 };
    
 assign prefetchfifo_write_do =
    (~rst_n) ? (`FALSE) :
-   (state == STATE_READ && pr_reset == `FALSE && reset_waiting == `FALSE && readcode_cache_valid) ? (`TRUE) :
+   (state == STATE_READ && reset_combined == `FALSE && reset_waiting == `FALSE && readcode_cache_valid) ? (`TRUE) :
    `FALSE;
    
 assign prefetched_length       = partial_length_current;
 
 assign prefetched_do =
    (~rst_n) ? (`FALSE) :
-   (state == STATE_READ && pr_reset == `FALSE && reset_waiting == `FALSE && readcode_cache_valid) ? (`TRUE) :
+   (state == STATE_READ && reset_combined == `FALSE && reset_waiting == `FALSE && readcode_cache_valid) ? (`TRUE) :
    `FALSE;
    
 always @(posedge clk) begin
@@ -167,13 +202,13 @@ always @(posedge clk) begin
       partial_length <= 12'b0;
    end
    else begin
-      if(state == STATE_IDLE && ~(pr_reset) && icacheread_do && icacheread_length > 5'd0) begin
+      if(state == STATE_IDLE && ~(reset_combined) && icacheread_do && icacheread_length > 5'd0) begin
          state          <= STATE_READ;
          partial_length <= length_burst;
          length         <= icacheread_length;
       end
       else if (state == STATE_READ) begin
-         if(pr_reset == `FALSE && reset_waiting == `FALSE) begin
+         if(reset_combined == `FALSE && reset_waiting == `FALSE) begin
             if(readcode_cache_valid) begin
                if(partial_length[2:0] > 3'd0 && length > 5'd0) begin
                   length         <= length - partial_length_current;
