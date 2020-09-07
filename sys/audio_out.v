@@ -54,11 +54,11 @@ reg mclk_ce;
 always @(posedge clk) begin
 	reg [31:0] cnt;
 
-	mclk_ce <= 0;
+	mclk_ce = 0;
 	cnt = cnt + real_ce;
 	if(cnt >= CLK_RATE) begin
 		cnt = cnt - CLK_RATE;
-		mclk_ce <= 1;
+		mclk_ce = 1;
 	end
 end
 
@@ -132,11 +132,11 @@ reg flt_ce;
 always @(posedge clk) begin
 	reg [31:0] cnt = 0;
 
-	flt_ce <= 0;
+	flt_ce = 0;
 	cnt = cnt + {flt_rate[30:0],1'b0};
 	if(cnt >= CLK_RATE) begin
 		cnt = cnt - CLK_RATE;
-		flt_ce <= 1;
+		flt_ce = 1;
 	end
 end
 

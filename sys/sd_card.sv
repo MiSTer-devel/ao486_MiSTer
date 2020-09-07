@@ -361,6 +361,8 @@ always @(posedge clk_spi) begin
 
 					// CMD18: READ_MULTIPLE
 					'h52: reply <= 0;    // ok
+					// ACMD23:  SET_WR_BLK_ERASE_COUNT
+					'h57: reply <= 0;     //ok
 
 					// CMD24: WRITE_BLOCK
 					'h58,

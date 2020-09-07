@@ -518,12 +518,11 @@ always @(posedge FPGA_CLK2_50) begin
 	resetd2 <= resetd;
 end
 
-wire clk_100m;
-wire clk_pal   = FPGA_CLK3_50;
-
 ////////////////////  SYSTEM MEMORY & SCALER  /////////////////////////
 
 wire reset;
+wire clk_100m;
+
 sysmem_lite sysmem
 (
 	//Reset/Clock
@@ -612,6 +611,8 @@ ddr_svc ddr_svc
 	.ch1_req(pal_req),
 	.ch1_ready(pal_wr)
 );
+
+wire clk_pal = clk_audio;
 
 
 wire  [27:0] vbuf_address;
@@ -842,12 +843,14 @@ wire        pal_wr;
 reg  [28:0] pal_addr;
 reg         pal_req = 0;
 always @(posedge clk_pal) begin
-	reg old_vs;
+	reg old_vs1, old_vs2;
 
 	pal_addr <= LFB_BASE[31:3] - 29'd512;
 
-	old_vs <= hdmi_vs;
-	if(~old_vs & hdmi_vs & ~FB_FMT[2] & FB_FMT[1] & FB_FMT[0] & FB_EN) pal_req <= ~pal_req;
+	old_vs1 <= hdmi_vs;
+	old_vs2 <= old_vs1;
+	
+	if(~old_vs2 & old_vs1 & ~FB_FMT[2] & FB_FMT[1] & FB_FMT[0] & FB_EN) pal_req <= ~pal_req;
 end
 
 

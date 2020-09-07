@@ -105,10 +105,13 @@ module hps_io #(parameter STRLEN=0, PS2DIV=0, WIDE=0, VDNUM=1, PS2WE=0)
 
 	// ARM -> FPGA download
 	output reg        ioctl_download = 0, // signal indicating an active download
-	output reg  [7:0] ioctl_index,        // menu index used to upload the file
+	output reg [15:0] ioctl_index,        // menu index used to upload the file
 	output reg        ioctl_wr,
 	output reg [26:0] ioctl_addr,         // in WIDE mode address will be incremented by 2
 	output reg [DW:0] ioctl_dout,
+	output reg        ioctl_upload = 0,   // signal indicating an active upload
+	input      [DW:0] ioctl_din,
+	output reg        ioctl_rd,
 	output reg [31:0] ioctl_file_ext,
 	input             ioctl_wait,
 
@@ -173,7 +176,7 @@ reg  [15:0] io_dout;
 assign HPS_BUS[37]   = ioctl_wait;
 assign HPS_BUS[36]   = clk_sys;
 assign HPS_BUS[32]   = io_wide;
-assign HPS_BUS[15:0] = EXT_BUS[32] ? EXT_BUS[15:0] : io_dout;
+assign HPS_BUS[15:0] = EXT_BUS[32] ? EXT_BUS[15:0] : fp_enable ? fp_dout : io_dout;
 
 reg [15:0] cfg;
 assign buttons = cfg[1:0];
@@ -234,7 +237,7 @@ wire       extended = (~pressed ? (ps2_key_raw[23:16] == 8'he0) : (ps2_key_raw[1
 
 reg [MAX_W:0] byte_cnt;
 
-always@(posedge clk_sys) begin
+always@(posedge clk_sys) begin : uio_block
 	reg [15:0] cmd;
 	reg  [2:0] b_wr;
 	reg  [3:0] stick_idx;
@@ -551,18 +554,20 @@ endgenerate
 
 ///////////////////////////////   DOWNLOADING   ///////////////////////////////
 
-localparam UIO_FILE_TX      = 8'h53;
-localparam UIO_FILE_TX_DAT  = 8'h54;
-localparam UIO_FILE_INDEX   = 8'h55;
-localparam UIO_FILE_INFO    = 8'h56;
+localparam FIO_FILE_TX      = 8'h53;
+localparam FIO_FILE_TX_DAT  = 8'h54;
+localparam FIO_FILE_INDEX   = 8'h55;
+localparam FIO_FILE_INFO    = 8'h56;
 
-always@(posedge clk_sys) begin
+reg [15:0] fp_dout;
+always@(posedge clk_sys) begin : fio_block
 	reg [15:0] cmd;
 	reg  [2:0] cnt;
 	reg        has_cmd;
 	reg [26:0] addr;
 	reg        wr;
 	
+	ioctl_rd <= 0;
 	ioctl_wr <= wr;
 	wr <= 0;
 
@@ -577,7 +582,7 @@ always@(posedge clk_sys) begin
 			end else begin
 
 				case(cmd)
-					UIO_FILE_INFO:
+					FIO_FILE_INFO:
 						if(~cnt[1]) begin
 							case(cnt)
 								0: ioctl_file_ext[31:16] <= io_din;
@@ -586,28 +591,53 @@ always@(posedge clk_sys) begin
 							cnt <= cnt + 1'd1;
 						end
 
-					UIO_FILE_INDEX:
+					FIO_FILE_INDEX:
 						begin
-							ioctl_index <= io_din[7:0];
+							ioctl_index <= io_din[15:0];
 						end
 
-					UIO_FILE_TX:
+					FIO_FILE_TX:
 						begin
-							if(io_din[7:0]) begin
-								addr <= 0;
-								ioctl_download <= 1;
-							end else begin
-								ioctl_addr <= addr;
-								ioctl_download <= 0;
-							end
+							cnt <= cnt + 1'd1;
+							case(cnt) 
+								0:	if(io_din[7:0] == 8'hAA) begin
+										ioctl_addr <= 0;
+										ioctl_upload <= 1;
+										ioctl_rd <= 1;
+									end
+									else if(io_din[7:0]) begin
+										addr <= 0;
+										ioctl_download <= 1;
+									end
+									else begin
+										if(ioctl_download) ioctl_addr <= addr;
+										ioctl_download <= 0;
+										ioctl_upload <= 0;
+									end
+
+								1: begin
+										ioctl_addr[15:0] <= io_din;
+										addr[15:0] <= io_din;
+									end
+
+								2: begin
+										ioctl_addr[26:16] <= io_din[10:0];
+										addr[26:16] <= io_din[10:0];
+									end
+							endcase
 						end
 
-					UIO_FILE_TX_DAT:
-						begin
+					FIO_FILE_TX_DAT:
+						if(ioctl_download) begin
 							ioctl_addr <= addr;
 							ioctl_dout <= io_din[DW:0];
 							wr   <= 1;
 							addr <= addr + (WIDE ? 2'd2 : 2'd1);
+						end
+						else begin
+							ioctl_addr <= ioctl_addr + (WIDE ? 2'd2 : 2'd1);
+							fp_dout <= ioctl_din;
+							ioctl_rd <= 1;
 						end
 				endcase
 			end
