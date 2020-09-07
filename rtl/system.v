@@ -9,7 +9,7 @@ module system
 	input         l1_disable,
 	input         l2_disable,
 
-	output [1:0]  fdd0_request,
+	output [1:0]  fdd_request,
 	output [2:0]  hdd0_request,
 	output [2:0]  hdd1_request,
 
@@ -115,7 +115,7 @@ wire        dma_write;
 wire [15:0] dma_writedata;
 wire        dma_16bit;
 
-wire [31:0] mgmt_fdd0_readdata;
+wire [31:0] mgmt_fdd_readdata;
 wire [31:0] mgmt_hdd0_readdata;
 wire [31:0] mgmt_hdd1_readdata;
 wire [31:0] mgmt_ctl_writedata;
@@ -124,7 +124,7 @@ wire        mgmt_ctl_read;
 wire        mgmt_ctl_write;
 reg         mgmt_hdd0_cs;
 reg         mgmt_hdd1_cs;
-reg         mgmt_fdd0_cs;
+reg         mgmt_fdd_cs;
 reg         mgmt_rtc_cs;
 
 wire        interrupt_done;
@@ -409,7 +409,7 @@ dma dma
 	.dma_5_writedata   (dma_sb_writedata)
 );
 
-floppy floppy0
+floppy floppy
 (
 	.clk               (clk_sys),
 	.rst_n             (~reset),
@@ -429,12 +429,13 @@ floppy floppy0
 	.dma_writedata     (dma_floppy_writedata),
 
 	.mgmt_address      (mgmt_ctl_address[3:0]),
-	.mgmt_write        (mgmt_ctl_write & mgmt_fdd0_cs),
+	.mgmt_fddn         (mgmt_address[7]),
+	.mgmt_write        (mgmt_ctl_write & mgmt_fdd_cs),
 	.mgmt_writedata    (mgmt_ctl_writedata),
-	.mgmt_read         (mgmt_ctl_read & mgmt_fdd0_cs),
-	.mgmt_readdata     (mgmt_fdd0_readdata),
+	.mgmt_read         (mgmt_ctl_read & mgmt_fdd_cs),
+	.mgmt_readdata     (mgmt_fdd_readdata),
 
-	.request           (fdd0_request),
+	.request           (fdd_request),
 	.irq               (irq_6)
 );
 
@@ -719,7 +720,7 @@ end
 always @(posedge clk_sys) begin
 	mgmt_hdd0_cs <= (mgmt_address[15:8] == 8'hF0);
 	mgmt_hdd1_cs <= (mgmt_address[15:8] == 8'hF1);
-	mgmt_fdd0_cs <= (mgmt_address[15:8] == 8'hF2);
+	mgmt_fdd_cs  <= (mgmt_address[15:8] == 8'hF2);
 	mgmt_rtc_cs  <= (mgmt_address[15:8] == 8'hF4);
 end
 
@@ -738,7 +739,7 @@ mgmt mgmt
 	.out_read          (mgmt_ctl_read),
 	.out_write         (mgmt_ctl_write),
 	.out_writedata     (mgmt_ctl_writedata),
-	.out_readdata      (mgmt_hdd0_cs ? mgmt_hdd0_readdata : mgmt_hdd1_cs ? mgmt_hdd1_readdata : mgmt_fdd0_readdata)
+	.out_readdata      (mgmt_hdd0_cs ? mgmt_hdd0_readdata : mgmt_hdd1_cs ? mgmt_hdd1_readdata : mgmt_fdd_readdata)
 );
 
 endmodule

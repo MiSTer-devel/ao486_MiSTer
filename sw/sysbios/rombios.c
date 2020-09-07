@@ -1118,6 +1118,7 @@ ASM_START
   mov  bp, sp
 
     push dx
+    xor  al, al  // fix for stupid Win98 FDC I/O trap
     mov  dx, 4[bp]
     in   al, dx
     pop  dx
@@ -11295,6 +11296,7 @@ int13_diskette:
 int0e_handler:
   push ax
   push dx
+  mov  ax, #0xc0 // win98 disables FDC ports! needs default value.
   mov  dx, #0x03f4
   in   al, dx
   and  al, #0xc0
@@ -11565,8 +11567,9 @@ int08_handler:
   ;; turn motor(s) off
   push dx
   mov  dx,#0x03f2
+  xor  al,al // don't trigger win98 trap here
   in   al,dx
-  and  al,#0xcf
+  and  al,#0x0f
   out  dx,al
   pop  dx
 int08_floppy_off:

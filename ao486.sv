@@ -171,7 +171,8 @@ led fdd_led(clk_sys, |mgmt_req[7:6], LED_USER);
 localparam CONF_STR =
 {
 	"AO486;;",
-	"S0,IMG,Mount Floppy;",
+	"S0,IMG,Mount A:;",
+	"S1,IMG,Mount B:;",
 	"-;",
 	"S2,VHD,Mount Primary HDD;",
 	"S3,VHD,Mount Secondary HDD;",
@@ -576,7 +577,7 @@ system system
 	.reset                (reset),
 
 	.clock_rate           (cur_rate),
-
+	
 	.syscfg               (syscfg),
 	.l1_disable           (syscfg[7] ? syscfg[4] : status[15]),
 	.l2_disable           (syscfg[7] ? syscfg[5] : status[16]),
@@ -638,7 +639,7 @@ system system
 
 	.hdd0_request         (mgmt_req[2:0]),
 	.hdd1_request         (mgmt_req[5:3]),
-	.fdd0_request         (mgmt_req[7:6]),
+	.fdd_request          (mgmt_req[7:6]),
 
 	.serial_rx            (UART_RXD),
 	.serial_tx            (UART_TXD),
