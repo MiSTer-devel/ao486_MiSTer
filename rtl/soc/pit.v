@@ -43,12 +43,6 @@ module pit(
 	input      [27:0]   clock_rate
 );
 
-//------------------------------------------------------------------------------
-
-reg io_read_last;
-always @(posedge clk) begin if(rst_n == 1'b0) io_read_last <= 1'b0; else if(io_read_last) io_read_last <= 1'b0; else io_read_last <= io_read; end 
-wire io_read_valid = io_read && io_read_last == 1'b0;
-
 //------------------------------------------------------------------------------ system clock
 
 reg [27:0] clk_rate;
@@ -74,16 +68,14 @@ end
 
 //------------------------------------------------------------------------------ read io
 
-wire [7:0] io_readdata_next =
-    (io_read_valid && io_address == 0) ? counter_0_readdata :
-    (io_read_valid && io_address == 1) ? counter_1_readdata :
-    (io_read_valid && io_address == 2) ? counter_2_readdata :
-    (io_read_valid && io_address == 5) ? { 2'b0, speaker_out, counter_1_toggle, 2'b0, speaker_enable, speaker_gate } :
-                                         8'd0; //control address
+always @(posedge clk) if(io_read) io_readdata <=
+    (io_read && io_address == 0) ? counter_0_readdata :
+    (io_read && io_address == 1) ? counter_1_readdata :
+    (io_read && io_address == 2) ? counter_2_readdata :
+    (io_read && io_address[2])   ? { 2'b0, spk_out, counter_1_toggle, 2'b0, speaker_enable, speaker_gate } :
+                                     8'd0; //control address
 
-always @(posedge clk) io_readdata <= io_readdata_next;
-
-//------------------------------------------------------------------------------ speaker
+//------------------------------------------------------------------------------ refresh counter
 
 reg [5:0] counter_1_cnt;
 always @(posedge clk) begin
@@ -98,23 +90,23 @@ always @(posedge clk) begin
     else if(ce_system_counter && counter_1_cnt == 6'd35)    counter_1_toggle <= ~(counter_1_toggle);
 end
 
+//------------------------------------------------------------------------------ speaker
 
 reg speaker_gate;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                    speaker_gate <= 1'b0;
-    else if(io_write && io_address == 5) speaker_gate <= io_writedata[0];
+    if(rst_n == 1'b0)                  speaker_gate <= 1'b0;
+    else if(io_write && io_address[2]) speaker_gate <= io_writedata[0];
 end
 
 reg speaker_enable;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                    speaker_enable <= 1'b0;
-    else if(io_write && io_address == 5) speaker_enable <= io_writedata[1];
+    if(rst_n == 1'b0)                  speaker_enable <= 1'b0;
+    else if(io_write && io_address[2]) speaker_enable <= io_writedata[1];
 end
 
 assign speaker_out = spk_out & speaker_enable;
-//------------------------------------------------------------------------------
 
-//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------ counters
 
 wire [7:0] counter_0_readdata;
 wire [7:0] counter_1_readdata;
@@ -128,12 +120,12 @@ pit_counter pit_counter_0(
     .gate               (1'b1),             //input
     .out                (irq),              //output
     
-    .data_in            (io_writedata),                                                                                                                                         //input [7:0]
+    .data_in            (io_writedata),                                                                                                                                      //input [7:0]
     .set_control_mode   (io_write && io_address == 3 && io_writedata[7:6] == 2'b00 && io_writedata[5:4] != 2'b00),                                                           //input
     .latch_count        (io_write && io_address == 3 && ((io_writedata[7:6] == 2'b00 && io_writedata[5:4] == 2'b00) || (io_writedata[7:5] == 3'b110 && io_writedata[1]))),   //input
     .latch_status       (io_write && io_address == 3 && io_writedata[7:6] == 2'b11 && io_writedata[4] == 1'b0 && io_writedata[1]),                                           //input
     .write              (io_write && io_address == 0),                                                                                                                       //input
-    .read               (io_read_valid && io_address == 0),                                                                                                                  //input
+    .read               (io_read  && io_address == 0),                                                                                                                       //input
     
     .data_out           (counter_0_readdata)    //output [7:0]
 );
@@ -148,12 +140,12 @@ pit_counter pit_counter_1(
     .out                (),                 //output
     /* verilator lint_on PINNOCONNECT */
     
-    .data_in            (io_writedata),                                                                                                                                         //input [7:0]
+    .data_in            (io_writedata),                                                                                                                                      //input [7:0]
     .set_control_mode   (io_write && io_address == 3 && io_writedata[7:6] == 2'b01 && io_writedata[5:4] != 2'b00),                                                           //input
     .latch_count        (io_write && io_address == 3 && ((io_writedata[7:6] == 2'b01 && io_writedata[5:4] == 2'b00) || (io_writedata[7:5] == 3'b110 && io_writedata[2]))),   //input
     .latch_status       (io_write && io_address == 3 && io_writedata[7:6] == 2'b11 && io_writedata[4] == 1'b0 && io_writedata[2]),                                           //input
     .write              (io_write && io_address == 1),                                                                                                                       //input
-    .read               (io_read_valid && io_address == 1),                                                                                                                  //input
+    .read               (io_read  && io_address == 1),                                                                                                                       //input
     
     .data_out           (counter_1_readdata)    //output [7:0]
 );
@@ -165,14 +157,14 @@ pit_counter pit_counter_2(
     
     .clock              (system_clock),     //input
     .gate               (speaker_gate),     //input
-    .out                (spk_out),      //output
+    .out                (spk_out),          //output
     
-    .data_in            (io_writedata),                                                                                                                                         //input [7:0]
+    .data_in            (io_writedata),                                                                                                                                      //input [7:0]
     .set_control_mode   (io_write && io_address == 3 && io_writedata[7:6] == 2'b10 && io_writedata[5:4] != 2'b00),                                                           //input
     .latch_count        (io_write && io_address == 3 && ((io_writedata[7:6] == 2'b10 && io_writedata[5:4] == 2'b00) || (io_writedata[7:5] == 3'b110 && io_writedata[3]))),   //input
     .latch_status       (io_write && io_address == 3 && io_writedata[7:6] == 2'b11 && io_writedata[4] == 1'b0 && io_writedata[3]),                                           //input
     .write              (io_write && io_address == 2),                                                                                                                       //input
-    .read               (io_read_valid && io_address == 2),                                                                                                                  //input
+    .read               (io_read  && io_address == 2),                                                                                                                       //input
     
     .data_out           (counter_2_readdata)    //output [7:0]
 );
