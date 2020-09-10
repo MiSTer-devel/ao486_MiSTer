@@ -601,7 +601,7 @@ always @(posedge clk) begin
 
     //identify                                                                                                           
     else if(state == S_IDLE && cmd_identify_start)                                                                       state <= S_IDENTIFY_FILL;
-    else if(state == S_IDENTIFY_FILL && identify_counter == 7'd127)                                                      state <= S_WAIT_FOR_EMPTY_READ_FIFO;
+    else if(state == S_IDENTIFY_FILL && identify_counter[9])                                                             state <= S_WAIT_FOR_EMPTY_READ_FIFO;
     else if(state == S_WAIT_FOR_EMPTY_READ_FIFO && from_hdd_empty_valid && cmd_identify_in_progress)                     state <= S_IDLE;
 
     //write                                                                                                              
@@ -642,7 +642,7 @@ wire command_finished =
 
 wire command_requires_drq =
     (state == S_SD_READ_WAIT_FOR_DATA && logical_sector_count == 5'd0) ||
-    (state == S_IDENTIFY_FILL && identify_counter == 7'd127) ||
+    (state == S_IDENTIFY_FILL && identify_counter[9]) ||
     (state == S_SD_WRITE_WAIT_FOR_DATA && logical_sector_count == 5'd0 && num_sectors > 17'd0) ||
     (state == S_IDLE && cmd_write_start);
 
@@ -816,39 +816,41 @@ end
 
 //------------------------------------------------------------------------------ fifo for identify
 
-reg [6:0] identify_counter;
+reg [9:0] identify_counter;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                   identify_counter <= 7'd0;
-    else if(state != S_IDENTIFY_FILL)   identify_counter <= 7'd0;
-    else                                identify_counter <= identify_counter + 7'd1;
+    if(rst_n == 1'b0)                   identify_counter <= 10'd0;
+    else if(state != S_IDENTIFY_FILL)   identify_counter <= 10'd0;
+    else                                identify_counter <= identify_counter + 1'd1;
 end
 
 wire [31:0] identify_q;
 wire [31:0] identify_q_final =
-    (identify_counter == 7'd29)?    { (multiple_sectors > 5'd0)? (16'h0100 | { 11'd0, multiple_sectors }) : 16'h0000,  identify_q[15:0] } :
+    (identify_counter[8:2] == 7'd29)?   { (multiple_sectors > 5'd0)? (16'h0100 | { 11'd0, multiple_sectors }) : 16'h0000,  identify_q[15:0] } :
                                     identify_q;
 
-simple_fifo #(
-    .width      (32),
-    .widthu     (7)
-)
-fifo_identify_inst(
-    .clk        (clk),
-    .rst_n      (~pulse_rst),
-    
-    .sclr       (1'b0),                                                                 //input
-    
-    .data       ((mgmt_write)? mgmt_writedata : identify_q),                            //input [31:0]
-    .wrreq      ((mgmt_address == 3'd0 && mgmt_write) || state == S_IDENTIFY_FILL),     //input
-    
-    .rdreq      (state == S_IDENTIFY_FILL),                                             //input
-    .q          (identify_q),                                                           //output [31:0]
-    
-    /* verilator lint_off PINNOCONNECT */
-    .full       (),                                                                     //output
-    .empty      (),                                                                     //output
-    .usedw      ()                                                                      //output [6:0]
-    /* verilator lint_on PINNOCONNECT */
+reg [6:0] id_addr;
+always @(posedge clk) begin
+	reg old_wr;
+	
+	old_wr <= mgmt_write;
+	if(old_wr & ~mgmt_write) begin
+		if(mgmt_address == 0) id_addr <= id_addr + 1'd1;
+		else id_addr <= 0;
+	end
+	
+	if(pulse_rst) id_addr <= 0;
+end
+
+dpram #(7,32) id_buf
+(
+	.clock(clk),
+
+	.address_a(id_addr),
+	.data_a(mgmt_writedata),
+	.wren_a(mgmt_address == 3'd0 && mgmt_write),
+
+	.address_b(identify_counter[8:2]),
+	.q_b(identify_q)
 );
 
 //------------------------------------------------------------------------------ fifo from hdd
@@ -894,7 +896,7 @@ fifo_from_hdd_inst(
     .sclr       (sw_reset_start),                                                                   //input
     
     .data       ((state == S_IDENTIFY_FILL)? identify_q_final : from_cache),                        //input [31:0]
-    .wrreq      ((state == S_SD_READ_WAIT_FOR_DATA && sec_write) || state == S_IDENTIFY_FILL),      //input
+    .wrreq      ((state == S_SD_READ_WAIT_FOR_DATA && sec_write) || (state == S_IDENTIFY_FILL && &identify_counter[1:0] && ~identify_counter[9])),      //input
     
     .rdreq      (read_data_io && { 1'b0, from_hdd_stored_index } < io_data_size),                   //input
     .empty      (from_hdd_empty),                                                                   //output
