@@ -70,14 +70,6 @@ wire sec_read = mgmt_read && &mgmt_address;
 
 //------------------------------------------------------------------------------
 
-reg io_read_last;
-always @(posedge clk) begin if(rst_n == 1'b0) io_read_last <= 1'b0; else if(io_read_last) io_read_last <= 1'b0; else io_read_last <= io_read; end 
-wire io_read_valid = io_read && ~io_read_last;
-
-reg sec_read_last;
-always @(posedge clk) begin if(rst_n == 1'b0) sec_read_last <= 1'b0; else if(sec_read_last) sec_read_last <= 1'b0; else sec_read_last <= sec_read; end 
-wire sec_read_valid = sec_read && ~sec_read_last;
-
 reg pulse_rst;
 always @(posedge clk) begin
 	reg old_rst;
@@ -98,7 +90,7 @@ wire io_wr = io_write & present;
 wire write_data_io = io_wr && io_address == 0 && cmd_write_in_progress;
 
 wire read_data_io =
-    io_read_valid && io_address == 0 && status_drq &&
+    io_read && io_address == 0 && status_drq &&
     (cmd_read_in_progress || cmd_identify_in_progress);
 
 wire [7:0] status_value =
@@ -115,19 +107,23 @@ wire [7:0] status_value =
 
 wire [15:0] cylinder_final = (drive_select)? 16'hFFFF : cylinder;
 
-wire [31:0] io_readdata_next =
-    (read_data_io)                      ? from_hdd_result[31:0] :
-    (io_read_valid && io_address == 1)  ? error_register        :
-    (io_read_valid && io_address == 2)  ? sector_count          :
-    (io_read_valid && io_address == 3)  ? sector                :
-    (io_read_valid && io_address == 4)  ? cylinder_final[7:0]   :
-    (io_read_valid && io_address == 5)  ? cylinder_final[15:8]  :
-    (io_read_valid && io_address == 6)  ? {1'b1, lba_mode, 1'b1, drive_select, (drive_select ? 4'h0 : head)} :
-    (io_read_valid && io_address == 7)  ? status_value          :
-    (io_read_valid && io_address == 14) ? status_value          :
-	                                       32'd0; //used
+wire  [7:0] drive_addr = { 2'b10, ~head, ~drive_select, drive_select};
 
-always @(posedge clk) io_readdata <= present ? io_readdata_next : 32'hFFFFFFFF;
+wire [31:0] io_readdata_next =
+    (~present)                    ? 32'hFFFFFFFF          :
+    (read_data_io)                ? from_hdd_result[31:0] :
+    (io_read && io_address == 1)  ? error_register        :
+    (io_read && io_address == 2)  ? sector_count          :
+    (io_read && io_address == 3)  ? sector                :
+    (io_read && io_address == 4)  ? cylinder_final[7:0]   :
+    (io_read && io_address == 5)  ? cylinder_final[15:8]  :
+    (io_read && io_address == 6)  ? {1'b1, lba_mode, 1'b1, drive_select, (drive_select ? 4'h0 : head)} :
+    (io_read && io_address == 7)  ? status_value          :
+    (io_read && io_address == 14) ? status_value          :
+    (io_read && io_address == 15) ? drive_addr            :
+	                                 32'd0; //used
+
+always @(posedge clk) io_readdata <= io_readdata_next;
 
 //------------------------------------------------------------------------------ media management
 
@@ -224,8 +220,8 @@ end
 
 reg [3:0] status_index_pulse_counter;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                                                status_index_pulse_counter <= 4'd0;
-    else if(~drive_select && io_read_valid && (io_address == 7 || io_address == 14)) status_index_pulse_counter <= status_index_pulse_counter_next;
+    if(rst_n == 1'b0)                                                          status_index_pulse_counter <= 4'd0;
+    else if(~drive_select && io_read && (io_address == 7 || io_address == 14)) status_index_pulse_counter <= status_index_pulse_counter_next;
 end
 
 reg [7:0] features;
@@ -402,7 +398,7 @@ wire update_location_to_max = cmd_max_start;
 
 wire update_location_by_one =
     (state == S_SD_READ_WAIT_FOR_DATA && sec_write && sd_counter == 7'd127) ||
-    (state == S_SD_WRITE_WAIT_FOR_DATA && sec_read_valid && sd_counter == 7'd127); 
+    (state == S_SD_WRITE_WAIT_FOR_DATA && sec_read && sd_counter == 7'd127); 
 
 wire update_location_chs_sector_only = update_location_by_one && ~(lba_mode) &&
     { 1'b0, sector } < media_spt;
@@ -662,7 +658,7 @@ wire raise_interrupt =
     cmd_max_start;
 
 wire lower_interrupt =
-    (io_read_valid  && io_address == 7) ||
+    (io_read  && io_address == 7) ||
     (io_wr && io_address == 7 && ~(drive_select));
 
 wire command_abort =
@@ -687,13 +683,13 @@ wire [4:0] multiple_final_read =
 
 reg [4:0] logical_sector_count;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                                                                                    logical_sector_count <= 5'd0;
-    else if(state == S_PREPARE && current_command_read_multiple)                                                         logical_sector_count <= multiple_final_read;
-    else if(state == S_PREPARE && current_command_write_multiple)                                                        logical_sector_count <= multiple_final_write;
-    else if(state == S_PREPARE)                                                                                          logical_sector_count <= 5'd1;
+    if(rst_n == 1'b0)                                                                                              logical_sector_count <= 5'd0;
+    else if(state == S_PREPARE && current_command_read_multiple)                                                   logical_sector_count <= multiple_final_read;
+    else if(state == S_PREPARE && current_command_write_multiple)                                                  logical_sector_count <= multiple_final_write;
+    else if(state == S_PREPARE)                                                                                    logical_sector_count <= 5'd1;
     
-    else if(state == S_SD_READ_WAIT_FOR_DATA  && sec_write       && sd_counter == 7'd127 && logical_sector_count > 5'd0) logical_sector_count <= logical_sector_count - 5'd1;
-    else if(state == S_SD_WRITE_WAIT_FOR_DATA && sec_read_valid  && sd_counter == 7'd127 && logical_sector_count > 5'd0) logical_sector_count <= logical_sector_count - 5'd1;
+    else if(state == S_SD_READ_WAIT_FOR_DATA  && sec_write && sd_counter == 7'd127 && logical_sector_count > 5'd0) logical_sector_count <= logical_sector_count - 5'd1;
+    else if(state == S_SD_WRITE_WAIT_FOR_DATA && sec_read  && sd_counter == 7'd127 && logical_sector_count > 5'd0) logical_sector_count <= logical_sector_count - 5'd1;
 end
 
 wire count_decision_immediate_error =
@@ -759,7 +755,7 @@ reg [6:0] sd_counter;
 always @(posedge clk) begin
     if(rst_n == 1'b0)	                                                            sd_counter <= 7'd0;
     else if(state != S_SD_READ_WAIT_FOR_DATA && state != S_SD_WRITE_WAIT_FOR_DATA)  sd_counter <= 7'd0;
-    else if(sec_write || sec_read_valid)                                            sd_counter <= sd_counter + 7'd1;
+    else if(sec_write || sec_read)                                                  sd_counter <= sd_counter + 7'd1;
 end
 
 reg [31:0] sd_sector;
@@ -961,7 +957,7 @@ fifo_to_hdd_inst(
     .wrreq      (write_data_io && to_hdd_sum >= 3'd4 && ~(write_data_ready)),   //input
     .full       (to_hdd_full),                                                  //output
     
-    .rdreq      (state == S_SD_WRITE_WAIT_FOR_DATA && sec_read_valid),          //input
+    .rdreq      (state == S_SD_WRITE_WAIT_FOR_DATA && sec_read),                //input
     .q          (to_hdd_q),                                                     //output [31:0]
 
     .usedw      (to_hdd_usedw),                                                 //output [10:0]
