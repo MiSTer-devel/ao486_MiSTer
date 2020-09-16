@@ -102,7 +102,7 @@
 #define BX_USE_SMM
 
 #define BX_USE_ATADRV    1
-#define BX_ELTORITO_BOOT 0 //ao
+#define BX_ELTORITO_BOOT 1 //ao
 
 #define BX_MAX_ATA_INTERFACES   4
 #define BX_MAX_ATA_DEVICES      (BX_MAX_ATA_INTERFACES*2)

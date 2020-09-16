@@ -894,7 +894,6 @@ static void           nmi_handler_msg();
 static void           delay_ticks();
 static void           delay_ticks_and_check_for_keystroke();
 
-static void           interactive_bootkey();
 static void           print_bios_banner();
 static void           print_boot_device();
 static void           print_boot_failure();
@@ -2008,8 +2007,8 @@ void s3_resume_panic()
 void
 print_bios_banner()
 {
-  printf(BX_APPNAME" BIOS - build: %s\n%s\nOptions: ",
-    BIOS_BUILD_DATE, bios_cvs_version_string);
+  printf(BX_APPNAME" BIOS - build: %s  Options: ",
+    BIOS_BUILD_DATE);
   printf(
 #if BX_APM
   "apmbios "
@@ -2044,7 +2043,7 @@ print_bios_banner()
 // http://www.phoenix.com/en/Customer+Services/White+Papers-Specs/pc+industry+specifications.htm
 //--------------------------------------------------------------------------
 
-static char drivetypes[][10]={"", "Floppy","Hard Disk","CD-Rom", "Network"};
+static char drivetypes[][10]={"", "Floppy","Hard Disk","CD-ROM", "Network"};
 
 static void
 init_boot_vectors()
@@ -2102,84 +2101,6 @@ Bit16u i; ipl_entry_t *e;
   memcpyb(ss, e, IPL_SEG, IPL_TABLE_OFFSET + i * sizeof (*e), sizeof (*e));
   return 1;
 }
-
-#if BX_ELTORITO_BOOT
-  void
-interactive_bootkey()
-{
-  ipl_entry_t e;
-  Bit16u count;
-  char description[33];
-  Bit8u scan_code;
-  Bit8u i;
-  Bit16u ss = get_SS();
-  Bit16u valid_choice = 0;
-
-  while (check_for_keystroke())
-    get_keystroke();
-
-  if ((inb_cmos(0x3f) & 0x01) == 0x01) /* check for 'fastboot' option */
-    return;
-
-  printf("Press F12 for boot menu.\n\n");
-
-  delay_ticks_and_check_for_keystroke(11, 5); /* ~3 seconds */
-  if (check_for_keystroke())
-  {
-    scan_code = get_keystroke();
-    if (scan_code == 0x86) /* F12 */
-    {
-      while (check_for_keystroke())
-        get_keystroke();
-
-      printf("Select boot device:\n\n");
-
-      count = read_word(IPL_SEG, IPL_COUNT_OFFSET);
-      for (i = 0; i < count; i++)
-      {
-        memcpyb(ss, &e, IPL_SEG, IPL_TABLE_OFFSET + i * sizeof (e), sizeof (e));
-        printf("%d. ", i+1);
-        switch(e.type)
-        {
-          case IPL_TYPE_FLOPPY:
-          case IPL_TYPE_HARDDISK:
-          case IPL_TYPE_CDROM:
-            printf("%s\n", drivetypes[e.type]);
-            break;
-          case IPL_TYPE_BEV:
-            printf("%s", drivetypes[4]);
-            if (e.description != 0)
-            {
-              memcpyb(ss, &description, HIWORD(e.description), LOWORD(e.description), 32);
-              description[32] = 0;
-              printf(" [%S]", ss, description);
-           }
-           printf("\n");
-           break;
-        }
-      }
-
-      count++;
-      while (!valid_choice) {
-        scan_code = get_keystroke();
-        if (scan_code == 0x01 || scan_code == 0x58) /* ESC or F12 */
-        {
-          valid_choice = 1;
-        }
-        else if (scan_code <= count)
-        {
-          valid_choice = 1;
-          scan_code -= 1;
-          /* Set user selected device */
-          write_word(IPL_SEG, IPL_BOOTFIRST_OFFSET, scan_code);
-        }
-      }
-
-      printf("\n");
-    }
-  }
-}
-#endif // BX_ELTORITO_BOOT
 
 //--------------------------------------------------------------------------
 // print_boot_device
@@ -2534,7 +2455,7 @@ static int await_ide(when_done,base,timeout)
   Bit16u base;
   Bit16u timeout;
 {
-  Bit16u time=0;
+  Bit32u time=0;
   Bit16u status,last=0;
   Bit8u result;
   status = inb(base + ATA_CB_STAT); // for the times you're supposed to throw one away
@@ -2845,11 +2766,11 @@ void ata_detect( )
         case ATA_TYPE_ATA:
           if(sizeinmb)
           {
-             printf("ata%d %s: ",channel,slave?" slave":"master");
+             printf("IDE%d %s: ",channel,slave?" slave":"master");
              if (sizeinmb < (1UL<<16))
-               printf("ATA-%d HDD (%4u MB) ", version, (Bit16u)sizeinmb);
+               printf("HDD %uMB ", (Bit16u)sizeinmb);
              else
-               printf("ATA-%d HDD (%4u GB) ", version, (Bit16u)(sizeinmb>>10));
+               printf("HDD %uGB ", (Bit16u)(sizeinmb>>10));
 
              i=0;
              while(c=read_byte_SS(model+i++))
@@ -2858,15 +2779,16 @@ void ata_detect( )
           }
           break;
         case ATA_TYPE_ATAPI:
-          printf("ata%d %s: ",channel,slave?" slave":"master");
-          i=0; while(c=read_byte_SS(model+i++)) printf("%c",c);
+          printf("IDE%d %s: ",channel,slave?" slave":"master");
           if(read_byte_DS(&EbdaData->ata.devices[device].device)==ATA_DEVICE_CDROM)
-            printf(" ATAPI-%d CD-Rom/DVD-Rom\n",version);
+            printf("CD-ROM ");
           else
-            printf(" ATAPI-%d Device\n",version);
+            printf("Device ");
+            i=0; while(c=read_byte_SS(model+i++)) printf("%c",c);
+            printf("\n");
           break;
         case ATA_TYPE_UNKNOWN:
-          printf("ata%d %s: Unknown device\n",channel,slave?" slave":"master");
+          printf("IDE%d %s: Unknown device\n",channel,slave?" slave":"master");
           break;
       }
     }
@@ -3216,7 +3138,7 @@ Bit32u length;
     return 1;
   }
 
-  // Set DS to EBDA segment.
+	// Set DS to EBDA segment.
   old_ds = set_DS(ebda_seg);
   iobase1 = read_word_DS(&EbdaData->ata.channels[channel].iobase1);
   iobase2 = read_word_DS(&EbdaData->ata.channels[channel].iobase2);
@@ -3227,7 +3149,7 @@ Bit32u length;
   if (cmdlen > 12) cmdlen=16;
   cmdlen>>=1;
 
-  // Reset count of transferred data
+	// Reset count of transferred data
   write_word_DS(&EbdaData->ata.trsfsectors,0);
   write_dword_DS(&EbdaData->ata.trsfbytes,0L);
 
@@ -3249,7 +3171,7 @@ Bit32u length;
   // Device should ok to receive command
   await_ide(NOT_BSY_DRQ, iobase1, IDE_TIMEOUT);
   status = inb(iobase1 + ATA_CB_STAT);
-
+	
   if (status & ATA_CB_STAT_ERR) {
     BX_DEBUG_ATA("ata_cmd_packet : error, status is %02x\n",status);
     return 3;
@@ -10995,10 +10917,6 @@ normal_post:
   mov  cx, #0xc800  ;; init option roms
   mov  ax, #0xe000
   call rom_scan
-
-#if BX_ELTORITO_BOOT
-  call _interactive_bootkey
-#endif // BX_ELTORITO_BOOT
 
   sti        ;; enable interrupts
   int  #0x19
