@@ -10,8 +10,8 @@ module system
 	input         l2_disable,
 
 	output [1:0]  fdd_request,
-	output [2:0]  hdd0_request,
-	output [2:0]  hdd1_request,
+	output [2:0]  ide0_request,
+	output [2:0]  ide1_request,
 
 	input  [13:0] joystick_dig_1,
 	input  [13:0] joystick_dig_2,
@@ -25,7 +25,6 @@ module system
 	output [15:0] mgmt_readdata,
 	input         mgmt_write,
 	input  [15:0] mgmt_writedata,
-	input         mgmt_active,
 
 	input         ps2_kbclk_in,
 	input         ps2_kbdat_in,
@@ -37,6 +36,7 @@ module system
 	output        ps2_mousedat_out,
 	output        ps2_reset_n,
 
+	input   [5:0] bootcfg,
 	input         memcfg,
 	output  [7:0] syscfg,
 
@@ -115,17 +115,13 @@ wire        dma_write;
 wire [15:0] dma_writedata;
 wire        dma_16bit;
 
-wire [31:0] mgmt_fdd_readdata;
-wire [31:0] mgmt_hdd0_readdata;
-wire [31:0] mgmt_hdd1_readdata;
-wire [31:0] mgmt_ctl_writedata;
-wire  [7:0] mgmt_ctl_address;
-wire        mgmt_ctl_read;
-wire        mgmt_ctl_write;
-reg         mgmt_hdd0_cs;
-reg         mgmt_hdd1_cs;
-reg         mgmt_fdd_cs;
-reg         mgmt_rtc_cs;
+wire [15:0] mgmt_fdd_readdata;
+wire [15:0] mgmt_ide0_readdata;
+wire [15:0] mgmt_ide1_readdata;
+wire        mgmt_ide0_cs;
+wire        mgmt_ide1_cs;
+wire        mgmt_fdd_cs;
+wire        mgmt_rtc_cs;
 
 wire        interrupt_done;
 wire        interrupt_do;
@@ -149,8 +145,8 @@ wire        iobus_read;
 wire  [2:0] iobus_datasize;
 wire [31:0] iobus_writedata;
 
-reg         hdd0_cs;
-reg         hdd1_cs;
+reg         ide0_cs;
+reg         ide1_cs;
 reg         floppy0_cs;
 reg         dma_master_cs;
 reg         dma_page_cs;
@@ -171,10 +167,14 @@ reg         vga_c_cs;
 reg         vga_d_cs;
 reg         sysctl_cs;
 
+wire        ide0_wait;
+wire        ide1_wait;
+wire        fdd0_inserted;
+
 wire  [7:0] sound_readdata;
 wire  [7:0] floppy0_readdata;
-wire [31:0] hdd0_readdata;
-wire [31:0] hdd1_readdata;
+wire [31:0] ide0_readdata;
+wire [31:0] ide1_readdata;
 wire  [7:0] joystick_readdata;
 wire  [7:0] pit_readdata;
 wire  [7:0] ps2_readdata;
@@ -289,8 +289,8 @@ ao486 ao486
 );
 
 always @(posedge clk_sys) begin
-	hdd0_cs       <= ({iobus_address[15:3], 3'd0} == 16'h01F0) || ({iobus_address[15:1], 1'd0} == 16'h03F6);
-	hdd1_cs       <= ({iobus_address[15:3], 3'd0} == 16'h0170) || ({iobus_address[15:1], 1'd0} == 16'h0376);
+	ide0_cs       <= ({iobus_address[15:3], 3'd0} == 16'h01F0) || ({iobus_address[15:1], 1'd0} == 16'h03F6);
+	ide1_cs       <= ({iobus_address[15:3], 3'd0} == 16'h0170) || ({iobus_address[15:1], 1'd0} == 16'h0376);
 	joy_cs        <= ({iobus_address[15:0]      } == 16'h0201);
 	floppy0_cs    <= ({iobus_address[15:3], 3'd0} == 16'h03F0);
 	dma_master_cs <= ({iobus_address[15:5], 5'd0} == 16'h00C0);
@@ -319,7 +319,7 @@ always @(posedge clk_sys) begin
 		ctlport <= 8'hA2;
 		in_reset <= 1;
 	end
-	else if((hdd0_cs|hdd1_cs|floppy0_cs) && in_reset) begin
+	else if((ide0_cs|ide1_cs|floppy0_cs) && in_reset) begin
 		ctlport <= 0;
 		in_reset <= 0;
 	end
@@ -363,10 +363,11 @@ iobus iobus
 	.bus_address       (iobus_address),
 	.bus_write         (iobus_write),
 	.bus_read          (iobus_read),
-	.bus_io32          (((hdd0_cs | hdd1_cs) & ~iobus_address[9]) | sysctl_cs),
+	.bus_io32          (((ide0_cs | ide1_cs) & ~iobus_address[9]) | sysctl_cs),
 	.bus_datasize      (iobus_datasize),
 	.bus_writedata     (iobus_writedata),
-	.bus_readdata      (hdd0_cs ? hdd0_readdata : hdd1_cs ? hdd1_readdata : iobus_readdata8)
+	.bus_readdata      (ide0_cs ? ide0_readdata : ide1_cs ? ide1_readdata : iobus_readdata8),
+	.bus_wait          (ide0_wait | ide1_wait)
 );
 
 dma dma
@@ -421,6 +422,8 @@ floppy floppy
 	.io_read           (iobus_read & floppy0_cs),
 	.io_write          (iobus_write & floppy0_cs),
 	.io_readdata       (floppy0_readdata),
+	
+	.fdd0_inserted     (fdd0_inserted),
 
 	.dma_req           (dma_floppy_req),
 	.dma_ack           (dma_floppy_ack),
@@ -428,58 +431,60 @@ floppy floppy
 	.dma_readdata      (dma_floppy_readdata),
 	.dma_writedata     (dma_floppy_writedata),
 
-	.mgmt_address      (mgmt_ctl_address[3:0]),
+	.mgmt_address      (mgmt_address[3:0]),
 	.mgmt_fddn         (mgmt_address[7]),
-	.mgmt_write        (mgmt_ctl_write & mgmt_fdd_cs),
-	.mgmt_writedata    (mgmt_ctl_writedata),
-	.mgmt_read         (mgmt_ctl_read & mgmt_fdd_cs),
+	.mgmt_writedata    (mgmt_writedata),
 	.mgmt_readdata     (mgmt_fdd_readdata),
+	.mgmt_write        (mgmt_write & mgmt_fdd_cs),
+	.mgmt_read         (mgmt_read & mgmt_fdd_cs),
 
 	.request           (fdd_request),
 	.irq               (irq_6)
 );
 
-hdd hdd0
+ide ide0
 (
 	.clk               (clk_sys),
 	.rst_n             (~reset),
 
 	.io_address        ({iobus_address[9],iobus_address[2:0]}),
 	.io_writedata      (iobus_writedata),
-	.io_data_size      (iobus_datasize),
-	.io_read           (iobus_read & hdd0_cs),
-	.io_write          (iobus_write & hdd0_cs),
-	.io_readdata       (hdd0_readdata),
+	.io_read           (iobus_read & ide0_cs),
+	.io_write          (iobus_write & ide0_cs),
+	.io_readdata       (ide0_readdata),
+	.io_32             (iobus_datasize[2]),
+	.io_wait           (ide0_wait),
 
-	.mgmt_address      (mgmt_ctl_address[3:0]),
-	.mgmt_write        (mgmt_ctl_write & mgmt_hdd0_cs),
-	.mgmt_writedata    (mgmt_ctl_writedata),
-	.mgmt_read         (mgmt_ctl_read & mgmt_hdd0_cs),
-	.mgmt_readdata     (mgmt_hdd0_readdata),
+	.mgmt_address      (mgmt_address[3:0]),
+	.mgmt_writedata    (mgmt_writedata),
+	.mgmt_readdata     (mgmt_ide0_readdata),
+	.mgmt_write        (mgmt_write & mgmt_ide0_cs),
+	.mgmt_read         (mgmt_read & mgmt_ide0_cs),
 
-	.request           (hdd0_request),
+	.request           (ide0_request),
 	.irq               (irq_14)
 );
 
-hdd hdd1
+ide ide1
 (
 	.clk               (clk_sys),
 	.rst_n             (~reset),
 
 	.io_address        ({iobus_address[9],iobus_address[2:0]}),
 	.io_writedata      (iobus_writedata),
-	.io_data_size      (iobus_datasize),
-	.io_read           (iobus_read & hdd1_cs),
-	.io_write          (iobus_write & hdd1_cs),
-	.io_readdata       (hdd1_readdata),
+	.io_read           (iobus_read & ide1_cs),
+	.io_write          (iobus_write & ide1_cs),
+	.io_readdata       (ide1_readdata),
+	.io_32             (iobus_datasize[2]),
+	.io_wait           (ide1_wait),
 
-	.mgmt_address      (mgmt_ctl_address[3:0]),
-	.mgmt_write        (mgmt_ctl_write & mgmt_hdd1_cs),
-	.mgmt_writedata    (mgmt_ctl_writedata),
-	.mgmt_read         (mgmt_ctl_read & mgmt_hdd1_cs),
-	.mgmt_readdata     (mgmt_hdd1_readdata),
+	.mgmt_address      (mgmt_address[3:0]),
+	.mgmt_writedata    (mgmt_writedata),
+	.mgmt_readdata     (mgmt_ide1_readdata),
+	.mgmt_write        (mgmt_write & mgmt_ide1_cs),
+	.mgmt_read         (mgmt_read & mgmt_ide1_cs),
 
-	.request           (hdd1_request),
+	.request           (ide1_request),
 	.irq               (irq_15)
 );
 
@@ -509,9 +514,9 @@ pit pit
 
 	.io_address        ({iobus_address[5],iobus_address[1:0]}),
 	.io_writedata      (iobus_writedata[7:0]),
+	.io_readdata       (pit_readdata),
 	.io_read           (iobus_read & pit_cs),
 	.io_write          (iobus_write & pit_cs),
-	.io_readdata       (pit_readdata),
 
 	.speaker_out       (speaker_out),
 	.irq               (irq_0)
@@ -561,11 +566,12 @@ rtc rtc
 	.io_write          (iobus_write & rtc_cs),
 	.io_readdata       (rtc_readdata),
 
-	.mgmt_address      (mgmt_ctl_address),
-	.mgmt_write        (mgmt_ctl_write & mgmt_rtc_cs),
-	.mgmt_writedata    (mgmt_ctl_writedata[7:0]),
+	.mgmt_address      (mgmt_address),
+	.mgmt_write        (mgmt_write & mgmt_rtc_cs),
+	.mgmt_writedata    (mgmt_writedata[7:0]),
 
-	.rtc_memcfg        (memcfg),
+	.memcfg            (memcfg),
+	.bootcfg           ({bootcfg[5:2], bootcfg[1:0] ? bootcfg[1:0] : {~fdd0_inserted, fdd0_inserted}}),
 
 	.irq               (irq_8)
 );
@@ -717,29 +723,10 @@ always @* begin
 	interrupt[15] = irq_15;
 end
 
-always @(posedge clk_sys) begin
-	mgmt_hdd0_cs <= (mgmt_address[15:8] == 8'hF0);
-	mgmt_hdd1_cs <= (mgmt_address[15:8] == 8'hF1);
-	mgmt_fdd_cs  <= (mgmt_address[15:8] == 8'hF2);
-	mgmt_rtc_cs  <= (mgmt_address[15:8] == 8'hF4);
-end
-
-mgmt mgmt
-(
-	.clk               (clk_sys),
-
-	.in_address        (mgmt_address),
-	.in_read           (mgmt_read),
-	.in_readdata       (mgmt_readdata),
-	.in_write          (mgmt_write),
-	.in_writedata      (mgmt_writedata),
-	.in_active         (mgmt_active),
-
-	.out_address       (mgmt_ctl_address),
-	.out_read          (mgmt_ctl_read),
-	.out_write         (mgmt_ctl_write),
-	.out_writedata     (mgmt_ctl_writedata),
-	.out_readdata      (mgmt_hdd0_cs ? mgmt_hdd0_readdata : mgmt_hdd1_cs ? mgmt_hdd1_readdata : mgmt_fdd_readdata)
-);
+assign mgmt_ide0_cs  = (mgmt_address[15:8] == 8'hF0);
+assign mgmt_ide1_cs  = (mgmt_address[15:8] == 8'hF1);
+assign mgmt_fdd_cs   = (mgmt_address[15:8] == 8'hF2);
+assign mgmt_rtc_cs   = (mgmt_address[15:8] == 8'hF4);
+assign mgmt_readdata = mgmt_ide0_cs ? mgmt_ide0_readdata : mgmt_ide1_cs ? mgmt_ide1_readdata : mgmt_fdd_readdata;
 
 endmodule

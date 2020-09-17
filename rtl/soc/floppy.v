@@ -47,6 +47,7 @@ module floppy
 	input             io_write,
 	input       [7:0] io_writedata,
 
+	output            fdd0_inserted,
 	//management
 	/*
 	0x00.[0]:      media present
@@ -59,9 +60,9 @@ module floppy
 	input       [3:0] mgmt_address,
 	input             mgmt_fddn,
 	input             mgmt_write,
-	input      [31:0] mgmt_writedata,
+	input      [15:0] mgmt_writedata,
 	input             mgmt_read,
-	output     [31:0] mgmt_readdata,
+	output     [15:0] mgmt_readdata,
 
 	input      [27:0] clock_rate,
 
@@ -73,12 +74,14 @@ always @(posedge clk) clk_rate <= clock_rate;
 
 //------------------------------------------------------------------------------ media management
 
-assign mgmt_readdata = (!mgmt_address) ? {selected_drive[0], sd_sector[30:0]} : (&mgmt_address) ? fifo_readdata : 32'd1;
+assign mgmt_readdata = (!mgmt_address) ? {selected_drive[0], sd_sector[14:0]} : (&mgmt_address) ? fifo_readdata : 16'd1;
 assign request = (state == S_SD_READ_WAIT_FOR_DATA || state == S_SD_WRITE_WAIT_FOR_EMPTY_FIFO || state == S_SD_FORMAT_WAIT_FOR_FILL) ?
 					{cmd_write_normal_in_progress | cmd_format_in_progress, cmd_read_normal_in_progress} : 2'b00;
 
 reg media_present[2];
 always @(posedge clk) if(mgmt_write && mgmt_address == 4'd0) media_present[mgmt_fddn] <= mgmt_writedata[0];
+
+assign fdd0_inserted = media_present[0];
 
 reg media_writeprotected[2];
 always @(posedge clk) if(mgmt_write && mgmt_address == 4'd1) media_writeprotected[mgmt_fddn] <= mgmt_writedata[0];
@@ -89,7 +92,7 @@ always @(posedge clk) if(mgmt_write && mgmt_address == 4'd2) media_cylinders[mgm
 (* ramstyle = "logic" *) reg [7:0] media_sectors_per_track[2];
 always @(posedge clk) if(mgmt_write && mgmt_address == 4'd3) media_sectors_per_track[mgmt_fddn] <= mgmt_writedata[7:0];
 
-(* ramstyle = "logic" *) reg [31:0] media_sector_count[2];
+(* ramstyle = "logic" *) reg [15:0] media_sector_count[2];
 always @(posedge clk) if(mgmt_write && mgmt_address == 4'd4 && ~mgmt_fddn) media_sector_count[0] <= mgmt_writedata;
 always @(posedge clk) if(mgmt_write && mgmt_address == 4'd4 &&  mgmt_fddn) media_sector_count[1] <= mgmt_writedata;
 
@@ -805,10 +808,10 @@ always @(posedge clk) begin
 	else if(fifo_read)  format_counter <= format_counter + 9'd1;
 end
 
-reg [31:0] sd_sector;
+reg [15:0] sd_sector;
 always @(posedge clk) begin
-	if(~rst_n)                  sd_sector <= 32'd0;
-	else if(state == S_PREPARE) sd_sector <= ({ 16'd0, logical_sector } >= media_sector_count[selected_drive[0]])? media_sector_count[selected_drive[0]] - 32'd1 : { 16'd0, logical_sector };
+	if(~rst_n)                  sd_sector <= 16'd0;
+	else if(state == S_PREPARE) sd_sector <= (logical_sector >= media_sector_count[selected_drive[0]])? media_sector_count[selected_drive[0]] - 1'd1 : logical_sector;
 end
 
 //------------------------------------------------------------------------------ dma

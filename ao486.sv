@@ -171,15 +171,16 @@ led fdd_led(clk_sys, |mgmt_req[7:6], LED_USER);
 localparam CONF_STR =
 {
 	"AO486;;",
-	"S0,IMG,Mount A:;",
-	"S1,IMG,Mount B:;",
+	"S0,IMG,Floppy A:;",
+	"S1,IMG,Floppy B:;",
 	"-;",
-	"S2,VHD,Mount Primary HDD;",
-	"S3,VHD,Mount Secondary HDD;",
+	"S2,VHD,IDE 0-0;",
+	"S3,VHD,IDE 0-1;",
 	"-;",
-	"OX2,Boot order,FDD/HDD,HDD/FDD;",
+	"S4,VHDISOBINIMG,IDE 1-0;",
+	"S5,VHDISOBINIMG,IDE 1-1;",
 	"-;",
-	
+
 	"P1,Audio & Video;",
 	"P1-;",
 	"P1O1,Aspect ratio,4:3,16:9;",
@@ -194,6 +195,10 @@ localparam CONF_STR =
 	"P1OKL,Audio Boost,No,2x,4x;",
 
 	"P2,Hardware;",
+	"P2-;",
+	"P2o01,Boot 1st,Floppy/Hard Disk,Floppy,Hard Disk,CD-ROM;",
+	"P2o23,Boot 2nd,NONE,Floppy,Hard Disk,CD-ROM;",
+	"P2o45,Boot 3rd,NONE,Floppy,Hard Disk,CD-ROM;",
 	"P2-;",
 	"P2OB,RAM Size,256MB,16MB;",
 `ifndef DEBUG
@@ -230,7 +235,7 @@ wire        ps2_mouse_clk_in;
 wire        ps2_mouse_data_in;
 
 wire  [1:0] buttons;
-wire [31:0] status;
+wire [63:0] status;
 
 wire [13:0] joystick_0;
 wire [13:0] joystick_1;
@@ -276,7 +281,6 @@ hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000), .PS2WE(1), .WIDE(1)) hps_
 wire [15:0] mgmt_din;
 wire [15:0] mgmt_dout;
 wire [15:0] mgmt_addr;
-wire        mgmt_active;
 wire        mgmt_rd;
 wire        mgmt_wr;
 wire  [7:0] mgmt_req;
@@ -294,7 +298,6 @@ hps_ext hps_ext
 	.ext_addr(mgmt_addr),
 	.ext_rd(mgmt_rd),
 	.ext_wr(mgmt_wr),
-	.ext_active(mgmt_active),
 
 	.ext_midi(midi_en),
 	.ext_req(mgmt_req)
@@ -635,10 +638,9 @@ system system
 	.mgmt_address         (mgmt_addr),
 	.mgmt_write           (mgmt_wr),
 	.mgmt_read            (mgmt_rd),
-	.mgmt_active          (mgmt_active),
 
-	.hdd0_request         (mgmt_req[2:0]),
-	.hdd1_request         (mgmt_req[5:3]),
+	.ide0_request         (mgmt_req[2:0]),
+	.ide1_request         (mgmt_req[5:3]),
 	.fdd_request          (mgmt_req[7:6]),
 
 	.serial_rx            (UART_RXD),
@@ -651,6 +653,7 @@ system system
 	.serial_midi_rate     (midi_en),
 
 	.memcfg               (memcfg),
+	.bootcfg              (status[37:32]),
 
 	.DDRAM_CLK            (DDRAM_CLK),
 	.DDRAM_ADDR           (DDRAM_ADDR[24:0]),

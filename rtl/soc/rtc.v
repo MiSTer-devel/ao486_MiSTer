@@ -25,29 +25,31 @@
  */
 
 module rtc(
-	input               clk,
-	input               rst_n,
+	input             clk,
+	input             rst_n,
 
-	output reg          irq,
+	output reg        irq,
 
 	//io slave
-	input               io_address,
-	input               io_read,
-	output reg  [7:0]   io_readdata,
-	input               io_write,
-	input       [7:0]   io_writedata,
+	input             io_address,
+	input             io_read,
+	output reg  [7:0] io_readdata,
+	input             io_write,
+	input       [7:0] io_writedata,
 
-	input               rtc_memcfg,
+	input             memcfg,
+	input       [5:0] bootcfg,
+
 	//mgmt slave
 	/*
 	128.[26:0]: cycles in second
 	129.[12:0]: cycles in 122.07031 us
 	*/
-	input       [7:0]   mgmt_address,
-	input               mgmt_write,
-	input       [7:0]   mgmt_writedata,
+	input       [7:0] mgmt_address,
+	input             mgmt_write,
+	input       [7:0] mgmt_writedata,
 
-	input       [27:0]  clock_rate
+	input      [27:0] clock_rate
 );
 
 reg [27:0] clk_rate;
@@ -77,7 +79,6 @@ always @(posedge clk) begin
 	end
 end
 
-
 //------------------------------------------------------------------------------
 
 reg io_read_last;
@@ -87,27 +88,29 @@ wire io_read_valid = io_read && io_read_last == 1'b0;
 //------------------------------------------------------------------------------ io read
 
 wire [7:0] io_readdata_next =
-    (io_address == 1'b0)?       8'hFF :
-    (ram_address == 7'h00)?     rtc_second :
-    (ram_address == 7'h01)?     alarm_second :
-    (ram_address == 7'h02)?     rtc_minute :
-    (ram_address == 7'h03)?     alarm_second :
-    (ram_address == 7'h04)?     rtc_hour :
-    (ram_address == 7'h05)?     alarm_hour :
-    (ram_address == 7'h06)?     rtc_dayofweek :
-    (ram_address == 7'h07)?     rtc_dayofmonth :
-    (ram_address == 7'h08)?     rtc_month :
-    (ram_address == 7'h09)?     rtc_year :
-    (ram_address == 7'h0A)?     { sec_state == SEC_UPDATE_IN_PROGRESS || sec_state == SEC_SECOND_START, divider, periodic_rate } :
-    (ram_address == 7'h0B)?     { crb_freeze, crb_int_periodic_ena, crb_int_alarm_ena, crb_int_update_ena,
-                                  1'b0, crb_binarymode, crb_24hour, crb_daylightsaving } :
-    (ram_address == 7'h0C)?     { irq, periodic_interrupt, alarm_interrupt, update_interrupt, 4'd0 } :
-    (ram_address == 7'h0D)?     8'h80 :
-	 (ram_address == 7'h34 & rtc_memcfg) ? 8'h00 :
-	 (ram_address == 7'h35 & rtc_memcfg) ? 8'h00 :
-    (ram_address == 7'h32)?     rtc_century :
-    (ram_address == 7'h37)?     rtc_century :
-                                ram_q;
+    (io_address == 1'b0)   ? 8'hFF :
+    (ram_address == 7'h00) ? rtc_second :
+    (ram_address == 7'h01) ? alarm_second :
+    (ram_address == 7'h02) ? rtc_minute :
+    (ram_address == 7'h03) ? alarm_second :
+    (ram_address == 7'h04) ? rtc_hour :
+    (ram_address == 7'h05) ? alarm_hour :
+    (ram_address == 7'h06) ? rtc_dayofweek :
+    (ram_address == 7'h07) ? rtc_dayofmonth :
+    (ram_address == 7'h08) ? rtc_month :
+    (ram_address == 7'h09) ? rtc_year :
+    (ram_address == 7'h0A) ? { sec_state == SEC_UPDATE_IN_PROGRESS || sec_state == SEC_SECOND_START, divider, periodic_rate } :
+    (ram_address == 7'h0B) ? { crb_freeze, crb_int_periodic_ena, crb_int_alarm_ena, crb_int_update_ena,
+                               1'b0, crb_binarymode, crb_24hour, crb_daylightsaving } :
+    (ram_address == 7'h0C) ? { irq, periodic_interrupt, alarm_interrupt, update_interrupt, 4'd0 } :
+    (ram_address == 7'h0D) ? 8'h80 :
+    (ram_address == 7'h34 & memcfg) ? 8'h00 :
+    (ram_address == 7'h35 & memcfg) ? 8'h00 :
+    (ram_address == 7'h38) ? {2'b00, bootcfg[5:4], 4'h0} :
+    (ram_address == 7'h3D) ? {2'b00, bootcfg[3:2], 2'b00, bootcfg[1:0]} :
+    (ram_address == 7'h32) ? rtc_century :
+    (ram_address == 7'h37) ? rtc_century :
+                             ram_q;
 
 always @(posedge clk) io_readdata <= io_readdata_next;
 

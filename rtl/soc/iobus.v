@@ -21,15 +21,17 @@ module iobus
 	input             bus_io32,
 	output reg  [2:0] bus_datasize,
 	output reg [31:0] bus_writedata,
-	input      [31:0] bus_readdata
+	input      [31:0] bus_readdata,
+	input             bus_wait
 );
 
 localparam S_IDLE      = 0;
 localparam S_WRITE     = 1;
-localparam S_WRITE_CHK = 2;
-localparam S_READ      = 3;
-localparam S_READ_W    = 4;
-localparam S_READ_CHK  = 5;
+localparam S_WRITE_W   = 2;
+localparam S_WRITE_CHK = 3;
+localparam S_READ      = 4;
+localparam S_READ_W    = 5;
+localparam S_READ_CHK  = 6;
 
 always @(posedge clk) begin
 	reg [2:0] state;
@@ -55,11 +57,16 @@ always @(posedge clk) begin
 		S_WRITE:
 			begin
 				bus_write <= 1;
+				state <= S_WRITE_W;
+			end
+			
+		S_WRITE_W:
+			begin
 				state <= S_WRITE_CHK;
 			end
 		
 		S_WRITE_CHK:
-			begin
+			if(~bus_wait) begin
 				bus_address   <= bus_address + 1'd1;
 				bus_writedata <= bus_writedata >> 8;
 				bus_datasize  <= bus_datasize - 1'd1;
@@ -80,7 +87,7 @@ always @(posedge clk) begin
 			state <= S_READ_CHK;
 
 		S_READ_CHK:
-			begin
+			if(~bus_wait) begin
 				bus_address <= bus_address + 1'd1;
 				cnt <= cnt + 1'd1;
 				bus_datasize <= bus_datasize - 1'd1;
