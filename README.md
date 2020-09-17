@@ -9,7 +9,8 @@ Core was greatly reworked with many new features and performance added.
 * Sound Blaster 16 (DSP v4.05) and Sound Blaster Pro (DSP v3.02) with OPL3 and C/MS
 * High speed UART (3Mbps) internet connection
 * MIDI port (dumb and fake-smart modes)
-* Dual HDD with up to 8GB each
+* 4 HDDs with up to 137GB each
+* 2 CD-ROMs
 * Shared folder support
 
 ## How to install
@@ -51,8 +52,19 @@ Windows 9x drivers for video and modem are [here](https://github.com/MiSTer-deve
 ### Note:
 * Press **WIN+F12** to access **OSD on ao486 core**. F12 alone acts as generic F12 PC key.
 
-### Known issues
-* FDD doesn't work under Win9x. To fix it simply delete floppy device from device manager and reboot.
-Windows will still provide flopy access through BIOS in compatibility mode.
+### CD-ROM
+Currently only data portion of CD is supported. Best image format is ISO, but BIN/CUE format still can be mounted. You just need to mount bin file or if it's multi-file image, then usually first track is data which you need to mount.
+
+IDE 1-0 has special function - it's a placeholder for CD. So you can hot-swap CD images in this drive. Regardless special function this drive also supports HDD images. Once HDD image is loaded upon reboot this drive loses CD placeholder feature.
+
+### Hard Disk and CD-ROM in Windows
+Core supports up to 4 HDD images up to 137GB each. Up to 2 CD-ROMs are supported.
+
+Currently due to unknown source of issue Windows works with IDE devices through BIOS. Most likely some BIOS function doesn't supply correct info for Windows drivers.
+It doesn't prevent windows from working but you need to keep in mind some specifics:
+* Hard disks mounted on Primary IDE (0-0/0-1) need no attentions. They simply work.
+* Driver for Secondary IDE (1-0/1-1) have yellow mark. It's recommended to delete this device from device list - it's not used anyway but will be installed every time you start automatic HW detection procedure.
+* CD-ROM needs oakcdrom.sys and mscdex.exe added to config.sys and autoexec.bat respectively (you may find them on bootable Window98 CD). Windows will use it to access CD-ROM.
+* CD-ROM autostart won't be automatically triggered (because work through BIOS). After replacing image file in CD-ROM you need to refresh the folder with drives (F5) and icon of CD will be changed if provided by image. Autostart will be triggered when you click on CD icon.
 
 Original core [repository](https://github.com/alfikpl/ao486)
