@@ -177,8 +177,8 @@ localparam CONF_STR =
 	"S2,VHD,IDE 0-0;",
 	"S3,VHD,IDE 0-1;",
 	"-;",
-	"S4,VHDISOBINIMG,IDE 1-0;",
-	"S5,VHDISOBINIMG,IDE 1-1;",
+	"S4,VHDISOCUE,IDE 1-0;",
+	"S5,VHDISOCUE,IDE 1-1;",
 	"-;",
 
 	"P1,Audio & Video;",
@@ -199,6 +199,9 @@ localparam CONF_STR =
 	"P2o01,Boot 1st,Floppy/Hard Disk,Floppy,Hard Disk,CD-ROM;",
 	"P2o23,Boot 2nd,NONE,Floppy,Hard Disk,CD-ROM;",
 	"P2o45,Boot 3rd,NONE,Floppy,Hard Disk,CD-ROM;",
+	"P2-;",
+	"P2o6,IDE 1-0 CD Hot-Swap,Yes,No;",
+	"P2o7,IDE 1-1 CD Hot-Swap,No,Yes;",
 	"P2-;",
 	"P2OB,RAM Size,256MB,16MB;",
 `ifndef DEBUG
@@ -300,7 +303,8 @@ hps_ext hps_ext
 	.ext_wr(mgmt_wr),
 
 	.ext_midi(midi_en),
-	.ext_req(mgmt_req)
+	.ext_req(mgmt_req),
+	.ext_hotswap(status[39:38])
 );
 
 //------------------------------------------------------------------------------
@@ -654,7 +658,7 @@ system system
 
 	.memcfg               (memcfg),
 	.bootcfg              (status[37:32]),
-
+	
 	.DDRAM_CLK            (DDRAM_CLK),
 	.DDRAM_ADDR           (DDRAM_ADDR[24:0]),
 	.DDRAM_DIN            (DDRAM_DIN),
