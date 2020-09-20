@@ -42,7 +42,7 @@ module sound
 	input       [7:0] writedata,
 
 	input             sb_cs,   //220h-22Fh
-	input             fm_cs,   //388h-38Bh (228h-229h)
+	input             fm_cs,   //388h-38Bh
 
 	input             fm_mode,
 	input             cms_en,
