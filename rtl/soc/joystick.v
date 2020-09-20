@@ -69,7 +69,7 @@ module joystick
 	input         write
 );
 
-always @(posedge clk) readdata <= {jb4, jb3, jb2, jb1, |JOY2_Y, |JOY2_X, |JOY1_Y, |JOY1_X};
+always @(posedge clk) readdata <= (mode == 3) ? 8'hff : {jb4, jb3, jb2, jb1, |JOY2_Y, |JOY2_X, |JOY1_Y, |JOY1_X};
 
 reg  [7:0] JOY1_X,JOY1_Y,JOY2_X,JOY2_Y;
 reg [10:0] CLK_DIV;

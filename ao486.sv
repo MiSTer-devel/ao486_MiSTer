@@ -215,7 +215,7 @@ localparam CONF_STR =
 `endif
 
 	"-;",
-	"OCD,Joystick type,2 Buttons,4 Buttons,Gravis Pro;",
+	"OCD,Joystick type,2 Buttons,4 Buttons,Gravis Pro,None;",
 	"-;",
 	"R0,Reset and apply HDD;",
 	"J,Button 1,Button 2,Button 3,Button 4,Start,Select,R1,L1,R2,L2;",
