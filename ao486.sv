@@ -39,8 +39,8 @@ module emu
 	output        CE_PIXEL,
 
 	//Video aspect ratio for HDMI. Most retro systems have ratio 4:3.
-	output  [7:0] VIDEO_ARX,
-	output  [7:0] VIDEO_ARY,
+	output [11:0] VIDEO_ARX,
+	output [11:0] VIDEO_ARY,
 
 	output  [7:0] VGA_R,
 	output  [7:0] VGA_G,
@@ -156,8 +156,8 @@ assign USER_OUT = '1;
 assign {SDRAM_A, SDRAM_BA, SDRAM_DQ, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 
-assign VIDEO_ARX = status[1] ? 8'd16 : 8'd4;
-assign VIDEO_ARY = status[1] ? 8'd9  : 8'd3;
+assign VIDEO_ARX = (!status[23:22]) ? 8'd4 : (status[23:22] - 1'd1);
+assign VIDEO_ARY = (!status[23:22]) ? 8'd3 : 8'd0;
 
 assign LED_DISK[1] = 0;
 assign LED_POWER   = 0;
@@ -166,6 +166,11 @@ assign BUTTONS     = {~ps2_reset_n, 1'b0};
 led hdd_led(clk_sys, |mgmt_req[5:0], LED_DISK[0]);
 led fdd_led(clk_sys, |mgmt_req[7:6], LED_USER);
 
+// Status Bit Map:
+// 0         1         2         3          4         5         6
+// 01234567890123456789012345678901 23456789012345678901234567890123
+// 0123456789ABCDEFGHIJKLMNOPQRSTUV 0123456789ABCDEFGHIJKLMNOPQRSTUV
+// XXXXXXXXXXXXXXXXXXXXXXXX         XXXXXXXX
 
 `include "build_id.v"
 localparam CONF_STR =
@@ -183,7 +188,7 @@ localparam CONF_STR =
 
 	"P1,Audio & Video;",
 	"P1-;",
-	"P1O1,Aspect ratio,4:3,16:9;",
+	"P1OMN,Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 	"P1O4,VSync,60Hz,Variable;",
 	"P1O8,16/24bit mode,BGR,RGB;",
 	"P1O9,16bit format,1555,565;",
@@ -216,7 +221,7 @@ localparam CONF_STR =
 
 	"-;",
 	"OCD,Joystick type,2 Buttons,4 Buttons,Gravis Pro,None;",
-	"-;",
+	"--;",
 	"R0,Reset and apply HDD;",
 	"J,Button 1,Button 2,Button 3,Button 4,Start,Select,R1,L1,R2,L2;",
 	"jn,A,B,X,Y,Start,Select,R,L;",

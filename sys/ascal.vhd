@@ -462,8 +462,8 @@ ARCHITECTURE rtl OF ascal IS
   SIGNAL o_fload : natural RANGE 0 TO 3;
   SIGNAL o_acpt,o_acpt1,o_acpt2,o_acpt3,o_acpt4 : natural RANGE 0 TO 15; -- Alternance pixels FIFO
   SIGNAL o_dshi : natural RANGE 0 TO 3;
-  SIGNAL o_first,o_last,o_last1,o_last2,o_last3 : std_logic;
-  SIGNAL o_lastt1,o_lastt2,o_lastt3 : std_logic;
+  SIGNAL o_first,o_last,o_last1,o_last2 : std_logic;
+  SIGNAL o_lastt1,o_lastt2,o_lastt3,o_lastt4 : std_logic;
   SIGNAL o_alt,o_altx : unsigned(3 DOWNTO 0);
   SIGNAL o_hdown,o_vdown : std_logic;
   SIGNAL o_primv,o_lastv,o_bibv : unsigned(0 TO 2);
@@ -2029,7 +2029,8 @@ BEGIN
       o_acpt1<=o_acpt; o_acpt2<=o_acpt1; o_acpt3<=o_acpt2; o_acpt4<=o_acpt3;
       o_ad1<=o_ad; o_ad2<=o_ad1; o_ad3<=o_ad2;
       o_sh1<=o_sh; o_sh2<=o_sh1; o_sh3<=o_sh2; o_sh4<=o_sh3;
-      o_lastt1<=o_last; o_lastt2<=o_lastt1; o_lastt3<=o_lastt2;
+      o_lastt1<=o_last;   o_lastt2<=o_lastt1;
+      o_lastt3<=o_lastt2; o_lastt4<=o_lastt3;
       
       ------------------------------------------------------
       IF o_sh3='1' THEN
@@ -2059,7 +2060,7 @@ BEGIN
           o_hpix2<=hpix_v;
           o_first<='0';
         END IF;
-        IF o_lastt3='1' THEN
+        IF o_lastt4='1' THEN
           -- Right edge. Keep last pixel.
           o_hpix0<=o_hpix0;
         END IF;

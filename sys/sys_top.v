@@ -316,7 +316,7 @@ reg  [6:0] coef_addr;
 reg  [8:0] coef_data;
 reg        coef_wr = 0;
 
-wire [7:0] ARX, ARY;
+wire[11:0] ARX, ARY;
 reg [11:0] VSET = 0, HSET = 0;
 reg        FREESCALE = 0;
 reg  [2:0] scaler_flt;
@@ -337,6 +337,10 @@ reg [23:0] acy0 = -24'd6216759;
 reg [23:0] acy1 =  24'd6143386;
 reg [23:0] acy2 = -24'd2023767;
 reg        areset = 0;
+reg [11:0] arc1x = 0;
+reg [11:0] arc1y = 0;
+reg [11:0] arc2x = 0;
+reg [11:0] arc2y = 0;
 
 always@(posedge clk_sys) begin
 	reg  [7:0] cmd;
@@ -453,6 +457,15 @@ always@(posedge clk_sys) begin
 					12: acy1[23:16]      <= io_din[7:0];
 					13: acy2[15:0]       <= io_din;
 					14: acy2[23:16]      <= io_din[7:0];
+				endcase
+			end
+			if(cmd == 'h3A) begin
+				cnt <= cnt + 1'd1;
+				case(cnt[3:0])
+					 0: arc1x <= io_din[11:0];
+					 1: arc1y <= io_din[11:0];
+					 2: arc2x <= io_din[11:0];
+					 3: arc2y <= io_din[11:0];
 				endcase
 			end
 		end
@@ -778,9 +791,30 @@ always @(posedge clk_vid) begin
 	reg [11:0] videoh;
 	reg [11:0] height;
 	reg [11:0] width;
+	reg [11:0] arx;
+	reg [11:0] ary;
 
 	height <= (VSET && (VSET < HEIGHT)) ? VSET : HEIGHT;
 	width  <= (HSET && (HSET < WIDTH))  ? HSET : WIDTH;
+	
+	if(!ARY) begin
+		if(ARX == 1) begin
+			arx <= arc1x;
+			ary <= arc1y;
+		end
+		else if(ARX == 2) begin
+			arx <= arc2x;
+			ary <= arc2y;
+		end
+		else begin
+			arx <= 0;
+			ary <= 0;
+		end
+	end
+	else begin
+		arx <= ARX;
+		ary <= ARY;
+	end
 
 	state <= state + 1'd1;
 	case(state)
@@ -791,18 +825,20 @@ always @(posedge clk_vid) begin
 				vmax <= LFB_VMAX;
 				state<= 0;
 			end
-			else if(ARX && ARY && !FREESCALE) begin
-				wcalc <= (height*ARX)/ARY;
-				hcalc <= (width*ARY)/ARX;
-			end
-			else begin
+			else if(FREESCALE || !arx || !ary) begin
 				wcalc <= width;
 				hcalc <= height;
 			end
+			else begin
+				wcalc <= (height*arx)/ary;
+				hcalc <= (width*ary)/arx;
+			end
+
 		6: begin
 				videow <= (wcalc > width)  ? width  : wcalc[11:0];
 				videoh <= (hcalc > height) ? height : hcalc[11:0];
 			end
+
 		7: begin
 				hmin <= ((WIDTH  - videow)>>1);
 				hmax <= ((WIDTH  - videow)>>1) + videow - 1'd1;
