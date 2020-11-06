@@ -287,7 +287,7 @@ cyclonev_hps_interface_mpu_general_purpose h2f_gp
 reg [15:0] cfg;
 
 reg        cfg_set      = 0;
-wire       vga_fb       = cfg[12];
+wire       vga_fb       = cfg[12] | vga_force_scaler;
 wire [1:0] hdmi_limited = {cfg[11],cfg[8]};
 
 `ifdef DEBUG_NOHDMI
@@ -303,7 +303,7 @@ wire       ypbpr_en     = cfg[5];
 wire       io_osd_vga   = io_ss1 & ~io_ss2;
 `ifndef DUAL_SDRAM
 	wire    sog          = cfg[9];
-	wire    vga_scaler   = cfg[2];
+	wire    vga_scaler   = cfg[2] | vga_force_scaler;
 `endif
 
 reg        cfg_custom_t = 0;
@@ -1371,6 +1371,7 @@ wire  [7:0] r_out, g_out, b_out, hr_out, hg_out, hb_out;
 wire        vs_fix, hs_fix, de_emu, vs_emu, hs_emu, f1;
 wire        hvs_fix, hhs_fix, hde_emu;
 wire        clk_vid, ce_pix, clk_ihdmi, ce_hpix;
+wire        vga_force_scaler;
 
 `ifdef USE_DDRAM
 	wire        ram_clk;
@@ -1458,6 +1459,7 @@ emu emu
 	.VGA_VS(vs_emu),
 	.VGA_DE(de_emu),
 	.VGA_F1(f1),
+	.VGA_SCALER(vga_force_scaler),
 
 	.CLK_VIDEO(clk_vid),
 	.CE_PIXEL(ce_pix),

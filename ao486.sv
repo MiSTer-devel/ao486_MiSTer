@@ -50,6 +50,7 @@ module emu
 	output        VGA_DE,    // = ~(VBlank | HBlank)
 	output        VGA_F1,
 	output [1:0]  VGA_SL,
+	output        VGA_SCALER, // Force VGA scaler
 
 	// Use framebuffer from DDRAM (USE_FB=1 in qsf)
 	// FB_FORMAT:
@@ -221,7 +222,7 @@ localparam CONF_STR =
 
 	"-;",
 	"OCD,Joystick type,2 Buttons,4 Buttons,Gravis Pro,None;",
-	"--;",
+	"-;",
 	"R0,Reset and apply HDD;",
 	"J,Button 1,Button 2,Button 3,Button 4,Start,Select,R1,L1,R2,L2;",
 	"jn,A,B,X,Y,Start,Select,R,L;",
@@ -463,6 +464,7 @@ wire [15:0] sb_out_l, sb_out_r;
 
 assign VGA_F1 = 0;
 assign VGA_SL = 0;
+assign VGA_SCALER = 1;
 assign CLK_VIDEO = clk_vga;
 assign CE_PIXEL = vga_ce & vga_out_en;
 
