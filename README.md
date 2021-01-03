@@ -9,6 +9,7 @@ Core was greatly reworked with many new features and performance added.
 * Sound Blaster 16 (DSP v4.05) and Sound Blaster Pro (DSP v3.02) with OPL3 and C/MS
 * High speed UART (3Mbps) internet connection
 * MIDI port (dumb and fake-smart modes)
+* Extrnal MIDI device support (MT32-pi and generic MIDI)
 * 4 HDDs with up to 137GB each
 * 2 CD-ROMs
 * Shared folder support
@@ -45,6 +46,13 @@ OPL2/3 can be accessed as a part of Sound Blaster board at ports 220-223 (if C/M
 ### MIDI settings:
 * address: 330h
 * IRQ: 9
+
+### MT32-pi support:
+MT32-pi connection is supported through USER I/O port. MT32-pi is automatically detected.
+Supported straight and crossed RX<->TX cables.
+MT32-pi config and settings are [here](https://github.com/dwhinham/mt32-pi/wiki/MiSTer-FPGA-user-port-connection)
+MT32-pi interface board is on [Hardware repository](https://github.com/MiSTer-devel/Hardware_MiSTer)
+LCD and buttons are for convenience but not required. Basically only USER I/O connector is required, so can be assembled without interface board.
 
 ### Drivers
 Windows 9x drivers for video and modem are [here](https://github.com/MiSTer-devel/ao486_MiSTer/blob/master/releases/drv)
