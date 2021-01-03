@@ -153,7 +153,6 @@ module emu
 //`define DEBUG
 
 assign ADC_BUS  = 'Z;
-assign USER_OUT = '1;
 assign {SDRAM_A, SDRAM_BA, SDRAM_DQ, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 
@@ -171,12 +170,12 @@ led fdd_led(clk_sys, |mgmt_req[7:6], LED_USER);
 // 0         1         2         3          4         5         6
 // 01234567890123456789012345678901 23456789012345678901234567890123
 // 0123456789ABCDEFGHIJKLMNOPQRSTUV 0123456789ABCDEFGHIJKLMNOPQRSTUV
-// XXXXXXXXXXXXXXXXXXXXXXXX         XXXXXXXX
+// XXXXXXXXXXXXXXXXXXXXXXXXX XXXXXX XXXXXXXXXXXXX
 
 `include "build_id.v"
-localparam CONF_STR =
+localparam CONF_STR1 =
 {
-	"AO486;;",
+	"AO486;UART115200:4000000(Turbo 115200),MIDI;",
 	"S0,IMG,Floppy A:;",
 	"S1,IMG,Floppy B:;",
 	"-;",
@@ -199,6 +198,7 @@ localparam CONF_STR =
 	"P1OH,C/MS,Disable,Enable;",
 	"P1OIJ,Speaker Volume,1,2,3,4;",
 	"P1OKL,Audio Boost,No,2x,4x;",
+	"P1oBC,Stereo Mix,none,25%,50%,100%;",
 
 	"P2,Hardware;",
 	"P2-;",
@@ -216,21 +216,42 @@ localparam CONF_STR =
 	"h0P2O7,Overclock,Off,100Mhz;",
 	"D2P2OF,L1 Cache,On,Off;",
 	"D2P2OG,L2 Cache,On,Off;",
-	"P2-;",
-	"P2OA,UART Speed,Normal,30x;",
 `endif
 
+	"h3P3,MT32-pi;",
+	"h3P3-;",
+	"h3P3OO,Use MT32-pi,Yes,No;",
+	"h3P3o9A,Show Info,No,Yes,LCD-On(non-FB),LCD-Auto(non-FB);",
+	"h3P3-;",
+	"h3P3-,Default Config:;",
+	"h3P3OQ,Synth,Munt,FluidSynth;",
+	"h3P3ORS,Munt ROM,MT-32 v1,MT-32 v2,CM-32L;",
+	"h3P3OTV,SoundFont,0,1,2,3,4,5,6,7;",
+	"h3P3-;",
+	"h3P3-,Current Config: "
+};
+
+localparam CONF_STR2 =
+{
+	";",
+	"h3P3-;",
+	"h3P3r8,Reset Hanging Notes;",
 	"-;",
 	"OCD,Joystick type,2 Buttons,4 Buttons,Gravis Pro,None;",
-	"-;",
+	"- ;",
 	"R0,Reset and apply HDD;",
 	"J,Button 1,Button 2,Button 3,Button 4,Start,Select,R1,L1,R2,L2;",
 	"jn,A,B,X,Y,Start,Select,R,L;",
+	"I,MT32-pi: "
+};
+
+localparam CONF_STR3 =
+{
+	";",
 	"V,v",`BUILD_DATE
 };
 
-
-//------------------------------------------------------------------------------
+//////////////////////////////////////////////////////////////////////// 
 
 wire        ps2_kbd_clk_out;
 wire        ps2_kbd_data_out;
@@ -252,12 +273,13 @@ wire [15:0] joystick_analog_0;
 wire [15:0] joystick_analog_1;
 
 wire [21:0] gamma_bus;
+wire  [7:0] uart_mode;
+wire [31:0] uart_speed;
 
-hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000), .PS2WE(1), .WIDE(1)) hps_io
+hps_io #(.STRLEN(($size(CONF_STR1) + $size(mt32_curmode) + $size(CONF_STR2) + $size(mt32_curmode) + $size(CONF_STR3))>>3), .PS2DIV(4000), .PS2WE(1), .WIDE(1)) hps_io
 (
 	.clk_sys(clk_sys),
-	.conf_str(CONF_STR),
-	
+	.conf_str({CONF_STR1, mt32_curmode, CONF_STR2, mt32_curmode, CONF_STR3}),
 	.HPS_BUS(HPS_BUS),
 
 	.ps2_key(ps2_key),
@@ -273,12 +295,16 @@ hps_io #(.STRLEN(($size(CONF_STR))>>3), .PS2DIV(4000), .PS2WE(1), .WIDE(1)) hps_
 
 	.buttons(buttons),
 	.status(status),
-	.status_menumask({syscfg[7],status[7],dbg_menu}),
+	.status_menumask({mt32_newmode,mt32_available,syscfg[7],status[7],dbg_menu}),
+	.info_req(mt32_info_req),
+	.info(1),
+
 	.new_vmode(status[4]),
 	.gamma_bus(gamma_bus),
 
-	.uart_mode(16'b000_11111_000_11111),
-
+	.uart_mode(uart_mode),
+	.uart_speed(uart_speed),
+	
 	.joystick_0(joystick_0),
 	.joystick_1(joystick_1),
 	.joystick_analog_0(joystick_analog_0),
@@ -294,8 +320,6 @@ wire        mgmt_rd;
 wire        mgmt_wr;
 wire  [7:0] mgmt_req;
 
-wire        midi_en;
-
 wire [35:0] EXT_BUS;
 hps_ext hps_ext
 (
@@ -308,14 +332,13 @@ hps_ext hps_ext
 	.ext_rd(mgmt_rd),
 	.ext_wr(mgmt_wr),
 
-	.ext_midi(midi_en),
 	.ext_req(mgmt_req),
 	.ext_hotswap(status[39:38])
 );
 
-//------------------------------------------------------------------------------
+/////////////////////////////  PLL  //////////////////////////////////// 
 
-wire clk_sys, clk_uart, clk_opl, clk_vga;
+wire clk_sys, clk_uart, clk_mpu, clk_opl, clk_vga;
 reg [27:0] cur_rate;
 
 `ifdef DEBUG
@@ -323,10 +346,11 @@ reg [27:0] cur_rate;
 pll2 pll
 (
 	.refclk(CLK_50M),
-	.outclk_0(clk_vga)
+	.outclk_0(clk_vga),
 	.outclk_1(clk_uart),
-	.outclk_2(clk_opl)
-	.outclk_3(clk_sys)
+	.outclk_2(clk_mpu),
+	.outclk_3(clk_opl),
+	.outclk_4(clk_sys)
 );
 
 always @(posedge clk_sys) cur_rate <= 30000000;
@@ -340,8 +364,9 @@ pll pll
 	.rst(0),
 	.outclk_0(clk_sys),
 	.outclk_1(clk_uart),
-	.outclk_2(clk_opl),
-	.outclk_3(clk_vga),
+	.outclk_2(clk_mpu),
+	.outclk_3(clk_opl),
+	.outclk_4(clk_vga),
 	.locked(pll_locked),
 	.reconfig_to_pll(reconfig_to_pll),
 	.reconfig_from_pll(reconfig_from_pll)
@@ -368,7 +393,8 @@ pll_cfg pll_cfg
 	.reconfig_from_pll(reconfig_from_pll)
 );
 
-wire [2:0] clk_req = {status[7], syscfg[7] ? syscfg[1:0] : status[6:5]};
+reg [2:0] clk_req;
+always @(posedge clk_sys) clk_req <= {status[7], syscfg[7] ? syscfg[1:0] : status[6:5]};
 
 reg [2:0] speed;
 always @(posedge CLK_50M) begin
@@ -380,12 +406,12 @@ always @(posedge CLK_50M) begin
 	if(sp2 == sp1) speed <= sp2;
 end
 
-reg [1:0] uspeed_sys;
-always @(posedge clk_sys) uspeed_sys <= {midi_en, ~midi_en & ~status[10]};
+reg uspeed_sys;
+always @(posedge clk_sys) uspeed_sys <= (uart_speed <= 115200);
 
-reg [1:0] uspeed;
+reg uspeed;
 always @(posedge CLK_50M) begin
-	reg [1:0] sp1, sp2;
+	reg sp1, sp2;
 	
 	sp1 <= uspeed_sys;
 	sp2 <= sp1;
@@ -399,7 +425,7 @@ end
 always @(posedge CLK_50M) begin
 	reg [2:0] old_speed = 0;
 	reg [2:0] state = 0;
-	reg [1:0] old_uspeed = 0;
+	reg       old_uspeed = 0;
 	reg       old_rst = 0;
 
 	if(!cfg_waitrequest) begin
@@ -427,7 +453,7 @@ always @(posedge CLK_50M) begin
 					end
 				5: begin
 						cfg_address <= 5;
-						cfg_data <= (uspeed == 0) ? 32'h40909 : (uspeed == 1) ? 32'h4F4F4 : 32'h49696;
+						cfg_data <= uspeed ? 32'h4F4F4 : 32'h40909;
 						cfg_write <= 1;
 					end
 				7: begin
@@ -444,23 +470,24 @@ always @(posedge clk_sys) cur_rate <= clk_rate[clk_req];
 
 `endif
 
-reg joystick_clk_grav;
-always @(posedge clk_sys) begin
-	reg [31:0] sum = 0;
+////////////////////////////  UART  //////////////////////////////////// 
 
-	sum = sum + 40000;
-	if(sum >= cur_rate) begin
-		sum = sum - cur_rate;
-		joystick_clk_grav = ~joystick_clk_grav;
-	end
-end
+wire uart_cts, uart_dcd, uart_dsr, uart_rts, uart_dtr;
+wire uart_tx, uart_rx;
+wire mpu_tx, mpu_rx;
 
+wire hps_mpu = (uart_mode >= 3);
 
-wire        speaker_out;
-reg  [15:0] spk_vol;
-always @(posedge clk_sys) spk_vol <= {1'b0, {3'b000,speaker_out} << status[19:18], 11'd0};
+assign UART_RTS = ~hps_mpu & uart_rts;
+assign UART_DTR = ~hps_mpu & uart_dtr;
+assign uart_cts = ~hps_mpu & UART_CTS;
+assign uart_dcd = ~hps_mpu & UART_DSR;
+assign uart_dsr = ~hps_mpu & UART_DSR;
+assign uart_rx  = ~hps_mpu & UART_RXD;
+assign mpu_rx   = ~hps_mpu ? midi_rx : UART_RXD;
+assign UART_TXD = ~hps_mpu ? uart_tx : (mpu_tx & ~mt32_use);
 
-wire [15:0] sb_out_l, sb_out_r;
+////////////////////////////  VIDEO  /////////////////////////////////// 
 
 assign VGA_F1 = 0;
 assign VGA_SL = 0;
@@ -506,7 +533,7 @@ gamma_fast gamma
 	.HSync(hs),
 	.VSync(vs),
 	.DE(de1),
-	.RGB_in({R,G,B}),
+	.RGB_in(mt32_lcd ? {{2{mt32_lcd_pix}},R[7:2], {2{mt32_lcd_pix}},G[7:2], {2{mt32_lcd_pix}},B[7:2]} : {R,G,B}),
 
 	.HSync_out(VGA_HS),
 	.VSync_out(VGA_VS),
@@ -579,6 +606,8 @@ assign FB_FORCE_BLANK = fb_off;
 reg f60;
 always @(posedge clk_sys) f60 <= fb_en || (fb_width > 760);
 
+//////////////////////////////////////////////////////////////////////// 
+
 assign DDRAM_ADDR[28:25] = 4'h3;
 
 system system
@@ -586,6 +615,7 @@ system system
 	.clk_sys              (clk_sys),
 	.clk_opl              (clk_opl),
 	.clk_uart             (clk_uart),
+	.clk_mpu              (clk_mpu),
 	.clk_vga              (clk_vga),
 
 	.reset                (reset),
@@ -637,7 +667,6 @@ system system
 	.ps2_mouseclk_out     (ps2_mouse_clk_in),
 	.ps2_mousedat_out     (ps2_mouse_data_in),
 
-	.joystick_clk_grav    (joystick_clk_grav),
 	.joystick_dig_1       (joystick_0),
 	.joystick_dig_2       (joystick_1),
 	.joystick_ana_1       (joystick_analog_0),
@@ -654,15 +683,17 @@ system system
 	.ide1_request         (mgmt_req[5:3]),
 	.fdd_request          (mgmt_req[7:6]),
 
-	.serial_rx            (UART_RXD),
-	.serial_tx            (UART_TXD),
-	.serial_cts_n         (UART_CTS),
-	.serial_dcd_n         (UART_DSR),
-	.serial_dsr_n         (UART_DSR),
-	.serial_rts_n         (UART_RTS),
-	.serial_dtr_n         (UART_DTR),
-	.serial_midi_rate     (midi_en),
+	.serial_rx            (uart_rx),
+	.serial_tx            (uart_tx),
+	.serial_cts_n         (uart_cts),
+	.serial_dcd_n         (uart_dcd),
+	.serial_dsr_n         (uart_dsr),
+	.serial_rts_n         (uart_rts),
+	.serial_dtr_n         (uart_dtr),
 
+	.mpu_rx               (mpu_rx),
+	.mpu_tx               (mpu_tx),
+	
 	.memcfg               (memcfg),
 	.bootcfg              (status[37:32]),
 	
@@ -716,7 +747,86 @@ always @(posedge clk_sys) begin
 	if(status[7]) dbg_menu <= 1;
 end
 
+////////////////////////////  MT32pi  ////////////////////////////////// 
+
+wire        mt32_reset    = status[40] | reset;
+wire        mt32_disable  = status[24];
+wire        mt32_mode_req = status[26];
+wire  [1:0] mt32_rom_req  = status[28:27];
+wire  [7:0] mt32_sf_req   = status[31:29];
+wire  [1:0] mt32_info     = status[42:41];
+
+wire [15:0] mt32_i2s_r, mt32_i2s_l;
+wire  [7:0] mt32_mode, mt32_rom, mt32_sf;
+wire        mt32_lcd_en, mt32_lcd_pix, mt32_lcd_update;
+wire        midi_rx;
+
+wire mt32_newmode;
+wire mt32_available;
+wire mt32_use  = mt32_available & ~mt32_disable;
+wire mt32_mute = mt32_available &  mt32_disable;
+
+mt32pi mt32pi
+(
+	.*,
+	.reset(mt32_reset),
+	.midi_tx(mpu_tx | mt32_mute)
+);
+
+wire [87:0] mt32_curmode = {(mt32_mode == 'hA2)                  ? {"SoundFont ", {5'b00110, mt32_sf[2:0]}} :
+                            (mt32_mode == 'hA1 && mt32_rom == 0) ?  "   MT-32 v1" :
+                            (mt32_mode == 'hA1 && mt32_rom == 1) ?  "   MT-32 v2" :
+                            (mt32_mode == 'hA1 && mt32_rom == 2) ?  "     CM-32L" :
+                                                                    "    Unknown" };
+
+reg mt32_info_req;
+always @(posedge clk_sys) begin
+	reg old_mode;
+
+	old_mode <= mt32_newmode;
+	mt32_info_req <= (old_mode ^ mt32_newmode) && (mt32_info == 1);
+end
+
+reg mt32_lcd_on;
+always @(posedge CLK_VIDEO) begin
+	int to;
+	reg old_update;
+
+	old_update <= mt32_lcd_update;
+	if(to) to <= to - 1;
+
+	if(mt32_info == 2) mt32_lcd_on <= 1;
+	else if(mt32_info != 3) mt32_lcd_on <= 0;
+	else begin
+		if(!to) mt32_lcd_on <= 0;
+		if(old_update ^ mt32_lcd_update) begin
+			mt32_lcd_on <= 1;
+			to <= 90000000 * 2;
+		end
+	end
+end
+
+wire mt32_lcd = mt32_lcd_on & mt32_lcd_en;
+
 ////////////////////////////  AUDIO  /////////////////////////////////// 
+
+wire        speaker_out;
+reg  [16:0] spk_vol;
+always @(posedge CLK_AUDIO) spk_vol <= {2'b00, {3'b000,speaker_out} << status[19:18], 11'd0};
+
+wire [15:0] sb_out_l, sb_out_r;
+wire [16:0] sb_l, sb_r;
+always @(posedge CLK_AUDIO) begin
+	reg [15:0] old_l0, old_l1, old_r0, old_r1;
+	
+	old_l0 <= sb_out_l;
+	old_l1 <= old_l0;
+	if(old_l0 == old_l1) sb_l <= {old_l1[15],old_l1};
+
+	old_r0 <= sb_out_r;
+	old_r1 <= old_r0;
+	if(old_r0 == old_r1) sb_r <= {old_r1[15],old_r1};
+end
 
 localparam [3:0] comp_f1 = 4;
 localparam [3:0] comp_a1 = 2;
@@ -741,9 +851,16 @@ endfunction
 
 reg [15:0] cmp_l, cmp_r;
 reg [15:0] out_l, out_r;
-always @(posedge clk_sys) begin
-	out_l <= sb_out_l + spk_vol;
-	out_r <= sb_out_r + spk_vol;
+always @(posedge CLK_AUDIO) begin
+	reg [16:0] tmp_l, tmp_r;
+
+	tmp_l <= sb_l + spk_vol + (mt32_mute ? 17'd0 : {mt32_i2s_l[15],mt32_i2s_l});
+	tmp_r <= sb_r + spk_vol + (mt32_mute ? 17'd0 : {mt32_i2s_r[15],mt32_i2s_r});
+
+	// clamp the output
+	out_l <= (^tmp_l[16:15]) ? {tmp_l[16], {15{tmp_l[15]}}} : tmp_l[15:0];
+	out_r <= (^tmp_r[16:15]) ? {tmp_r[16], {15{tmp_r[15]}}} : tmp_r[15:0];
+
 	cmp_l <= compr(out_l);
 	cmp_r <= compr(out_r);
 end
@@ -751,7 +868,7 @@ end
 assign AUDIO_L   = status[21:20] ? cmp_l : out_l;
 assign AUDIO_R   = status[21:20] ? cmp_r : out_r;
 assign AUDIO_S   = 1;
-assign AUDIO_MIX = 0;
+assign AUDIO_MIX = status[44:43];
 
 endmodule
 

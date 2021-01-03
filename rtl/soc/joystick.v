@@ -58,7 +58,9 @@ module joystick
 (
 	input         rst_n,
 	input         clk,
-	input         clk_grav,
+
+	input  [27:0] clock_rate,
+
 	input [13:0]  dig_1,
 	input [13:0]  dig_2,
 	input [15:0]  ana_1,
@@ -68,6 +70,17 @@ module joystick
 	output reg [7:0] readdata,
 	input         write
 );
+
+reg clk_grav;
+always @(posedge clk) begin
+	reg [31:0] sum = 0;
+
+	sum = sum + 40000;
+	if(sum >= clock_rate) begin
+		sum = sum - clock_rate;
+		clk_grav = ~clk_grav;
+	end
+end
 
 always @(posedge clk) readdata <= (mode == 3) ? 8'hff : {jb4, jb3, jb2, jb1, |JOY2_Y, |JOY2_X, |JOY1_Y, |JOY1_X};
 

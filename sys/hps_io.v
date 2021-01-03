@@ -126,7 +126,8 @@ module hps_io #(parameter STRLEN=0, PS2DIV=0, WIDE=0, VDNUM=1, PS2WE=0)
 	output reg [32:0] TIMESTAMP,
 
 	// UART flags
-	input      [15:0] uart_mode,
+	output reg  [7:0] uart_mode,
+	output reg [31:0] uart_speed,
 
 	// ps2 keyboard emulation
 	output            ps2_kbd_clk_out,
@@ -248,6 +249,8 @@ always@(posedge clk_sys) begin : uio_block
 	reg        old_status_set = 0;
 	reg        old_info = 0;
 	reg  [7:0] info_n = 0;
+	reg [15:0] tmp1;
+	reg  [7:0] tmp2;
 
 	old_status_set <= status_set;
 	if(~old_status_set & status_set) begin
@@ -453,9 +456,6 @@ always@(posedge clk_sys) begin : uio_block
 				//RTC
 				'h24: TIMESTAMP[(byte_cnt-6'd1)<<4 +:16] <= io_din;
 
-				//UART flags
-				'h28: io_dout <= uart_mode;
-
 				//status set
 				'h29: if(!byte_cnt[MAX_W:3]) begin
 							case(byte_cnt[2:0])
@@ -478,6 +478,15 @@ always@(posedge clk_sys) begin : uio_block
 							gamma_wr_addr <= {(byte_cnt[1:0]-1'b1),io_din[15:8]};
 							{gamma_wr, gamma_value} <= {1'b1,io_din[7:0]};
 							if (byte_cnt[1:0] == 3) byte_cnt <= 1;
+						end
+
+				// UART
+				'h3b: if(!byte_cnt[MAX_W:2]) begin
+							case(byte_cnt[1:0])
+								1: tmp2 <= io_din[7:0];
+								2: tmp1 <= io_din;
+								3: {uart_speed, uart_mode} <= {io_din, tmp1, tmp2};
+							endcase
 						end
 			endcase
 		end

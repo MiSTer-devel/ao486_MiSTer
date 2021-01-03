@@ -1,9 +1,9 @@
 
 module system
 (
-	input         clk_sys,
 	input         reset,
 
+	input         clk_sys,
 	input  [27:0] clock_rate,
 	
 	input         l1_disable,
@@ -18,7 +18,6 @@ module system
 	input  [15:0] joystick_ana_1,
 	input  [15:0] joystick_ana_2,
 	input  [1:0]  joystick_mode,
-	input         joystick_clk_grav,
 
 	input  [15:0] mgmt_address,
 	input         mgmt_read,
@@ -48,7 +47,10 @@ module system
 	input         serial_dsr_n,
 	output        serial_rts_n,
 	output        serial_dtr_n,
-	input         serial_midi_rate,
+
+	input         clk_mpu,
+	input         mpu_rx,
+	output        mpu_tx,
 
 	input         clk_opl,
 	output [15:0] sound_sample_l,
@@ -180,6 +182,7 @@ wire  [7:0] pit_readdata;
 wire  [7:0] ps2_readdata;
 wire  [7:0] rtc_readdata;
 wire  [7:0] uart_readdata;
+wire  [7:0] mpu_readdata;
 wire  [7:0] dma_io_readdata;
 wire  [7:0] pic_readdata;
 wire  [7:0] vga_io_readdata;
@@ -339,7 +342,8 @@ wire [7:0] iobus_readdata8 =
 	( ps2_io_cs|ps2_ctl_cs                   ) ? ps2_readdata      :
 	( rtc_cs                                 ) ? rtc_readdata      :
 	( sb_cs|fm_cs                            ) ? sound_readdata    :
-	( uart_cs|mpu_cs                         ) ? uart_readdata     :
+	( uart_cs                                ) ? uart_readdata     :
+	( mpu_cs                                 ) ? mpu_readdata      :
 	( vga_b_cs|vga_c_cs|vga_d_cs             ) ? vga_io_readdata   :
 	( joy_cs                                 ) ? joystick_readdata :
 	                                             8'hFF;
@@ -493,7 +497,7 @@ joystick joystick
 	.clk               (clk_sys),
 	.rst_n             (~reset),
 
-	.clk_grav          (joystick_clk_grav),
+	.clock_rate        (clock_rate),
 
 	.write             (iobus_write & joy_cs),
 	.readdata          (joystick_readdata),
@@ -620,8 +624,7 @@ uart uart
 	.read              (iobus_read),
 	.write             (iobus_write),
 	.readdata          (uart_readdata),
-	.uart_cs           (uart_cs),
-	.mpu_cs            (mpu_cs),
+	.cs                (uart_cs),
 
 	.rx                (serial_rx),
 	.tx                (serial_tx),
@@ -630,13 +633,29 @@ uart uart
 	.dsr_n             (serial_dsr_n),
 	.rts_n             (serial_rts_n),
 	.dtr_n             (serial_dtr_n),
-	.br_out            (),
 	.ri_n              (1),
 
-	.midi_rate         (serial_midi_rate),
+	.irq               (irq_4)
+);
 
-	.irq_uart          (irq_4),
-	.irq_mpu           (irq_9)
+mpu mpu
+(
+	.clk               (clk_sys),
+	.br_clk            (clk_mpu),
+	.reset             (reset),
+
+	.address           (iobus_address[0]),
+	.writedata         (iobus_writedata[7:0]),
+	.read              (iobus_read),
+	.write             (iobus_write),
+	.readdata          (mpu_readdata),
+	.cs                (mpu_cs),
+
+	.rx                (mpu_rx),
+	.tx                (mpu_tx),
+
+	.double_rate       (1),
+	.irq               (irq_9)
 );
 
 vga vga

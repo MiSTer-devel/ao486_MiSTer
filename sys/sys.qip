@@ -20,6 +20,7 @@ set_global_assignment -name VERILOG_FILE       [file join $::quartus(qip_path) a
 set_global_assignment -name VERILOG_FILE       [file join $::quartus(qip_path) iir_filter.v ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) ltc2308.sv ]
 set_global_assignment -name VERILOG_FILE       [file join $::quartus(qip_path) sigma_delta_dac.v ]
+set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) mt32pi.sv ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) hdmi_config.sv ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) mcp23009.sv ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) ddr_svc.sv ]

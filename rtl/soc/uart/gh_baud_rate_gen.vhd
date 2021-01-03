@@ -28,6 +28,7 @@ entity gh_baud_rate_gen is
 		DIV2    : in std_logic := '0';
 		rst     : in std_logic;
 		WR      : in std_logic;
+		OVR     : in std_logic;
 		BE      : in std_logic_vector (1 downto 0); -- byte enable
 		D       : in std_logic_vector (15 downto 0);
 		RD      : out std_logic_vector (15 downto 0);
@@ -105,7 +106,7 @@ u1 : gh_register_ce
 	port map(
 		clk => clk,
 		rst => rst,
-		ce => UB_LD,
+		ce => UB_LD or OVR,
 		D => d(15 downto 8),
 		Q => rate(15 downto 8)
 		);
@@ -119,7 +120,7 @@ u2 : gh_register_ce
 	port map(
 		clk => clk,
 		rst => rst,
-		ce => LB_LD,
+		ce => LB_LD or OVR,
 		D => d(7 downto 0),
 		Q => rate(7 downto 0)
 		);

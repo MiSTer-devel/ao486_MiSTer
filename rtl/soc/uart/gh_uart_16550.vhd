@@ -183,6 +183,7 @@ COMPONENT gh_baud_rate_gen is
 		BR_clk  : in std_logic;
 		DIV2    : in std_logic;
 		WR      : in std_logic;
+		OVR     : in std_logic;
 		BE      : in std_logic_vector (1 downto 0); -- byte enable
 		D       : in std_logic_vector (15 downto 0);
 		RD      : out std_logic_vector (15 downto 0);
@@ -350,11 +351,8 @@ END COMPONENT;
 	signal TOI_clr  : std_logic;
 	signal TOI_c_ld : std_logic;
 	signal TOI_c_d  : std_logic_vector(11 downto 0);
-	
-	signal MPU_old  : std_logic;
 begin
 
-	MPU_old <= MPU_MODE when rising_edge(clk);
 	RX_Empty <= RF_empty;
 	RX_Full <= RF_full;
 	TX_Full <= TF_full;
@@ -619,7 +617,7 @@ u19 : gh_DECODE_3to8
 
 	WR_F <= WR_B(0) and (not LCR(7));
 	WR_IER <= WR_B(1) and (not LCR(7));
-	WR_D <= LCR(7) and (WR_B(0) or WR_B(1)) when MPU_MODE = '0' else not MPU_old;
+	WR_D <= LCR(7) and (WR_B(0) or WR_B(1));
 	WR_DML <= (WR_B(1) and LCR(7)) & (WR_B(0) and LCR(7)) when MPU_MODE = '0' else "11";
 		
 u20 : gh_register_ce 
@@ -729,6 +727,7 @@ u27 : gh_baud_rate_gen
 		DIV2 => DIV2,
 		rst  => rst, 
 		WR => WR_D,
+		OVR => MPU_MODE,
 		BE => WR_DML,
 		D => D16,
 		RD => RDD,

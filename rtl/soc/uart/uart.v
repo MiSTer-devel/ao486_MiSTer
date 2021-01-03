@@ -1,15 +1,8 @@
 // uart.v
+// Copyright (C) 2020 Alexey Melnikov
 
-// This file was auto-generated as a prototype implementation of a module
-// created in component editor.  It ties off all outputs to ground and
-// ignores all inputs.  It needs to be edited to make it do something
-// useful.
-//
-// This file will not be automatically regenerated.  You should check it in
-// to your version control system if you want to keep it.
-
-`timescale 1 ps / 1 ps
-module uart (
+module uart
+(
 	input            clk,
 	input            reset,
 
@@ -18,8 +11,7 @@ module uart (
 	input      [7:0] writedata,
 	input            read,
 	output reg [7:0] readdata,
-	input            uart_cs,
-	input            mpu_cs,
+	input            cs,
 
 	input            br_clk,
 	input            rx,
@@ -32,20 +24,9 @@ module uart (
 	output           br_out,
 	output           dtr_n,
 
-	input            midi_rate,
-	output           irq_uart,
-	output           irq_mpu
+	output           irq
 );
 
-assign irq_uart = ~mpu_mode_r & irq;
-assign irq_mpu  = read_ack | (mpu_mode_r & ~rx_empty);
-
-wire xCR_write = uart_cs && write && (address == 2 || address == 3);
-wire mpu_mode = mpu_mode_r & ~xCR_write;
-
-wire uart_strobe = mpu_mode ? (mpu_cs & ~address[0] & ((read & ~read_ack) | write)) : (uart_cs & (read | write));
-
-wire irq, rx_empty, tx_empty;
 wire [7:0] data;
 
 gh_uart_16550 uart_16550
@@ -53,7 +34,7 @@ gh_uart_16550 uart_16550
 	.clk(clk),
 	.BR_clk(br_clk),
 	.rst(reset),
-	.CS(uart_strobe),
+	.CS(cs & (read | write)),
 	.WR(write),
 	.ADD(address),
 	.D(writedata),
@@ -72,36 +53,87 @@ gh_uart_16550 uart_16550
 	.RTSn(rts_n),
 	.IRQ(irq),
 
-	.DIV2(midi_rate),
-	.MPU_MODE(mpu_mode),
+	.DIV2(0),
+	.MPU_MODE(0)
+);
+
+always @(posedge clk) if(read & cs) readdata <= data;
+
+endmodule
+
+module mpu
+(
+	input            clk,
+	input            reset,
+
+	input            address,
+	input            write,
+	input      [7:0] writedata,
+	input            read,
+	output reg [7:0] readdata,
+	input            cs,
+
+	input            double_rate,
+	input            br_clk,
+
+	input            rx,
+	output           tx,
+	output           br_out,
+
+	output           irq
+);
+
+assign irq  = read_ack | ~rx_empty;
+
+wire rx_empty, tx_empty;
+wire [7:0] data;
+
+gh_uart_16550 uart_16550
+(
+	.clk(clk),
+	.BR_clk(br_clk),
+	.rst(reset),
+	.CS(cs & ~address & ((read & ~read_ack) | write)),
+	.WR(write),
+	.ADD(0),
+	.D(writedata),
+	.RD(data),
+
+	.B_CLK(br_out),
+
+	.sRX(rx),
+	.sTX(tx),
+	.RIn(1),
+	.CTSn(0),
+	.DSRn(0),
+	.DCDn(0),
+
+	.DIV2(double_rate),
+	.MPU_MODE(1),
 	.TX_Empty(tx_empty),
 	.RX_Empty(rx_empty)
 );
 
 reg read_ack;
-reg mpu_mode_r;
 reg mpu_dumb;
 always @(posedge clk) begin
 	if(reset) begin
-		mpu_mode_r <= 0;
 		read_ack <= 0;
 		mpu_dumb <= 0;
 	end
-	else begin
-		if(read & uart_cs) readdata <= data;
-		if(read & mpu_cs)  readdata <= address[0] ? {~(read_ack | ~rx_empty), ~tx_empty, 6'd0} : read_ack ? 8'hFE : data;
-
-		if(write & mpu_cs & address[0]) begin
-			mpu_mode_r <= 1;
-			read_ack <= ~mpu_dumb;
-			if(writedata == 8'hFF) mpu_dumb <= 0;
-			if(writedata == 8'h3F) mpu_dumb <= 1;
+	else if(cs) begin
+		if(address) begin
+			if(read) readdata <= {~(read_ack | ~rx_empty), ~tx_empty, 6'd0};
+			if(write) begin
+				read_ack <= ~mpu_dumb;
+				if(writedata == 8'hFF) mpu_dumb <= 0;
+				if(writedata == 8'h3F) mpu_dumb <= 1;
+			end
 		end
-
-		if(mpu_cs & read & ~address[0]) read_ack <= 0;
-
-		// write to FCR or LCR to switch MPU off
-		if(xCR_write) {mpu_mode_r, mpu_dumb} <= 0;
+		else if(read) begin
+			readdata <= read_ack ? 8'hFE : data;
+			read_ack <= 0;
+		end
 	end
 end
 
