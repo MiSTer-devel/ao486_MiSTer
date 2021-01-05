@@ -67,15 +67,15 @@ always @(posedge clk) begin
 	end
 end
 
-reg ce_81920hz;
+reg ce_8192hz;
 always @(posedge clk) begin
 	reg [27:0] sum = 0;
 
-	ce_81920hz = 0;
-	sum = sum + 28'd81920;
+	ce_8192hz = 0;
+	sum = sum + 28'd8192;
 	if(sum >= clk_rate) begin
 		sum = sum - clk_rate;
-		ce_81920hz = 1;
+		ce_8192hz = 1;
 	end
 end
 
@@ -451,8 +451,8 @@ end
 
 wire periodic_enabled = divider[2:1] != 2'b00 && periodic_rate != 4'd0;
 wire periodic_start   = periodic_enabled && (
-                            (ce_81920hz && periodic_major == 13'd0) ||
-                            (ce_81920hz && periodic_major == 13'd1));
+                            (ce_8192hz && periodic_major == 13'd0) ||
+                            (ce_8192hz && periodic_major == 13'd1));
 
 wire [12:0] periodic_major_initial = {
     periodic_rate == 4'd15, periodic_rate == 4'd14, periodic_rate == 4'd13, periodic_rate == 4'd12,
@@ -465,14 +465,14 @@ always @(posedge clk) begin
     if(rst_n == 1'b0)                                         periodic_major <= 13'd0;
     else if(~periodic_enabled)                                periodic_major <= 13'd0;
     else if(periodic_start)                                   periodic_major <= periodic_major_initial;
-    else if(periodic_enabled && periodic_major && ce_81920hz) periodic_major <= periodic_major - 13'd1;
+    else if(periodic_enabled && periodic_major && ce_8192hz) periodic_major <= periodic_major - 13'd1;
 end
 
 reg periodic_interrupt;
 always @(posedge clk) begin
     if(rst_n == 1'b0)                                                    periodic_interrupt <= 1'b0;
     else if(io_read_valid && io_address == 1'b1 && ram_address == 7'h0C) periodic_interrupt <= 1'b0;
-    else if(periodic_enabled && ce_81920hz && periodic_major == 13'd1)   periodic_interrupt <= 1'b1;
+    else if(periodic_enabled && ce_8192hz && periodic_major == 13'd1)    periodic_interrupt <= 1'b1;
 end
 
 //------------------------------------------------------------------------------
