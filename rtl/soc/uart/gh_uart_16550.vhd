@@ -40,9 +40,11 @@
 --
 -----------------------------------------------------------------------------
 library ieee ;
-use ieee.std_logic_1164.all ;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 
 entity gh_uart_16550 is
+	GENERIC (MPU_MODE: std_logic := '0');
 	port(
 		clk     : in std_logic;
 		BR_clk  : in std_logic;
@@ -67,7 +69,6 @@ entity gh_uart_16550 is
 		RXRDYn  : out std_logic;
 		
 		DIV2    : in std_logic := '0';
-		MPU_MODE: in std_logic := '0';
 		RX_Empty: out std_logic;
 		RX_Full : out std_logic;
 		TX_Empty: out std_logic;
@@ -160,8 +161,8 @@ COMPONENT gh_uart_Rx_8bit is
 		);
 END COMPONENT;
 
-COMPONENT gh_fifo_async16_sr is
-	GENERIC (data_width: INTEGER :=8 ); -- size of data bus
+COMPONENT gh_fifo_async_sr is
+	GENERIC (data_width: INTEGER :=8; queue_depth: INTEGER :=4 ); -- size of data bus
 	port (					
 		clk_WR : in STD_LOGIC; -- write clock
 		clk_RD : in STD_LOGIC; -- read clock
@@ -739,8 +740,8 @@ u27 : gh_baud_rate_gen
 ---- trans FIFO   12/23/06 -----------------------
 --------------------------------------------------
 
-U28 : gh_fifo_async16_sr
-	Generic Map(data_width => 8)
+U28 : gh_fifo_async_sr
+	Generic Map(data_width => 8, queue_depth => 4 + 7 * to_integer(unsigned'('0' & MPU_MODE)))
 	PORT MAP (
 		clk_WR => clk,
 		clk_RD => BR_clk,

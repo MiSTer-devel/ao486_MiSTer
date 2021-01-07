@@ -53,8 +53,7 @@ gh_uart_16550 uart_16550
 	.RTSn(rts_n),
 	.IRQ(irq),
 
-	.DIV2(0),
-	.MPU_MODE(0)
+	.DIV2(0)
 );
 
 always @(posedge clk) if(read & cs) readdata <= data;
@@ -85,10 +84,10 @@ module mpu
 
 assign irq  = read_ack | ~rx_empty;
 
-wire rx_empty, tx_empty;
+wire rx_empty, tx_full;
 wire [7:0] data;
 
-gh_uart_16550 uart_16550
+gh_uart_16550 #(1'b1) uart_16550
 (
 	.clk(clk),
 	.BR_clk(br_clk),
@@ -109,8 +108,7 @@ gh_uart_16550 uart_16550
 	.DCDn(0),
 
 	.DIV2(double_rate),
-	.MPU_MODE(1),
-	.TX_Empty(tx_empty),
+	.TX_Full(tx_full),
 	.RX_Empty(rx_empty)
 );
 
@@ -123,7 +121,7 @@ always @(posedge clk) begin
 	end
 	else if(cs) begin
 		if(address) begin
-			if(read) readdata <= {~(read_ack | ~rx_empty), ~tx_empty, 6'd0};
+			if(read) readdata <= {~(read_ack | ~rx_empty), tx_full, 6'd0};
 			if(write) begin
 				read_ack <= ~mpu_dumb;
 				if(writedata == 8'hFF) mpu_dumb <= 0;

@@ -7,7 +7,7 @@ set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) gh_DECODE_
 set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) gh_edge_det.vhd ]
 set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) gh_edge_det_XCD.vhd ]
 set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) gh_fifo_async16_rcsr_wf.vhd ]
-set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) gh_fifo_async16_sr.vhd ]
+set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) gh_fifo_async_sr.vhd ]
 set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) gh_gray2binary.vhd ]
 set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) gh_jkff.vhd ]
 set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) gh_parity_gen_Serial.vhd ]
