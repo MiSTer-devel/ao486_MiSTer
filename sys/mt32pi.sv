@@ -132,6 +132,12 @@ always @(posedge CLK_AUDIO) begin : i2s_proc
 		if (i2s_ws) mt32_i2s_l <= i2s_buf;
 		else        mt32_i2s_r <= i2s_buf;
 	end
+	
+	if (reset) begin
+		i2s_buf    <= 0;
+		mt32_i2s_l <= 0;
+		mt32_i2s_r <= 0;
+	end
 end
 
 
