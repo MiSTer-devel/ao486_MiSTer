@@ -43,7 +43,7 @@ module mt32pi
 //
 // Pin | USB Name | Signal
 // ----+----------+--------------
-// 0   | D+       | I/O I2C_SDA
+// 0   | D+       | I/O I2C_SDA / RX (midi in)
 // 1   | D-       | O   TX (midi out)
 // 2   | TX-      | I   I2S_WS (1 == right)
 // 3   | GND_d    | I   I2C_SCL
@@ -91,7 +91,7 @@ endgenerate
 wire   i2s_ws   = crossed ? USER_IN[2] : USER_IN[5];
 wire   i2s_data = crossed ? USER_IN[5] : USER_IN[2];
 wire   i2s_bclk = crossed ? USER_IN[4] : USER_IN[6];
-assign midi_rx  = crossed ? USER_IN[6] : USER_IN[4];
+assign midi_rx  = ~mt32_available ? USER_IN[0] : crossed ? USER_IN[6] : USER_IN[4];
 
 
 //
@@ -164,6 +164,10 @@ always @(posedge CLK_AUDIO) begin : i2c_slave
 	reg        i2c_rw;
 	reg        disp, dispdata;
 	reg  [2:0] div;
+	reg        old_reset;
+	
+	old_reset <= reset;
+	if(old_reset & ~reset) sda_out <= 1;
 
 	div <= div + 1'd1;
 	if(!div) begin
