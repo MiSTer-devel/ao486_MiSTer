@@ -204,7 +204,7 @@ assign DDRAM_DIN      = {ram_data,ram_data};
 assign DDRAM_WE       = ram_wr;
 assign DDRAM_RD       = 0;
 
-assign FB_EN     = ~no_rotate;
+assign FB_EN     = fb_en[2];
 assign FB_FORMAT = 5'b00110;
 assign FB_BASE   = {MEM_BASE,o_fb,23'd0};
 assign FB_WIDTH  = vsz;
@@ -236,6 +236,11 @@ always @(posedge CLK_VIDEO) begin
 	end
 end
 
+initial begin
+	fb_en = 0;
+end
+
+reg  [2:0] fb_en = 0;
 reg [11:0] hsz = 320, vsz = 240;
 reg [11:0] bwidth;
 reg [22:0] bufsize;
@@ -257,6 +262,7 @@ always @(posedge CLK_VIDEO) begin
 			vsz <= vcnt;
 			bwidth <= vcnt + 2'd3;
 			vcnt <= 0;
+			fb_en <= {fb_en[1:0], ~no_rotate};
 		end
 		if(old_vs & ~VGA_VS) bufsize <= hsz * stride;
 	end
