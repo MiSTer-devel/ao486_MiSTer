@@ -17,7 +17,7 @@ Core was greatly reworked with many new features and performance added.
 ## How to install
 
 * Copy ao486.rbf to the _Computer folder on your SD card.  This will be automatically copied there if you are using the update script.
-* Create games/ao486 directory on SD card and copy [boot0.rom](https://git.io/JtPaM), [boot1.rom](https://git.io/JtPaS) there.
+* Create games/ao486/ directory on SD card and copy [boot0.rom](https://git.io/JtPaM), [boot1.rom](https://git.io/JtPaS) there.
 * For CD images, the typical location is games/ao486/cd/ and you can either have the game folders, or CHD, IMG, ISO, BIN/CUE files in the root for mounting.  The imgset command can be used in DOS to mount/unmount images placed here by passing the exact path.
 * For floppy: copy desired floppy raw image with extension **img** to games/ao486/floppy/ directory.  The imgset command can be used in DOS to mount/unmount images placed here by passing the exact path.
 * For HDD: create an empty file of desired size with extension **vhd** in ao486 directory (or prepare .vhd file separately with any tool supporting .vhd or hard disk .img files and copy to games/ao486/ folder)
@@ -46,8 +46,6 @@ Optional programs and drivers:  https://git.io/JtPVe
 * mpuctl.exe: tool for sending commands to the optional mt32-pi baremetal synth.  See reference below.
 * sbctl.exe: set Sound Blaster configs.  Supported: I5,I7,I10,H5,H1,T4,T6
 * sysctl.exe: Used for setting core options and cache referenced above from command line. Usase: SYSCTL SYS/MENU 90Mhz/56Mhz/15Mhz L1+/L1- L2+/L2-
-
-
 
 ### Sound Blaster
 Default config: A220 I5 D1 H5 T6
