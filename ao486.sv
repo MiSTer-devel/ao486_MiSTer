@@ -39,8 +39,9 @@ module emu
 	output        CE_PIXEL,
 
 	//Video aspect ratio for HDMI. Most retro systems have ratio 4:3.
-	output [11:0] VIDEO_ARX,
-	output [11:0] VIDEO_ARY,
+	//if VIDEO_ARX[12] or VIDEO_ARY[12] is set then [11:0] contains scaled size instead of aspect ratio.
+	output [12:0] VIDEO_ARX,
+	output [12:0] VIDEO_ARY,
 
 	output  [7:0] VGA_R,
 	output  [7:0] VGA_G,
@@ -52,13 +53,17 @@ module emu
 	output [1:0]  VGA_SL,
 	output        VGA_SCALER, // Force VGA scaler
 
-	// Use framebuffer from DDRAM (USE_FB=1 in qsf)
+	input  [11:0] HDMI_WIDTH,
+	input  [11:0] HDMI_HEIGHT,
+
+`ifdef USE_FB
+	// Use framebuffer in DDRAM (USE_FB=1 in qsf)
 	// FB_FORMAT:
 	//    [2:0] : 011=8bpp(palette) 100=16bpp 101=24bpp 110=32bpp
 	//    [3]   : 0=16bits 565 1=16bits 1555
 	//    [4]   : 0=RGB  1=BGR (for 16/24/32 modes)
 	//
-	// FB_STRIDE either 0 (rounded to 256 bytes) or multiple of 16 bytes.
+	// FB_STRIDE either 0 (rounded to 256 bytes) or multiple of pixel size (in bytes)
 	output        FB_EN,
 	output  [4:0] FB_FORMAT,
 	output [11:0] FB_WIDTH,
@@ -68,7 +73,7 @@ module emu
 	input         FB_VBL,
 	input         FB_LL,
 	output        FB_FORCE_BLANK,
-	
+
 	// Palette control for 8bit modes.
 	// Ignored for other video modes.
 	output        FB_PAL_CLK,
@@ -76,6 +81,7 @@ module emu
 	output [23:0] FB_PAL_DOUT,
 	input  [23:0] FB_PAL_DIN,
 	output        FB_PAL_WR,
+`endif
 
 	output        LED_USER,  // 1 - ON, 0 - OFF.
 
@@ -93,7 +99,7 @@ module emu
 	input         CLK_AUDIO, // 24.576 MHz
 	output [15:0] AUDIO_L,
 	output [15:0] AUDIO_R,
-	output        AUDIO_S, // 1 - signed audio samples, 0 - unsigned
+	output        AUDIO_S,   // 1 - signed audio samples, 0 - unsigned
 	output  [1:0] AUDIO_MIX, // 0 - no mix, 1 - 25%, 2 - 50%, 3 - 100% (mono)
 
 	//ADC
@@ -106,6 +112,7 @@ module emu
 	output        SD_CS,
 	input         SD_CD,
 
+`ifdef USE_DDRAM
 	//High latency DDR3 RAM interface
 	//Use for non-critical time purposes
 	output        DDRAM_CLK,
@@ -118,7 +125,9 @@ module emu
 	output [63:0] DDRAM_DIN,
 	output  [7:0] DDRAM_BE,
 	output        DDRAM_WE,
+`endif
 
+`ifdef USE_SDRAM
 	//SDRAM interface with lower latency
 	output        SDRAM_CLK,
 	output        SDRAM_CKE,
@@ -131,6 +140,20 @@ module emu
 	output        SDRAM_nCAS,
 	output        SDRAM_nRAS,
 	output        SDRAM_nWE,
+`endif
+
+`ifdef DUAL_SDRAM
+	//Secondary SDRAM
+	input         SDRAM2_EN,
+	output        SDRAM2_CLK,
+	output [12:0] SDRAM2_A,
+	output  [1:0] SDRAM2_BA,
+	inout  [15:0] SDRAM2_DQ,
+	output        SDRAM2_nCS,
+	output        SDRAM2_nCAS,
+	output        SDRAM2_nRAS,
+	output        SDRAM2_nWE,
+`endif
 
 	input         UART_CTS,
 	output        UART_RTS,
@@ -156,9 +179,6 @@ assign ADC_BUS  = 'Z;
 assign {SDRAM_A, SDRAM_BA, SDRAM_DQ, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 
-assign VIDEO_ARX = (!status[23:22]) ? 8'd4 : (status[23:22] - 1'd1);
-assign VIDEO_ARY = (!status[23:22]) ? 8'd3 : 8'd0;
-
 assign LED_DISK[1] = 0;
 assign LED_POWER   = 0;
 assign BUTTONS     = {~ps2_reset_n, 1'b0};
@@ -170,7 +190,7 @@ led fdd_led(clk_sys, |mgmt_req[7:6], LED_USER);
 // 0         1         2         3          4         5         6
 // 01234567890123456789012345678901 23456789012345678901234567890123
 // 0123456789ABCDEFGHIJKLMNOPQRSTUV 0123456789ABCDEFGHIJKLMNOPQRSTUV
-// XXXXXXXXXXXXXXXXXXXXXXXXX XXXXXX XXXXXXXXXXXXX
+// X  XXXXXXX XXXXXXXXXXXXXX XXXXXX XXXXXXXXXXXXXXX
 
 `include "build_id.v"
 localparam CONF_STR1 =
@@ -193,6 +213,7 @@ localparam CONF_STR1 =
 	"P1O8,16/24bit mode,BGR,RGB;",
 	"P1O9,16bit format,1555,565;",
 	"P1OE,Low-Res,Native,4x;",
+	"P1oDE,Scale,Normal,V-Integer,Narrower HV-Integer,Wider HV-Integer;",
 	"P1-;",
 	"P1O3,FM mode,OPL2,OPL3;",
 	"P1OH,C/MS,Disable,Enable;",
@@ -605,6 +626,43 @@ assign FB_FORCE_BLANK = fb_off;
 
 reg f60;
 always @(posedge clk_sys) f60 <= fb_en || (fb_width > 760);
+
+reg  [1:0] ar,scale;
+reg [11:0] arx_i,ary_i;
+always @(posedge CLK_VIDEO) begin
+	ar    <= status[23:22];
+	scale <= status[46:45];
+	arx_i <= (!ar) ? 8'd4 : (ar - 1'd1);
+	ary_i <= (!ar) ? 8'd3 : 8'd0;
+end
+
+wire [12:0] fb_arx, arx, fb_ary, ary;
+
+video_scale_int fb_scale
+(
+	.*,
+	.hsize(fb_width),
+	.vsize(fb_height),
+	.arx_o(fb_arx),
+	.ary_o(fb_ary)
+);
+
+video_freak video_freak
+(
+	.*,
+	.VGA_DE_IN(VGA_DE),
+	.VGA_DE(),
+	.ARX(arx_i),
+	.ARY(ary_i),
+	.CROP_SIZE(0),
+	.CROP_OFF(0),
+	.SCALE(scale),
+	.VIDEO_ARX(arx),
+	.VIDEO_ARY(ary)
+);
+
+assign VIDEO_ARX = fb_en ? fb_arx : arx;
+assign VIDEO_ARY = fb_en ? fb_ary : ary;
 
 //////////////////////////////////////////////////////////////////////// 
 

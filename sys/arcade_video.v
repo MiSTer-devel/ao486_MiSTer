@@ -112,9 +112,9 @@ wire scandoubler = fx || forced_scandoubler;
 
 video_mixer #(.LINE_LENGTH(WIDTH+4), .HALF_DEPTH(DW!=24), .GAMMA(GAMMA)) video_mixer
 (
-	.clk_vid(CLK_VIDEO),
+	.CLK_VIDEO(CLK_VIDEO),
 	.ce_pix(CE),
-	.ce_pix_out(CE_PIXEL),
+	.CE_PIXEL(CE_PIXEL),
 
 	.scandoubler(scandoubler),
 	.hq2x(fx==1),

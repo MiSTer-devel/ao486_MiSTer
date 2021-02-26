@@ -67,7 +67,7 @@ reg         spdif_out_q;
 
 reg [5:0]   parity_count_q;
 
-reg         channel_status_bit;
+reg         channel_status_bit_q;
 
 //-----------------------------------------------------------------
 // Subframe Counter
@@ -144,19 +144,20 @@ assign subframe_w[28] = 1'b0; // Valid
 assign subframe_w[29] = 1'b0;
 
 // Timeslots 30 = Channel status bit
-assign subframe_w[30] = channel_status_bit ; //was constant 1'b0 enabling copy-bit;
+assign subframe_w[30] = channel_status_bit_q ; //was constant 1'b0 enabling copy-bit;
 
 // Timeslots 31 = Even Parity bit (31:4)
 assign subframe_w[31] = 1'b0;
 
 //-----------------------------------------------------------------
-// Preamble
+// Preamble and Channel status bit
 //-----------------------------------------------------------------
 localparam PREAMBLE_Z = 8'b00010111; // "B" channel A data at start of block
 localparam PREAMBLE_Y = 8'b00100111; // "W" channel B data
 localparam PREAMBLE_X = 8'b01000111; // "M" channel A data not at start of block
 
 reg [7:0] preamble_r;
+reg       channel_status_bit_r;
 
 always @ *
 begin
@@ -172,20 +173,28 @@ begin
         preamble_r = PREAMBLE_X; // X(M)
 
     if (subframe_count_q[8:1] == 8'd2) // frame 2 => subframes 4 and 5 => 0 = copy inhibited, 1 = copy permitted
-        channel_status_bit = 1'b1;
+        channel_status_bit_r = 1'b1;
     else if (subframe_count_q[8:1] == 8'd15) // frame 15 => 0 = no indication, 1 = original media
-        channel_status_bit = 1'b1;
+        channel_status_bit_r = 1'b1;
     else if (subframe_count_q[8:1] == 8'd25) // frame 24 to 27 => sample frequency, 0100 = 48kHz, 0000 = 44kHz (l2r)
-        channel_status_bit = 1'b1;
+        channel_status_bit_r = 1'b1;
     else
-        channel_status_bit = 1'b0; // everything else defaults to 0        
+        channel_status_bit_r = 1'b0; // everything else defaults to 0        
 end
 
 always @ (posedge rst_i or posedge clk_i )
-if (rst_i == 1'b1)
-    preamble_q  <= 8'h00;
-else if (load_subframe_q)
-    preamble_q  <= preamble_r;
+begin
+    if (rst_i == 1'b1)
+    begin
+        preamble_q  <= 8'h00;
+        channel_status_bit_q <= 1'b0;
+    end
+    else if (load_subframe_q)
+    begin
+        preamble_q  <= preamble_r;
+        channel_status_bit_q <= channel_status_bit_r;
+    end
+end
 
 //-----------------------------------------------------------------
 // Parity Counter

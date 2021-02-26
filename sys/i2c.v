@@ -37,12 +37,22 @@ always @(posedge CLK) begin
 	end
 end
 
-assign I2C_SCL = SCLK | I2C_CLOCK;
+assign I2C_SCL = (SCLK | I2C_CLOCK) ? 1'bZ : 1'b0;
 assign I2C_SDA = SDO[3] ? 1'bz : 1'b0;
 
-reg       SCLK = 1;
-reg [3:0] SDO  = 4'b1111;
+reg       SCLK;
+reg [3:0] SDO;
 reg [0:7] rdata;
+
+reg  [5:0] SD_COUNTER;
+reg [0:31] SD;
+
+initial begin
+	SD_COUNTER = 'b111111;
+	SD   = 'hFFFF;
+	SCLK = 1;
+	SDO  = 4'b1111;
+end
 
 assign I2C_RDATA = rdata;
 
@@ -50,9 +60,6 @@ always @(posedge CLK) begin
 	reg old_clk;
 	reg old_st;
 	reg rd,len;
-
-	reg  [5:0] SD_COUNTER = 'b111111;
-	reg [0:31] SD;
 
 	old_clk <= I2C_CLOCK;
 	old_st  <= START;

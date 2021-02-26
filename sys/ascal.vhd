@@ -429,7 +429,7 @@ ARCHITECTURE rtl OF ascal IS
   SIGNAL o_readdataack,o_readdataack_sync,o_readdataack_sync2 : std_logic;
   SIGNAL o_copyv : unsigned(0 TO 8);
   SIGNAL o_adrs : unsigned(31 DOWNTO 0); -- Avalon address
-  SIGNAL o_adrs_pre : natural RANGE 0 TO 2**23-1;
+  SIGNAL o_adrs_pre : natural RANGE 0 TO 2**24-1;
   SIGNAL o_stride : unsigned(13 DOWNTO 0);
   SIGNAL o_adrsa,o_adrsb,o_rline : std_logic;
   SIGNAL o_ad,o_ad1,o_ad2,o_ad3 : natural RANGE 0 TO 2*BLEN-1;
@@ -1519,7 +1519,7 @@ BEGIN
       avl_read_sync<=o_read; -- <ASYNC>
       avl_read_sync2<=avl_read_sync;
       avl_read_pulse<=avl_read_sync XOR avl_read_sync2;
-      avl_radrs <=o_adrs AND (RAMSIZE - 1); -- <ASYNC>
+      avl_radrs <=o_adrs; -- <ASYNC>
       avl_rline <=o_rline; -- <ASYNC>
       
       --------------------------------------------
