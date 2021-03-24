@@ -12,6 +12,7 @@ module system
 	output [1:0]  fdd_request,
 	output [2:0]  ide0_request,
 	output [2:0]  ide1_request,
+	input  [1:0]  floppy_wp,
 
 	input  [13:0] joystick_dig_1,
 	input  [13:0] joystick_dig_2,
@@ -441,6 +442,8 @@ floppy floppy
 	.mgmt_readdata     (mgmt_fdd_readdata),
 	.mgmt_write        (mgmt_write & mgmt_fdd_cs),
 	.mgmt_read         (mgmt_read & mgmt_fdd_cs),
+
+	.wp                (floppy_wp),
 
 	.request           (fdd_request),
 	.irq               (irq_6)

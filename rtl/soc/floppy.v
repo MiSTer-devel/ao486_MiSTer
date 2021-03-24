@@ -63,6 +63,8 @@ module floppy
 	input      [15:0] mgmt_writedata,
 	input             mgmt_read,
 	output     [15:0] mgmt_readdata,
+	
+	input       [1:0] wp,
 
 	input      [27:0] clock_rate,
 
@@ -83,8 +85,9 @@ always @(posedge clk) if(mgmt_write && mgmt_address == 4'd0) media_present[mgmt_
 
 assign fdd0_inserted = media_present[0];
 
-reg media_writeprotected[2];
-always @(posedge clk) if(mgmt_write && mgmt_address == 4'd1) media_writeprotected[mgmt_fddn] <= mgmt_writedata[0];
+reg [1:0] wp_sys;
+always @(posedge clk) if(mgmt_write && mgmt_address == 4'd1) wp_sys[mgmt_fddn] <= mgmt_writedata[0];
+wire [1:0] media_writeprotected = wp_sys | wp;
 
 (* ramstyle = "logic" *) reg [7:0] media_cylinders[2];
 always @(posedge clk) if(mgmt_write && mgmt_address == 4'd2) media_cylinders[mgmt_fddn] <= mgmt_writedata[7:0];
