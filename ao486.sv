@@ -56,7 +56,7 @@ module emu
 	input  [11:0] HDMI_WIDTH,
 	input  [11:0] HDMI_HEIGHT,
 
-`ifdef USE_FB
+`ifdef MISTER_FB
 	// Use framebuffer in DDRAM (USE_FB=1 in qsf)
 	// FB_FORMAT:
 	//    [2:0] : 011=8bpp(palette) 100=16bpp 101=24bpp 110=32bpp
@@ -74,6 +74,7 @@ module emu
 	input         FB_LL,
 	output        FB_FORCE_BLANK,
 
+`ifdef MISTER_FB_PALETTE
 	// Palette control for 8bit modes.
 	// Ignored for other video modes.
 	output        FB_PAL_CLK,
@@ -81,6 +82,7 @@ module emu
 	output [23:0] FB_PAL_DOUT,
 	input  [23:0] FB_PAL_DIN,
 	output        FB_PAL_WR,
+`endif
 `endif
 
 	output        LED_USER,  // 1 - ON, 0 - OFF.
@@ -112,7 +114,6 @@ module emu
 	output        SD_CS,
 	input         SD_CD,
 
-`ifdef USE_DDRAM
 	//High latency DDR3 RAM interface
 	//Use for non-critical time purposes
 	output        DDRAM_CLK,
@@ -125,9 +126,7 @@ module emu
 	output [63:0] DDRAM_DIN,
 	output  [7:0] DDRAM_BE,
 	output        DDRAM_WE,
-`endif
 
-`ifdef USE_SDRAM
 	//SDRAM interface with lower latency
 	output        SDRAM_CLK,
 	output        SDRAM_CKE,
@@ -140,10 +139,10 @@ module emu
 	output        SDRAM_nCAS,
 	output        SDRAM_nRAS,
 	output        SDRAM_nWE,
-`endif
 
-`ifdef DUAL_SDRAM
+`ifdef MISTER_DUAL_SDRAM
 	//Secondary SDRAM
+	//Set all output SDRAM_* signals to Z ASAP if SDRAM2_EN is 0
 	input         SDRAM2_EN,
 	output        SDRAM2_CLK,
 	output [12:0] SDRAM2_A,
@@ -259,7 +258,7 @@ localparam CONF_STR2 =
 	"h3P3r8,Reset Hanging Notes;",
 	"-;",
 	"OCD,Joystick type,2 Buttons,4 Buttons,Gravis Pro,None;",
-	"-;",
+	"-    ;",
 	"R0,Reset and apply HDD;",
 	"J,Button 1,Button 2,Button 3,Button 4,Start,Select,R1,L1,R2,L2;",
 	"jn,A,B,X,Y,Start,Select,R,L;",
@@ -627,11 +626,11 @@ assign FB_FORCE_BLANK = fb_off;
 reg f60;
 always @(posedge clk_sys) f60 <= fb_en || (fb_width > 760);
 
-reg  [1:0] ar,scale;
+reg  [2:0] ar,SCALE;
 reg [11:0] arx_i,ary_i;
 always @(posedge CLK_VIDEO) begin
 	ar    <= status[23:22];
-	scale <= status[46:45];
+	SCALE <= status[46:45];
 	arx_i <= (!ar) ? 8'd4 : (ar - 1'd1);
 	ary_i <= (!ar) ? 8'd3 : 8'd0;
 end
@@ -656,7 +655,6 @@ video_freak video_freak
 	.ARY(ary_i),
 	.CROP_SIZE(0),
 	.CROP_OFF(0),
-	.SCALE(scale),
 	.VIDEO_ARX(arx),
 	.VIDEO_ARY(ary)
 );

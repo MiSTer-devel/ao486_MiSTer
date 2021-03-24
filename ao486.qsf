@@ -52,7 +52,15 @@ set_global_assignment -name OPTIMIZE_POWER_DURING_SYNTHESIS OFF
 set_global_assignment -name ROUTER_REGISTER_DUPLICATION ON
 set_global_assignment -name SEED 1
 
-set_global_assignment -name VERILOG_MACRO "USE_FB=1"
+set_global_assignment -name VERILOG_MACRO "MISTER_FB=1"
+
+#enable it only if 8bit indexed mode is used in core
+set_global_assignment -name VERILOG_MACRO "MISTER_FB_PALETTE=1"
+
+#set_global_assignment -name VERILOG_MACRO "MISTER_DUAL_SDRAM=1"
+
+#do not enable DEBUG_NOHDMI in release!
+#set_global_assignment -name VERILOG_MACRO "MISTER_DEBUG_NOHDMI=1"
 
 source sys/sys.tcl
 source sys/sys_analog.tcl
