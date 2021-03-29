@@ -189,7 +189,7 @@ led fdd_led(clk_sys, |mgmt_req[7:6], LED_USER);
 // 0         1         2         3          4         5         6
 // 01234567890123456789012345678901 23456789012345678901234567890123
 // 0123456789ABCDEFGHIJKLMNOPQRSTUV 0123456789ABCDEFGHIJKLMNOPQRSTUV
-// X  XXXXXXX XXXXXXXXXXXXXX XXXXXX XXXXXXXXXXXXXXX
+// XXXXXXXXXXXXXXXXXXXXXXXXX XXXXXX XXXXXXXXXXXXXXX
 
 `include "build_id.v"
 localparam CONF_STR1 =
@@ -238,6 +238,8 @@ localparam CONF_STR1 =
 	"D2P2OF,L1 Cache,On,Off;",
 	"D2P2OG,L2 Cache,On,Off;",
 `endif
+	"P2-;",
+	"P2OA,USER I/O,MIDI,COM2;",
 
 	"h3P3,MT32-pi;",
 	"h3P3-;",
@@ -294,8 +296,8 @@ wire [15:0] joystick_analog_0;
 wire [15:0] joystick_analog_1;
 
 wire [21:0] gamma_bus;
-wire  [7:0] uart_mode;
-wire [31:0] uart_speed;
+wire  [7:0] uart1_mode;
+wire [31:0] uart1_speed;
 
 hps_io #(.STRLEN(($size(CONF_STR1) + $size(mt32_curmode) + $size(CONF_STR2) + $size(mt32_curmode) + $size(CONF_STR3))>>3), .PS2DIV(4000), .PS2WE(1), .WIDE(1)) hps_io
 (
@@ -323,9 +325,9 @@ hps_io #(.STRLEN(($size(CONF_STR1) + $size(mt32_curmode) + $size(CONF_STR2) + $s
 	.new_vmode(status[4]),
 	.gamma_bus(gamma_bus),
 
-	.uart_mode(uart_mode),
-	.uart_speed(uart_speed),
-	
+	.uart_mode(uart1_mode),
+	.uart_speed(uart1_speed),
+
 	.joystick_0(joystick_0),
 	.joystick_1(joystick_1),
 	.joystick_analog_0(joystick_analog_0),
@@ -359,7 +361,7 @@ hps_ext hps_ext
 
 /////////////////////////////  PLL  //////////////////////////////////// 
 
-wire clk_sys, clk_uart, clk_mpu, clk_opl, clk_vga;
+wire clk_sys, clk_uart1, clk_uart2, clk_mpu, clk_opl, clk_vga;
 reg [27:0] cur_rate;
 
 `ifdef DEBUG
@@ -368,10 +370,11 @@ pll2 pll
 (
 	.refclk(CLK_50M),
 	.outclk_0(clk_vga),
-	.outclk_1(clk_uart),
+	.outclk_1(clk_uart1),
 	.outclk_2(clk_mpu),
 	.outclk_3(clk_opl),
-	.outclk_4(clk_sys)
+	.outclk_4(clk_sys),
+	.outclk_5(clk_uart2)
 );
 
 always @(posedge clk_sys) cur_rate <= 30000000;
@@ -384,10 +387,11 @@ pll pll
 	.refclk(CLK_50M),
 	.rst(0),
 	.outclk_0(clk_sys),
-	.outclk_1(clk_uart),
+	.outclk_1(clk_uart1),
 	.outclk_2(clk_mpu),
 	.outclk_3(clk_opl),
 	.outclk_4(clk_vga),
+	.outclk_5(clk_uart2),
 	.locked(pll_locked),
 	.reconfig_to_pll(reconfig_to_pll),
 	.reconfig_from_pll(reconfig_from_pll)
@@ -428,7 +432,7 @@ always @(posedge CLK_50M) begin
 end
 
 reg uspeed_sys;
-always @(posedge clk_sys) uspeed_sys <= (uart_speed <= 115200);
+always @(posedge clk_sys) uspeed_sys <= (uart1_speed <= 115200);
 
 reg uspeed;
 always @(posedge CLK_50M) begin
@@ -493,20 +497,47 @@ always @(posedge clk_sys) cur_rate <= clk_rate[clk_req];
 
 ////////////////////////////  UART  //////////////////////////////////// 
 
-wire uart_cts, uart_dcd, uart_dsr, uart_rts, uart_dtr;
-wire uart_tx, uart_rx;
+/// UART1
+
+wire uart1_cts, uart1_dcd, uart1_dsr, uart1_rts, uart1_dtr;
+wire uart1_tx, uart1_rx;
 wire mpu_tx, mpu_rx;
 
-wire hps_mpu = (uart_mode >= 3);
+wire hps_mpu = (uart1_mode >= 3);
 
-assign UART_RTS = ~hps_mpu & uart_rts;
-assign UART_DTR = ~hps_mpu & uart_dtr;
-assign uart_cts = ~hps_mpu & UART_CTS;
-assign uart_dcd = ~hps_mpu & UART_DSR;
-assign uart_dsr = ~hps_mpu & UART_DSR;
-assign uart_rx  = ~hps_mpu & UART_RXD;
-assign mpu_rx   = ~hps_mpu ? midi_rx : UART_RXD;
-assign UART_TXD = ~hps_mpu ? uart_tx : (mpu_tx & ~mt32_use);
+assign UART_RTS  = ~hps_mpu & uart1_rts;
+assign UART_DTR  = ~hps_mpu & uart1_dtr;
+assign uart1_cts = ~hps_mpu & UART_CTS;
+assign uart1_dcd = ~hps_mpu & UART_DSR;
+assign uart1_dsr = ~hps_mpu & UART_DSR;
+assign uart1_rx  = ~hps_mpu & UART_RXD;
+assign mpu_rx    = ~hps_mpu ? midi_rx : UART_RXD;
+assign UART_TXD  = ~hps_mpu ? uart1_tx : (mpu_tx & ~mt32_use);
+
+/// UART2
+
+wire user_io_mode = status[10];
+
+assign USER_OUT = user_io_mode ? {1'b1, 1'b1, uart2_dtr, 1'b1, uart2_rts, uart2_tx, 1'b1} : mt32_out;
+
+//
+// Pin | USB Name |   |Signal
+// ----+----------+---+-------------
+// 0   | D+       | I |RX
+// 1   | D-       | O |TX
+// 2   | TX-      | O |RTS
+// 3   | GND_d    | I |CTS
+// 4   | RX+      | O |DTR
+// 5   | RX-      | I |DSR
+// 6   | TX+      | I |DCD
+//
+
+wire uart2_tx, uart2_rts, uart2_dtr;
+
+wire uart2_rx  = ~user_io_mode | USER_IN[0];
+wire uart2_cts = ~user_io_mode | USER_IN[3];
+wire uart2_dsr = ~user_io_mode | USER_IN[5];
+wire uart2_dcd = ~user_io_mode | USER_IN[6];
 
 ////////////////////////////  VIDEO  /////////////////////////////////// 
 
@@ -671,7 +702,8 @@ system system
 (
 	.clk_sys              (clk_sys),
 	.clk_opl              (clk_opl),
-	.clk_uart             (clk_uart),
+	.clk_uart1            (clk_uart1),
+	.clk_uart2            (clk_uart2),
 	.clk_mpu              (clk_mpu),
 	.clk_vga              (clk_vga),
 
@@ -741,13 +773,21 @@ system system
 	.fdd_request          (mgmt_req[7:6]),
 	.floppy_wp            (status[2:1]),
 
-	.serial_rx            (uart_rx),
-	.serial_tx            (uart_tx),
-	.serial_cts_n         (uart_cts),
-	.serial_dcd_n         (uart_dcd),
-	.serial_dsr_n         (uart_dsr),
-	.serial_rts_n         (uart_rts),
-	.serial_dtr_n         (uart_dtr),
+	.uart1_rx             (uart1_rx),
+	.uart1_tx             (uart1_tx),
+	.uart1_cts_n          (uart1_cts),
+	.uart1_dcd_n          (uart1_dcd),
+	.uart1_dsr_n          (uart1_dsr),
+	.uart1_rts_n          (uart1_rts),
+	.uart1_dtr_n          (uart1_dtr),
+
+	.uart2_rx             (uart2_rx),
+	.uart2_tx             (uart2_tx),
+	.uart2_cts_n          (uart2_cts),
+	.uart2_dcd_n          (uart2_dcd),
+	.uart2_dsr_n          (uart2_dsr),
+	.uart2_rts_n          (uart2_rts),
+	.uart2_dtr_n          (uart2_dtr),
 
 	.mpu_rx               (mpu_rx),
 	.mpu_tx               (mpu_tx),
@@ -824,10 +864,13 @@ wire mt32_available;
 wire mt32_use  = mt32_available & ~mt32_disable;
 wire mt32_mute = mt32_available &  mt32_disable;
 
+wire [6:0] mt32_out;
 mt32pi mt32pi
 (
 	.*,
 	.reset(mt32_reset),
+	.USER_IN(user_io_mode ? 7'h7F : USER_IN),
+	.USER_OUT(mt32_out),
 	.midi_tx(mpu_tx | mt32_mute)
 );
 
@@ -928,9 +971,9 @@ assign AUDIO_R   = status[21:20] ? cmp_r : out_r;
 assign AUDIO_S   = 1;
 assign AUDIO_MIX = status[44:43];
 
-endmodule
-
 //////////////////////////////////////////////////////////////////////// 
+
+endmodule
 
 module led
 (

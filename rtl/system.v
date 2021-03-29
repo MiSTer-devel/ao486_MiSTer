@@ -40,14 +40,23 @@ module system
 	input         memcfg,
 	output  [7:0] syscfg,
 
-	input         clk_uart,
-	input         serial_rx,
-	output        serial_tx,
-	input         serial_cts_n,
-	input         serial_dcd_n,
-	input         serial_dsr_n,
-	output        serial_rts_n,
-	output        serial_dtr_n,
+	input         clk_uart1,
+	input         uart1_rx,
+	output        uart1_tx,
+	input         uart1_cts_n,
+	input         uart1_dcd_n,
+	input         uart1_dsr_n,
+	output        uart1_rts_n,
+	output        uart1_dtr_n,
+
+	input         clk_uart2,
+	input         uart2_rx,
+	output        uart2_tx,
+	input         uart2_cts_n,
+	input         uart2_dcd_n,
+	input         uart2_dsr_n,
+	output        uart2_rts_n,
+	output        uart2_dtr_n,
 
 	input         clk_mpu,
 	input         mpu_rx,
@@ -130,7 +139,7 @@ wire        interrupt_done;
 wire        interrupt_do;
 wire  [7:0] interrupt_vector;
 reg  [15:0] interrupt;
-wire        irq_0, irq_1, irq_2, irq_4, irq_5, irq_6, irq_7, irq_8, irq_9, irq_10, irq_12, irq_14, irq_15;
+wire        irq_0, irq_1, irq_2, irq_3, irq_4, irq_5, irq_6, irq_7, irq_8, irq_9, irq_10, irq_12, irq_14, irq_15;
 
 wire        cpu_io_read_do;
 wire [15:0] cpu_io_read_address;
@@ -163,7 +172,8 @@ reg         joy_cs;
 reg         rtc_cs;
 reg         fm_cs;
 reg         sb_cs;
-reg         uart_cs;
+reg         uart1_cs;
+reg         uart2_cs;
 reg         mpu_cs;
 reg         vga_b_cs;
 reg         vga_c_cs;
@@ -182,7 +192,8 @@ wire  [7:0] joystick_readdata;
 wire  [7:0] pit_readdata;
 wire  [7:0] ps2_readdata;
 wire  [7:0] rtc_readdata;
-wire  [7:0] uart_readdata;
+wire  [7:0] uart1_readdata;
+wire  [7:0] uart2_readdata;
 wire  [7:0] mpu_readdata;
 wire  [7:0] dma_io_readdata;
 wire  [7:0] pic_readdata;
@@ -308,7 +319,8 @@ always @(posedge clk_sys) begin
 	rtc_cs        <= ({iobus_address[15:1], 1'd0} == 16'h0070);
 	fm_cs         <= ({iobus_address[15:2], 2'd0} == 16'h0388);
 	sb_cs         <= ({iobus_address[15:4], 4'd0} == 16'h0220);
-	uart_cs       <= ({iobus_address[15:3], 3'd0} == 16'h03F8);
+	uart1_cs      <= ({iobus_address[15:3], 3'd0} == 16'h03F8);
+	uart2_cs      <= ({iobus_address[15:3], 3'd0} == 16'h02F8);
 	mpu_cs        <= ({iobus_address[15:1], 1'd0} == 16'h0330);
 	vga_b_cs      <= ({iobus_address[15:4], 4'd0} == 16'h03B0);
 	vga_c_cs      <= ({iobus_address[15:4], 4'd0} == 16'h03C0);
@@ -343,7 +355,8 @@ wire [7:0] iobus_readdata8 =
 	( ps2_io_cs|ps2_ctl_cs                   ) ? ps2_readdata      :
 	( rtc_cs                                 ) ? rtc_readdata      :
 	( sb_cs|fm_cs                            ) ? sound_readdata    :
-	( uart_cs                                ) ? uart_readdata     :
+	( uart1_cs                               ) ? uart1_readdata    :
+	( uart2_cs                               ) ? uart2_readdata    :
 	( mpu_cs                                 ) ? mpu_readdata      :
 	( vga_b_cs|vga_c_cs|vga_d_cs             ) ? vga_io_readdata   :
 	( joy_cs                                 ) ? joystick_readdata :
@@ -616,29 +629,54 @@ sound sound
 	.irq_10            (irq_10)
 );
 
-uart uart
+uart uart1
 (
 	.clk               (clk_sys),
-	.br_clk            (clk_uart),
+	.br_clk            (clk_uart1),
 	.reset             (reset),
 
 	.address           (iobus_address[2:0]),
 	.writedata         (iobus_writedata[7:0]),
 	.read              (iobus_read),
 	.write             (iobus_write),
-	.readdata          (uart_readdata),
-	.cs                (uart_cs),
+	.readdata          (uart1_readdata),
+	.cs                (uart1_cs),
 
-	.rx                (serial_rx),
-	.tx                (serial_tx),
-	.cts_n             (serial_cts_n),
-	.dcd_n             (serial_dcd_n),
-	.dsr_n             (serial_dsr_n),
-	.rts_n             (serial_rts_n),
-	.dtr_n             (serial_dtr_n),
+	.rx                (uart1_rx),
+	.tx                (uart1_tx),
+	.cts_n             (uart1_cts_n),
+	.dcd_n             (uart1_dcd_n),
+	.dsr_n             (uart1_dsr_n),
+	.rts_n             (uart1_rts_n),
+	.dtr_n             (uart1_dtr_n),
 	.ri_n              (1),
 
 	.irq               (irq_4)
+);
+
+uart uart2
+(
+	.clk               (clk_sys),
+	.br_clk            (clk_uart2),
+	.reset             (reset),
+
+	.address           (iobus_address[2:0]),
+	.writedata         (iobus_writedata[7:0]),
+	.read              (iobus_read),
+	.write             (iobus_write),
+	.readdata          (uart2_readdata),
+	.cs                (uart2_cs),
+
+	.rx                (uart2_rx),
+	.tx                (uart2_tx),
+	.cts_n             (uart2_cts_n),
+	.dcd_n             (uart2_dcd_n),
+	.dsr_n             (uart2_dsr_n),
+	.rts_n             (uart2_rts_n),
+	.dtr_n             (uart2_dtr_n),
+	.ri_n              (1),
+
+	.irq               (irq_3)
 );
 
 mpu mpu
@@ -733,6 +771,7 @@ always @* begin
 
 	interrupt[0]  = irq_0;
 	interrupt[1]  = irq_1;
+	interrupt[3]  = irq_3;
 	interrupt[4]  = irq_4;
 	interrupt[5]  = irq_5;
 	interrupt[6]  = irq_6;

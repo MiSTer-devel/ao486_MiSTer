@@ -51,9 +51,7 @@ gh_uart_16550 uart_16550
 	.sTX(tx),
 	.DTRn(dtr_n),
 	.RTSn(rts_n),
-	.IRQ(irq),
-
-	.DIV2(0)
+	.IRQ(irq)
 );
 
 always @(posedge clk) if(read & cs) readdata <= data;
