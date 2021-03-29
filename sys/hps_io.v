@@ -161,7 +161,7 @@ module hps_io #(parameter STRLEN=0, PS2DIV=0, WIDE=0, VDNUM=1, PS2WE=0)
 assign EXT_BUS[31:16] = HPS_BUS[31:16];
 assign EXT_BUS[35:33] = HPS_BUS[35:33];
 
-localparam MAX_W = $clog2((512 > (STRLEN+1)) ? 512 : (STRLEN+1))-1;
+localparam MAX_W = $clog2((32 > (STRLEN+2)) ? 32 : (STRLEN+2))-1;
 
 localparam DW = (WIDE) ? 15 : 7;
 localparam AW = (WIDE) ?  7 : 8;
@@ -353,7 +353,7 @@ always@(posedge clk_sys) begin : uio_block
 						end
 
 				// reading config string, returning a byte from string
-				'h14: if(byte_cnt < STRLEN + 1) io_dout[7:0] <= conf_str[(STRLEN - byte_cnt)<<3 +:8];
+				'h14: if(byte_cnt <= STRLEN) io_dout[7:0] <= conf_str[{(STRLEN - byte_cnt),3'b000} +:8];
 
 				// reading sd card status
 				'h16: if(!byte_cnt[MAX_W:3]) begin
