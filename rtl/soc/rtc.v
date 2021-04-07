@@ -106,7 +106,7 @@ wire [7:0] io_readdata_next =
     (ram_address == 7'h0D) ? 8'h80 :
     (ram_address == 7'h34 & memcfg) ? 8'h00 :
     (ram_address == 7'h35 & memcfg) ? 8'h00 :
-    (ram_address == 7'h38) ? {2'b00, bootcfg[5:4], 4'h0} :
+    (ram_address == 7'h38) ? {2'b00, bootcfg[5:4], 4'h1} :
     (ram_address == 7'h3D) ? {2'b00, bootcfg[3:2], 2'b00, bootcfg[1:0]} :
     (ram_address == 7'h32) ? rtc_century :
     (ram_address == 7'h37) ? rtc_century :
