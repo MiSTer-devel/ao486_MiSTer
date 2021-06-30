@@ -180,8 +180,6 @@ reg         vga_c_cs;
 reg         vga_d_cs;
 reg         sysctl_cs;
 
-wire        ide0_wait;
-wire        ide1_wait;
 wire        fdd0_inserted;
 
 wire  [7:0] sound_readdata;
@@ -462,18 +460,29 @@ floppy floppy
 	.irq               (irq_6)
 );
 
+wire [3:0] ide_address = {iobus_address[9],iobus_address[2:0]};
+
+wire ide0_nodata;
+reg  ide0_wait = 0;
+always @(posedge clk_sys) begin
+	if(iobus_read & ide0_cs & ide0_nodata & !ide_address) ide0_wait <= 1;
+	if(~ide0_nodata) ide0_wait <= 0;
+end
+
 ide ide0
 (
 	.clk               (clk_sys),
 	.rst_n             (~reset),
 
-	.io_address        ({iobus_address[9],iobus_address[2:0]}),
+	.io_address        (ide_address),
 	.io_writedata      (iobus_writedata),
-	.io_read           (iobus_read & ide0_cs),
+	.io_read           ((iobus_read & ide0_cs) | ide0_wait),
 	.io_write          (iobus_write & ide0_cs),
 	.io_readdata       (ide0_readdata),
 	.io_32             (iobus_datasize[2]),
-	.io_wait           (ide0_wait),
+
+	.use_fast          (1),
+	.no_data           (ide0_nodata),
 
 	.mgmt_address      (mgmt_address[3:0]),
 	.mgmt_writedata    (mgmt_writedata),
@@ -485,18 +494,27 @@ ide ide0
 	.irq               (irq_14)
 );
 
+wire ide1_nodata;
+reg  ide1_wait = 0;
+always @(posedge clk_sys) begin
+	if(iobus_read & ide1_cs & ide1_nodata & !ide_address) ide1_wait <= 1;
+	if(~ide1_nodata) ide1_wait <= 0;
+end
+
 ide ide1
 (
 	.clk               (clk_sys),
 	.rst_n             (~reset),
 
-	.io_address        ({iobus_address[9],iobus_address[2:0]}),
+	.io_address        (ide_address),
 	.io_writedata      (iobus_writedata),
-	.io_read           (iobus_read & ide1_cs),
+	.io_read           ((iobus_read & ide1_cs) | ide1_wait),
 	.io_write          (iobus_write & ide1_cs),
 	.io_readdata       (ide1_readdata),
 	.io_32             (iobus_datasize[2]),
-	.io_wait           (ide1_wait),
+
+	.use_fast          (1),
+	.no_data           (ide1_nodata),
 
 	.mgmt_address      (mgmt_address[3:0]),
 	.mgmt_writedata    (mgmt_writedata),

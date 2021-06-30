@@ -30,6 +30,12 @@ module ide
 	input             rst_n,
 
 	output reg        irq,
+	output            drq,
+	
+	input             use_fast, // 1 - supports fast read mode
+	output            no_data,  // pause for system when no data is available in fast mode
+
+	output      [1:0] drive_en,
 
 	input       [3:0] io_address,
 	input             io_read,
@@ -37,6 +43,7 @@ module ide
 	input             io_write,
 	input      [31:0] io_writedata,
 	input             io_32,
+
 	output reg        io_wait,
 
 	output reg  [2:0] request,
@@ -47,6 +54,9 @@ module ide
 	input             mgmt_read,
 	output reg [15:0] mgmt_readdata
 );
+
+assign drq      = status[3];
+assign drive_en = present;
 
 //------------------------------------------------------------------------------
 
@@ -135,9 +145,24 @@ end
 reg [7:0] status = 0;
 always @(posedge clk) begin
 	if(reset)                                status <= 8'h80;
-	else if(mgmt_write && mgmt_address == 5) status <= mgmt_writedata[15:8] & 8'b11111011;
+	else if(mgmt_write && mgmt_address == 5) status <= {mgmt_writedata[15:14],1'b0,mgmt_writedata[12:11],2'b00,mgmt_writedata[8]};
 	else if(io_wr && io_address == 7)        status <= 8'h80;
-	else if(io_done & status[3])             status <= 8'h80;
+	else if(io_done & drq & last_read)       status <= 8'h40;
+	else if(io_done & drq)                   status <= 8'h80;
+end
+
+reg last_read = 0;
+always @(posedge clk) begin
+	if(reset)                                last_read <= 0;
+	else if(mgmt_write && mgmt_address == 5) last_read <= mgmt_writedata[9];
+	else if(io_done & drq)                   last_read <= 0;
+end
+
+reg fast_read = 0;
+always @(posedge clk) begin
+	if(reset)                                fast_read <= 0;
+	else if(mgmt_write && mgmt_address == 5) fast_read <= mgmt_writedata[13];
+	else if(io_done & drq)                   fast_read <= 0;
 end
 
 always @(posedge clk) begin
@@ -145,14 +170,14 @@ always @(posedge clk) begin
 	else if(sw_reset)                        io_wait <= use_wait;
 	else if(mgmt_write && mgmt_address == 5) io_wait <= 1'd0;
 	else if(io_wr && io_address == 7)        io_wait <= use_wait;
-	else if(io_done & status[3])             io_wait <= use_wait;
+	else if(io_done & drq)                   io_wait <= use_wait;
 end
 
 always @(posedge clk) begin
 	if(reset)                                request <= 3'b110; // reset
 	else if(mgmt_write && mgmt_address == 5) request <= 3'b000;
-	else if(io_wr && io_address == 7)        request <= 3'b100; // new command
-	else if(io_done & status[3])             request <= 3'b101; // data send/recv
+	else if(io_wr && io_address == 7)        request <= 3'b100; // new command 
+	else if(io_done & drq & ~last_read)      request <= 3'b101; // data send/recv
 end
 
 always @(posedge clk) begin
@@ -163,7 +188,7 @@ end
 
 always @(posedge clk) begin
 	case(mgmt_address)
-			0: mgmt_readdata <= {features, 7'd0, io_done};
+			0: mgmt_readdata <= {features, 6'd0, use_fast, io_done};
 			1: mgmt_readdata <= {sector[7:0], sector_count[7:0]};
 			2: mgmt_readdata <= {cylinder[15:0]};
 			3: mgmt_readdata <= {sector[15:8], sector_count[15:8]};
@@ -214,18 +239,23 @@ always @(posedge clk) hob <= hob_pre & hob_ena[drv_addr[4]];
 
 //------------------------------------------------------------------------------
 
-wire write_data_io = io_wr   && io_address == 0 && status[3];
-wire read_data_io  = io_read && io_address == 0 && status[3];
+wire write_data_io = io_wr   && io_address == 0 && drq;
+wire read_data_io  = io_read && io_address == 0 && drq;
 
 wire       io_done = (blk_size && io_cnt >= blk_size);
 reg [13:0] io_cnt;
+wire       io_stb = read_data_io | write_data_io;
+
 always @(posedge clk) begin
+	reg old_stb;
+	old_stb <= io_stb;
+	
 	if(reset)                                io_cnt <= 0;
 	else if(mgmt_write && mgmt_address == 5) io_cnt <= 0;
-	else if(write_data_io | read_data_io)    io_cnt <= io_cnt + 1'd1 + io_32;
+	else if(old_stb & ~io_stb)               io_cnt <= io_cnt + 1'd1 + io_32;
 end
 
-reg [12:0] mgmt_cnt;
+reg [13:0] mgmt_cnt;
 always @(posedge clk) begin
 	reg old_wr, old_rd;
 	
@@ -238,6 +268,11 @@ always @(posedge clk) begin
 	
 	if(~rst_n) mgmt_cnt <= 0;
 end
+
+wire       n_data = (mgmt_cnt[13:1] <= io_cnt[13:1]) && drq && fast_read;
+reg  [1:0] n_data_r;
+assign     no_data = n_data || n_data_r;
+always @(posedge clk) n_data_r <= {n_data_r[0], n_data};
 
 wire [31:0] buf_readdata;
 wire [31:0] buf_q;
