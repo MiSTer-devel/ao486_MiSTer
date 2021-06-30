@@ -382,8 +382,9 @@ ARCHITECTURE rtl OF ascal IS
   SIGNAL avl_o_vs_sync,avl_o_vs : std_logic;
   SIGNAL avl_fb_ena : std_logic;
   
-  FUNCTION buf_next(a,b : natural RANGE 0 TO 2) RETURN natural IS
+  FUNCTION buf_next(a,b : natural RANGE 0 TO 2; freeze : std_logic := '0') RETURN natural IS
   BEGIN
+    IF (freeze='1') THEN RETURN a; END IF;
     IF (a=0 AND b=1) OR (a=1 AND b=0) THEN RETURN 2; END IF;
     IF (a=1 AND b=2) OR (a=2 AND b=1) THEN RETURN 0; END IF;
     RETURN 1;                              
@@ -400,6 +401,7 @@ ARCHITECTURE rtl OF ascal IS
   ----------------------------------------------------------
   -- Output
   SIGNAL o_run : std_logic;
+  SIGNAL o_freeze : std_logic;
   SIGNAL o_mode,o_hmode,o_vmode : unsigned(4 DOWNTO 0);
   SIGNAL o_format : unsigned(5 DOWNTO 0);
   SIGNAL o_fb_pal_dr : unsigned(23 DOWNTO 0);
@@ -1730,22 +1732,23 @@ BEGIN
       -- Triple buffering.
       -- For intelaced video, half frames are updated independently
       -- Input : Toggle buffer at end of input frame
+		o_freeze <= freeze;
       o_inter  <=i_inter; -- <ASYNC>
       o_iendframe0<=i_endframe0; -- <ASYNC>
       o_iendframe02<=o_iendframe0;
       IF o_iendframe0='1' AND o_iendframe02='0' THEN
-        o_ibuf0<=buf_next(o_ibuf0,o_obuf0);
+        o_ibuf0<=buf_next(o_ibuf0,o_obuf0,o_freeze);
         o_bufup0<='1';
       END IF;
       o_iendframe1<=i_endframe1; -- <ASYNC>
       o_iendframe12<=o_iendframe1;
       IF o_iendframe1='1' AND o_iendframe12='0' THEN
-        o_ibuf1<=buf_next(o_ibuf1,o_obuf1);
+        o_ibuf1<=buf_next(o_ibuf1,o_obuf1,o_freeze);
         o_bufup1<='1';
       END IF;
       -- Output : Change framebuffer, and image properties, at VS falling edge
       IF o_vsv(1)='1' AND o_vsv(0)='0' AND o_bufup1='1' THEN
-        o_obuf1<=buf_next(o_obuf1,o_ibuf1);
+        o_obuf1<=buf_next(o_obuf1,o_ibuf1,o_freeze);
         o_bufup1<='0';
         o_ihsize<=i_hrsize; -- <ASYNC>
         o_ivsize<=i_vrsize; -- <ASYNC>
@@ -1773,7 +1776,7 @@ BEGIN
       END IF;
       
       IF o_vsv(1)='1' AND o_vsv(0)='0' AND o_bufup0='1' THEN
-        o_obuf0<=buf_next(o_obuf0,o_ibuf0);
+        o_obuf0<=buf_next(o_obuf0,o_ibuf0,o_freeze);
         o_bufup0<='0';
       END IF;
       

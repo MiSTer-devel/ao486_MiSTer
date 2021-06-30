@@ -55,6 +55,7 @@ module emu
 
 	input  [11:0] HDMI_WIDTH,
 	input  [11:0] HDMI_HEIGHT,
+	output        HDMI_FREEZE,
 
 `ifdef MISTER_FB
 	// Use framebuffer in DDRAM (USE_FB=1 in qsf)
@@ -181,6 +182,7 @@ assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 assign LED_DISK[1] = 0;
 assign LED_POWER   = 0;
 assign BUTTONS     = {~ps2_reset_n, 1'b0};
+assign HDMI_FREEZE = 0;
 
 led hdd_led(clk_sys, |mgmt_req[5:0], LED_DISK[0]);
 led fdd_led(clk_sys, |mgmt_req[7:6], LED_USER);
@@ -192,7 +194,7 @@ led fdd_led(clk_sys, |mgmt_req[7:6], LED_USER);
 // XXXXXXXXXXXXXXXXXXXXXXXXX XXXXXX XXXXXXXXXXXXXXX
 
 `include "build_id.v"
-localparam CONF_STR1 =
+localparam CONF_STR =
 {
 	"AO486;UART115200:4000000(Turbo 115200),MIDI;",
 	"S0,IMG,Floppy A:;",
@@ -251,13 +253,6 @@ localparam CONF_STR1 =
 	"h3P3ORS,Munt ROM,MT-32 v1,MT-32 v2,CM-32L;",
 	"h3P3OTV,SoundFont,0,1,2,3,4,5,6,7;",
 	"h3P3-;",
-	"h3P3-,Current Config: "
-};
-
-localparam CONF_STR2 =
-{
-	";",
-	"h3P3-;",
 	"h3P3r8,Reset Hanging Notes;",
 	"-;",
 	"OCD,Joystick type,2 Buttons,4 Buttons,Gravis Pro,None;",
@@ -265,12 +260,19 @@ localparam CONF_STR2 =
 	"R0,Reset and apply HDD;",
 	"J,Button 1,Button 2,Button 3,Button 4,Start,Select,R1,L1,R2,L2;",
 	"jn,A,B,X,Y,Start,Select,R,L;",
-	"I,MT32-pi: "
-};
-
-localparam CONF_STR3 =
-{
-	";",
+	"I,",
+	"MT32-pi: SoundFont #0,",
+	"MT32-pi: SoundFont #1,",
+	"MT32-pi: SoundFont #2,",
+	"MT32-pi: SoundFont #3,",
+	"MT32-pi: SoundFont #4,",
+	"MT32-pi: SoundFont #5,",
+	"MT32-pi: SoundFont #6,",
+	"MT32-pi: SoundFont #7,",
+	"MT32-pi: MT-32 v1,",
+	"MT32-pi: MT-32 v2,",
+	"MT32-pi: CM-32L,",
+	"MT32-pi: Unknown mode;",
 	"V,v",`BUILD_DATE
 };
 
@@ -299,10 +301,9 @@ wire [21:0] gamma_bus;
 wire  [7:0] uart1_mode;
 wire [31:0] uart1_speed;
 
-hps_io #(.STRLEN(($size(CONF_STR1) + $size(mt32_curmode) + $size(CONF_STR2) + $size(mt32_curmode) + $size(CONF_STR3))>>3), .PS2DIV(4000), .PS2WE(1), .WIDE(1)) hps_io
+hps_io #(.CONF_STR(CONF_STR), .CONF_STR_BRAM(0), .PS2DIV(4000), .PS2WE(1), .WIDE(1)) hps_io
 (
 	.clk_sys(clk_sys),
-	.conf_str({CONF_STR1, mt32_curmode, CONF_STR2, mt32_curmode, CONF_STR3}),
 	.HPS_BUS(HPS_BUS),
 
 	.ps2_key(ps2_key),
@@ -320,7 +321,7 @@ hps_io #(.STRLEN(($size(CONF_STR1) + $size(mt32_curmode) + $size(CONF_STR2) + $s
 	.status(status),
 	.status_menumask({mt32_newmode,mt32_available,syscfg[7],status[7],dbg_menu}),
 	.info_req(mt32_info_req),
-	.info(1),
+	.info(mt32_info_disp),
 
 	.new_vmode(status[4]),
 	.gamma_bus(gamma_bus),
@@ -874,18 +875,18 @@ mt32pi mt32pi
 	.midi_tx(mpu_tx | mt32_mute)
 );
 
-wire [87:0] mt32_curmode = {(mt32_mode == 'hA2)                  ? {"SoundFont ", {5'b00110, mt32_sf[2:0]}} :
-                            (mt32_mode == 'hA1 && mt32_rom == 0) ?  "   MT-32 v1" :
-                            (mt32_mode == 'hA1 && mt32_rom == 1) ?  "   MT-32 v2" :
-                            (mt32_mode == 'hA1 && mt32_rom == 2) ?  "     CM-32L" :
-                                                                    "    Unknown" };
-
 reg mt32_info_req;
+reg [3:0] mt32_info_disp;
 always @(posedge clk_sys) begin
 	reg old_mode;
 
 	old_mode <= mt32_newmode;
 	mt32_info_req <= (old_mode ^ mt32_newmode) && (mt32_info == 1);
+	
+	mt32_info_disp <= (mt32_mode == 'hA2) ? (4'd1 + mt32_sf[2:0]) :
+                     (mt32_mode == 'hA1 && mt32_rom == 0) ?  4'd9 :
+                     (mt32_mode == 'hA1 && mt32_rom == 1) ?  4'd10 :
+                     (mt32_mode == 'hA1 && mt32_rom == 2) ?  4'd11 : 4'd12;
 end
 
 reg mt32_lcd_on;

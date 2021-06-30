@@ -67,3 +67,5 @@ set_false_path -from {ascal|o_hdisp* ascal|o_vdisp*}
 set_false_path -from {ascal|o_htotal* ascal|o_vtotal*}
 set_false_path -from {ascal|o_hsstart* ascal|o_vsstart* ascal|o_hsend* ascal|o_vsend*}
 set_false_path -from {ascal|o_hsize* ascal|o_vsize*}
+
+set_false_path -from {mcp23009|sd_cd}

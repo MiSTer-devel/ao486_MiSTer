@@ -24,14 +24,13 @@
 // Use buffer to access SD card. It's time-critical part.
 //
 // WIDE=1 for 16 bit file I/O
-// VDNUM 1-4
-module hps_io #(parameter STRLEN=0, PS2DIV=0, WIDE=0, VDNUM=1, PS2WE=0)
+// VDNUM 1..4
+// BLKSZ 0..7: 0 = 128, 1 = 256, 2 = 512(default), .. 7 = 16384
+//
+module hps_io #(parameter CONF_STR, CONF_STR_BRAM=1, PS2DIV=0, WIDE=0, VDNUM=1, BLKSZ=2, PS2WE=0)
 (
 	input             clk_sys,
 	inout      [45:0] HPS_BUS,
-
-	// parameter STRLEN and the actual length of conf_str have to match
-	input [(8*STRLEN)-1:0] conf_str,
 
 	// buttons up to 32
 	output reg [31:0] joystick_0,
@@ -86,22 +85,17 @@ module hps_io #(parameter STRLEN=0, PS2DIV=0, WIDE=0, VDNUM=1, PS2WE=0)
 	output reg [63:0] img_size,     // size of image in bytes. valid only for active bit in img_mounted
 
 	// SD block level access
-	input      [31:0] sd_lba,
-	input      [VD:0] sd_rd,       // only single sd_rd can be active at any given time
-	input      [VD:0] sd_wr,       // only single sd_wr can be active at any given time
-	output reg        sd_ack,
-
-	// do not use in new projects.
-	// CID and CSD are fake except CSD image size field.
-	input             sd_conf,
-	output reg        sd_ack_conf,
+	input      [31:0] sd_lba[VDNUM],
+	input       [5:0] sd_blk_cnt[VDNUM], // number of blocks-1, total size ((sd_blk_cnt+1)*(1<<(BLKSZ+7))) must be <= 16384!
+	input      [VD:0] sd_rd,
+	input      [VD:0] sd_wr,
+	output reg [VD:0] sd_ack,
 
 	// SD byte level access. Signals for 2-PORT altsyncram.
 	output reg [AW:0] sd_buff_addr,
 	output reg [DW:0] sd_buff_dout,
-	input      [DW:0] sd_buff_din,
+	input      [DW:0] sd_buff_din[VDNUM],
 	output reg        sd_buff_wr,
-	input      [15:0] sd_req_type,
 
 	// ARM -> FPGA download
 	output reg        ioctl_download = 0, // signal indicating an active download
@@ -161,10 +155,8 @@ module hps_io #(parameter STRLEN=0, PS2DIV=0, WIDE=0, VDNUM=1, PS2WE=0)
 assign EXT_BUS[31:16] = HPS_BUS[31:16];
 assign EXT_BUS[35:33] = HPS_BUS[35:33];
 
-localparam MAX_W = $clog2((32 > (STRLEN+2)) ? 32 : (STRLEN+2))-1;
-
 localparam DW = (WIDE) ? 15 : 7;
-localparam AW = (WIDE) ?  7 : 8;
+localparam AW = (WIDE) ? 12 : 13;
 localparam VD = VDNUM-1;
 
 wire        io_strobe= HPS_BUS[33];
@@ -187,22 +179,18 @@ assign forced_scandoubler = cfg[4];
 //cfg[5] - ypbpr handled in sys_top
 assign direct_video = cfg[10];
 
-// command byte read by the io controller
-wire [15:0] sd_cmd =
-{
-	2'b00,
-	(VDNUM>=4) ? sd_wr[3] : 1'b0,
-	(VDNUM>=3) ? sd_wr[2] : 1'b0,
-	(VDNUM>=2) ? sd_wr[1] : 1'b0,
+reg [3:0] sdn;
+reg [3:0] sd_rrb = 0;
+always_comb begin
+	int n, i;
 
-	(VDNUM>=4) ? sd_rd[3] : 1'b0,
-	(VDNUM>=3) ? sd_rd[2] : 1'b0,
-	(VDNUM>=2) ? sd_rd[1] : 1'b0,
-
-	4'h5, sd_conf, 1'b1,
-	sd_wr[0],
-	sd_rd[0]
-};
+	sdn = 0;
+   for(i = VDNUM - 1; i >= 0; i = i - 1) begin
+		n = i + sd_rrb;
+		if(n >= VDNUM) n = n - VDNUM;
+		if(sd_wr[n] | sd_rd[n]) sdn = n[3:0];
+   end
+end
 
 /////////////////////////////////////////////////////////
 
@@ -226,6 +214,19 @@ video_calc video_calc
 
 /////////////////////////////////////////////////////////
 
+localparam STRLEN = $size(CONF_STR)>>3;
+localparam MAX_W = $clog2((32 > (STRLEN+2)) ? 32 : (STRLEN+2))-1;
+
+wire [7:0] conf_byte;
+generate
+	if(CONF_STR_BRAM) begin
+		confstr_rom #(CONF_STR, STRLEN) confstr_rom(.*, .conf_addr(byte_cnt - 1'd1));
+	end
+	else begin
+		assign conf_byte = CONF_STR[{(STRLEN - byte_cnt),3'b000} +:8];
+	end
+endgenerate
+
 assign     gamma_bus[20:0] = {clk_sys, gamma_en, gamma_wr, gamma_wr_addr, gamma_value};
 reg        gamma_en;
 reg        gamma_wr;
@@ -237,6 +238,8 @@ wire       pressed  = (ps2_key_raw[15:8] != 8'hf0);
 wire       extended = (~pressed ? (ps2_key_raw[23:16] == 8'he0) : (ps2_key_raw[15:8] == 8'he0));
 
 reg [MAX_W:0] byte_cnt;
+reg   [3:0] sdn_ack;
+wire [15:0] disk = 16'd1 << io_din[11:8];
 
 always@(posedge clk_sys) begin : uio_block
 	reg [15:0] cmd;
@@ -251,6 +254,7 @@ always@(posedge clk_sys) begin : uio_block
 	reg  [7:0] info_n = 0;
 	reg [15:0] tmp1;
 	reg  [7:0] tmp2;
+	reg  [3:0] sdn_r;
 
 	old_status_set <= status_set;
 	if(~old_status_set & status_set) begin
@@ -282,7 +286,6 @@ always@(posedge clk_sys) begin : uio_block
 		cmd <= 0;
 		byte_cnt <= 0;
 		sd_ack <= 0;
-		sd_ack_conf <= 0;
 		io_dout <= 0;
 		ps2skip <= 0;
 		img_mounted <= 0;
@@ -295,23 +298,23 @@ always@(posedge clk_sys) begin : uio_block
 		if(byte_cnt == 0) begin
 			cmd <= io_din;
 
-			case(io_din)
-				'h19: sd_ack_conf <= 1;
-				'h17,
-				'h18: sd_ack <= 1;
-				'h29: io_dout <= {4'hA, stflg};
-				'h2B: io_dout <= 1;
-				'h2F: io_dout <= 1;
-				'h32: io_dout <= gamma_bus[21];
-				'h36: begin io_dout <= info_n; info_n <= 0; end
-				'h39: io_dout <= 1;
+			casex(io_din)
+				  'h16: begin io_dout <= {1'b1, sd_blk_cnt[sdn], BLKSZ[2:0], sdn, sd_wr[sdn], sd_rd[sdn]}; sdn_r <= sdn; end
+				'h0X17,
+				'h0X18: begin sd_ack <= disk[VD:0]; sdn_ack <= io_din[11:8]; end
+				  'h29: io_dout <= {4'hA, stflg};
+				  'h2B: io_dout <= 1;
+				  'h2F: io_dout <= 1;
+				  'h32: io_dout <= gamma_bus[21];
+				  'h36: begin io_dout <= info_n; info_n <= 0; end
+				  'h39: io_dout <= 1;
 			endcase
 
 			sd_buff_addr <= 0;
 			if(io_din == 5) ps2_key_raw <= 0;
 		end else begin
 
-			case(cmd)
+			casex(cmd)
 				// buttons and switches
 				'h01: cfg <= io_din;
 				'h02: if(byte_cnt==1) joystick_0[15:0] <= io_din; else joystick_0[31:16] <= io_din;
@@ -353,34 +356,28 @@ always@(posedge clk_sys) begin : uio_block
 						end
 
 				// reading config string, returning a byte from string
-				'h14: if(byte_cnt <= STRLEN) io_dout[7:0] <= conf_str[{(STRLEN - byte_cnt),3'b000} +:8];
+				'h14: if(byte_cnt <= STRLEN) io_dout[7:0] <= conf_byte;
 
 				// reading sd card status
-				'h16: if(!byte_cnt[MAX_W:3]) begin
-							case(byte_cnt[2:0])
-								1: io_dout <= sd_cmd;
-								2: io_dout <= sd_lba[15:0];
-								3: io_dout <= sd_lba[31:16];
-								4: io_dout <= sd_req_type;
+				'h16: if(!byte_cnt[MAX_W:2]) begin
+							case(byte_cnt[1:0])
+								1: sd_rrb  <= (sd_rrb == VD) ? 4'd0 : (sd_rrb + 1'd1);
+								2: io_dout <= sd_lba[sdn_r][15:0];
+								3: io_dout <= sd_lba[sdn_r][31:16];
 							endcase
 						end
 
-				// send SD config IO -> FPGA
-				// flag that download begins
-				// sd card knows data is config if sd_dout_strobe is asserted
-				// with sd_ack still being inactive (low)
-				'h19,
 				// send sector IO -> FPGA
 				// flag that download begins
-				'h17: begin
+				'hX17: begin
 							sd_buff_dout <= io_din[DW:0];
 							b_wr <= 1;
 						end
 
 				// reading sd card write data
-				'h18: begin
+				'hX18: begin
 							if(~&sd_buff_addr) sd_buff_addr <= sd_buff_addr + 1'b1;
-							io_dout <= sd_buff_din;
+							io_dout <= sd_buff_din[sdn_ack];
 						end
 
 				// joystick analog
@@ -934,5 +931,18 @@ always @(posedge clk_100) begin
 		vtime <= 0;
 	end
 end
+
+endmodule
+
+module confstr_rom #(parameter CONF_STR, STRLEN)
+(
+	input      clk_sys,
+	input      [$clog2(STRLEN+1)-1:0] conf_addr,
+	output reg [7:0] conf_byte
+);
+
+wire [7:0] rom[STRLEN];
+initial for(int i = 0; i < STRLEN; i++) rom[i] = CONF_STR[((STRLEN-i)*8)-1 -:8];
+always @ (posedge clk_sys) conf_byte <= rom[conf_addr];
 
 endmodule

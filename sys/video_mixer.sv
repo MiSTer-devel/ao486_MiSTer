@@ -10,10 +10,7 @@
 `timescale 1ns / 1ps
 
 //
-// LINE_LENGTH: Length of  display line in pixels
-//              Usually it's length from HSync to HSync.
-//              May be less if line_start is used.
-//
+// LINE_LENGTH: Length of display line in pixels when HBlank = 0;
 // HALF_DEPTH:  If =1 then color dept is 4 bits per component
 //
 // altera message_off 10720 
@@ -47,6 +44,12 @@ module video_mixer
 	input            HBlank,
 	input            VBlank,
 
+	// Freeze engine
+	// HDMI: displays last frame 
+	// VGA:  black screen with HSync and VSync
+	input            HDMI_FREEZE,
+	output           freeze_sync,
+
 	// video output signals
 	output reg [7:0] VGA_R,
 	output reg [7:0] VGA_G,
@@ -60,18 +63,42 @@ localparam DWIDTH = HALF_DEPTH ? 3 : 7;
 localparam DWIDTH_SD = GAMMA ? 7 : DWIDTH;
 localparam HALF_DEPTH_SD = GAMMA ? 0 : HALF_DEPTH;
 
+wire frz_hs, frz_vs;
+wire frz_hbl, frz_vbl;
+video_freezer freezer
+(
+	.clk(CLK_VIDEO),
+	.freeze(HDMI_FREEZE),
+	.hs_in(HSync),
+	.vs_in(VSync),
+	.hbl_in(HBlank),
+	.vbl_in(VBlank),
+	.sync(freeze_sync),
+	.hs_out(frz_hs),
+	.vs_out(frz_vs),
+	.hbl_out(frz_hbl),
+	.vbl_out(frz_vbl)
+);
+
+reg frz;
+always @(posedge CLK_VIDEO) begin
+	reg frz1;
+	
+	frz1 <= HDMI_FREEZE;
+	frz  <= frz1;
+end
+
 generate
 	if(GAMMA && HALF_DEPTH) begin
-		wire [7:0] R_in  = {R,R};
-		wire [7:0] G_in  = {G,G};
-		wire [7:0] B_in  = {B,B};
+		wire [7:0] R_in  = frz ? 8'd0 : {R,R};
+		wire [7:0] G_in  = frz ? 8'd0 : {G,G};
+		wire [7:0] B_in  = frz ? 8'd0 : {B,B};
 	end else begin
-		wire [DWIDTH:0] R_in  = R;
-		wire [DWIDTH:0] G_in  = G;
-		wire [DWIDTH:0] B_in  = B;
+		wire [DWIDTH:0] R_in = frz ? 1'd0 : R;
+		wire [DWIDTH:0] G_in = frz ? 1'd0 : G;
+		wire [DWIDTH:0] B_in = frz ? 1'd0 : B;
 	end
 endgenerate
-
 
 wire hs_g, vs_g;
 wire hb_g, vb_g;
@@ -90,10 +117,10 @@ generate
 			.gamma_wr_addr(gamma_bus[17:8]),
 			.gamma_value(gamma_bus[7:0]),
 
-			.HSync(HSync),
-			.VSync(VSync),
-			.HBlank(HBlank),
-			.VBlank(VBlank),
+			.HSync(frz_hs),
+			.VSync(frz_vs),
+			.HBlank(frz_hbl),
+			.VBlank(frz_vbl),
 			.RGB_in({R_in,G_in,B_in}),
 
 			.HSync_out(hs_g),
@@ -105,7 +132,7 @@ generate
 	end else begin
 		assign gamma_bus[21] = 0;
 		assign {R_gamma,G_gamma,B_gamma} = {R_in,G_in,B_in};
-		assign {hs_g, vs_g, hb_g, vb_g} = {HSync, VSync, HBlank, VBlank};
+		assign {hs_g, vs_g, hb_g, vb_g} = {frz_hs, frz_vs, frz_hbl, frz_vbl};
 	end
 endgenerate
 
