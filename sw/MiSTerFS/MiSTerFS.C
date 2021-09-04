@@ -482,7 +482,7 @@ void process2f(void) {
       i = sendquery(AL_GETATTR, glob_reqdrv, i, &answer, &ax, 0);
       if ((unsigned short)i == 0xffffu) {
         FAILFLAG(2);
-      } else if ((i != 9) || (*ax != 0)) {
+      } else if ((i != 10) || (*ax != 0)) {
         FAILFLAG(*ax);
       } else { /* all good */
         /* CX = timestamp
@@ -495,7 +495,7 @@ void process2f(void) {
         glob_intregs.w.dx = ((unsigned short *)answer)[1]; /* date */
         glob_intregs.w.bx = ((unsigned short *)answer)[3]; /* fsize hi word */
         glob_intregs.w.di = ((unsigned short *)answer)[2]; /* fsize lo word */
-        glob_intregs.w.ax = answer[8];                     /* file attribs */
+        glob_intregs.w.ax = ((unsigned short *)answer)[4]; /* file attribs */
       }
       break;
     case AL_RENAME: /*** 11h: RENAME ****************************************/
