@@ -247,12 +247,14 @@ reg [13:0] io_cnt;
 wire       io_stb = read_data_io | write_data_io;
 
 always @(posedge clk) begin
-	reg old_stb;
+	reg old_stb, r_32;
 	old_stb <= io_stb;
-	
+
+	if(io_stb) r_32 <= io_32;
+
 	if(reset)                                io_cnt <= 0;
 	else if(mgmt_write && mgmt_address == 5) io_cnt <= 0;
-	else if(old_stb & ~io_stb)               io_cnt <= io_cnt + 1'd1 + io_32;
+	else if(old_stb & ~io_stb)               io_cnt <= io_cnt + 1'd1 + r_32;
 end
 
 reg [13:0] mgmt_cnt;
