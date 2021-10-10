@@ -191,7 +191,7 @@ led fdd_led(clk_sys, |mgmt_req[7:6], LED_USER);
 // 0         1         2         3          4         5         6
 // 01234567890123456789012345678901 23456789012345678901234567890123
 // 0123456789ABCDEFGHIJKLMNOPQRSTUV 0123456789ABCDEFGHIJKLMNOPQRSTUV
-// XXXXXXXXXXXXXXXXXXXXXXXXX XXXXXX XXXXXXXXXXXXXXX
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXX
 
 `include "build_id.v"
 localparam CONF_STR =
@@ -256,7 +256,8 @@ localparam CONF_STR =
 	"h3P3r8,Reset Hanging Notes;",
 	"-;",
 	"OCD,Joystick type,2 Buttons,4 Buttons,Gravis Pro,None;",
-	"-;",
+	"OP,Joystick Mode,2 Joysticks,2 Sticks;",
+	"-    ;",
 	"R0,Reset and apply HDD;",
 	"J,Button 1,Button 2,Button 3,Button 4,Start,Select,R1,L1,R2,L2;",
 	"jn,A,B,X,Y,Start,Select,R,L;",
@@ -294,8 +295,9 @@ wire [63:0] status;
 
 wire [13:0] joystick_0;
 wire [13:0] joystick_1;
-wire [15:0] joystick_analog_0;
-wire [15:0] joystick_analog_1;
+wire [15:0] joystick_l_analog_0;
+wire [15:0] joystick_l_analog_1;
+wire [15:0] joystick_r_analog_0;
 
 wire [21:0] gamma_bus;
 wire  [7:0] uart1_mode;
@@ -331,8 +333,9 @@ hps_io #(.CONF_STR(CONF_STR), .CONF_STR_BRAM(0), .PS2DIV(4000), .PS2WE(1), .WIDE
 
 	.joystick_0(joystick_0),
 	.joystick_1(joystick_1),
-	.joystick_analog_0(joystick_analog_0),
-	.joystick_analog_1(joystick_analog_1),
+	.joystick_l_analog_0(joystick_l_analog_0),
+	.joystick_l_analog_1(joystick_l_analog_1),
+	.joystick_r_analog_0(joystick_r_analog_0),
 
 	.EXT_BUS(EXT_BUS)
 );
@@ -758,9 +761,9 @@ system system
 	.ps2_mousedat_out     (ps2_mouse_data_in),
 
 	.joystick_dig_1       (joystick_0),
-	.joystick_dig_2       (joystick_1),
-	.joystick_ana_1       (joystick_analog_0),
-	.joystick_ana_2       (joystick_analog_1),
+	.joystick_dig_2       (status[25] ? 14'd0 : joystick_1),
+	.joystick_ana_1       (joystick_l_analog_0),
+	.joystick_ana_2       (status[25] ? joystick_r_analog_0 : joystick_l_analog_1),
 	.joystick_mode        (status[13:12]),
 
 	.mgmt_readdata        (mgmt_din),

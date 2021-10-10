@@ -1732,7 +1732,7 @@ BEGIN
       -- Triple buffering.
       -- For intelaced video, half frames are updated independently
       -- Input : Toggle buffer at end of input frame
-		o_freeze <= freeze;
+      o_freeze <= freeze;
       o_inter  <=i_inter; -- <ASYNC>
       o_iendframe0<=i_endframe0; -- <ASYNC>
       o_iendframe02<=o_iendframe0;
@@ -1746,7 +1746,12 @@ BEGIN
         o_ibuf1<=buf_next(o_ibuf1,o_obuf1,o_freeze);
         o_bufup1<='1';
       END IF;
+      
       -- Output : Change framebuffer, and image properties, at VS falling edge
+      IF o_vsv(1)='1' AND o_vsv(0)='0' AND o_bufup0='1' THEN
+        o_obuf0<=buf_next(o_obuf0,o_ibuf0,o_freeze);
+        o_bufup0<='0';
+      END IF;
       IF o_vsv(1)='1' AND o_vsv(0)='0' AND o_bufup1='1' THEN
         o_obuf1<=buf_next(o_obuf1,o_ibuf1,o_freeze);
         o_bufup1<='0';
@@ -1755,6 +1760,33 @@ BEGIN
         o_hdown<=i_hdown; -- <ASYNC>
         o_vdown<=i_vdown; -- <ASYNC>
       END IF;
+      
+      -- Simultaneous change of input and output framebuffers
+      IF o_vsv(1)='1' AND o_vsv(0)='0' AND
+        o_iendframe0='1' AND o_iendframe02='0' THEN
+        o_bufup0<='0';
+        o_obuf0<=o_ibuf0;
+      END IF;
+      IF o_vsv(1)='1' AND o_vsv(0)='0' AND
+        o_iendframe1='1' AND o_iendframe12='0' THEN
+        o_bufup1<='0';
+        o_obuf1<=o_ibuf1;
+      END IF;
+      
+      -- Non-interlaced, use same buffer for even and odd lines
+      IF o_inter='0' THEN
+        o_ibuf1<=o_ibuf0;
+        o_obuf1<=o_obuf0;
+      END IF;
+      
+      -- Triple buffer disabled
+      IF o_mode(3)='0' THEN
+        o_obuf0<=0;
+        o_obuf1<=0;
+        o_ibuf0<=0;
+        o_ibuf1<=0;
+      END IF;
+      
       -- Framebuffer mode.
       IF o_fb_ena='1' THEN
         o_ihsize<=o_fb_hsize;
@@ -1774,25 +1806,6 @@ BEGIN
         o_stride<=to_unsigned(o_ihsize_temp2,14);
         o_stride(NB_BURST-1 DOWNTO 0)<=(OTHERS =>'0');
       END IF;
-      
-      IF o_vsv(1)='1' AND o_vsv(0)='0' AND o_bufup0='1' THEN
-        o_obuf0<=buf_next(o_obuf0,o_ibuf0,o_freeze);
-        o_bufup0<='0';
-      END IF;
-      
-      IF o_inter='0' THEN
-        o_ibuf1<=o_ibuf0;
-        o_obuf1<=o_obuf0;
-      END IF;
-      
-      -- Triple buffer disabled
-      IF o_mode(3)='0' THEN
-        o_obuf0<=0;
-        o_obuf1<=0;
-        o_ibuf0<=0;
-        o_ibuf1<=0;
-      END IF;
-      
       ------------------------------------------------------
       o_hmode<=o_mode; 
       IF o_hdown='1' AND DOWNSCALE THEN

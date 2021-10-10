@@ -41,12 +41,19 @@ module hps_io #(parameter CONF_STR, CONF_STR_BRAM=1, PS2DIV=0, WIDE=0, VDNUM=1, 
 	output reg [31:0] joystick_5,
 	
 	// analog -127..+127, Y: [15:8], X: [7:0]
-	output reg [15:0] joystick_analog_0,
-	output reg [15:0] joystick_analog_1,
-	output reg [15:0] joystick_analog_2,
-	output reg [15:0] joystick_analog_3,
-	output reg [15:0] joystick_analog_4,
-	output reg [15:0] joystick_analog_5,
+	output reg [15:0] joystick_l_analog_0,
+	output reg [15:0] joystick_l_analog_1,
+	output reg [15:0] joystick_l_analog_2,
+	output reg [15:0] joystick_l_analog_3,
+	output reg [15:0] joystick_l_analog_4,
+	output reg [15:0] joystick_l_analog_5,
+
+	output reg [15:0] joystick_r_analog_0,
+	output reg [15:0] joystick_r_analog_1,
+	output reg [15:0] joystick_r_analog_2,
+	output reg [15:0] joystick_r_analog_3,
+	output reg [15:0] joystick_r_analog_4,
+	output reg [15:0] joystick_r_analog_5,
 
 	// paddle 0..255
 	output reg  [7:0] paddle_0,
@@ -104,6 +111,7 @@ module hps_io #(parameter CONF_STR, CONF_STR_BRAM=1, PS2DIV=0, WIDE=0, VDNUM=1, 
 	output reg [26:0] ioctl_addr,         // in WIDE mode address will be incremented by 2
 	output reg [DW:0] ioctl_dout,
 	output reg        ioctl_upload = 0,   // signal indicating an active upload
+	input             ioctl_upload_req,
 	input      [DW:0] ioctl_din,
 	output reg        ioctl_rd,
 	output reg [31:0] ioctl_file_ext,
@@ -250,6 +258,8 @@ always@(posedge clk_sys) begin : uio_block
 	reg  [3:0] stflg = 0;
 	reg [63:0] status_req;
 	reg        old_status_set = 0;
+	reg        old_upload_req = 0;
+	reg        upload_req = 0;
 	reg        old_info = 0;
 	reg  [7:0] info_n = 0;
 	reg [15:0] tmp1;
@@ -261,6 +271,9 @@ always@(posedge clk_sys) begin : uio_block
 		stflg <= stflg + 1'd1;
 		status_req <= status_in;
 	end
+	
+	old_upload_req <= ioctl_upload_req;
+	if(~old_upload_req & ioctl_upload_req) upload_req <= 1;
 
 	old_info <= info_req;
 	if(~old_info & info_req) info_n <= info;
@@ -308,6 +321,7 @@ always@(posedge clk_sys) begin : uio_block
 				  'h32: io_dout <= gamma_bus[21];
 				  'h36: begin io_dout <= info_n; info_n <= 0; end
 				  'h39: io_dout <= 1;
+				  'h3C: if(upload_req) begin io_dout <= 1; upload_req <= 0; end
 			endcase
 
 			sd_buff_addr <= 0;
@@ -369,28 +383,28 @@ always@(posedge clk_sys) begin : uio_block
 
 				// send sector IO -> FPGA
 				// flag that download begins
-				'hX17: begin
+				'h0X17: begin
 							sd_buff_dout <= io_din[DW:0];
 							b_wr <= 1;
 						end
 
 				// reading sd card write data
-				'hX18: begin
+				'h0X18: begin
 							if(~&sd_buff_addr) sd_buff_addr <= sd_buff_addr + 1'b1;
 							io_dout <= sd_buff_din[sdn_ack];
 						end
 
-				// joystick analog
+				// joystick left analog
 				'h1a: if(!byte_cnt[MAX_W:2]) begin
 							case(byte_cnt[1:0])
 								1: {pdsp_idx,stick_idx} <= io_din[7:0]; // first byte is joystick index
 								2: case(stick_idx)
-										 0: joystick_analog_0 <= io_din;
-										 1: joystick_analog_1 <= io_din;
-										 2: joystick_analog_2 <= io_din;
-										 3: joystick_analog_3 <= io_din;
-										 4: joystick_analog_4 <= io_din;
-										 5: joystick_analog_5 <= io_din;
+										 0: joystick_l_analog_0 <= io_din;
+										 1: joystick_l_analog_1 <= io_din;
+										 2: joystick_l_analog_2 <= io_din;
+										 3: joystick_l_analog_3 <= io_din;
+										 4: joystick_l_analog_4 <= io_din;
+										 5: joystick_l_analog_5 <= io_din;
 										15: case(pdsp_idx)
 												 0: paddle_0 <= io_din[7:0];
 												 1: paddle_1 <= io_din[7:0];
@@ -405,6 +419,21 @@ always@(posedge clk_sys) begin : uio_block
 												12: spinner_4 <= {~spinner_4[8],io_din[7:0]};
 												13: spinner_5 <= {~spinner_5[8],io_din[7:0]};
 											endcase
+									endcase
+							endcase
+						end
+
+				// joystick right analog
+				'h3d: if(!byte_cnt[MAX_W:2]) begin
+							case(byte_cnt[1:0])
+								1: stick_idx <= io_din[3:0]; // first byte is joystick index
+								2: case(stick_idx)
+										 0: joystick_r_analog_0 <= io_din;
+										 1: joystick_r_analog_1 <= io_din;
+										 2: joystick_r_analog_2 <= io_din;
+										 3: joystick_r_analog_3 <= io_din;
+										 4: joystick_r_analog_4 <= io_din;
+										 5: joystick_r_analog_5 <= io_din;
 									endcase
 							endcase
 						end
