@@ -635,7 +635,7 @@ always @(posedge clk) begin
 	if(rst_n == 1'b0)                                                                         dma_wait <= 8'd0;
 	else if(sw_reset)                                                                         dma_wait <= 8'd0;
 	else if(dma_finished || dma_valid || adpcm_output || dma_single_start || dma_auto_start)  dma_wait <= period;
-	else if(~(pause_dma) && ce_smp && dma_wait)                                                 dma_wait <= dma_wait + 1'd1;
+	else if(~(pause_dma) && ce_smp && dma_wait)                                               dma_wait <= dma_wait + 1'd1;
 end
 
 // Games, such as The Secret to Monkey Island, have a compiled in CT-VOICE driver
