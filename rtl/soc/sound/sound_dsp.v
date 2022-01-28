@@ -68,7 +68,7 @@ wire io_read_valid = io_read && io_read_last == 1'b0;
 
 assign io_readdata =
 		(io_address == 4'hA) ? read_buffer[15:8] :
-		(io_address == 4'hC) ? {write_ready, 7'h7F } :
+		(io_address == 4'hC) ? {write_buffer_busy, 7'h7F } :
 		(io_address == 4'hE) ? {read_ready, 7'h7F } :
                              8'hFF;
 
@@ -152,7 +152,7 @@ wire       cmd_finish = cmd_recv_d & ~cmd_recv;
 
 wire [7:0] cmd        = cmd_finish ? cmd_curr : 8'h00;
 
-wire write_ready = midi_uart_mode || highspeed_mode;
+wire write_buffer_busy = midi_uart_mode || highspeed_mode || (dma_command != S_IDLE) || dsp_fake_busy;
 
 reg cmd_recv;
 always @(posedge clk) begin
@@ -586,7 +586,9 @@ wire dma_auto_restart = dma_in_progress && dma_autoinit && (
     (adpcm_output && dma_left == 17'd0 && adpcm_type != ADPCM_NONE && adpcm_wait == 2'd1)
 );
 
-wire dma_restart_possible = !dma_wait && (!adpcm_wait || (adpcm_type != ADPCM_NONE && adpcm_wait == 2'd1)) && (~(dma_in_progress) || dma_auto_restart || pause_dma);
+// After receiving a new DMA command the DSP will finish transferring any bytes for the current output command,
+// or if DMA has been paused then a new command can start immediately.
+wire dma_restart_possible = pause_dma || (!dma_wait && (!adpcm_wait || (adpcm_type != ADPCM_NONE && adpcm_wait == 2'd1)) && (~(dma_in_progress) || dma_auto_restart));
 
 reg [16:0] dma_left;
 always @(posedge clk) begin
@@ -630,10 +632,53 @@ end
 
 reg [7:0] dma_wait;
 always @(posedge clk) begin
-	if(rst_n == 1'b0)                                                                                                 dma_wait <= 8'd0;
-	else if(sw_reset)                                                                                                 dma_wait <= 8'd0;
-	else if(dma_finished || dma_valid || adpcm_output || (~dma_in_progress && (dma_single_start || dma_auto_start)))  dma_wait <= period;
-	else if(ce_smp && dma_wait)                                                                                       dma_wait <= dma_wait + 1'd1;
+	if(rst_n == 1'b0)                                                                         dma_wait <= 8'd0;
+	else if(sw_reset)                                                                         dma_wait <= 8'd0;
+	else if(dma_finished || dma_valid || adpcm_output || dma_single_start || dma_auto_start)  dma_wait <= period;
+	else if(~(pause_dma) && ce_smp && dma_wait)                                               dma_wait <= dma_wait + 1'd1;
+end
+
+// Games, such as The Secret to Monkey Island, have a compiled in CT-VOICE driver
+// that communicates to the DSP. When the driver knows a sound is currently playing,
+// it adds an additional step before starting to play the new sound. The driver will poll
+// the write status port (2xCh) until it sees a busy flag, and if it sees it then it sends
+// the pause command first. If the driver never sees a busy status it will eventually
+// timeout polling and skip sending the pause command.
+//
+// Without setting the busy flag a pause command is not sent and the game becomes
+// out of sync with the number of bytes it expects to transfer and locks up.
+//
+// To replicate the expected behavior the write port status will return busy when the
+// register is read the first time following a DMA request, and on subsequent reads it will
+// return idle.
+localparam [1:0] S_WRITE_PORT_STATUS_IDLE = 2'd0;
+localparam [1:0] S_WRITE_PORT_STATUS_BUSY = 2'd1;
+localparam [1:0] S_WRITE_PORT_STATUS_IDLE_UNTIL_TIMER_RESET = 2'd2;
+
+// The fake busy signal communicates what the software using the sound card expects, and
+// does not mean the DSP module is actually busy.
+wire dsp_fake_busy = (dsp_busy_state > S_WRITE_PORT_STATUS_IDLE) && (dsp_busy_state < S_WRITE_PORT_STATUS_IDLE_UNTIL_TIMER_RESET);
+wire write_port_status_reply = (io_read_valid && io_address == 4'hC);
+
+reg [1:0] dsp_busy_state;
+always @(posedge clk) begin
+	if(rst_n == 1'b0)          dsp_busy_state <= S_WRITE_PORT_STATUS_IDLE;
+	else if(sw_reset)          dsp_busy_state <= S_WRITE_PORT_STATUS_IDLE;
+
+	// Go back to idle anytime the DMA timer is about to finish, or is paused.
+	else if(pause_dma)         dsp_busy_state <= S_WRITE_PORT_STATUS_IDLE;
+	else if(!dma_in_progress)  dsp_busy_state <= S_WRITE_PORT_STATUS_IDLE;
+	else if(dma_wait == 8'hFF) dsp_busy_state <= S_WRITE_PORT_STATUS_IDLE;
+
+	// Stay busy for a single read, and then stay idle until a DMA request resets the state.
+	else if(dsp_fake_busy && write_port_status_reply) begin
+		dsp_busy_state <= dsp_busy_state + 1'd1;
+	end
+
+	// Go busy when a DMA request is made.
+	else if(dma_req) begin
+		dsp_busy_state <= S_WRITE_PORT_STATUS_BUSY;
+	end
 end
 
 reg [3:0] dma_format; // 16/8, sbp_stereo/mono, sb16_stereo/mono, signed/unsigned
