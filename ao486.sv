@@ -29,7 +29,7 @@ module emu
 	input         RESET,
 
 	//Must be passed to hps_io module
-	inout  [45:0] HPS_BUS,
+	inout  [48:0] HPS_BUS,
 
 	//Base video clock. Usually equals to CLK_SYS.
 	output        CLK_VIDEO,
@@ -58,7 +58,7 @@ module emu
 	output        HDMI_FREEZE,
 
 `ifdef MISTER_FB
-	// Use framebuffer in DDRAM (USE_FB=1 in qsf)
+	// Use framebuffer in DDRAM
 	// FB_FORMAT:
 	//    [2:0] : 011=8bpp(palette) 100=16bpp 101=24bpp 110=32bpp
 	//    [3]   : 0=16bits 565 1=16bits 1555
@@ -257,7 +257,7 @@ localparam CONF_STR =
 	"-;",
 	"OCD,Joystick type,2 Buttons,4 Buttons,Gravis Pro,None;",
 	"OP,Joystick Mode,2 Joysticks,2 Sticks;",
-	"-    ;",
+	"-;",
 	"R0,Reset and apply HDD;",
 	"J,Button 1,Button 2,Button 3,Button 4,Start,Select,R1,L1,R2,L2;",
 	"jn,A,B,X,Y,Start,Select,R,L;",

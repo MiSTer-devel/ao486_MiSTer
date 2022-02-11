@@ -7,6 +7,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) m
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) hq2x.sv ]
 set_global_assignment -name VERILOG_FILE       [file join $::quartus(qip_path) scandoubler.v ]
 set_global_assignment -name VERILOG_FILE       [file join $::quartus(qip_path) scanlines.v ]
+set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) shadowmask.sv ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) video_cleaner.sv ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) gamma_corr.sv ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) video_mixer.sv ]
