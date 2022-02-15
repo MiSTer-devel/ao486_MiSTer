@@ -1368,10 +1368,6 @@ assign dot_memory_load =
 	    (seq_8dot_char    && seq_dotclock_divided    && ~(dot_cnt_enable) && dot_cnt == 4'd6) ||
 	    (~(seq_8dot_char) && ~(seq_dotclock_divided) && dot_cnt_enable    && dot_cnt == 4'd4) ||
 	    (~(seq_8dot_char) && seq_dotclock_divided    && ~(dot_cnt_enable) && dot_cnt == 4'd7)
-	) &&
-	(   (vert_cnt == crtc_vertical_total + 1'd1 && horiz_cnt >= crtc_horizontal_total + 8'd3) ||
-	    (vert_cnt < crtc_vertical_display_size && (horiz_cnt <= crtc_horizontal_display_size - 8'd2 || horiz_cnt >= crtc_horizontal_total + 8'd3)) ||
-	    (vert_cnt == crtc_vertical_display_size && horiz_cnt <= crtc_horizontal_display_size - 8'd2)
 	);
     
 assign dot_memory_load_first_in_frame = dot_memory_load && vert_cnt == crtc_vertical_total + 1'd1 && horiz_cnt == crtc_horizontal_total + 8'd3;
