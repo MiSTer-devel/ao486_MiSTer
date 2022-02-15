@@ -4566,14 +4566,14 @@ ASM_END
                         break;
                     case 1:
                         set_e820_range(ES, regs.u.r16.di,
-                                       0x0009f000L, 0x000d0000L, 0, 0, E820_RESERVED);
+                                       0x0009f000L, 0x000a0000L, 0, 0, E820_RESERVED);
                         regs.u.r32.ebx = 2;
                         break;
                     case 2:
                         set_e820_range(ES, regs.u.r16.di,
-                                       0x000f0000L, 0x00100000L, 0, 0, E820_RESERVED);
+                                       0x000e8000L, 0x00100000L, 0, 0, E820_RESERVED);
                         if (extended_memory_size <= 0x100000)
-                            regs.u.r32.ebx = 0;
+                            regs.u.r32.ebx = 6;
                         else
                             regs.u.r32.ebx = 3;
                         break;
@@ -4594,7 +4594,7 @@ ASM_END
                         set_e820_range(ES, regs.u.r16.di,
                                        0x00100000L,
                                        extended_memory_size, 0, 0, E820_RAM);
-                        regs.u.r32.ebx = 0;
+                        regs.u.r32.ebx = 6;
 #endif
                         break;
                     case 4:
@@ -4607,6 +4607,22 @@ ASM_END
                         set_e820_range(ES, regs.u.r16.di,
                                        extended_memory_size - ACPI_DATA_SIZE,
                                        extended_memory_size, 0, 0, E820_ACPI);
+                        regs.u.r32.ebx = 6;
+                        break;
+                    case 6:
+                        /* 256KB BIOS area at the end of 4 GB */
+                        set_e820_range(ES, regs.u.r16.di,
+                                       0xfffc0000L, 0x00000000L, 0, 0, E820_RESERVED);
+                        if (extra_highbits_memory_size || extra_lowbits_memory_size)
+                            regs.u.r32.ebx = 7;
+                        else
+                            regs.u.r32.ebx = 0;
+                        break;
+                    case 7:
+                        /* Mapping of memory above 4 GB */
+                        set_e820_range(ES, regs.u.r16.di, 0x00000000L,
+                            extra_lowbits_memory_size, 1, extra_highbits_memory_size
+                                       + 1, E820_RAM);
                         regs.u.r32.ebx = 0;
                         break;
                     default:  /* AX=E820, DX=534D4150, BX unrecognized */
