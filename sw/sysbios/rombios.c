@@ -4607,22 +4607,6 @@ ASM_END
                         set_e820_range(ES, regs.u.r16.di,
                                        extended_memory_size - ACPI_DATA_SIZE,
                                        extended_memory_size, 0, 0, E820_ACPI);
-                        regs.u.r32.ebx = 6;
-                        break;
-                    case 6:
-                        /* 256KB BIOS area at the end of 4 GB */
-                        set_e820_range(ES, regs.u.r16.di,
-                                       0xfffc0000L, 0x00000000L, 0, 0, E820_RESERVED);
-                        if (extra_highbits_memory_size || extra_lowbits_memory_size)
-                            regs.u.r32.ebx = 7;
-                        else
-                            regs.u.r32.ebx = 0;
-                        break;
-                    case 7:
-                        /* Mapping of memory above 4 GB */
-                        set_e820_range(ES, regs.u.r16.di, 0x00000000L,
-                            extra_lowbits_memory_size, 1, extra_highbits_memory_size
-                                       + 1, E820_RAM);
                         regs.u.r32.ebx = 0;
                         break;
                     default:  /* AX=E820, DX=534D4150, BX unrecognized */
