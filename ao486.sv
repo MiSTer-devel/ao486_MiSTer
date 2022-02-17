@@ -210,6 +210,7 @@ localparam CONF_STR =
 
 	"P1,Audio & Video;",
 	"P1-;",
+	"P1oFG,Display,Color,Green,Amber,White;",
 	"P1OMN,Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 	"P1O4,VSync,60Hz,Variable;",
 	"P1O8,16/24bit mode,BGR,RGB;",
@@ -559,6 +560,7 @@ video_cleaner video_cleaner
 (
 	.clk_vid(CLK_VIDEO),
 	.ce_pix(vga_ce),
+	.mix(status[48:47]),
 
 	.R(r),
 	.G(g),
