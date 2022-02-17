@@ -13,6 +13,7 @@ module video_cleaner
 (
 	input            clk_vid,
 	input            ce_pix,
+	input      [1:0] mix,
 
 	input      [7:0] R,
 	input      [7:0] G,
@@ -43,6 +44,7 @@ module video_cleaner
 );
 
 wire hs, vs;
+wire [15:0] px = R * 16'd054 + G * 16'd183 + B * 16'd018;
 s_fix sync_v(clk_vid, HSync, hs);
 s_fix sync_h(clk_vid, VSync, vs);
 
@@ -58,9 +60,14 @@ always @(posedge clk_vid) begin
 		VGA_HS <= hs;
 		if(~VGA_HS & hs) VGA_VS <= vs;
 
-		VGA_R  <= R;
-		VGA_G  <= G;
-		VGA_B  <= B;
+		{VGA_R, VGA_G, VGA_B} <= 0;
+		case(mix)			
+			0: {VGA_R, VGA_G, VGA_B} <= {R, G, B};                        // color
+			1: {       VGA_G       } <= {          px[15:8]            }; // green
+			2: {VGA_R, VGA_G       } <= {px[15:8], px[15:8] - px[15:10]}; // amber			
+			3: {VGA_R, VGA_G, VGA_B} <= {px[15:8], px[15:8], px[15:8]  }; // gray
+		endcase
+				
 		DE_out <= DE_in;
 
 		if(HBlank_out & ~hbl) VBlank_out <= vbl;
