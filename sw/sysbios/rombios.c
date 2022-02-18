@@ -4571,9 +4571,9 @@ ASM_END
                         break;
                     case 2:
                         set_e820_range(ES, regs.u.r16.di,
-                                       0x000e8000L, 0x00100000L, 0, 0, E820_RESERVED);
+                                       0x000f0000L, 0x00100000L, 0, 0, E820_RESERVED);
                         if (extended_memory_size <= 0x100000)
-                            regs.u.r32.ebx = 6;
+                            regs.u.r32.ebx = 0;
                         else
                             regs.u.r32.ebx = 3;
                         break;
@@ -4594,7 +4594,7 @@ ASM_END
                         set_e820_range(ES, regs.u.r16.di,
                                        0x00100000L,
                                        extended_memory_size, 0, 0, E820_RAM);
-                        regs.u.r32.ebx = 6;
+                        regs.u.r32.ebx = 0;
 #endif
                         break;
                     case 4:
