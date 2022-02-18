@@ -4591,29 +4591,34 @@ ASM_END
                         break;
                     case 1:
                         set_e820_range(ES, regs.u.r16.di,
-                                       0x0009f000L, 0x000d0000L, 0, 0, E820_RESERVED);
+                                       0x0009f000L, 0x000a0000L, 0, 0, E820_RESERVED);
                         regs.u.r32.ebx = 2;
                         break;
                     case 2:
+                        set_e820_range(ES, regs.u.r16.di,
+                                       0x000ce000L, 0x000d0000L, 0, 0, E820_RESERVED);
+                        regs.u.r32.ebx = 3;
+                        break;
+                    case 3:
                         set_e820_range(ES, regs.u.r16.di,
                                        0x000f0000L, 0x00100000L, 0, 0, E820_RESERVED);
                         if (extended_memory_size <= 0x100000)
                             regs.u.r32.ebx = 0;
                         else
-                            regs.u.r32.ebx = 3;
+                            regs.u.r32.ebx = 4;
                         break;
-                    case 3:
+                    case 4:
 #if BX_ROMBIOS32
 #ifdef BX_USE_EBDA_TABLES
                         set_e820_range(ES, regs.u.r16.di,
                                        0x00100000L,
                                        extended_memory_size - ACPI_DATA_SIZE - MPTABLE_MAX_SIZE, 0, 0, E820_RAM);
-                        regs.u.r32.ebx = 4;
+                        regs.u.r32.ebx = 5;
 #else
                         set_e820_range(ES, regs.u.r16.di,
                                        0x00100000L,
                                        extended_memory_size - ACPI_DATA_SIZE, 0, 0, E820_RAM);
-                        regs.u.r32.ebx = 5;
+                        regs.u.r32.ebx = 6;
 #endif
 #else
                         set_e820_range(ES, regs.u.r16.di,
@@ -4622,13 +4627,13 @@ ASM_END
                         regs.u.r32.ebx = 0;
 #endif
                         break;
-                    case 4:
+                    case 5:
                         set_e820_range(ES, regs.u.r16.di,
                                        extended_memory_size - ACPI_DATA_SIZE - MPTABLE_MAX_SIZE,
                                        extended_memory_size - ACPI_DATA_SIZE, 0, 0, E820_RESERVED);
-                        regs.u.r32.ebx = 5;
+                        regs.u.r32.ebx = 6;
                         break;
-                    case 5:
+                    case 6:
                         set_e820_range(ES, regs.u.r16.di,
                                        extended_memory_size - ACPI_DATA_SIZE,
                                        extended_memory_size, 0, 0, E820_ACPI);
