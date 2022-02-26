@@ -506,6 +506,34 @@ always @(posedge clk) begin
     else if(keyb_recv_ok && keyb_translate_escape == 1'b0)  keyb_translate_escape <= translate && keyb_recv_buffer == 8'hF0;
     else if(keyb_recv_final && keyb_recv_buffer != 8'hF0)   keyb_translate_escape <= 1'b0;
 end
+
+reg [7:0] trans;
+always @(posedge clk) begin
+    if(rst_n == 1'b0)   trans <= 8'd0;
+    else begin
+        case(keyb_recv_buffer)
+            8'h00: trans <= 8'hff; 8'h01: trans <= 8'h43; 8'h02: trans <= 8'h41; 8'h03: trans <= 8'h3f; 8'h04: trans <= 8'h3d; 8'h05: trans <= 8'h3b; 8'h06: trans <= 8'h3c; 8'h07: trans <= 8'h58;
+            8'h08: trans <= 8'h64; 8'h09: trans <= 8'h44; 8'h0A: trans <= 8'h42; 8'h0B: trans <= 8'h40; 8'h0C: trans <= 8'h3e; 8'h0D: trans <= 8'h0f; 8'h0E: trans <= 8'h29; 8'h0F: trans <= 8'h59;
+            8'h10: trans <= 8'h65; 8'h11: trans <= 8'h38; 8'h12: trans <= 8'h2a; 8'h13: trans <= 8'h70; 8'h14: trans <= 8'h1d; 8'h15: trans <= 8'h10; 8'h16: trans <= 8'h02; 8'h17: trans <= 8'h5a;
+            8'h18: trans <= 8'h66; 8'h19: trans <= 8'h71; 8'h1A: trans <= 8'h2c; 8'h1B: trans <= 8'h1f; 8'h1C: trans <= 8'h1e; 8'h1D: trans <= 8'h11; 8'h1E: trans <= 8'h03; 8'h1F: trans <= 8'h5b;
+            8'h20: trans <= 8'h67; 8'h21: trans <= 8'h2e; 8'h22: trans <= 8'h2d; 8'h23: trans <= 8'h20; 8'h24: trans <= 8'h12; 8'h25: trans <= 8'h05; 8'h26: trans <= 8'h04; 8'h27: trans <= 8'h5c;
+            8'h28: trans <= 8'h68; 8'h29: trans <= 8'h39; 8'h2A: trans <= 8'h2f; 8'h2B: trans <= 8'h21; 8'h2C: trans <= 8'h14; 8'h2D: trans <= 8'h13; 8'h2E: trans <= 8'h06; 8'h2F: trans <= 8'h5d;
+            8'h30: trans <= 8'h69; 8'h31: trans <= 8'h31; 8'h32: trans <= 8'h30; 8'h33: trans <= 8'h23; 8'h34: trans <= 8'h22; 8'h35: trans <= 8'h15; 8'h36: trans <= 8'h07; 8'h37: trans <= 8'h5e;
+            8'h38: trans <= 8'h6a; 8'h39: trans <= 8'h72; 8'h3A: trans <= 8'h32; 8'h3B: trans <= 8'h24; 8'h3C: trans <= 8'h16; 8'h3D: trans <= 8'h08; 8'h3E: trans <= 8'h09; 8'h3F: trans <= 8'h5f;
+            8'h40: trans <= 8'h6b; 8'h41: trans <= 8'h33; 8'h42: trans <= 8'h25; 8'h43: trans <= 8'h17; 8'h44: trans <= 8'h18; 8'h45: trans <= 8'h0b; 8'h46: trans <= 8'h0a; 8'h47: trans <= 8'h60;
+            8'h48: trans <= 8'h6c; 8'h49: trans <= 8'h34; 8'h4A: trans <= 8'h35; 8'h4B: trans <= 8'h26; 8'h4C: trans <= 8'h27; 8'h4D: trans <= 8'h19; 8'h4E: trans <= 8'h0c; 8'h4F: trans <= 8'h61;
+            8'h50: trans <= 8'h6d; 8'h51: trans <= 8'h73; 8'h52: trans <= 8'h28; 8'h53: trans <= 8'h74; 8'h54: trans <= 8'h1a; 8'h55: trans <= 8'h0d; 8'h56: trans <= 8'h62; 8'h57: trans <= 8'h6e;
+            8'h58: trans <= 8'h3a; 8'h59: trans <= 8'h36; 8'h5A: trans <= 8'h1c; 8'h5B: trans <= 8'h1b; 8'h5C: trans <= 8'h75; 8'h5D: trans <= 8'h2b; 8'h5E: trans <= 8'h63; 8'h5F: trans <= 8'h76;
+            8'h60: trans <= 8'h55; 8'h61: trans <= 8'h56; 8'h62: trans <= 8'h77; 8'h63: trans <= 8'h78; 8'h64: trans <= 8'h79; 8'h65: trans <= 8'h7a; 8'h66: trans <= 8'h0e; 8'h67: trans <= 8'h7b;
+            8'h68: trans <= 8'h7c; 8'h69: trans <= 8'h4f; 8'h6A: trans <= 8'h7d; 8'h6B: trans <= 8'h4b; 8'h6C: trans <= 8'h47; 8'h6D: trans <= 8'h7e; 8'h6E: trans <= 8'h7f; 8'h6F: trans <= 8'h6f;
+            8'h70: trans <= 8'h52; 8'h71: trans <= 8'h53; 8'h72: trans <= 8'h50; 8'h73: trans <= 8'h4c; 8'h74: trans <= 8'h4d; 8'h75: trans <= 8'h48; 8'h76: trans <= 8'h01; 8'h77: trans <= 8'h45;
+            8'h78: trans <= 8'h57; 8'h79: trans <= 8'h4e; 8'h7A: trans <= 8'h51; 8'h7B: trans <= 8'h4a; 8'h7C: trans <= 8'h37; 8'h7D: trans <= 8'h49; 8'h7E: trans <= 8'h46; 8'h7F: trans <= 8'h54;
+            8'h80: trans <= 8'h80; 8'h81: trans <= 8'h81; 8'h82: trans <= 8'h82; 8'h83: trans <= 8'h41; 8'h84: trans <= 8'h54; 8'h85: trans <= 8'h85; 8'h86: trans <= 8'h86; 8'h87: trans <= 8'h87;
+            8'h88: trans <= 8'h88; 8'h89: trans <= 8'h89; 8'h8A: trans <= 8'h8a; 8'h8B: trans <= 8'h8b; 8'h8C: trans <= 8'h8c; 8'h8D: trans <= 8'h8d; 8'h8E: trans <= 8'h8e; 8'h8F: trans <= 8'h8f;
+            default: trans <= keyb_recv_buffer;
+        endcase
+    end
+end
   
 localparam [3:0] PS2_IDLE                   = 4'd0;
 
@@ -593,7 +621,7 @@ keyb_fifo(
     .sclr       (cmd_self_test),                                                                                                //input
     
     .wrreq      (ps2_kb_reply_done || (keyb_recv_final && (~(translate) || keyb_recv_buffer != 8'hF0))),                        //input
-	 .data       ((ps2_kb_reply_done)? keyb_reply : (translate)? ({ keyb_translate_escape, 7'd0 } | keyb_recv_buffer) : keyb_recv_buffer),  //input [7:0]
+    .data       ((ps2_kb_reply_done)? keyb_reply : (translate)? ({ keyb_translate_escape, 7'd0 } | trans) : keyb_recv_buffer),  //input [7:0]
     .full       (keyb_fifo_full),                                                                                               //output
     .usedw      (keyb_fifo_usedw),                                                                                              //output [5:0]
     
