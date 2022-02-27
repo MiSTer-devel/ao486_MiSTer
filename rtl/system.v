@@ -302,10 +302,10 @@ ao486 ao486
 );
 
 always @(posedge clk_sys) begin
-	ide0_cs       <= ({iobus_address[15:3], 3'd0} == 16'h01F0) || ({iobus_address[15:1], 1'd0} == 16'h03F6);
-	ide1_cs       <= ({iobus_address[15:3], 3'd0} == 16'h0170) || ({iobus_address[15:1], 1'd0} == 16'h0376);
+	ide0_cs       <= ({iobus_address[15:3], 3'd0} == 16'h01F0) || ({iobus_address[15:0]} == 16'h03F6);
+	ide1_cs       <= ({iobus_address[15:3], 3'd0} == 16'h0170) || ({iobus_address[15:0]} == 16'h0376);
 	joy_cs        <= ({iobus_address[15:0]      } == 16'h0201);
-	floppy0_cs    <= ({iobus_address[15:3], 3'd0} == 16'h03F0);
+	floppy0_cs    <= ({iobus_address[15:2], 2'd0} == 16'h03F0) || ({iobus_address[15:1], 1'd0} == 16'h03F4) || ({iobus_address[15:0]} == 16'h03F7) ;
 	dma_master_cs <= ({iobus_address[15:5], 5'd0} == 16'h00C0);
 	dma_page_cs   <= ({iobus_address[15:4], 4'd0} == 16'h0080);
 	dma_slave_cs  <= ({iobus_address[15:4], 4'd0} == 16'h0000);
