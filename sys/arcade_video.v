@@ -175,6 +175,7 @@ module screen_rotate
 	input         rotate_ccw,
 	input         no_rotate,
 	input         flip,
+	output        video_rotated,
 
 	output            FB_EN,
 	output      [4:0] FB_FORMAT,
@@ -220,6 +221,8 @@ function [1:0] buf_next;
 		if ((a==1 && b==2) || (a==2 && b==1)) buf_next = 0;
 	end
 endfunction
+
+assign video_rotated = ~no_rotate;
 
 always @(posedge CLK_VIDEO) begin
 	do_flip <= no_rotate && flip;

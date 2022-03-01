@@ -74,6 +74,10 @@ module hps_io #(parameter CONF_STR, CONF_STR_BRAM=1, PS2DIV=0, WIDE=0, VDNUM=1, 
 	output      [1:0] buttons,
 	output            forced_scandoubler,
 	output            direct_video,
+	input             video_rotated,
+
+	//toggle to force notify of video mode change
+	input             new_vmode,
 
 	output reg [63:0] status,
 	input      [63:0] status_in,
@@ -82,9 +86,6 @@ module hps_io #(parameter CONF_STR, CONF_STR_BRAM=1, PS2DIV=0, WIDE=0, VDNUM=1, 
 
 	input             info_req,
 	input       [7:0] info,
-
-	//toggle to force notify of video mode change
-	input             new_vmode,
 
 	// SD config
 	output reg [VD:0] img_mounted,  // signaling that new image has been mounted
@@ -111,7 +112,8 @@ module hps_io #(parameter CONF_STR, CONF_STR_BRAM=1, PS2DIV=0, WIDE=0, VDNUM=1, 
 	output reg [26:0] ioctl_addr,         // in WIDE mode address will be incremented by 2
 	output reg [DW:0] ioctl_dout,
 	output reg        ioctl_upload = 0,   // signal indicating an active upload
-	input             ioctl_upload_req,
+	input             ioctl_upload_req,   // request to save (must be supported on HPS side for specific core)
+	input       [7:0] ioctl_upload_index,
 	input      [DW:0] ioctl_din,
 	output reg        ioctl_rd,
 	output reg [31:0] ioctl_file_ext,
@@ -215,6 +217,7 @@ video_calc video_calc
 	.vs_hdmi(HPS_BUS[44]),
 	.f1(HPS_BUS[45]),
 	.new_vmode(new_vmode),
+	.video_rotated(video_rotated),
 
 	.par_num(byte_cnt[3:0]),
 	.dout(vc_dout)
@@ -317,15 +320,15 @@ always@(posedge clk_sys) begin : uio_block
 				'h0X18: begin sd_ack <= disk[VD:0]; sdn_ack <= io_din[11:8]; end
 				  'h29: io_dout <= {4'hA, stflg};
 `ifdef MISTER_DISABLE_ADAPTIVE
-				  'h2B: io_dout <= {HPS_BUS[48:46],4'b0010};
+				  'h2B: io_dout <= {HPS_BUS[48:46],4'b0110};
 `else
-				  'h2B: io_dout <= {HPS_BUS[48:46],4'b0011};
+				  'h2B: io_dout <= {HPS_BUS[48:46],4'b0111};
 `endif
 				  'h2F: io_dout <= 1;
 				  'h32: io_dout <= gamma_bus[21];
 				  'h36: begin io_dout <= info_n; info_n <= 0; end
 				  'h39: io_dout <= 1;
-				  'h3C: if(upload_req) begin io_dout <= 1; upload_req <= 0; end
+				  'h3C: if(upload_req) begin io_dout <= {ioctl_upload_index, 8'd1}; upload_req <= 0; end
 				  'h3E: io_dout <= 1; // shadow mask
 			endcase
 
@@ -846,6 +849,7 @@ module video_calc
 	input vs_hdmi,
 	input f1,
 	input new_vmode,
+	input video_rotated,
 
 	input       [3:0] par_num,
 	output reg [15:0] dout
@@ -853,7 +857,7 @@ module video_calc
 
 always @(posedge clk_sys) begin
 	case(par_num)
-		1: dout <= {|vid_int, vid_nres};
+		1: dout <= {video_rotated, |vid_int, vid_nres};
 		2: dout <= vid_hcnt[15:0];
 		3: dout <= vid_hcnt[31:16];
 		4: dout <= vid_vcnt[15:0];

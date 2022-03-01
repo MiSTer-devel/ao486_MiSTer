@@ -47,4 +47,4 @@ set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to SDRAM2_DQ[*]
 set_instance_assignment -name FAST_INPUT_REGISTER ON -to SDRAM2_DQ[*]
 set_instance_assignment -name ALLOW_SYNCH_CTRL_USAGE OFF -to *|SDRAM2_*
 
-set_global_assignment -name VERILOG_MACRO "DUAL_SDRAM=1"
+set_global_assignment -name VERILOG_MACRO "MISTER_DUAL_SDRAM=1"
