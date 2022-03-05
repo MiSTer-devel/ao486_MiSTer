@@ -204,8 +204,8 @@ localparam CONF_STR =
 	"S2,VHD,IDE 0-0;",
 	"S3,VHD,IDE 0-1;",
 	"-;",
-	"S4,VHDISOCUE,IDE 1-0;",
-	"S5,VHDISOCUE,IDE 1-1;",
+	"S4,VHDISOCUECHD,IDE 1-0;",
+	"S5,VHDISOCUECHD,IDE 1-1;",
 	"-;",
 
 	"P1,Audio & Video;",
