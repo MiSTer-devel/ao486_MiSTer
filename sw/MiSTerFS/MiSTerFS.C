@@ -197,6 +197,7 @@ regs.h.ah
 static unsigned short far *request_flg        = (unsigned short far *)0xCE000000UL;
 static unsigned char far *glob_pktdrv_sndbuff = (unsigned char  far *)0xCE000004UL;
 static unsigned char glob_pktdrv_recvbuff[FRAMESIZE];
+static unsigned short ff_token = 0;
 
 /* sends query out, as found in glob_pktdrv_sndbuff, and awaits for an answer.
  * this function returns the length of replyptr, or 0xFFFF on error. */
@@ -632,11 +633,13 @@ void process2f(void) {
       /* prepare the query buffer (i must provide query's length) */
       if (subfunction == AL_FINDFIRST) {
         dta = (struct sdbstruct far *)(glob_sdaptr->curr_dta);
+	((unsigned short far *)buff)[0] = ff_token;
+	ff_token++;
         /* FindFirst needs to fetch search arguments from SDA */
-        buff[0] = glob_sdaptr->srch_attr; /* file attributes to look for */
+        buff[2] = glob_sdaptr->srch_attr; /* file attributes to look for */
         /* copy fn1 (w/o drive) to buff */
-        for (i = 2; glob_sdaptr->fn1[i] != 0; i++) buff[i-1] = glob_sdaptr->fn1[i];
-        i--; /* adjust i because its one too much otherwise */
+        for (i = 2; glob_sdaptr->fn1[i] != 0; i++) buff[i+1] = glob_sdaptr->fn1[i];
+        i++; /* i must provide the exact query's length */
       } else { /* FindNext needs to fetch search arguments from DTA (es:di) */
         dta = MK_FP(glob_intregs.x.es, glob_intregs.x.di);
         ((unsigned short far*)buff)[0] = dta->par_clstr;
