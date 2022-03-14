@@ -197,8 +197,8 @@ led fdd_led(clk_sys, |mgmt_req[7:6], LED_USER);
 localparam CONF_STR =
 {
 	"AO486;UART115200:4000000(Turbo 115200),MIDI;",
-	"S0,IMG,Floppy A:;",
-	"S1,IMG,Floppy B:;",
+	"S0,IMGIMAVFD,Floppy A:;",
+	"S1,IMGIMAVFD,Floppy B:;",
 	"O12,Write Protect,None,A:,B:,A: & B:;",
 	"-;",
 	"S2,VHD,IDE 0-0;",
