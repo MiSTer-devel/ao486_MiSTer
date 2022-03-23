@@ -194,41 +194,48 @@ regs.h.ah
 
 #define HDRLEN   8
 #define CHUNKLEN 1024
+/* Pointers into the shared memory region used to transfer data */
 static unsigned short far *request_flg        = (unsigned short far *)0xCE000000UL;
 static unsigned char far *glob_pktdrv_sndbuff = (unsigned char  far *)0xCE000004UL;
+/* Copy of the received data transfered through the sndbuff shared memory region */
 static unsigned char glob_pktdrv_recvbuff[FRAMESIZE];
-static unsigned short ff_token = 0;
+/* Unique token for use with AL_FINDFIRST and AL_FINDNEXT */
+static unsigned short glob_ff_token = 0;
 
 /* sends query out, as found in glob_pktdrv_sndbuff, and awaits for an answer.
  * this function returns the length of replyptr, or 0xFFFF on error. */
 static unsigned short sendquery(unsigned char query, unsigned char drive, unsigned short bufflen, unsigned char **replyptr, unsigned short **replyax, unsigned int updatermac) {
-	static unsigned char seq;
-	unsigned short n;
-	unsigned short far *p = request_flg;
+    static unsigned char seq;
+    unsigned short n;
+    unsigned short far *p = request_flg;
 
-	/* if query too long then quit */
-	if (bufflen > FRAMESIZE) return(0);
+    /* if query too long then quit */
+    if (bufflen > FRAMESIZE) return(0);
 
-	/* inc seq */
-	seq++;
-	*(unsigned short far*)glob_pktdrv_sndbuff = bufflen; /* total frame len */
-	glob_pktdrv_sndbuff[2] = seq;   /* seq number */
-	glob_pktdrv_sndbuff[3] = drive;
-	glob_pktdrv_sndbuff[4] = query; /* AL value (query) */
+    /* inc seq */
+    seq++;
+    /* Populate the request header */
+    *(unsigned short far*)glob_pktdrv_sndbuff = bufflen; /* total frame len */
+    glob_pktdrv_sndbuff[2] = seq;   /* seq number */
+    glob_pktdrv_sndbuff[3] = drive;
+    glob_pktdrv_sndbuff[4] = query; /* AL value (query) */
 
-	p[1] = 0xA55A;
-	n = p[0] + 1;
-	n = ((n + 77) << 8) | (n & 0xFF);
-	*p++ = n;
-	while(n != *p){};
+    /* Initiate the request with special value and sequence number */
+    p[1] = 0xA55A;
+    n = p[0] + 1;
+    n = ((n + 77) << 8) | (n & 0xFF);
+    *p++ = n;
+    /* Wait for the response */
+    while(n != *p){};
 
-	copybytes(glob_pktdrv_recvbuff, glob_pktdrv_sndbuff, FRAMESIZE);
+    copybytes(glob_pktdrv_recvbuff, glob_pktdrv_sndbuff, FRAMESIZE);
 
-	/* return buffer (without headers and seq) */
-	*replyptr = glob_pktdrv_recvbuff + HDRLEN;
-	*replyax = (unsigned short *)(glob_pktdrv_recvbuff + 4);
+    /* return buffer (without headers and seq) */
+    *replyptr = glob_pktdrv_recvbuff + HDRLEN;
+    *replyax = (unsigned short *)(glob_pktdrv_recvbuff + 4);
 
-	return *(unsigned short *)glob_pktdrv_recvbuff;
+    /* Return the length of the response */
+    return *(unsigned short *)glob_pktdrv_recvbuff;
 }
 
 
@@ -633,8 +640,9 @@ void process2f(void) {
       /* prepare the query buffer (i must provide query's length) */
       if (subfunction == AL_FINDFIRST) {
         dta = (struct sdbstruct far *)(glob_sdaptr->curr_dta);
-	((unsigned short far *)buff)[0] = ff_token;
-	ff_token++;
+        /* Create a unique token that can be used when calling AL_FINDNEXT */
+        ((unsigned short far *)buff)[0] = glob_ff_token;
+        glob_ff_token++;
         /* FindFirst needs to fetch search arguments from SDA */
         buff[2] = glob_sdaptr->srch_attr; /* file attributes to look for */
         /* copy fn1 (w/o drive) to buff */
@@ -734,12 +742,12 @@ void process2f(void) {
 
   /* DEBUG */
 #if DEBUGLEVEL > 0
-	i = 80;
-	dbg_VGA[i++] = 0x4f00 | '$';
-	while ((dbg_msg != NULL) && (*dbg_msg != 0))
-	{
-		dbg_VGA[i++] = 0x4f00 | *(dbg_msg++);
-	}
+    i = 80;
+    dbg_VGA[i++] = 0x4f00 | '$';
+    while ((dbg_msg != NULL) && (*dbg_msg != 0))
+    {
+        dbg_VGA[i++] = 0x4f00 | *(dbg_msg++);
+    }
 #endif
 }
 
@@ -1012,7 +1020,7 @@ struct argstruct {
   int argc;    /* original argc */
   char **argv; /* original argv */
   unsigned short pktint; /* custom packet driver interrupt */
-  unsigned char flags; /* ARGFL_QUIET, ARGFL_AUTO, ARGFL_UNLOAD, ARGFL_CKSUM */
+  unsigned char flags; /* ARGFL_QUIET, ARGFL_UNLOAD */
 };
 
 
@@ -1027,18 +1035,18 @@ static int parseargv(struct argstruct *args) {
 
     /* is it a drive mapping, like "c-x"? */
     if (!drivemapflag && (((args->argv[i][0] >= 'A') && (args->argv[i][0] <= 'Z')) || ((args->argv[i][0] >= 'a') && (args->argv[i][0] <= 'z'))) && (args->argv[i][1] == 0))
-	 {
+    {
       glob_data.drv = DRIVETONUM(args->argv[i][0]);
       drivemapflag = 1;
       continue;
     }
-	 
+
     /* not a drive mapping -> is it an option? */
     if (args->argv[i][0] == '/')
-	 {
+    {
       if (args->argv[i][1] == 0) return(-3);
       opt = args->argv[i][1];
-		
+
       /* normalize the option char to lower case */
       if ((opt >= 'A') && (opt <= 'Z')) opt += ('a' - 'A');
 
@@ -1097,7 +1105,7 @@ __declspec(naked) static unsigned short allocseg(unsigned short sz) {
     failed:
     /* set strategy back to its initial setting */
     mov ax, 5801h
-    pop bx        /* pop current strategy from stack */ 
+    pop bx        /* pop current strategy from stack */
     int 21h
     ret
   }
@@ -1113,40 +1121,58 @@ static void freeseg(unsigned short segm) {
   }
 }
 
+/* search for the installed interrupt handler. */
+static short findtsrroutine(unsigned char far * funcptr)
+{
+    /* Because the interrupt handler's signature might change at each source code
+     * modification and/or optimization settings, search for the routines signature.
+     */
+    short i;
+    for (i = 10; i < 60; i++)
+    {
+        unsigned char far * ptr;
+        ptr = (unsigned char far *)funcptr + i;
+        /* check for the routine's signature first ("MVet") */
+        if ((ptr[0] == 'M') && (ptr[1] == 'V') && (ptr[2] == 'e') && (ptr[3] == 't'))
+        {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
 /* patch the TSR routine and packet driver handler so they use my new DS.
  * return 0 on success, non-zero otherwise */
 static int updatetsrds(void)
 {
-	unsigned short newds;
-	unsigned char far *ptr;
-	unsigned short far *sptr;
-	short i;
-	newds = 0;
-	_asm {
-		push ds
-		pop newds
-	}
+    unsigned short newds;
+    unsigned char far *ptr;
+    unsigned short far *sptr;
+    short i;
+    newds = 0;
+    _asm {
+        push ds
+        pop newds
+    }
 
-	/* first patch the TSR routine */
-	/*{
-		int x;
-		unsigned short far *VGA = (unsigned short far *)(0xB8000000l);
-		for (x = 0; x < 128; x++) VGA[80*12 + ((x >> 6) * 80) + (x & 63)] = 0x1f00 | ptr[x];
-	}*/
-  
-	for(i=10; i<60; i++)
-	{
-		ptr = (unsigned char far *)inthandler + i; /* the interrupt handler's signature appears at offset 23 (this might change at each source code modification and/or optimization settings) */
-		sptr = (unsigned short far *)ptr;
-		/* check for the routine's signature first ("MVet") */
-		if ((ptr[0] == 'M') && (ptr[1] == 'V') && (ptr[2] == 'e') && (ptr[3] == 't'))
-		{
-			sptr[3] = newds;
-			return(0);
-		}
-	}
+    /* first patch the TSR routine */
+    /*{
+        int x;
+        unsigned short far *VGA = (unsigned short far *)(0xB8000000l);
+        for (x = 0; x < 128; x++) VGA[80*12 + ((x >> 6) * 80) + (x & 63)] = 0x1f00 | ptr[x];
+    }*/
+    i = findtsrroutine((unsigned char far *)inthandler);
+    if (i > 0)
+    {
+        ptr = (unsigned char far *)inthandler + i;
+        sptr = (unsigned short far *)ptr;
+        sptr[3] = newds;  // patch the interrupt handler
+        return(0);
+    }
 
-	return(-1);
+    // Routine signature wasn't found, return an error.
+    return(-1);
 }
 
 /* scans the 2Fh interrupt for some available 'multiplex id' in the range
@@ -1197,6 +1223,7 @@ int main(int argc, char **argv) {
   unsigned char tmpflag = 0;
   unsigned short volatile newdataseg; /* 'volatile' just in case the compiler would try to optimize it out, since I set it through in-line assembly */
 
+  /* Enable the shared memory region in the AO486 core. */
   *request_flg = 0xA345;
 
   /* set drive as 'unused' */
@@ -1243,12 +1270,12 @@ int main(int argc, char **argv) {
 
   /* is it all about unloading myself? */
   if ((args.flags & ARGFL_UNLOAD) != 0) {
-    unsigned char etherdfsid, pktint;
-    unsigned short myseg, myoff, myhandle, mydataseg;
-    unsigned long pktdrvcall;
+    unsigned char etherdfsid;
+    unsigned short myseg, myoff, mydataseg;
     struct tsrshareddata far *tsrdata;
     unsigned char far *int2fptr;
-
+    short tsrsigoffset;
+    unsigned char far * irqhandler2f;
     /* am I loaded at all? */
     etherdfsid = findfreemultiplex(&tmpflag);
     if (tmpflag == 0) { /* not loaded, cannot unload */
@@ -1269,10 +1296,14 @@ int main(int argc, char **argv) {
       pop es
       pop bx
     }
-    int2fptr = (unsigned char far *)MK_FP(myseg, myoff) + 24; /* the interrupt handler's signature appears at offset 24 (this might change at each source code modification) */
+    /* find the interrupt handler signature */
+    irqhandler2f = MK_FP(myseg, myoff);
+    tsrsigoffset = findtsrroutine(irqhandler2f);
+    int2fptr = irqhandler2f + tsrsigoffset;
     /* look for the "MVet" signature */
     if ((int2fptr[0] != 'M') || (int2fptr[1] != 'V') || (int2fptr[2] != 'e') || (int2fptr[3] != 't')) {
       #include "msg\\othertsr.c";
+      /* if i'm not at the top of the chain, return */
       return(1);
     }
     /* get the ptr to TSR's data */
@@ -1316,50 +1347,14 @@ int main(int argc, char **argv) {
       /* restore DS */
       pop ds
     }
-    /* get the address of the packet driver routine */
-    pktint = tsrdata->pktint;
-    _asm {
-      /* save BX and ES */
-      push bx
-      push es
-      /* fetch int vector */
-      mov ah, 35h  /* AH=35h 'GetVect' */
-      mov al, pktint /* interrupt */
-      int 21h
-      mov myseg, es
-      mov myoff, bx
-      /* restore BX and ES */
-      pop es
-      pop bx
-    }
-    pktdrvcall = myseg;
-    pktdrvcall <<= 16;
-    pktdrvcall |= myoff;
-    /* unregister packet driver */
-    myhandle = tsrdata->pkthandle;
-    _asm {
-      /* save AX */
-      push ax
-      /* prepare the release_type() call */
-      mov ah, 3 /* release_type() */
-      mov bx, myhandle
-      /* call the pktdrv int */
-      /* int to variable vector is a mess, so I have fetched its vector myself
-       * and pushf + cli + call far it now to simulate a regular int */
-      pushf
-      cli
-      call dword ptr pktdrvcall
-      /* restore AX */
-      pop ax
-    }
-	 
+
     /* set all mapped drives as 'not available' */
     if (tsrdata->drv != 0xff)
-	 {
+    {
       cds = getcds(tsrdata->drv);
       if (cds != NULL) cds->flags = 0;
     }
-	 
+
     /* free TSR's data/stack seg and its PSP */
     freeseg(mydataseg);
     freeseg(tsrdata->pspseg);
@@ -1469,7 +1464,7 @@ int main(int argc, char **argv) {
     char buff[8];
     #include "msg\\instlled.c"
     if (glob_data.drv != 0xff)
-	 {
+    {
       buff[0] = 'A' + glob_data.drv;
       buff[1] = ':';
       buff[2] = '\r';
@@ -1506,7 +1501,7 @@ int main(int argc, char **argv) {
     pop ds /* restore DS to previous value */
     sti
   }
-  
+
   /* Turn self into a TSR and free memory I won't need any more. That is, I
    * free all the libc startup code and my init functions by passing the
    * number of paragraphs to keep resident to INT 21h, AH=31h. How to compute
