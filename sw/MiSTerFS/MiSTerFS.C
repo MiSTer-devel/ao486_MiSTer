@@ -1121,6 +1121,27 @@ static void freeseg(unsigned short segm) {
   }
 }
 
+/* search for the installed interrupt handler. */
+static short findtsrroutine(unsigned char far * funcptr)
+{
+    /* Because the interrupt handler's signature might change at each source code
+     * modification and/or optimization settings, search for the routines signature.
+     */
+    short i;
+    for (i = 10; i < 60; i++)
+    {
+        unsigned char far * ptr;
+        ptr = (unsigned char far *)funcptr + i;
+        /* check for the routine's signature first ("MVet") */
+        if ((ptr[0] == 'M') && (ptr[1] == 'V') && (ptr[2] == 'e') && (ptr[3] == 't'))
+        {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
 /* patch the TSR routine and packet driver handler so they use my new DS.
  * return 0 on success, non-zero otherwise */
 static int updatetsrds(void)
@@ -1141,19 +1162,16 @@ static int updatetsrds(void)
         unsigned short far *VGA = (unsigned short far *)(0xB8000000l);
         for (x = 0; x < 128; x++) VGA[80*12 + ((x >> 6) * 80) + (x & 63)] = 0x1f00 | ptr[x];
     }*/
-
-    for(i=10; i<60; i++)
+    i = findtsrroutine((unsigned char far *)inthandler);
+    if (i > 0)
     {
-        ptr = (unsigned char far *)inthandler + i; /* the interrupt handler's signature appears at offset 23 (this might change at each source code modification and/or optimization settings) */
+        ptr = (unsigned char far *)inthandler + i;
         sptr = (unsigned short far *)ptr;
-        /* check for the routine's signature first ("MVet") */
-        if ((ptr[0] == 'M') && (ptr[1] == 'V') && (ptr[2] == 'e') && (ptr[3] == 't'))
-        {
-            sptr[3] = newds;
-            return(0);
-        }
+        sptr[3] = newds;  // patch the interrupt handler
+        return(0);
     }
 
+    // Routine signature wasn't found, return an error.
     return(-1);
 }
 
@@ -1256,7 +1274,8 @@ int main(int argc, char **argv) {
     unsigned short myseg, myoff, mydataseg;
     struct tsrshareddata far *tsrdata;
     unsigned char far *int2fptr;
-
+    short tsrsigoffset;
+    unsigned char far * irqhandler2f;
     /* am I loaded at all? */
     etherdfsid = findfreemultiplex(&tmpflag);
     if (tmpflag == 0) { /* not loaded, cannot unload */
@@ -1277,10 +1296,14 @@ int main(int argc, char **argv) {
       pop es
       pop bx
     }
-    int2fptr = (unsigned char far *)MK_FP(myseg, myoff) + 24; /* the interrupt handler's signature appears at offset 24 (this might change at each source code modification) */
+    /* find the interrupt handler signature */
+    irqhandler2f = MK_FP(myseg, myoff);
+    tsrsigoffset = findtsrroutine(irqhandler2f);
+    int2fptr = irqhandler2f + tsrsigoffset;
     /* look for the "MVet" signature */
     if ((int2fptr[0] != 'M') || (int2fptr[1] != 'V') || (int2fptr[2] != 'e') || (int2fptr[3] != 't')) {
       #include "msg\\othertsr.c";
+      /* if i'm not at the top of the chain, return */
       return(1);
     }
     /* get the ptr to TSR's data */
