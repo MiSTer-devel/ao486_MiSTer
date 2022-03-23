@@ -1252,9 +1252,8 @@ int main(int argc, char **argv) {
 
   /* is it all about unloading myself? */
   if ((args.flags & ARGFL_UNLOAD) != 0) {
-    unsigned char etherdfsid, pktint;
-    unsigned short myseg, myoff, myhandle, mydataseg;
-    unsigned long pktdrvcall;
+    unsigned char etherdfsid;
+    unsigned short myseg, myoff, mydataseg;
     struct tsrshareddata far *tsrdata;
     unsigned char far *int2fptr;
 
@@ -1324,42 +1323,6 @@ int main(int argc, char **argv) {
       int 21h
       /* restore DS */
       pop ds
-    }
-    /* get the address of the packet driver routine */
-    pktint = tsrdata->pktint;
-    _asm {
-      /* save BX and ES */
-      push bx
-      push es
-      /* fetch int vector */
-      mov ah, 35h  /* AH=35h 'GetVect' */
-      mov al, pktint /* interrupt */
-      int 21h
-      mov myseg, es
-      mov myoff, bx
-      /* restore BX and ES */
-      pop es
-      pop bx
-    }
-    pktdrvcall = myseg;
-    pktdrvcall <<= 16;
-    pktdrvcall |= myoff;
-    /* unregister packet driver */
-    myhandle = tsrdata->pkthandle;
-    _asm {
-      /* save AX */
-      push ax
-      /* prepare the release_type() call */
-      mov ah, 3 /* release_type() */
-      mov bx, myhandle
-      /* call the pktdrv int */
-      /* int to variable vector is a mess, so I have fetched its vector myself
-       * and pushf + cli + call far it now to simulate a regular int */
-      pushf
-      cli
-      call dword ptr pktdrvcall
-      /* restore AX */
-      pop ax
     }
 
     /* set all mapped drives as 'not available' */
