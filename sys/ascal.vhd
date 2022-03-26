@@ -981,8 +981,7 @@ ARCHITECTURE rtl OF ascal IS
   SIGNAL o_v_poly_lum, o_h_poly_lum, o_poly_lum : unsigned(7 DOWNTO 0);
   SIGNAL o_poly_lerp_ta, o_poly_lerp_tb, o_poly_lerp_tb3 : signed(9 DOWNTO 0);
   SIGNAL o_h_poly_t,o_h_poly_t2,o_v_poly_t   : type_poly_t;
-  SIGNAL o_h_poly_lum0,o_h_poly_lum1,o_h_poly_lum2 : unsigned(7 DOWNTO 0);
-
+  
   SIGNAL o_v_poly_adaptive, o_h_poly_adaptive, o_v_poly_use_adaptive, o_h_poly_use_adaptive : std_logic;
   SIGNAL poly_wr_mode : std_logic_vector(2 DOWNTO 0);
   SIGNAL poly_tdw : unsigned(39 DOWNTO 0);
@@ -1083,11 +1082,22 @@ ARCHITECTURE rtl OF ascal IS
     --v := ("00" & p.r(7 DOWNTO 2)) + ("000" & p.r(7 DOWNTO 3)) + ("0" & p.g(7 DOWNTO 1)) + ("000" & p.b(7 DOWNTO 3));
 
     -- 0.25 R + 0.5 G + 0.25 B
-    v := ( ("00" & p.r(7 DOWNTO 2)) + ("0" & p.g(7 DOWNTO 1)) + ("00" & p.b(7 DOWNTO 2)) );
+    -- v := ( ("00" & p.r(7 DOWNTO 2)) + ("0" & p.g(7 DOWNTO 1)) + ("00" & p.b(7 DOWNTO 2)) );
 
     -- Just OR them all together
-    -- v := (p.r OR p.g OR p.b);
+    --v := (p.r OR p.g OR p.b);
 
+    -- Maximum
+    IF p.r > p.g THEN
+      v := p.r;
+    ELSE
+      v := p.g;
+    END IF;
+
+    IF p.b > v THEN
+      v := p.b;
+    END IF;
+    
     -- 100%
     -- v := "1111111";
     
@@ -1804,7 +1814,6 @@ BEGIN
     VARIABLE prim_v,last_v,bib_v : std_logic;
     VARIABLE shift_v : unsigned(0 TO N_DW+15);
     VARIABLE hpix_v : type_pix;
-    VARIABLE hlum_v : unsigned(7 DOWNTO 0);
     VARIABLE hcarry_v,vcarry_v : boolean;
     VARIABLE dif_v : natural RANGE 0 TO 8*OHRES-1;
     VARIABLE off_v : natural RANGE 0 TO 15;
@@ -2206,24 +2215,15 @@ BEGIN
         o_hpix2<=o_hpix1;
         o_hpix3<=o_hpix2;
 
-        hlum_v:=poly_lum(hpix_v);
-
-        o_h_poly_lum0<=hlum_v;
-        o_h_poly_lum1<=o_h_poly_lum0;
-        o_h_poly_lum2<=o_h_poly_lum1;
-
         IF o_first='1' THEN
           -- Left edge. Duplicate first pixel
           o_hpix1<=hpix_v;
           o_hpix2<=hpix_v;
-          o_h_poly_lum1<=hlum_v;
-          o_h_poly_lum2<=hlum_v;
           o_first<='0';
         END IF;
         IF o_lastt4='1' THEN
           -- Right edge. Keep last pixel.
           o_hpix0<=o_hpix0;
-          o_h_poly_lum0<=o_h_poly_lum0;
         END IF;
       END IF;
       
@@ -2278,7 +2278,6 @@ BEGIN
   -- Fetch polyphase coefficients
   PolyFetch:PROCESS (o_clk) IS
     VARIABLE hfrac2_v, hfrac3_v, vfrac_v : unsigned(FRAC-1 DOWNTO 0);
-    VARIABLE lum_v : unsigned(7 DOWNTO 0);
     VARIABLE o_poly_phase_v : poly_phase_interp_t;
   BEGIN
     IF rising_edge(o_clk) THEN
@@ -2314,11 +2313,7 @@ BEGIN
       IF o_v_poly_use_adaptive='1' THEN
         o_poly_lum<=o_v_poly_lum;
       ELSIF o_h_poly_use_adaptive='1' THEN
-        IF hfrac2_v(hfrac2_v'left)='0' THEN
-          o_poly_lum<=o_h_poly_lum2;
-        ELSE
-          o_poly_lum<=o_h_poly_lum1;
-        END IF;
+        o_poly_lum<=o_h_poly_lum;
       END IF;
 
       o_poly_phase_b<=poly_unpack(o_a_poly_mem(o_a_poly_addr));
@@ -2569,6 +2564,12 @@ BEGIN
       o_h_bic_pix<=bic_calc3(o_hfrac(6),o_h_bic_tt2,o_h_bic_abcd2);
       
       -- POLYPHASE -----------------------------------------
+      -- C2
+      IF o_hfrac(2)(o_hfrac(2)'left)='0' THEN
+        o_h_poly_lum<=poly_lum(o_hpix2);
+      ELSE
+        o_h_poly_lum<=poly_lum(o_hpix1);
+      END IF;
       -- C3-C6 in PolyFetch
 
       -- C7 : Apply Polyphase
