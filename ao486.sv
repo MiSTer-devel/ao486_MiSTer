@@ -58,7 +58,7 @@ module emu
 	output        HDMI_FREEZE,
 
 `ifdef MISTER_FB
-	// Use framebuffer in DDRAM
+	// Use framebuffer in DDRAM (USE_FB=1 in qsf)
 	// FB_FORMAT:
 	//    [2:0] : 011=8bpp(palette) 100=16bpp 101=24bpp 110=32bpp
 	//    [3]   : 0=16bits 565 1=16bits 1555
@@ -191,7 +191,7 @@ led fdd_led(clk_sys, |mgmt_req[7:6], LED_USER);
 // 0         1         2         3          4         5         6
 // 01234567890123456789012345678901 23456789012345678901234567890123
 // 0123456789ABCDEFGHIJKLMNOPQRSTUV 0123456789ABCDEFGHIJKLMNOPQRSTUV
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXX
+// XXXXXXXXXXXXXXXXXXXXXXXXX XXXXXX XXXXXXXXXXXXXXXXX
 
 `include "build_id.v"
 localparam CONF_STR =
@@ -256,7 +256,7 @@ localparam CONF_STR =
 	"h3P3r8,Reset Hanging Notes;",
 	"-;",
 	"OCD,Joystick type,2 Buttons,4 Buttons,Gravis Pro,None;",
-	"OP,Joystick Mode,2 Joysticks,2 Sticks;",
+	"oFG,Joystick Mode,2 Joysticks,2 Sticks,2 Wheels,4-axes Wheel;",
 	"-;",
 	"R0,Reset and apply HDD;",
 	"J,Button 1,Button 2,Button 3,Button 4,Start,Select,R1,L1,R2,L2;",
@@ -298,6 +298,7 @@ wire [13:0] joystick_1;
 wire [15:0] joystick_l_analog_0;
 wire [15:0] joystick_l_analog_1;
 wire [15:0] joystick_r_analog_0;
+wire [15:0] joystick_r_analog_1;
 
 wire [21:0] gamma_bus;
 wire  [7:0] uart1_mode;
@@ -336,6 +337,7 @@ hps_io #(.CONF_STR(CONF_STR), .CONF_STR_BRAM(0), .PS2DIV(2000), .PS2WE(1), .WIDE
 	.joystick_l_analog_0(joystick_l_analog_0),
 	.joystick_l_analog_1(joystick_l_analog_1),
 	.joystick_r_analog_0(joystick_r_analog_0),
+	.joystick_r_analog_1(joystick_r_analog_1),
 
 	.EXT_BUS(EXT_BUS)
 );
@@ -760,10 +762,10 @@ system system
 	.ps2_mouseclk_out     (ps2_mouse_clk_in),
 	.ps2_mousedat_out     (ps2_mouse_data_in),
 
-	.joystick_dig_1       (joystick_0),
-	.joystick_dig_2       (status[25] ? 14'd0 : joystick_1),
-	.joystick_ana_1       (joystick_l_analog_0),
-	.joystick_ana_2       (status[25] ? joystick_r_analog_0 : joystick_l_analog_1),
+	.joystick_dig_1       (joystick_0 & dig_mask),
+	.joystick_dig_2       (status[47] ? 14'd0 : (joystick_1 & dig_mask)),
+	.joystick_ana_1       ({ja_1y,ja_1x}),
+	.joystick_ana_2       ({ja_2y,ja_2x}),
 	.joystick_mode        (status[13:12]),
 
 	.mgmt_readdata        (mgmt_din),
@@ -847,6 +849,42 @@ always @(posedge clk_sys) begin
 	end
 
 	if(status[7]) dbg_menu <= 1;
+end
+
+
+wire [7:0] ja_1x,ja_1y,ja_2x,ja_2y;
+wire [15:0] dig_mask;
+
+wire [7:0] pedal_combo;
+always_comb begin
+	ja_1x = joystick_l_analog_0[7:0];
+	ja_1y = joystick_l_analog_0[15:8];
+	ja_2x = joystick_l_analog_1[7:0];
+	ja_2y = joystick_l_analog_1[15:8];
+	dig_mask = '1;
+
+	case(status[48:47])
+		1: begin
+				ja_2x = joystick_r_analog_0[7:0];
+				ja_2y = joystick_r_analog_0[15:8];
+			end
+		2: begin
+				ja_1y = 0;
+				if(joystick_l_analog_0[15]) ja_1y = joystick_l_analog_0[15:8];
+				if(joystick_r_analog_0[15]) ja_1y = ja_1y - joystick_r_analog_0[15:8];
+				ja_2y = 0;
+				if(joystick_l_analog_1[15]) ja_2y = joystick_l_analog_1[15:8];
+				if(joystick_r_analog_1[15]) ja_2y = ja_2y - joystick_r_analog_1[15:8];
+				dig_mask[3:0] = 0;
+			end
+		3: begin
+				ja_1y = joystick_l_analog_0[15] ? {joystick_l_analog_0[14:8] + 7'd63, 1'b0} : 8'd127;
+				ja_2y = joystick_r_analog_0[15] ? {joystick_r_analog_0[14:8] + 7'd63, 1'b0} : 8'd127;
+				ja_2x = joystick_r_analog_0[7]  ? {joystick_r_analog_0[6:0]  + 7'd63, 1'b0} : 8'd127;
+				dig_mask[3:0] = 0;
+			end
+		default:;
+	endcase
 end
 
 ////////////////////////////  MT32pi  ////////////////////////////////// 
