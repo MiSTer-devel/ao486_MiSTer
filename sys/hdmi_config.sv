@@ -74,7 +74,7 @@ end
 ////////////////////////////////////////////////////////////////////
 /////////////////////	Config Data LUT   //////////////////////////
 
-wire [15:0] init_data[82] = 
+wire [15:0] init_data[85] = 
 '{
 	16'h9803,					// ADI required Write.
 
@@ -138,7 +138,8 @@ wire [15:0] init_data[82] =
 	{8'h2E, ypbpr ? 8'h07 : 8'h01},
 	{8'h2F, ypbpr ? 8'hE7 : 8'h00},
 
-	{8'h3B, 8'b0000_0000},	// Pixel repetition [6:5] b00 AUTO. [4:3] b00 x1 mult of input clock. [2:1] b00 x1 pixel rep to send to HDMI Rx.
+	{8'h3B, 8'b0100_0000},	// Pixel repetition [6:5] b00 AUTO. [4:3] b00 x1 mult of input clock. [2:1] b00 x1 pixel rep to send to HDMI Rx.
+									// Pixel repetition set to manual to avoid VIC auto detection as defined in ADV7513 Programming Guide (Skooter)
 
 	16'h4000,					// General Control Packet Enable
 
@@ -149,15 +150,25 @@ wire [15:0] init_data[82] =
 	16'h49A8,					// ADI required Write.
 	16'h4C00,					// ADI required Write.
 
-	{8'h55, 8'b0001_0000},	// [7] must be 0!. Set RGB444 in AVinfo Frame [6:5], Set active format [4].
+	{8'h55, 8'b0001_0010},	// [7] must be 0!. Set RGB444 in AVinfo Frame [6:5], Set active format [4].
 									// AVI InfoFrame Valid [4].
 									// Bar Info [3:2] b00 Bars invalid. b01 Bars vertical. b10 Bars horizontal. b11 Bars both.
-									// Scan Info [1:0] b00 (No data). b01 TV. b10 PC. b11 None.
-
-	{8'h57, 1'b0,           // [7] IT Content. 0 - No. 1 - Yes (type set in register h59).
+									// Scan Info [1:0] b00 (No data). b01 TV. b10 PC. b11 None. Set to b10 (Skooter)
+									
+	{8'h56, 8'b0000_1000},  // [5:4] Picture Aspect Ratio
+									// [3:0] Active Portion Aspect Ratio b1000 = Same as Picture Aspect Ratio (Skooter)
+	
+	{8'h57, 1'b1,           // [7] IT Content. 0 - No. 1 - Yes (type set in register h59). Set to 1 (Skooter)
 	3'b000,                 // [6:4] Color space (ignored for RGB)
 	(ypbpr | limited) ? 2'b01 : 2'b10, // [3:2] RGB Quantization range
 	2'b00},                 // [1:0] Non-Uniform Scaled: 00 - None. 01 - Horiz. 10 - Vert. 11 - Both.
+
+
+	{8'h3C, 8'b0000_0000},  // VIC b0000_0000 = Manual Disable (Skooter)
+	
+	{8'h59, 8'b0011_0000},  // [7:6] YQ1 YQ0 YCC Quantization Range b00 = Limited Range (Skooter)
+									// [5:4] IT Content Type b11 = Game (Skooter)
+									// [3:0] Pixel Repetition Fields b0000 = No Repetition (Skooter)
 
 	16'h7301,
 

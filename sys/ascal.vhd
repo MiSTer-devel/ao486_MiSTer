@@ -435,7 +435,7 @@ ARCHITECTURE rtl OF ascal IS
   SIGNAL o_pshift : natural RANGE 0 TO 15;
   SIGNAL o_readack,o_readack_sync,o_readack_sync2 : std_logic;
   SIGNAL o_readdataack,o_readdataack_sync,o_readdataack_sync2 : std_logic;
-  SIGNAL o_copyv : unsigned(0 TO 12);
+  SIGNAL o_copyv : unsigned(0 TO 14);
   SIGNAL o_adrs : unsigned(31 DOWNTO 0); -- Avalon address
   SIGNAL o_adrs_pre : natural RANGE 0 TO 2**24-1;
   SIGNAL o_stride : unsigned(13 DOWNTO 0);
@@ -461,11 +461,11 @@ ARCHITECTURE rtl OF ascal IS
   SIGNAL o_ihsize_temp, o_ihsize_temp2 : natural RANGE 0 TO 32767;
 
   SIGNAL o_vfrac : unsigned(11 DOWNTO 0);
-  SIGNAL o_hfrac : arr_frac(0 TO 8);
+  SIGNAL o_hfrac : arr_frac(0 TO 9);
   ATTRIBUTE ramstyle OF o_hfrac : SIGNAL IS "logic"; -- avoid blockram shift register
 
   SIGNAL o_hacc,o_hacc_ini,o_hacc_next,o_vacc,o_vacc_next,o_vacc_ini : natural RANGE 0 TO 4*OHRES-1;
-  SIGNAL o_hsv,o_vsv,o_dev,o_pev,o_end : unsigned(0 TO 9);
+  SIGNAL o_hsv,o_vsv,o_dev,o_pev,o_end : unsigned(0 TO 11);
   SIGNAL o_hsp,o_vss : std_logic;
   SIGNAL o_vcarrym,o_prim : boolean;
   SIGNAL o_read,o_read_pre : std_logic;
@@ -482,18 +482,16 @@ ARCHITECTURE rtl OF ascal IS
   TYPE arr_uint4 IS ARRAY (natural RANGE <>) OF natural RANGE 0 TO 15;
   SIGNAL o_off : arr_uint4(0 TO 2);
   SIGNAL o_bibu : std_logic :='0';
-  SIGNAL o_dcptv : arr_uint12(1 TO 12);
+  SIGNAL o_dcptv : arr_uint12(1 TO 14);
   SIGNAL o_dcpt : uint12;
   SIGNAL o_hpixs,o_hpix0,o_hpix1,o_hpix2,o_hpix3 : type_pix;
-  SIGNAL o_hpixq : arr_pixq(2 TO 6);
+  SIGNAL o_hpixq : arr_pixq(2 TO 8);
   ATTRIBUTE ramstyle OF o_hpixq : SIGNAL IS "logic"; -- avoid blockram shift register
-  SIGNAL o_vpixq : arr_pix(0 TO 3);
+  SIGNAL o_vpixq, o_vpixq_pre : arr_pix(0 TO 3);
   SIGNAL o_vpix_outer : arr_pix(0 TO 2);
-  SIGNAL o_vpix_inner : arr_pix(0 TO 5);
+  SIGNAL o_vpix_inner : arr_pix(0 TO 6);
 
-  -- ATTRIBUTE ramstyle OF o_hpixq : SIGNAL IS "logic";
-  
-  
+
   SIGNAL o_vpe : std_logic;
   SIGNAL o_div : arr_div(0 TO 2); --uint12;
   SIGNAL o_dir : arr_frac(0 TO 2);
@@ -971,15 +969,15 @@ ARCHITECTURE rtl OF ascal IS
   ATTRIBUTE ramstyle OF o_h_poly_mem : SIGNAL IS "no_rw_check";
   ATTRIBUTE ramstyle OF o_v_poly_mem : SIGNAL IS "no_rw_check";
   ATTRIBUTE ramstyle OF o_a_poly_mem : SIGNAL IS "no_rw_check";
-  SIGNAL o_a_poly_addr, o_v_poly_addr, o_h_poly_addr : integer RANGE 0 TO 2**FRAC-1;
-  SIGNAL o_h_poly_phase_a,o_h_poly_phase_a2,o_h_poly_phase_a3 : poly_phase_t;
-  SIGNAL o_v_poly_phase_a,o_v_poly_phase_a2,o_v_poly_phase_a3 : poly_phase_t;
+  SIGNAL o_a_poly_addr, o_v_poly_addr : integer RANGE 0 TO 2**FRAC-1;
+  SIGNAL o_h_poly_phase_a,o_h_poly_phase_a2,o_h_poly_phase_a3, o_h_poly_phase_a4, o_h_poly_phase_a5 : poly_phase_t;
+  SIGNAL o_v_poly_phase_a,o_v_poly_phase_a2,o_v_poly_phase_a3, o_v_poly_phase_a4, o_v_poly_phase_a5 : poly_phase_t;
   SIGNAL o_poly_phase_a, o_poly_phase_a2, o_poly_phase_a3 : poly_phase_t;
   SIGNAL o_poly_phase_b,o_poly_phase_b2,o_poly_phase_b3 : poly_phase_t;
-  SIGNAL o_v_poly_phase, o_v_poly_phase2, o_h_poly_phase, o_poly_phase : poly_phase_interp_t;
-  SIGNAL o_v_poly_pix, o_h_poly_pix : type_pix;
-  SIGNAL o_v_poly_lum, o_h_poly_lum, o_poly_lum : unsigned(7 DOWNTO 0);
-  SIGNAL o_poly_lerp_ta, o_poly_lerp_tb, o_poly_lerp_tb3 : signed(9 DOWNTO 0);
+  SIGNAL o_v_poly_phase, o_v_poly_phase2, o_h_poly_phase, o_poly_phase, o_poly_phase1 : poly_phase_interp_t;
+  SIGNAL o_v_poly_pix, o_h_poly_pix, o_h_lum_pix, o_v_lum_pix : type_pix;
+  SIGNAL o_poly_lum, o_poly_lum1 : unsigned(7 DOWNTO 0);
+  SIGNAL o_poly_lerp_ta, o_poly_lerp_tb : signed(9 DOWNTO 0);
   SIGNAL o_h_poly_t,o_h_poly_t2,o_v_poly_t   : type_poly_t;
   
   SIGNAL o_v_poly_adaptive, o_h_poly_adaptive, o_v_poly_use_adaptive, o_h_poly_use_adaptive : std_logic;
@@ -2277,25 +2275,15 @@ BEGIN
 
   -- Fetch polyphase coefficients
   PolyFetch:PROCESS (o_clk) IS
-    VARIABLE hfrac2_v, hfrac3_v, vfrac_v : unsigned(FRAC-1 DOWNTO 0);
-    VARIABLE o_poly_phase_v : poly_phase_interp_t;
+    VARIABLE hfrac3_v, vfrac_v : unsigned(FRAC-1 DOWNTO 0);
   BEGIN
     IF rising_edge(o_clk) THEN
-      hfrac2_v:=o_hfrac(2)(11 DOWNTO 12-FRAC);
       hfrac3_v:=o_hfrac(3)(11 DOWNTO 12-FRAC);
       vfrac_v:=o_vfrac(11 DOWNTO 12-FRAC);
 
       o_v_poly_use_adaptive <= to_std_logic((o_vmode(2 DOWNTO 0)/="000") AND (o_v_poly_adaptive = '1'));
       o_h_poly_use_adaptive <= to_std_logic((o_hmode(2 DOWNTO 0)/="000") AND (o_h_poly_adaptive = '1'));
-
-      -- C2 / HC2 / VC3
-      o_v_poly_addr<=to_integer(vfrac_v);
-      o_h_poly_addr<=to_integer(hfrac2_v);
-      IF o_v_poly_use_adaptive = '1' THEN
-        o_a_poly_addr<=to_integer(vfrac_v);
-      ELSIF o_h_poly_use_adaptive = '1' THEN
-        o_a_poly_addr<=to_integer(hfrac2_v);
-      END IF;
+      o_v_poly_addr<=to_integer(o_vfrac(11 DOWNTO 12-FRAC));
 
       -- C3 / HC3 / VC4
       IF o_vmode(2 DOWNTO 0)/="000" THEN
@@ -2305,22 +2293,21 @@ BEGIN
       END IF;
 
       IF o_hmode(2 DOWNTO 0)/="000" THEN
-        o_h_poly_phase_a<=poly_unpack(o_h_poly_mem(o_h_poly_addr));
+        o_h_poly_phase_a<=poly_unpack(o_h_poly_mem(to_integer(hfrac3_v)));
       ELSE
         o_h_poly_phase_a<=poly_nn(hfrac3_v);
       END IF;
 
       IF o_v_poly_use_adaptive='1' THEN
-        o_poly_lum<=o_v_poly_lum;
+        o_poly_lum<=poly_lum(o_v_lum_pix);
+        o_a_poly_addr<=o_v_poly_addr;
       ELSIF o_h_poly_use_adaptive='1' THEN
-        o_poly_lum<=o_h_poly_lum;
+        o_poly_lum<=poly_lum(o_h_lum_pix);
+        o_a_poly_addr<=to_integer(hfrac3_v);
       END IF;
 
-      o_poly_phase_b<=poly_unpack(o_a_poly_mem(o_a_poly_addr));
-
       -- C4 / HC4 / VC5
-      o_poly_lerp_ta<=signed(to_unsigned(256,10) - resize(o_poly_lum,10));
-      o_poly_lerp_tb<=signed(resize(o_poly_lum,10));
+      o_poly_phase_b<=poly_unpack(o_a_poly_mem(o_a_poly_addr));
 
       IF o_v_poly_use_adaptive='1' THEN
         o_poly_phase_a<=o_v_poly_phase_a;
@@ -2330,21 +2317,36 @@ BEGIN
 
       o_h_poly_phase_a2<=o_h_poly_phase_a;
       o_v_poly_phase_a2<=o_v_poly_phase_a;
-      o_poly_phase_b2<=o_poly_phase_b;
+      o_poly_lum1<=o_poly_lum;
 
       -- C5 / HC5 / VC6
-      o_poly_phase<=poly_lerp(o_poly_phase_a, o_poly_phase_b2, o_poly_lerp_ta, o_poly_lerp_tb);
+      o_poly_lerp_ta<=signed(to_unsigned(256,10) - resize(o_poly_lum1,10));
+      o_poly_lerp_tb<=signed(resize(o_poly_lum1,10));
+
+      o_poly_phase_b2<=o_poly_phase_b;
+      o_poly_phase_a2<=o_poly_phase_a;
+
       o_h_poly_phase_a3<=o_h_poly_phase_a2;
       o_v_poly_phase_a3<=o_v_poly_phase_a2;
 
       -- C6 / HC6 / VC7
-      o_v_poly_phase<=poly_cvt(o_v_poly_phase_a3);
-      o_h_poly_phase<=poly_cvt(o_h_poly_phase_a3);
+      o_poly_phase<=poly_lerp(o_poly_phase_a2, o_poly_phase_b2, o_poly_lerp_ta, o_poly_lerp_tb);
+      o_h_poly_phase_a4<=o_h_poly_phase_a3;
+      o_v_poly_phase_a4<=o_v_poly_phase_a3;
+
+      -- C7 / HC7 / VC8
+      o_h_poly_phase_a5<=o_h_poly_phase_a4;
+      o_v_poly_phase_a5<=o_v_poly_phase_a4;
+      o_poly_phase1<=o_poly_phase;
+
+      -- C8 / HC8 / VC9
+      o_v_poly_phase<=poly_cvt(o_v_poly_phase_a5);
+      o_h_poly_phase<=poly_cvt(o_h_poly_phase_a5);
 
       IF o_v_poly_use_adaptive = '1' THEN
-        o_v_poly_phase<=o_poly_phase;
+        o_v_poly_phase<=o_poly_phase1;
       ELSIF o_h_poly_use_adaptive = '1' THEN
-        o_h_poly_phase<=o_poly_phase;
+        o_h_poly_phase<=o_poly_phase1;
       END IF;
 
     END IF;
@@ -2510,77 +2512,78 @@ BEGIN
       
       -----------------------------------
       o_hfrac(1)<=dir_v;
-      o_hfrac(2 TO 6) <= o_hfrac(1 TO 5);
+      o_hfrac(2 TO 9) <= o_hfrac(1 TO 8);
       
-      o_copyv(1 TO 12)<=o_copyv(0 TO 11);
+      o_copyv(1 TO 14)<=o_copyv(0 TO 13);
       
       o_dcptv(1)<=o_dcpt;
       IF o_dcptv(1)>=o_hsize THEN
         o_copyv(2)<='0';
       END IF;
       o_dcptv(2)<=o_dcptv(1) MOD OHRES;
-      o_dcptv(3 TO 12)<=o_dcptv(2 TO 11);
+      o_dcptv(3 TO 14)<=o_dcptv(2 TO 13);
       
       -- C2
       o_hpixq(2)<=(o_hpix3,o_hpix2,o_hpix1,o_hpix0);
-      o_hpixq(3 TO 6)<=o_hpixq(2 TO 5);
+      o_hpixq(3 TO 8)<=o_hpixq(2 TO 7);
       
       -- BILINEAR / SHARP BILINEAR ---------------
-      -- C4 : Pre-calc Sharp Bilinear
-      o_h_sbil_t<=sbil_frac1(o_hfrac(3));
+      -- C7 : Pre-calc Sharp Bilinear
+      o_h_sbil_t<=sbil_frac1(o_hfrac(6));
       
-      -- C5 : Select
+      -- C8 : Select
       o_h_bil_frac<=(OTHERS =>'0');
       IF o_hmode(0)='1' THEN -- Bilinear
         IF MASK(MASK_BILINEAR)='1' THEN
-          o_h_bil_frac<=bil_frac(o_hfrac(4));
+          o_h_bil_frac<=bil_frac(o_hfrac(7));
         END IF;
       ELSE -- Sharp Bilinear
         IF MASK(MASK_SHARP_BILINEAR)='1' THEN
-          o_h_bil_frac<=sbil_frac2(o_hfrac(4),o_h_sbil_t);
+          o_h_bil_frac<=sbil_frac2(o_hfrac(7),o_h_sbil_t);
         END IF;
       END IF;
      
-      -- C6 : Opposite frac
-      o_h_bil_t<=bil_calc(o_h_bil_frac,o_hpixq(5));
+      -- C9 : Opposite frac
+      o_h_bil_t<=bil_calc(o_h_bil_frac,o_hpixq(8));
       
-      -- C7 : Bilinear / Sharp Bilinear
+      -- C10 : Bilinear / Sharp Bilinear
       o_h_bil_pix.r<=bound(o_h_bil_t.r,8+FRAC);
       o_h_bil_pix.g<=bound(o_h_bil_t.g,8+FRAC);
       o_h_bil_pix.b<=bound(o_h_bil_t.b,8+FRAC);
       
       -- BICUBIC -------------------------------------------
-      -- C5 : Bicubic coefficients A,B,C,D
-      -- C5 : Bicubic calc T1 = X.D + C
-      o_h_bic_abcd1<=bic_calc0(o_hfrac(4),o_hpixq(4));
-      o_h_bic_tt1<=bic_calc1(o_hfrac(4),
-                     bic_calc0(o_hfrac(4),o_hpixq(4)));
+      -- C8 : Bicubic coefficients A,B,C,D
+      -- C8 : Bicubic calc T1 = X.D + C
+      o_h_bic_abcd1<=bic_calc0(o_hfrac(7),o_hpixq(6));
+      o_h_bic_tt1<=bic_calc1(o_hfrac(7),
+                     bic_calc0(o_hfrac(7),o_hpixq(6)));
       
-      -- C6 : Bicubic calc T2 = X.T1 + B
+      -- C9 : Bicubic calc T2 = X.T1 + B
       o_h_bic_abcd2<=o_h_bic_abcd1;
-      o_h_bic_tt2<=bic_calc2(o_hfrac(5),o_h_bic_tt1,o_h_bic_abcd1);
+      o_h_bic_tt2<=bic_calc2(o_hfrac(8),o_h_bic_tt1,o_h_bic_abcd1);
       
-      -- C7 : Bicubic final Y = X.T2 + A
-      o_h_bic_pix<=bic_calc3(o_hfrac(6),o_h_bic_tt2,o_h_bic_abcd2);
+      -- C10 : Bicubic final Y = X.T2 + A
+      o_h_bic_pix<=bic_calc3(o_hfrac(9),o_h_bic_tt2,o_h_bic_abcd2);
       
       -- POLYPHASE -----------------------------------------
       -- C2
       IF o_hfrac(2)(o_hfrac(2)'left)='0' THEN
-        o_h_poly_lum<=poly_lum(o_hpix2);
+        o_h_lum_pix<=o_hpix2;
       ELSE
-        o_h_poly_lum<=poly_lum(o_hpix1);
+        o_h_lum_pix<=o_hpix1;
       END IF;
-      -- C3-C6 in PolyFetch
 
-      -- C7 : Apply Polyphase
-      o_h_poly_t<=poly_calc(o_h_poly_phase,o_hpixq(6));
+      -- C3-C8 in PolyFetch
 
-      -- C8 : Sum and bound
+      -- C9 : Apply Polyphase
+      o_h_poly_t<=poly_calc(o_h_poly_phase,o_hpixq(8));
+
+      -- C10 : Sum and bound
       o_h_poly_pix<=poly_final(o_h_poly_t);
       
-      -- C9 : Select interpoler ----------------------------
-      o_wadl<=o_dcptv(12);
-      o_wr<=o_altx AND (o_copyv(12) & o_copyv(12) & o_copyv(12) & o_copyv(12));
+      -- C11 : Select interpoler ----------------------------
+      o_wadl<=o_dcptv(14);
+      o_wr<=o_altx AND (o_copyv(14) & o_copyv(14) & o_copyv(14) & o_copyv(14));
       o_ldw<=(x"00",x"00",x"00");
       
       CASE o_hmode(2 DOWNTO 0) IS
@@ -2656,11 +2659,11 @@ BEGIN
                                (o_vcpt=o_vsend   AND o_hcpt<o_hsstart));
         
         o_vss<=to_std_logic(o_vcpt_pre2>=o_vmin AND o_vcpt_pre2<=o_vmax);
-        o_hsv(1 TO 9)<=o_hsv(0 TO 8);
-        o_vsv(1 TO 9)<=o_vsv(0 TO 8);
-        o_dev(1 TO 9)<=o_dev(0 TO 8);
-        o_pev(1 TO 9)<=o_pev(0 TO 8);
-        o_end(1 TO 9)<=o_end(0 TO 8);
+        o_hsv(1 TO 11)<=o_hsv(0 TO 10);
+        o_vsv(1 TO 11)<=o_vsv(0 TO 10);
+        o_dev(1 TO 11)<=o_dev(0 TO 10);
+        o_pev(1 TO 11)<=o_pev(0 TO 10);
+        o_end(1 TO 11)<=o_end(0 TO 10);
         
         IF o_run='0' THEN
           o_hsv(2)<='0';
@@ -2685,7 +2688,7 @@ BEGIN
   BEGIN
     IF rising_edge(o_clk) THEN
       IF o_ce='1' THEN
-        o_v_hmin_adj<=o_hmin + 4;
+        o_v_hmin_adj<=o_hmin + 5;
 
         fracnn_v := o_vfrac(o_vfrac'left);
         r1_v := (o_hcpt - o_v_hmin_adj + OHRES) MOD OHRES;
@@ -2731,35 +2734,38 @@ BEGIN
           o_vpix_inner(0)<=pixq_v(2);
         END IF;
 
-        -- CYCLE 3-6
-        o_vpix_inner(1 TO 4)<=o_vpix_inner(0 TO 3);
+        -- CYCLE 3-7
+        o_vpix_inner(1 TO 5)<=o_vpix_inner(0 TO 4);
 
-        -- CYCLE 7
+        -- CYCLE 8
         IF to_integer(o_vacpt)>o_ivsize THEN
           IF fracnn_v = '0' THEN
-            o_vpixq<=(o_vpix_outer(0), o_vpix_inner(4), o_vpix_inner(4), o_vpix_inner(4));
+            o_vpixq_pre<=(o_vpix_outer(0), o_vpix_inner(5), o_vpix_inner(5), o_vpix_inner(5));
           ELSE
-            o_vpixq<=(o_vpix_outer(0), o_vpix_outer(1), o_vpix_outer(1), o_vpix_outer(1));
+            o_vpixq_pre<=(o_vpix_outer(0), o_vpix_outer(1), o_vpix_outer(1), o_vpix_outer(1));
           END IF;
         ELSIF to_integer(o_vacpt)=o_ivsize THEN
           IF fracnn_v = '0' THEN
-            o_vpixq<=(o_vpix_outer(0), o_vpix_inner(4), o_vpix_outer(1), o_vpix_outer(1));
+            o_vpixq_pre<=(o_vpix_outer(0), o_vpix_inner(5), o_vpix_outer(1), o_vpix_outer(1));
           ELSE
-            o_vpixq<=(o_vpix_outer(0), o_vpix_outer(1), o_vpix_inner(4), o_vpix_inner(4));
+            o_vpixq_pre<=(o_vpix_outer(0), o_vpix_outer(1), o_vpix_inner(5), o_vpix_inner(5));
           END IF;
         ELSE
           IF fracnn_v = '0' THEN
-            o_vpixq<=(o_vpix_outer(0), o_vpix_inner(4), o_vpix_outer(1), o_vpix_outer(2));
+            o_vpixq_pre<=(o_vpix_outer(0), o_vpix_inner(5), o_vpix_outer(1), o_vpix_outer(2));
           ELSE
-            o_vpixq<=(o_vpix_outer(0), o_vpix_outer(1), o_vpix_inner(4), o_vpix_outer(2));
+            o_vpixq_pre<=(o_vpix_outer(0), o_vpix_outer(1), o_vpix_inner(5), o_vpix_outer(2));
           END IF;
         END IF;
+
+        -- CYCLE 9
+        o_vpixq<=o_vpixq_pre;
         
         -- BILINEAR / SHARP BILINEAR -----------------------
-        -- C6 : Pre-calc Sharp Bilinear
+        -- C8 : Pre-calc Sharp Bilinear
         o_v_sbil_t<=sbil_frac1(o_vfrac);
         
-        -- C7 : Select
+        -- C9 : Select
         o_v_bil_frac<=(OTHERS =>'0');
         IF o_vmode(0)='1' THEN -- Bilinear
           IF MASK(MASK_BILINEAR)='1' THEN
@@ -2771,48 +2777,48 @@ BEGIN
           END IF;
         END IF;
 
-        -- C8 :
+        -- C10 :
         o_v_bil_t<=bil_calc(o_v_bil_frac,o_vpixq);
         
-        -- C9 : Nearest / Bilinear / Sharp Bilinear
+        -- C11 : Nearest / Bilinear / Sharp Bilinear
         o_v_bil_pix.r<=bound(o_v_bil_t.r,8+FRAC);
         o_v_bil_pix.g<=bound(o_v_bil_t.g,8+FRAC);
         o_v_bil_pix.b<=bound(o_v_bil_t.b,8+FRAC);
         
         -- BICUBIC -----------------------------------------
-        -- C7 : Bicubic coefficients A,B,C,D
-        -- C7 : Bicubic calc T1 = X.D + C
+        -- C9 : Bicubic coefficients A,B,C,D
+        -- C9 : Bicubic calc T1 = X.D + C
         o_v_bic_abcd1<=bic_calc0(o_vfrac,o_vpixq);
         o_v_bic_tt1<=bic_calc1(o_vfrac,bic_calc0(o_vfrac,o_vpixq));
         
-        -- C8 : Bicubic calc T2 = X.T1 + B
+        -- C10 : Bicubic calc T2 = X.T1 + B
         o_v_bic_abcd2<=o_v_bic_abcd1;
         o_v_bic_tt2<=bic_calc2(o_vfrac,o_v_bic_tt1,o_v_bic_abcd1);
         
-        -- C9 : Bicubic final Y = X.T2 + A
+        -- C11 : Bicubic final Y = X.T2 + A
         o_v_bic_pix<=bic_calc3(o_vfrac,o_v_bic_tt2,o_v_bic_abcd2);
         
         -- POLYPHASE ---------------------------------------
-        -- C3 : Calculate Luminance
-        o_v_poly_lum<=poly_lum(o_vpix_inner(0));
+        -- C3 : Setup luminance
+        o_v_lum_pix<=o_vpix_inner(0);
 
-        -- C4-C7 in PolyFetch
+        -- C4-C9 in PolyFetch
 
-        -- C8 : Apply polyphase
+        -- C10 : Apply polyphase
         o_v_poly_t<=poly_calc(o_v_poly_phase,o_vpixq);
 
-        -- C9 : Bound
+        -- C11 : Bound
         o_v_poly_pix<=poly_final(o_v_poly_t);
 
-        -- CYCLE 10 -----------------------------------------
-        o_hs<=o_hsv(9);
-        o_vs<=o_vsv(9);
-        o_de<=o_dev(9);
-        o_vbl<=o_end(9);
+        -- CYCLE 12 -----------------------------------------
+        o_hs<=o_hsv(11);
+        o_vs<=o_vsv(11);
+        o_de<=o_dev(11);
+        o_vbl<=o_end(11);
         o_r<=x"00";
         o_g<=x"00";
         o_b<=x"00";
-        o_brd<= not o_pev(9);
+        o_brd<= not o_pev(11);
             
         CASE o_vmode(2 DOWNTO 0) IS
           WHEN "000" => -- Nearest
@@ -2843,7 +2849,7 @@ BEGIN
             END IF;
         END CASE;
         
-        IF o_pev(9)='0' THEN
+        IF o_pev(11)='0' THEN
           o_r<=o_border(23 DOWNTO 16); -- Copy border colour
           o_g<=o_border(15 DOWNTO 8);
           o_b<=o_border(7  DOWNTO 0);
