@@ -23,7 +23,7 @@ Core was greatly reworked with many new features and performance added.
 * For HDD: create an empty file of desired size with extension **vhd** in ao486 directory (or prepare .vhd file separately with any tool supporting .vhd or hard disk .img files and copy to games/ao486/ folder)
 * Boot ao486 and in OSD choose desired floppy, hdd, cd, and boot order.  A valid DOS or supported OS boot is required for the core to boot an OS.  Typical use cases: DOS Install disks on floppy with a clean VHD mounted for HDD. Pre-configured VHDs with OS and programs, Boot CDs, etc.
 * Save settings and press "Reset and apply HDD"
-* Optional shared folder can be used in conjuction with [MisterFS.exe] (https://github.com/MiSTer-devel/ao486_MiSTer/blob/master/releases/drv/misterfs.exe) running as a TSR in your DOS image to exchange files between games/ao486/shared from inside DOS.
+* Optional shared folder can be used in conjuction with [MisterFS.exe](https://github.com/MiSTer-devel/ao486_MiSTer/blob/master/releases/drv/misterfs.exe) running as a TSR in your DOS image to exchange files between games/ao486/shared from inside DOS.
 
 HDD image is a raw image with MBR. It can be opened in Windows/Linux by many applications,
 so it's possible to prepare a HDD in windows/linux (in most cases you need to work with .img files, then just rename it to .vhd extension)
