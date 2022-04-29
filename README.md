@@ -17,13 +17,13 @@ Core was greatly reworked with many new features and performance added.
 ## How to install
 
 * Copy ao486.rbf to the _Computer folder on your SD card.  This will be automatically copied there if you are using the update script.
-* Create games/ao486/ directory on SD card and copy [boot0.rom](https://git.io/JtPaM), [boot1.rom](https://git.io/JtPaS) there.
+* Create games/ao486/ directory on SD card and copy [boot0.rom](https://github.com/MiSTer-devel/ao486_MiSTer/blob/master/releases/boot0.rom), [boot1.rom](https://github.com/MiSTer-devel/ao486_MiSTer/blob/master/releases/boot1.rom) there.
 * For CD images, the typical location is games/ao486/cd/ and you can either have the game folders, or CHD, IMG, ISO, BIN/CUE files in the root for mounting.  The imgset command can be used in DOS to mount/unmount images placed here by passing the exact path.
 * For floppy: copy desired floppy raw image with extension **img** to games/ao486/floppy/ directory.  The imgset command can be used in DOS to mount/unmount images placed here by passing the exact path.
 * For HDD: create an empty file of desired size with extension **vhd** in ao486 directory (or prepare .vhd file separately with any tool supporting .vhd or hard disk .img files and copy to games/ao486/ folder)
 * Boot ao486 and in OSD choose desired floppy, hdd, cd, and boot order.  A valid DOS or supported OS boot is required for the core to boot an OS.  Typical use cases: DOS Install disks on floppy with a clean VHD mounted for HDD. Pre-configured VHDs with OS and programs, Boot CDs, etc.
 * Save settings and press "Reset and apply HDD"
-* Optional shared folder can be used in conjuction with [MisterFS.exe] (https://git.io/JtPaP) running as a TSR in your DOS image to exchange files between games/ao486/shared from inside DOS.
+* Optional shared folder can be used in conjuction with [MisterFS.exe] (https://github.com/MiSTer-devel/ao486_MiSTer/blob/master/releases/drv/misterfs.exe) running as a TSR in your DOS image to exchange files between games/ao486/shared from inside DOS.
 
 HDD image is a raw image with MBR. It can be opened in Windows/Linux by many applications,
 so it's possible to prepare a HDD in windows/linux (in most cases you need to work with .img files, then just rename it to .vhd extension)
@@ -38,7 +38,7 @@ Core options under Hardware:
 * L2 Cache: On, Off (On)
 * RAM Size: 256MB, 16MB (256MB)
 
-Optional programs and drivers:  https://git.io/JtPVe
+Optional programs and drivers:  https://github.com/MiSTer-devel/ao486_MiSTer/tree/master/releases/drv
 * MISTERFB.DRV/INF: Windows Video Driver
 * imgset.exe: Used for mounting fdd, cd, and ide drives. Run 'imgset' for options.
 * misterfs.exe:  You will need to copy this file to a VHD and run it using, "misterfs LETTER" where letter is the drive letter you want to mount the shared folder to.  Create a /games/ao486/shared folder and copy files named to the 8.3 filename standard (SFN - short filename). This allows for file copy from the shared folder and accessable from within dos on a mounted drive.  The tool is basic so it should be mainly used for file copy and not for running programs. 
