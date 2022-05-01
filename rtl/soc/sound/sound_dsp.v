@@ -33,6 +33,8 @@ module sound_dsp
 
 	input      [27:0] clock_rate,
 
+	input             ce_1us,
+
 	output reg        irq8,
 	output reg        irq16,
 
@@ -651,33 +653,23 @@ end
 // To replicate the expected behavior the write port status will return busy when the
 // register is read the first time following a DMA request, and on subsequent reads it will
 // return idle.
-localparam [1:0] S_WRITE_PORT_STATUS_IDLE = 2'd0;
-localparam [1:0] S_WRITE_PORT_STATUS_BUSY = 2'd1;
-localparam [1:0] S_WRITE_PORT_STATUS_IDLE_UNTIL_TIMER_RESET = 2'd2;
+localparam S_DSP_BUSY_DURATION = 1'd1;
 
 // The fake busy signal communicates what the software using the sound card expects, and
 // does not mean the DSP module is actually busy.
-wire dsp_fake_busy = (dsp_busy_state > S_WRITE_PORT_STATUS_IDLE) && (dsp_busy_state < S_WRITE_PORT_STATUS_IDLE_UNTIL_TIMER_RESET);
-wire write_port_status_reply = (io_read_valid && io_address == 4'hC);
+wire dsp_fake_busy = (dsp_busy_cnt > 0);
 
-reg [1:0] dsp_busy_state;
+reg dsp_busy_cnt;
 always @(posedge clk) begin
-	if(rst_n == 1'b0)          dsp_busy_state <= S_WRITE_PORT_STATUS_IDLE;
-	else if(sw_reset)          dsp_busy_state <= S_WRITE_PORT_STATUS_IDLE;
+	if(rst_n == 1'b0)                dsp_busy_cnt <= 0;
+	else if(sw_reset)                dsp_busy_cnt <= 0;
 
-	// Go back to idle anytime the DMA timer is about to finish, or is paused.
-	else if(pause_dma)         dsp_busy_state <= S_WRITE_PORT_STATUS_IDLE;
-	else if(!dma_in_progress)  dsp_busy_state <= S_WRITE_PORT_STATUS_IDLE;
-	else if(dma_wait == 8'hFF) dsp_busy_state <= S_WRITE_PORT_STATUS_IDLE;
-
-	// Stay busy for a single read, and then stay idle until a DMA request resets the state.
-	else if(dsp_fake_busy && write_port_status_reply) begin
-		dsp_busy_state <= dsp_busy_state + 1'd1;
-	end
+	// Go back to idle after countdown reaches 0
+	else if(ce_1us && dsp_fake_busy) dsp_busy_cnt <= dsp_busy_cnt - 1'd1;
 
 	// Go busy when a DMA request is made.
 	else if(dma_req) begin
-		dsp_busy_state <= S_WRITE_PORT_STATUS_BUSY;
+		dsp_busy_cnt <= S_DSP_BUSY_DURATION;
 	end
 end
 

@@ -98,6 +98,8 @@ sound_dsp sound_dsp_inst
 
 	.clock_rate      (clk_rate),
 
+	.ce_1us          (ce_1us),
+
 	.irq8            (irq8),
 	.irq16           (irq16),
 
