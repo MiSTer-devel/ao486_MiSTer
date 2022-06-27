@@ -66,6 +66,7 @@ module joystick
 	input [15:0]  ana_1,
 	input [15:0]  ana_2,
 	input  [1:0]  mode,
+	input  [1:0]  dis,
 
 	output reg [7:0] readdata,
 	input         write
@@ -82,7 +83,7 @@ always @(posedge clk) begin
 	end
 end
 
-always @(posedge clk) readdata <= (mode == 3) ? 8'hff : {jb4, jb3, jb2, jb1, |JOY2_Y, |JOY2_X, |JOY1_Y, |JOY1_X};
+always @(posedge clk) readdata <= (mode == 3) ? 8'hff : {jb4 | dis[1], jb3 | dis[1], jb2 | dis[0], jb1 | dis[0], |JOY2_Y | dis[1], |JOY2_X | dis[1], |JOY1_Y | dis[0], |JOY1_X | dis[0]};
 
 reg  [7:0] JOY1_X,JOY1_Y,JOY2_X,JOY2_Y;
 reg [10:0] CLK_DIV;

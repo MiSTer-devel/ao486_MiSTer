@@ -14,6 +14,7 @@ module system
 	output [2:0]  ide1_request,
 	input  [1:0]  floppy_wp,
 
+	input   [1:0] joystick_dis,
 	input  [13:0] joystick_dig_1,
 	input  [13:0] joystick_dig_2,
 	input  [15:0] joystick_ana_1,
@@ -535,6 +536,8 @@ joystick joystick
 
 	.write             (iobus_write & joy_cs),
 	.readdata          (joystick_readdata),
+
+	.dis               (joystick_dis),
 
 	.dig_1             (joystick_dig_1),
 	.dig_2             (joystick_dig_2),

@@ -191,7 +191,7 @@ led fdd_led(clk_sys, |mgmt_req[7:6], LED_USER);
 // 0         1         2         3          4         5         6
 // 01234567890123456789012345678901 23456789012345678901234567890123
 // 0123456789ABCDEFGHIJKLMNOPQRSTUV 0123456789ABCDEFGHIJKLMNOPQRSTUV
-// XXXXXXXXXXXXXXXXXXXXXXXXX XXXXXX XXXXXXXXXXXXXXXXX
+// XXXXXXXXXXXXXXXXXXXXXXXXX XXXXXX XXXXXXXXXXXXXXXXXXX
 
 `include "build_id.v"
 localparam CONF_STR =
@@ -224,7 +224,6 @@ localparam CONF_STR =
 	"P1oBC,Stereo Mix,none,25%,50%,100%;",
 
 	"P2,Hardware;",
-	"P2-;",
 	"P2o01,Boot 1st,Floppy/Hard Disk,Floppy,Hard Disk,CD-ROM;",
 	"P2o23,Boot 2nd,NONE,Floppy,Hard Disk,CD-ROM;",
 	"P2o45,Boot 3rd,NONE,Floppy,Hard Disk,CD-ROM;",
@@ -242,6 +241,11 @@ localparam CONF_STR =
 `endif
 	"P2-;",
 	"P2OA,USER I/O,MIDI,COM2;",
+	"P2-;",
+	"P2OCD,Joystick type,2 Buttons,4 Buttons,Gravis Pro,None;",
+	"P2oFG,Joystick Mode,2 Joysticks,2 Sticks,2 Wheels,4-axes Wheel;",
+	"P2oH,Joystick 1,Enabled,Disabled;",
+	"P2oI,Joystick 2,Enabled,Disabled;",
 
 	"h3P3,MT32-pi;",
 	"h3P3-;",
@@ -254,9 +258,6 @@ localparam CONF_STR =
 	"h3P3OTV,SoundFont,0,1,2,3,4,5,6,7;",
 	"h3P3-;",
 	"h3P3r8,Reset Hanging Notes;",
-	"-;",
-	"OCD,Joystick type,2 Buttons,4 Buttons,Gravis Pro,None;",
-	"oFG,Joystick Mode,2 Joysticks,2 Sticks,2 Wheels,4-axes Wheel;",
 	"-;",
 	"R0,Reset and apply HDD;",
 	"J,Button 1,Button 2,Button 3,Button 4,Start,Select,R1,L1,R2,L2;",
@@ -762,6 +763,7 @@ system system
 	.ps2_mouseclk_out     (ps2_mouse_clk_in),
 	.ps2_mousedat_out     (ps2_mouse_data_in),
 
+	.joystick_dis         (joystick_dis),
 	.joystick_dig_1       (joystick_0 & dig_mask),
 	.joystick_dig_2       (status[47] ? 14'd0 : (joystick_1 & dig_mask)),
 	.joystick_ana_1       ({ja_1y,ja_1x}),
@@ -852,8 +854,9 @@ always @(posedge clk_sys) begin
 end
 
 
-wire [7:0] ja_1x,ja_1y,ja_2x,ja_2y;
+wire  [7:0] ja_1x,ja_1y,ja_2x,ja_2y;
 wire [15:0] dig_mask;
+wire  [1:0] joystick_dis;
 
 wire [7:0] pedal_combo;
 always_comb begin
@@ -862,11 +865,13 @@ always_comb begin
 	ja_2x = joystick_l_analog_1[7:0];
 	ja_2y = joystick_l_analog_1[15:8];
 	dig_mask = '1;
+	joystick_dis = status[50:49];
 
 	case(status[48:47])
 		1: begin
 				ja_2x = joystick_r_analog_0[7:0];
 				ja_2y = joystick_r_analog_0[15:8];
+				joystick_dis[1] = status[49];
 			end
 		2: begin
 				ja_1y = 0;
@@ -882,6 +887,7 @@ always_comb begin
 				ja_2y = joystick_r_analog_0[15] ? {joystick_r_analog_0[14:8] + 7'd63, 1'b0} : 8'd127;
 				ja_2x = joystick_r_analog_0[7]  ? {joystick_r_analog_0[6:0]  + 7'd63, 1'b0} : 8'd127;
 				dig_mask[3:0] = 0;
+				joystick_dis[1] = status[49];
 			end
 		default:;
 	endcase
