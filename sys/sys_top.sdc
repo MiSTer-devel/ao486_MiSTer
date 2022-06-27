@@ -55,6 +55,7 @@ set_false_path -from {FB_BASE[*] FB_BASE[*] FB_WIDTH[*] FB_HEIGHT[*] LFB_HMIN[*]
 set_false_path -to   {vol_att[*] scaler_flt[*] led_overtake[*] led_state[*]}
 set_false_path -from {vol_att[*] scaler_flt[*] led_overtake[*] led_state[*]}
 set_false_path -from {aflt_* acx* acy* areset* arc*}
+set_false_path -from {arx* ary*}
 set_false_path -from {vs_line*}
 
 set_false_path -from {ascal|o_ihsize*}

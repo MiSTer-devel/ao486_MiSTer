@@ -111,10 +111,10 @@ module hps_io #(parameter CONF_STR, CONF_STR_BRAM=1, PS2DIV=0, WIDE=0, VDNUM=1, 
 
 	inout      [21:0] gamma_bus,
 
-	output reg [63:0] status,
-	input      [63:0] status_in,
-	input             status_set,
-	input      [15:0] status_menumask,
+	output reg [127:0] status,
+	input      [127:0] status_in,
+	input              status_set,
+	input       [15:0] status_menumask,
 
 	input             info_req,
 	input       [7:0] info,
@@ -266,7 +266,7 @@ always@(posedge clk_sys) begin : uio_block
 	reg  [3:0] pdsp_idx;
 	reg        ps2skip = 0;
 	reg  [3:0] stflg = 0;
-	reg [63:0] status_req;
+	reg[127:0] status_req;
 	reg        old_status_set = 0;
 	reg        old_upload_req = 0;
 	reg        upload_req = 0;
@@ -468,13 +468,17 @@ always@(posedge clk_sys) begin : uio_block
 				// send image info
 				'h1d: if(byte_cnt<5) img_size[{byte_cnt-1'b1, 4'b0000} +:16] <= io_din;
 
-				// status, 64bit version
-				'h1e: if(!byte_cnt[MAX_W:3]) begin
-							case(byte_cnt[2:0])
-								1: status[15:00] <= io_din;
-								2: status[31:16] <= io_din;
-								3: status[47:32] <= io_din;
-								4: status[63:48] <= io_din;
+				// status, 128bit version
+				'h1e: if(!byte_cnt[MAX_W:4]) begin
+							case(byte_cnt[3:0])
+								1: status[15:00]   <= io_din;
+								2: status[31:16]   <= io_din;
+								3: status[47:32]   <= io_din;
+								4: status[63:48]   <= io_din;
+								5: status[79:64]   <= io_din;
+								6: status[95:80]   <= io_din;
+								7: status[111:96]  <= io_din;
+								8: status[127:112] <= io_din;
 							endcase
 						end
 
@@ -504,12 +508,16 @@ always@(posedge clk_sys) begin : uio_block
 				'h24: TIMESTAMP[(byte_cnt-6'd1)<<4 +:16] <= io_din;
 
 				//status set
-				'h29: if(!byte_cnt[MAX_W:3]) begin
-							case(byte_cnt[2:0])
+				'h29: if(!byte_cnt[MAX_W:4]) begin
+							case(byte_cnt[3:0])
 								1: io_dout <= status_req[15:00];
 								2: io_dout <= status_req[31:16];
 								3: io_dout <= status_req[47:32];
 								4: io_dout <= status_req[63:48];
+								5: io_dout <= status_req[79:64];
+								6: io_dout <= status_req[95:80];
+								7: io_dout <= status_req[111:96];
+								8: io_dout <= status_req[127:112];
 							endcase
 						end
 
