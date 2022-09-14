@@ -312,7 +312,7 @@ always @(posedge clk) begin
 	if(rst_n == 1'b0)    interrupt_do <= 1'b0;
 	else if(init_icw1)   interrupt_do <= 1'b0;
 	else if(acknowledge) interrupt_do <= 1'b0;
-	else if(irq)         interrupt_do <= 1'b1;
+	else                 interrupt_do <= irq;
 end
 
 wire acknowledge_not_spurious = (polled && io_read_valid) || (interrupt_done && ~spurious);
