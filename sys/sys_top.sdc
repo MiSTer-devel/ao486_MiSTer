@@ -28,11 +28,12 @@ set_false_path -to   [get_ports {VGA_*}]
 set_false_path -to   [get_ports {AUDIO_SPDIF}]
 set_false_path -to   [get_ports {AUDIO_L}]
 set_false_path -to   [get_ports {AUDIO_R}]
+set_false_path -from {get_ports {SW[*]}}
 set_false_path -to   {cfg[*]}
 set_false_path -from {cfg[*]}
 set_false_path -from {VSET[*]}
 set_false_path -to   {wcalc[*] hcalc[*]}
-set_false_path -to {hdmi_width[*] hdmi_height[*]}
+set_false_path -to   {hdmi_width[*] hdmi_height[*]}
 
 set_multicycle_path -to {*_osd|osd_vcnt*} -setup 2
 set_multicycle_path -to {*_osd|osd_vcnt*} -hold 1
@@ -63,7 +64,7 @@ set_false_path -from {ascal|o_ivsize*}
 set_false_path -from {ascal|o_format*}
 set_false_path -from {ascal|o_hdown}
 set_false_path -from {ascal|o_vdown}
-set_false_path -from {ascal|o_hmin* ascal|o_hmax* ascal|o_vmin* ascal|o_vmax*}
+set_false_path -from {ascal|o_hmin* ascal|o_hmax* ascal|o_vmin* ascal|o_vmax* ascal|o_vrrmax* ascal|o_vrr}
 set_false_path -from {ascal|o_hdisp* ascal|o_vdisp*}
 set_false_path -from {ascal|o_htotal* ascal|o_vtotal*}
 set_false_path -from {ascal|o_hsstart* ascal|o_vsstart* ascal|o_hsend* ascal|o_vsend*}
