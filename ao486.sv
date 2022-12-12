@@ -209,7 +209,8 @@ localparam CONF_STR =
 	"S4,VHDISOCUECHD,IDE 1-0;",
 	"S5,VHDISOCUECHD,IDE 1-1;",
 	"-;",
-
+	"oJM,CPU Speed,CPU & Cache CFG,286 6MHz,286 10MHz,286 16MHz,386 SX20,286 20Mhz,286 24Mhz,386 SX25,386 DX40,486 SX33,486 DX33,OVRCLK 100 MHz;",
+	"-;",
 	"P1,Audio & Video;",
 	"P1-;",
 	"P1OMN,Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
@@ -428,7 +429,28 @@ pll_cfg pll_cfg
 );
 
 reg [2:0] clk_req;
-always @(posedge clk_sys) clk_req <= {status[7], syscfg[7] ? syscfg[1:0] : status[6:5]};
+reg l1, l2;
+always @(posedge clk_sys) begin
+	case(status[54:51])
+		'd1: begin clk_req <= 'd1; l1 <= 1'b0; l2 <= 1'b1; end  // 286 6MHz
+		'd2: begin clk_req <= 'd2; l1 <= 1'b0; l2 <= 1'b1; end  // 286 10MHz
+		'd3: begin clk_req <= 'd2; l1 <= 1'b1; l2 <= 1'b0; end  // 286 16MHz
+		'd4: begin clk_req <= 'd1; l1 <= 1'b0; l2 <= 1'b0; end  // 386 SX20
+		'd5: begin clk_req <= 'd3; l1 <= 1'b0; l2 <= 1'b1; end  // 286 20Mhz
+		'd6: begin clk_req <= 'd3; l1 <= 1'b1; l2 <= 1'b0; end  // 286 24Mhz
+		'd7: begin clk_req <= 'd0; l1 <= 1'b0; l2 <= 1'b1; end  // 386 SX25
+		'd8: begin clk_req <= 'd0; l1 <= 1'b1; l2 <= 1'b0; end  // 386 DX40
+		'd9: begin clk_req <= 'd3; l1 <= 1'b0; l2 <= 1'b0; end  // 486 SX33
+		'd10: begin clk_req <= 'd0; l1 <= 1'b0; l2 <= 1'b0; end // 486 DX33
+		'd11: begin clk_req <= 'd4; l1 <= 1'b0; l2 <= 1'b0; end // Overclock 100 MHz
+		default: begin 
+		// CPU & Cache config
+		clk_req <= {status[7], syscfg[7] ? syscfg[1:0] : status[6:5]};
+		l1 <= syscfg[7] ? syscfg[4] : status[15];
+		l2 <= syscfg[7] ? syscfg[5] : status[16];
+		end
+	endcase
+end
 
 reg [2:0] speed;
 always @(posedge CLK_50M) begin
@@ -721,8 +743,8 @@ system system
 	.clock_rate           (cur_rate),
 	
 	.syscfg               (syscfg),
-	.l1_disable           (syscfg[7] ? syscfg[4] : status[15]),
-	.l2_disable           (syscfg[7] ? syscfg[5] : status[16]),
+	.l1_disable           (l1),
+	.l2_disable           (l2),
 
 	.video_ce             (vga_ce),
 	.video_f60            (~status[4] | f60),
