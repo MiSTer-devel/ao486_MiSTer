@@ -209,7 +209,7 @@ localparam CONF_STR =
 	"S4,VHDISOCUECHD,IDE 1-0;",
 	"S5,VHDISOCUECHD,IDE 1-1;",
 	"-;",
-	"oJM,CPU Speed,CPU & Cache CFG,286 6MHz,286 10MHz,286 16MHz,386 SX20,286 20Mhz,286 24Mhz,386 SX25,386 DX40,486 SX33,486 DX33,Unstable 100MHz;",
+	"oJM,CPU Preset,User Defined,ao486 XT 7,ao486 AT 8,ao486 AT 10,ao486 AT 20,ao486 PS/2 20,ao486 3SX 25,ao486 3DX 33,ao486 3DX 40,ao486 4SX 33,MAX (stable),MAX (unstable)",
 	"-;",
 	"P1,Audio & Video;",
 	"P1-;",
@@ -432,17 +432,17 @@ reg [2:0] clk_req;
 reg l1, l2;
 always @(posedge clk_sys) begin
 	case(status[54:51])
-		'd1: begin clk_req <= 'd1; l1 <= 1'b0; l2 <= 1'b1; end  // 286 6MHz
-		'd2: begin clk_req <= 'd2; l1 <= 1'b0; l2 <= 1'b1; end  // 286 10MHz
-		'd3: begin clk_req <= 'd2; l1 <= 1'b1; l2 <= 1'b0; end  // 286 16MHz
-		'd4: begin clk_req <= 'd1; l1 <= 1'b0; l2 <= 1'b0; end  // 386 SX20
-		'd5: begin clk_req <= 'd3; l1 <= 1'b0; l2 <= 1'b1; end  // 286 20Mhz
-		'd6: begin clk_req <= 'd3; l1 <= 1'b1; l2 <= 1'b0; end  // 286 24Mhz
-		'd7: begin clk_req <= 'd0; l1 <= 1'b0; l2 <= 1'b1; end  // 386 SX25
-		'd8: begin clk_req <= 'd0; l1 <= 1'b1; l2 <= 1'b0; end  // 386 DX40
-		'd9: begin clk_req <= 'd3; l1 <= 1'b0; l2 <= 1'b0; end  // 486 SX33
-		'd10: begin clk_req <= 'd0; l1 <= 1'b0; l2 <= 1'b0; end // 486 DX33
-		'd11: begin clk_req <= 'd4; l1 <= 1'b0; l2 <= 1'b0; end // Overclock 100 MHz
+		'd1: begin clk_req <= 'd3; l1 <= 1'b1; l2 <= 1'b1; end  // ao486 XT 7
+		'd2: begin clk_req <= 'd1; l1 <= 1'b1; l2 <= 1'b0; end  // ao486 AT 8
+		'd3: begin clk_req <= 'd2; l1 <= 1'b0; l2 <= 1'b1; end  // ao486 AT 10
+		'd4: begin clk_req <= 'd2; l1 <= 1'b1; l2 <= 1'b0; end  // ao486 AT 20
+		'd5: begin clk_req <= 'd1; l1 <= 1'b0; l2 <= 1'b0; end  // ao486 PS/2 20
+		'd6: begin clk_req <= 'd3; l1 <= 1'b1; l2 <= 1'b0; end  // ao486 3SX 25
+		'd7: begin clk_req <= 'd2; l1 <= 1'b0; l2 <= 1'b0; end  // ao486 3DX 33 
+		'd8: begin clk_req <= 'd0; l1 <= 1'b1; l2 <= 1'b0; end  // ao486 3DX 40
+		'd9: begin clk_req <= 'd3; l1 <= 1'b0; l2 <= 1'b0; end  // ao486 4SX 33
+		'd10: begin clk_req <= 'd0; l1 <= 1'b0; l2 <= 1'b0; end // ao486 MAX (stable)
+		'd11: begin clk_req <= 'd4; l1 <= 1'b0; l2 <= 1'b0; end // ao486 MAX+ (unstable)
 		default: begin 
 		// CPU & Cache config
 		clk_req <= {status[7], syscfg[7] ? syscfg[1:0] : status[6:5]};
