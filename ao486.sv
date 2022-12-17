@@ -209,7 +209,8 @@ localparam CONF_STR =
 	"S4,VHDISOCUECHD,IDE 1-0;",
 	"S5,VHDISOCUECHD,IDE 1-1;",
 	"-;",
-
+	"oJM,CPU Preset,User Defined,ao486 XT 7,ao486 AT 8,ao486 AT 10,ao486 AT 20,ao486 PS/2 20,ao486 3SX 25,ao486 3DX 33,ao486 3DX 40,ao486 4SX 33,MAX (stable),MAX (unstable)",
+	"-;",
 	"P1,Audio & Video;",
 	"P1-;",
 	"P1OMN,Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
@@ -428,7 +429,28 @@ pll_cfg pll_cfg
 );
 
 reg [2:0] clk_req;
-always @(posedge clk_sys) clk_req <= {status[7], syscfg[7] ? syscfg[1:0] : status[6:5]};
+reg l1, l2;
+always @(posedge clk_sys) begin
+	case(status[54:51])
+		'd1: begin clk_req <= 'd3; l1 <= 1'b1; l2 <= 1'b1; end  // ao486 XT 7
+		'd2: begin clk_req <= 'd1; l1 <= 1'b1; l2 <= 1'b0; end  // ao486 AT 8
+		'd3: begin clk_req <= 'd2; l1 <= 1'b0; l2 <= 1'b1; end  // ao486 AT 10
+		'd4: begin clk_req <= 'd2; l1 <= 1'b1; l2 <= 1'b0; end  // ao486 AT 20
+		'd5: begin clk_req <= 'd1; l1 <= 1'b0; l2 <= 1'b0; end  // ao486 PS/2 20
+		'd6: begin clk_req <= 'd3; l1 <= 1'b1; l2 <= 1'b0; end  // ao486 3SX 25
+		'd7: begin clk_req <= 'd2; l1 <= 1'b0; l2 <= 1'b0; end  // ao486 3DX 33 
+		'd8: begin clk_req <= 'd0; l1 <= 1'b1; l2 <= 1'b0; end  // ao486 3DX 40
+		'd9: begin clk_req <= 'd3; l1 <= 1'b0; l2 <= 1'b0; end  // ao486 4SX 33
+		'd10: begin clk_req <= 'd0; l1 <= 1'b0; l2 <= 1'b0; end // ao486 MAX (stable)
+		'd11: begin clk_req <= 'd4; l1 <= 1'b0; l2 <= 1'b0; end // ao486 MAX+ (unstable)
+		default: begin 
+		// CPU & Cache config
+		clk_req <= {status[7], syscfg[7] ? syscfg[1:0] : status[6:5]};
+		l1 <= syscfg[7] ? syscfg[4] : status[15];
+		l2 <= syscfg[7] ? syscfg[5] : status[16];
+		end
+	endcase
+end
 
 reg [2:0] speed;
 always @(posedge CLK_50M) begin
@@ -721,8 +743,8 @@ system system
 	.clock_rate           (cur_rate),
 	
 	.syscfg               (syscfg),
-	.l1_disable           (syscfg[7] ? syscfg[4] : status[15]),
-	.l2_disable           (syscfg[7] ? syscfg[5] : status[16]),
+	.l1_disable           (l1),
+	.l2_disable           (l2),
 
 	.video_ce             (vga_ce),
 	.video_f60            (~status[4] | f60),
