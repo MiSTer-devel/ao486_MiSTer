@@ -124,6 +124,12 @@ module sys_top
 	inout   [6:0] USER_IO
 );
 
+`ifdef MISTER_DUAL_SDRAM
+	`ifndef MISTER_DISABLE_YC
+		`define MISTER_DISABLE_YC
+	`endif
+`endif
+
 //////////////////////  Secondary SD  ///////////////////////////////////
 wire SD_CS, SD_CLK, SD_MOSI;
 
@@ -476,6 +482,18 @@ always@(posedge clk_sys) begin
 				endcase
 			end
 `endif
+`ifndef MISTER_DISABLE_YC
+			if(cmd == 'h41) begin
+				case(cnt[3:0])
+					 0: {pal_en,cvbs,yc_en}    <= io_din[2:0];
+					 1: PhaseInc[15:0]         <= io_din;
+					 2: PhaseInc[31:16]        <= io_din;
+					 3: PhaseInc[39:32]        <= io_din[7:0];
+					 4: ColorBurst_Range[15:0] <= io_din;
+					 5: ColorBurst_Range[16]   <= io_din[0];
+				endcase
+			end
+`endif
 		end
 	end
 
@@ -505,17 +523,6 @@ cyclonev_hps_interface_peripheral_uart uart
 	.rts(uart_rts),
 	.rxd(uart_rxd),
 	.txd(uart_txd)
-);
-
-wire aspi_sck,aspi_mosi,aspi_ss,aspi_miso;
-cyclonev_hps_interface_peripheral_spi_master spi
-(
-	.sclk_out(aspi_sck),
-	.txd(aspi_mosi), // mosi
-	.rxd(aspi_miso), // miso
-
-	.ss_0_n(aspi_ss),
-	.ss_in_n(1)
 );
 
 wire [63:0] f2h_irq = {video_sync,HDMI_TX_VS};
@@ -623,11 +630,13 @@ ddr_svc ddr_svc
 	.ram_write(ram2_write),
 	.ram_bcnt(ram2_bcnt),
 
+`ifndef MISTER_DISABLE_ALSA
 	.ch0_addr(alsa_address),
 	.ch0_burst(1),
 	.ch0_data(alsa_readdata),
 	.ch0_req(alsa_req),
 	.ch0_ready(alsa_ready),
+`endif
 
 	.ch1_addr(pal_addr),
 	.ch1_burst(128),
@@ -1152,6 +1161,9 @@ csync csync_hdmi(clk_hdmi, hdmi_hs_osd, hdmi_vs_osd, hdmi_cs_osd);
 
 reg [23:0] dv_data;
 reg        dv_hs, dv_vs, dv_de;
+wire [23:0] dv_data_osd;
+wire dv_hs_osd, dv_vs_osd, dv_cs_osd;
+
 always @(posedge clk_vid) begin
 	reg [23:0] dv_d1, dv_d2;
 	reg        dv_de1, dv_de2, dv_hs1, dv_hs2, dv_vs1, dv_vs2;
@@ -1161,29 +1173,29 @@ always @(posedge clk_vid) begin
 	reg  [3:0] hss;
 
 	if(ce_pix) begin
-		hss <= (hss << 1) | vga_hs_osd;
+		hss <= (hss << 1) | dv_hs_osd;
 
-		old_hs <= vga_hs_osd;
-		if(~old_hs && vga_hs_osd) begin
-			old_vs <= vga_vs_osd;
+		old_hs <= dv_hs_osd;
+		if(~old_hs && dv_hs_osd) begin
+			old_vs <= dv_vs_osd;
 			if(~&vcnt) vcnt <= vcnt + 1'd1;
-			if(~old_vs & vga_vs_osd) begin
+			if(~old_vs & dv_vs_osd) begin
 				if (vcnt != vcnt_ll || vcnt < vcnt_l) vsz <= vcnt;
 				vcnt_l <= vcnt;
 				vcnt_ll <= vcnt_l;
 			end
-			if(old_vs & ~vga_vs_osd) vcnt <= 0;
+			if(old_vs & ~dv_vs_osd) vcnt <= 0;
 			
 			if(vcnt == 1) vde <= 1;
 			if(vcnt == vsz - 3) vde <= 0;
 		end
 
-		dv_de1 <= !{hss,vga_hs_osd} && vde;
-		dv_hs1 <= csync_en ? vga_cs_osd : vga_hs_osd;
-		dv_vs1 <= vga_vs_osd;
+		dv_de1 <= !{hss,dv_hs_osd} && vde;
+		dv_hs1 <= csync_en ? dv_cs_osd : dv_hs_osd;
+		dv_vs1 <= dv_vs_osd;
 	end
 
-	dv_d1  <= vga_data_osd;
+	dv_d1  <= dv_data_osd;
 	dv_d2  <= dv_d1;
 	dv_de2 <= dv_de1;
 	dv_hs2 <= dv_hs1;
@@ -1194,6 +1206,12 @@ always @(posedge clk_vid) begin
 	dv_hs  <= dv_hs2;
 	dv_vs  <= dv_vs2;
 end
+
+`ifndef MISTER_DISABLE_YC
+assign {dv_data_osd, dv_hs_osd, dv_vs_osd, dv_cs_osd } = ~yc_en ? {vga_data_osd, vga_hs_osd, vga_vs_osd, vga_cs_osd } : {yc_o, yc_hs, yc_vs, yc_cs };
+`else
+assign {dv_data_osd, dv_hs_osd, dv_vs_osd, dv_cs_osd } = {vga_data_osd, vga_hs_osd, vga_vs_osd, vga_cs_osd };
+`endif
 
 wire hdmi_tx_clk;
 `ifndef MISTER_DEBUG_NOHDMI
@@ -1330,8 +1348,8 @@ csync csync_vga(clk_vid, vga_hs_osd, vga_vs_osd, vga_cs_osd);
 		.csync_o(vgas_cs)
 	);
 
-	wire [23:0] vga_o;
-	wire vga_hs, vga_vs, vga_cs;
+	wire [23:0] vga_o, vga_o_t;
+	wire vga_hs, vga_vs, vga_cs, vga_hs_t, vga_vs_t, vga_cs_t;
 	vga_out vga_out
 	(
 		.clk(clk_vid),
@@ -1339,12 +1357,43 @@ csync csync_vga(clk_vid, vga_hs_osd, vga_vs_osd, vga_cs_osd);
 		.hsync(vga_hs_osd),
 		.vsync(vga_vs_osd),
 		.csync(vga_cs_osd),
-		.dout(vga_o),
+		.dout(vga_o_t),
 		.din(vga_data_osd),
-		.hsync_o(vga_hs),
-		.vsync_o(vga_vs),
-		.csync_o(vga_cs)
+		.hsync_o(vga_hs_t),
+		.vsync_o(vga_vs_t),
+		.csync_o(vga_cs_t)
 	);
+
+`ifndef MISTER_DISABLE_YC
+	reg         pal_en;
+	reg         yc_en;
+	reg         cvbs;
+	reg  [16:0] ColorBurst_Range;
+	reg  [39:0] PhaseInc;
+	wire [23:0] yc_o;
+	wire        yc_hs, yc_vs, yc_cs;
+
+	yc_out yc_out
+	(
+		.clk(clk_vid),
+		.PAL_EN(pal_en),
+		.CVBS(cvbs),
+		.PHASE_INC(PhaseInc),
+		.COLORBURST_RANGE(ColorBurst_Range),
+		.hsync(vga_hs_osd),
+		.vsync(vga_vs_osd),
+		.csync(vga_cs_osd),
+		.dout(yc_o),
+		.din(vga_data_osd),
+		.hsync_o(yc_hs),
+		.vsync_o(yc_vs),
+		.csync_o(yc_cs)
+	);
+	
+	assign {vga_o, vga_hs, vga_vs, vga_cs } = ~yc_en ? {vga_o_t, vga_hs_t, vga_vs_t, vga_cs_t } : {yc_o, yc_hs, yc_vs, yc_cs };
+`else
+	assign {vga_o, vga_hs, vga_vs, vga_cs } =  {vga_o_t, vga_hs_t, vga_vs_t, vga_cs_t } ;
+`endif
 
 	wire cs1 = (vga_fb | vga_scaler) ? vgas_cs : vga_cs;
 
@@ -1425,8 +1474,10 @@ audio_out audio_out
 	.core_l(audio_l),
 	.core_r(audio_r),
 
+`ifndef MISTER_DISABLE_ALSA
 	.alsa_l(alsa_l),
 	.alsa_r(alsa_r),
+`endif
 
 	.i2s_bclk(HDMI_SCLK),
 	.i2s_lrclk(HDMI_LRCLK),
@@ -1438,6 +1489,18 @@ audio_out audio_out
 	.spdif(spdif)
 );
 
+
+`ifndef MISTER_DISABLE_ALSA
+wire aspi_sck,aspi_mosi,aspi_ss,aspi_miso;
+cyclonev_hps_interface_peripheral_spi_master spi
+(
+	.sclk_out(aspi_sck),
+	.txd(aspi_mosi), // mosi
+	.rxd(aspi_miso), // miso
+
+	.ss_0_n(aspi_ss),
+	.ss_in_n(1)
+);
 
 wire [28:0] alsa_address;
 wire [63:0] alsa_readdata;
@@ -1465,6 +1528,7 @@ alsa alsa
 	.pcm_l(alsa_l),
 	.pcm_r(alsa_r)
 );
+`endif
 
 ////////////////  User I/O (USB 3.0 connector) /////////////////////////
 

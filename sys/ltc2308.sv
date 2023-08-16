@@ -102,19 +102,19 @@ end
 
 endmodule
 
-module ltc2308_tape #(parameter HIST_LOW = 16, HIST_HIGH = 64, ADC_RATE = 48000, CLK_RATE = 50000000)
+module ltc2308_tape #(parameter HIST_LOW = 16, HIST_HIGH = 64, ADC_RATE = 48000, CLK_RATE = 50000000, NUM_CH = 1)
 (
-	input        reset,
-	input        clk,
+	input         reset,
+	input         clk,
 
-	inout  [3:0] ADC_BUS,
-	output reg   dout,
-	output       active
+	inout  [3:0]  ADC_BUS,
+	output reg    dout,
+	output        active,
+	output        adc_sync,
+	output [(NUM_CH*12)-1:0] adc_data
 );
 
-wire [11:0] adc_data;
-wire        adc_sync;
-ltc2308 #(1, ADC_RATE, CLK_RATE) adc
+ltc2308 #(NUM_CH, ADC_RATE, CLK_RATE) adc
 (
 	.reset(reset),
 	.clk(clk),
@@ -133,8 +133,8 @@ always @(posedge clk) begin
 		data1 <= data2;
 		data2 <= data3;
 		data3 <= data4;
-		data4 <= adc_data;
-		
+		data4 <= adc_data[11:0];
+
 		sum <= data1+data2+data3+data4;
 
 		if(sum[13:2]<HIST_LOW)  dout <= 0;
@@ -148,7 +148,7 @@ reg [1:0] act;
 always @(posedge clk) begin
 	reg [31:0] onesec;
 	reg old_dout;
-	
+
 	onesec <= onesec + 1;
 	if(onesec>CLK_RATE) begin
 		onesec <= 0;

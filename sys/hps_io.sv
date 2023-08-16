@@ -891,21 +891,27 @@ always @(posedge clk_sys) begin
 	  11: dout <= vid_pix[31:16];
 	  12: dout <= vid_vtime_hdmi[15:0];
 	  13: dout <= vid_vtime_hdmi[31:16];
+	  14: dout <= vid_ccnt[15:0];
+	  15: dout <= vid_ccnt[31:16];
 	  default dout <= 0;
 	endcase
 end
 
 reg [31:0] vid_hcnt = 0;
 reg [31:0] vid_vcnt = 0;
+reg [31:0] vid_ccnt = 0;
 reg  [7:0] vid_nres = 0;
 reg  [1:0] vid_int  = 0;
 
 always @(posedge clk_vid) begin
 	integer hcnt;
 	integer vcnt;
+	integer ccnt;
 	reg old_vs= 0, old_de = 0, old_vmode = 0;
 	reg [3:0] resto = 0;
 	reg calch = 0;
+
+	if(calch & de) ccnt <= ccnt + 1;
 
 	if(ce_pix) begin
 		old_vs <= vs;
@@ -927,9 +933,11 @@ always @(posedge clk_vid) begin
 					if(&resto) vid_nres <= vid_nres + 1'd1;
 					vid_hcnt <= hcnt;
 					vid_vcnt <= vcnt;
+					vid_ccnt <= ccnt;
 				end
 				vcnt <= 0;
 				hcnt <= 0;
+				ccnt <= 0;
 				calch <= 1;
 			end
 		end
