@@ -8,6 +8,7 @@ set_global_assignment -name QIP_FILE rtl/common/common.qip
 set_global_assignment -name VERILOG_FILE rtl/soc/iobus.v
 set_global_assignment -name VERILOG_FILE rtl/soc/floppy.v
 set_global_assignment -name VERILOG_FILE rtl/soc/ide.v
+set_global_assignment -name VERILOG_FILE rtl/soc/cdda.v
 set_global_assignment -name VERILOG_FILE rtl/soc/joystick.v
 set_global_assignment -name VERILOG_FILE rtl/soc/dma.v
 set_global_assignment -name VERILOG_FILE rtl/soc/pic.v

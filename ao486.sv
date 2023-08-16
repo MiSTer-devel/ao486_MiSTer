@@ -365,6 +365,10 @@ hps_ext hps_ext
 	.ext_rd(mgmt_rd),
 	.ext_wr(mgmt_wr),
 
+	.cdda_req(cdda_req),
+	.cdda_wr(cdda_wr),
+	.cdda_dout(cdda_dout),
+
 	.ext_req(mgmt_req),
 	.ext_hotswap(status[39:38])
 );
@@ -1022,13 +1026,30 @@ function [15:0] compr; input [15:0] inp;
 	end
 endfunction 
 
+wire [15:0] cdda_l;
+wire [15:0] cdda_r;
+wire [15:0] cdda_dout;
+wire        cdda_req;
+wire        cdda_wr;
+
+cdda #(90000000) cdda
+(
+	.CLK(clk_sys),
+	.nRESET(~reset),
+	.WRITE_REQ(cdda_req),
+	.WRITE(cdda_wr),
+	.DIN(cdda_dout),
+	.AUDIO_L(cdda_l),
+	.AUDIO_R(cdda_r)
+);
+
 reg [15:0] cmp_l, cmp_r;
 reg [15:0] out_l, out_r;
 always @(posedge CLK_AUDIO) begin
 	reg [16:0] tmp_l, tmp_r;
 
-	tmp_l <= sb_l + spk_vol + (mt32_mute ? 17'd0 : {mt32_i2s_l[15],mt32_i2s_l});
-	tmp_r <= sb_r + spk_vol + (mt32_mute ? 17'd0 : {mt32_i2s_r[15],mt32_i2s_r});
+	tmp_l <= sb_l + spk_vol + (mt32_mute ? 17'd0 : {mt32_i2s_l[15],mt32_i2s_l}) + {cdda_l[15],cdda_l};
+	tmp_r <= sb_r + spk_vol + (mt32_mute ? 17'd0 : {mt32_i2s_r[15],mt32_i2s_r}) + {cdda_r[15],cdda_r};
 
 	// clamp the output
 	out_l <= (^tmp_l[16:15]) ? {tmp_l[16], {15{tmp_l[15]}}} : tmp_l[15:0];

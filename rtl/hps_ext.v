@@ -29,6 +29,10 @@ module hps_ext
 	output reg        ext_rd,
 	output reg        ext_wr,
 
+	input             cdda_req,
+	output reg        cdda_wr,
+	output reg [15:0] cdda_dout,
+
 	output reg        ext_midi,
 	input       [7:0] ext_req,
 	input       [1:0] ext_hotswap
@@ -49,36 +53,44 @@ reg  [2:0] byte_cnt;
 
 always@(posedge clk_sys) begin
 	reg [15:0] cmd;
+	reg cdda_sel = 0;
 
 	{ext_rd, ext_wr} <= 0;
+	cdda_wr <= 0;
+	
 	if((ext_rd | ext_wr) & ~&ext_addr[7:0]) ext_addr <= ext_addr + 1'd1;
 
 	if(~io_enable) begin
 		byte_cnt <= 0;
 		io_dout <= 0;
 		dout_en <= 0;
+		cdda_sel <= 0;
 	end
 	else begin
 		if(io_strobe) begin
 
+			cdda_dout <= io_din;
 			ext_dout <= io_din;
 
 			io_dout <= 0;
 			if(~&byte_cnt) byte_cnt <= byte_cnt + 1'd1;
 
-			if(byte_cnt == 1) ext_addr <= io_din;
+			if(byte_cnt == 1) begin
+				ext_addr <= io_din;
+				cdda_sel <= (io_din[15:8] == 8'hF3);
+			end
 
 			if(byte_cnt == 0) begin
 				cmd <= io_din;
 				dout_en <= (io_din >= EXT_CMD_MIN && io_din <= EXT_CMD_MAX);
-				io_dout <= {4'hE, 2'b00, ext_hotswap, ext_req};
+				io_dout <= {4'hE, 1'b0, cdda_req, ext_hotswap, ext_req};
 			end
 			else begin
 				case(cmd)
 				'h61: if(byte_cnt >= 3) begin
-							ext_wr <= 1;
+							cdda_wr <=  cdda_sel;
+							ext_wr  <= ~cdda_sel;
 						end
-
 				'h62: if(byte_cnt >= 3) begin
 							io_dout <= ext_din;
 							ext_rd <= 1;

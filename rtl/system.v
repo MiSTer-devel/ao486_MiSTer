@@ -607,7 +607,7 @@ rtc rtc
 	.io_write          (iobus_write & rtc_cs),
 	.io_readdata       (rtc_readdata),
 
-	.mgmt_address      (mgmt_address),
+	.mgmt_address      (mgmt_address[7:0]),
 	.mgmt_write        (mgmt_write & mgmt_rtc_cs),
 	.mgmt_writedata    (mgmt_writedata[7:0]),
 
