@@ -1028,17 +1028,18 @@ endfunction
 
 wire [15:0] cdda_l;
 wire [15:0] cdda_r;
-wire [15:0] cdda_dout;
+wire [31:0] cdda_dout;
 wire        cdda_req;
 wire        cdda_wr;
 
-cdda #(90000000) cdda
+cdda #(24576000) cdda
 (
 	.CLK(clk_sys),
-	.nRESET(~reset),
-	.WRITE_REQ(cdda_req),
-	.WRITE(cdda_wr),
-	.DIN(cdda_dout),
+	.CDDA_REQ(cdda_req),
+	.CDDA_WR(cdda_wr),
+	.CDDA_DATA(cdda_dout),
+
+	.CLK_AUDIO(CLK_AUDIO),
 	.AUDIO_L(cdda_l),
 	.AUDIO_R(cdda_r)
 );

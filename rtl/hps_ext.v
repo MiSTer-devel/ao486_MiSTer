@@ -31,7 +31,7 @@ module hps_ext
 
 	input             cdda_req,
 	output reg        cdda_wr,
-	output reg [15:0] cdda_dout,
+	output reg [31:0] cdda_dout,
 
 	output reg        ext_midi,
 	input       [7:0] ext_req,
@@ -53,7 +53,9 @@ reg  [2:0] byte_cnt;
 
 always@(posedge clk_sys) begin
 	reg [15:0] cmd;
-	reg cdda_sel = 0;
+	reg        cdda_sel = 0;
+	reg        lrck;
+	reg [15:0] cd_data;
 
 	{ext_rd, ext_wr} <= 0;
 	cdda_wr <= 0;
@@ -65,13 +67,12 @@ always@(posedge clk_sys) begin
 		io_dout <= 0;
 		dout_en <= 0;
 		cdda_sel <= 0;
+		lrck <= 0;
 	end
 	else begin
 		if(io_strobe) begin
 
-			cdda_dout <= io_din;
 			ext_dout <= io_din;
-
 			io_dout <= 0;
 			if(~&byte_cnt) byte_cnt <= byte_cnt + 1'd1;
 
@@ -88,7 +89,10 @@ always@(posedge clk_sys) begin
 			else begin
 				case(cmd)
 				'h61: if(byte_cnt >= 3) begin
-							cdda_wr <=  cdda_sel;
+							lrck <= ~lrck;
+							if(~lrck) cd_data <= io_din;
+							else cdda_dout <= {io_din, cd_data};
+							cdda_wr <=  cdda_sel & lrck;
 							ext_wr  <= ~cdda_sel;
 						end
 				'h62: if(byte_cnt >= 3) begin

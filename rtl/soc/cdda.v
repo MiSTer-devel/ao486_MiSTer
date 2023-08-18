@@ -1,90 +1,90 @@
 
-module cdda #(parameter CLK_RATE)
+module cdda #(parameter CLK_AUDIO_RATE)
 (
 	input             CLK,
-	input             nRESET,
-
-	output reg        WRITE_REQ,
-	input             WRITE,
-	input      [15:0] DIN,
+	output reg        CDDA_REQ,
+	input             CDDA_WR,
+	input      [31:0] CDDA_DATA,
 	
+	input             CLK_AUDIO,
 	output reg        AUDIO_CE,
 	output reg [15:0] AUDIO_L,
 	output reg [15:0] AUDIO_R
-
 );
 
 localparam SECTOR_SIZE  = 2352*8/32;
 localparam BUFFER_WIDTH = $clog2(2 * SECTOR_SIZE);
 localparam BUFFER_SIZE  = 2**BUFFER_WIDTH;
 
-reg         cen_44100;
-reg  [31:0] cen_44100_cnt;
-wire [31:0] cen_44100_cnt_next = cen_44100_cnt + 44100;
+reg         clk_44100;
+reg  [31:0] clk_44100_cnt;
+wire [31:0] clk_44100_cnt_next = clk_44100_cnt + 88200;
 
-always @(posedge CLK) begin
-	cen_44100 <= 0;
-	cen_44100_cnt <= cen_44100_cnt_next;
-	if (cen_44100_cnt_next >= CLK_RATE) begin
-		cen_44100 <= 1;
-		cen_44100_cnt <= cen_44100_cnt_next - CLK_RATE;
+always @(posedge CLK_AUDIO) begin
+	reg old_clk;
+
+	clk_44100_cnt <= clk_44100_cnt_next;
+	if (clk_44100_cnt_next >= CLK_AUDIO_RATE) begin
+		clk_44100 <= ~clk_44100;
+		clk_44100_cnt <= clk_44100_cnt_next - CLK_AUDIO_RATE;
 	end
-	AUDIO_CE <= cen_44100;
+
+	AUDIO_CE <= 0;
+	old_clk <= clk_44100;
+	if(~old_clk & clk_44100) begin
+		AUDIO_CE <= 1;
+		AUDIO_L <= audio_l;
+		AUDIO_R <= audio_r;
+	end
 end
 
-reg OLD_WRITE, LRCK, WR_REQ, RD_REQ;
+reg        wr_req;
+reg [15:0] audio_l;
+reg [15:0] audio_r;
 
-reg [15:0] DATA;
-
-reg [BUFFER_WIDTH-1:0] READ_ADDR, WRITE_ADDR;
-reg [BUFFER_WIDTH:0] AVAILABLE_COUNT;
+reg [BUFFER_WIDTH-1:0] read_addr, write_addr;
+reg   [BUFFER_WIDTH:0] filled_cnt = 0;
+initial filled_cnt = 0;
 
 always @(posedge CLK) begin
-	if (~nRESET) begin
-		OLD_WRITE <= 0;
-		LRCK      <= 0;
-		READ_ADDR <= 0;
-		WRITE_ADDR <= 0;
-		AVAILABLE_COUNT <= BUFFER_SIZE[BUFFER_WIDTH:0];
-		WR_REQ <= 0;
-		RD_REQ <= 0;
-		WRITE_REQ <= 0;
-	end else begin
+	reg old_clk;
+	reg clk_d1, clk_d2;
+	reg old_wr = 0, rd_req = 0;
+	
+	rd_req <= 0;
+	wr_req <= 0;
+	if(wr_req) write_addr <= write_addr + 1'b1;
 
-		RD_REQ <= 0;
-		WR_REQ <= 0;
-		if(WR_REQ) WRITE_ADDR <= WRITE_ADDR + 1'b1;
+	old_wr <= CDDA_WR;
+	if(~old_wr && CDDA_WR && (write_addr+1'd1) != read_addr) wr_req <= 1;
 
-		OLD_WRITE <= WRITE;
-		if (~OLD_WRITE & WRITE) begin
-			LRCK <= ~LRCK;
-			if (~LRCK) DATA <= DIN;
-			else if((WRITE_ADDR+1'd1) != READ_ADDR) WR_REQ <= 1;
-		end
-
-		if (cen_44100) begin
-			if (READ_ADDR == WRITE_ADDR) begin
-				AUDIO_L <= 0;
-				AUDIO_R <= 0;
+	clk_d1 <= clk_44100;
+	clk_d2 <= clk_d1;
+	if(clk_d2 == clk_d1) begin
+		old_clk <= clk_d2;
+		if(old_clk & ~clk_d2) begin
+			if(read_addr == write_addr) begin
+				audio_l <= 0;
+				audio_r <= 0;
 			end
 			else begin
-				RD_REQ <= 1;
-				AUDIO_L <= BUFFER_Q[15:0];
-				AUDIO_R <= BUFFER_Q[31:16];
-				READ_ADDR <= READ_ADDR + 1'd1;
+				rd_req <= 1;
+				audio_l <= buffer_q[15:0];
+				audio_r <= buffer_q[31:16];
+				read_addr <= read_addr + 1'd1;
 			end
 		end
-
-		AVAILABLE_COUNT <= AVAILABLE_COUNT - WR_REQ + RD_REQ;
-		WRITE_REQ <= (AVAILABLE_COUNT >= SECTOR_SIZE);
 	end
+
+	filled_cnt <= filled_cnt + wr_req - rd_req;
+	CDDA_REQ <= (BUFFER_SIZE[BUFFER_WIDTH:0] - filled_cnt >= SECTOR_SIZE[BUFFER_WIDTH:0]);
 end
 
-reg [31:0] BUFFER[BUFFER_SIZE];
-reg [31:0] BUFFER_Q;
+reg [31:0] buffer[BUFFER_SIZE];
+reg [31:0] buffer_q;
 always @(posedge CLK) begin
-	BUFFER_Q <= BUFFER[READ_ADDR];
-	if (WR_REQ) BUFFER[WRITE_ADDR] <= {DIN,DATA};
+	buffer_q <= buffer[read_addr];
+	if (wr_req) buffer[write_addr] <= CDDA_DATA;
 end
 
 endmodule
