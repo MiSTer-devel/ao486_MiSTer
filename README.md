@@ -9,7 +9,7 @@ Core was greatly reworked with many new features and performance added.
 * Sound Blaster 16 (DSP v4.05) and Sound Blaster Pro (DSP v3.02) with OPL3 and C/MS
 * High speed UART (3Mbps) internet connection
 * MIDI port (dumb and fake-smart modes)
-* Extrnal MIDI device support (MT32-pi and generic MIDI)
+* External MIDI device support (MT32-pi and generic MIDI)
 * 4 HDDs with up to 137GB each
 * 2 CD-ROMs
 * Shared folder support
