@@ -242,18 +242,26 @@ end
 wire irq_5_en = ~irq_7_en & ~irq_10_en;
 
 reg       sbp_stereo;
-reg [4:0] vol_l, vol_r;
+reg [4:0] vol_ma_l, vol_ma_r;
+reg [4:0] vol_vo_l, vol_vo_r;
+reg [4:0] vol_mi_l, vol_mi_r;
 always @(posedge clk) begin
 	if(~rst_n) begin
-		{vol_l, vol_r} <= 10'h3FF;
+		{vol_ma_l, vol_ma_r} <= 10'h3FF;
+		{vol_vo_l, vol_vo_r} <= 10'h3FF;
+		{vol_mi_l, vol_mi_r} <= 10'h3FF;
 		sbp_stereo <= 0;
 	end
 	else if(write && sb_cs && address == 4'h5) begin
-		if(mixer_reg == 8'h00) begin {vol_l, vol_r} <= 10'h3FF; sbp_stereo <= 0; end
+		if(mixer_reg == 8'h00) begin {vol_ma_l, vol_ma_r} <= 10'h3FF; sbp_stereo <= 0; end
 		if(mixer_reg == 8'h0E) sbp_stereo <= writedata[1];
-		if(mixer_reg == 8'h22) {vol_l, vol_r} <= {writedata[7:4], writedata[7], writedata[3:0], writedata[3]};
-		if(mixer_reg == 8'h30 && ~sbp) vol_l <= writedata[7:3];
-		if(mixer_reg == 8'h31 && ~sbp) vol_r <= writedata[7:3];
+		if(mixer_reg == 8'h22) {vol_ma_l, vol_ma_r} <= {writedata[7:4], writedata[7], writedata[3:0], writedata[3]};
+		if(mixer_reg == 8'h30 && ~sbp) vol_ma_l <= writedata[7:3];
+		if(mixer_reg == 8'h31 && ~sbp) vol_ma_r <= writedata[7:3];
+		if(mixer_reg == 8'h32 && ~sbp) vol_vo_l <= writedata[7:3];
+		if(mixer_reg == 8'h33 && ~sbp) vol_vo_r <= writedata[7:3];
+		if(mixer_reg == 8'h34 && ~sbp) vol_mi_l <= writedata[7:3];
+		if(mixer_reg == 8'h35 && ~sbp) vol_mi_r <= writedata[7:3];
 	end
 end
 
@@ -262,16 +270,18 @@ always @(posedge clk) begin
 	case(mixer_reg)
 		'h04: mixer_val <= 8'hFF;
 		'h0E: mixer_val <= {6'd0, sbp_stereo, 1'b0};
-		'h22: mixer_val <= {vol_l[4:1],vol_r[4:1]};
+		'h22: mixer_val <= {vol_ma_l[4:1], vol_ma_r[4:1]};
 	default: mixer_val <= 8'h00;
 	endcase
 
 	if(~sbp) begin
 		case(mixer_reg)
-			'h30: mixer_val <= {vol_l, 3'd0};
-			'h31: mixer_val <= {vol_r, 3'd0};
-			'h32: mixer_val <= 8'hFF;
-			'h33: mixer_val <= 8'hFF;
+			'h30: mixer_val <= {vol_ma_l, 3'd0};
+			'h31: mixer_val <= {vol_ma_r, 3'd0};
+			'h32: mixer_val <= {vol_vo_l, 3'd0};
+			'h33: mixer_val <= {vol_vo_r, 3'd0};
+			'h34: mixer_val <= {vol_mi_l, 3'd0};
+			'h35: mixer_val <= {vol_mi_r, 3'd0};
 			'h80: mixer_val <= {4'h0, irq_10_en, irq_7_en, irq_5_en, 1'b0}; //IRQ 7 or 5
 			'h81: mixer_val <= {2'b00,dma_16_en,1'b0,4'h2}; //DMA 5/1
 			'h82: mixer_val <= {6'd0, irq16, irq8};
@@ -279,15 +289,27 @@ always @(posedge clk) begin
 	end
 end
 
+reg [15:0] sample_dsp_l, sample_dsp_r;
+always @(posedge clk) begin
+	sample_dsp_l <= $signed(dsp_value_l) >>> ~vol_vo_l[4:1];
+	sample_dsp_r <= $signed(dsp_value_r) >>> ~vol_vo_r[4:1];
+end
+
+reg [15:0] sample_opl_l, sample_opl_r;
+always @(posedge clk) begin
+	sample_opl_l <= $signed(sample_from_opl_l) >>> ~vol_mi_l[4:1];
+	sample_opl_r <= $signed(sample_from_opl_r) >>> ~vol_mi_r[4:1];
+end
+
 reg [15:0] sample_pre_l, sample_pre_r;
 always @(posedge clk) begin
-	sample_pre_l <= {{2{dsp_value_l[15]}}, dsp_value_l[15:2]} + {sample_from_opl_l[15], sample_from_opl_l[15:1]} + {2'b00, cms_l, cms_l[8:4]};
-	sample_pre_r <= {{2{dsp_value_r[15]}}, dsp_value_r[15:2]} + {sample_from_opl_r[15], sample_from_opl_r[15:1]} + {2'b00, cms_r, cms_r[8:4]};
+	sample_pre_l <= {sample_dsp_l[15], sample_dsp_l[15:1]} + {sample_opl_l[15], sample_opl_l[15:1]} + {2'b00, cms_l, cms_l[8:4]};
+	sample_pre_r <= {sample_dsp_r[15], sample_dsp_r[15:1]} + {sample_opl_r[15], sample_opl_r[15:1]} + {2'b00, cms_r, cms_r[8:4]};
 end
 
 always @(posedge clk) begin
-	sample_l <= $signed(sample_pre_l) >>> ~vol_l[4:1];
-	sample_r <= $signed(sample_pre_r) >>> ~vol_l[4:1];
+	sample_l <= $signed(sample_pre_l) >>> ~vol_ma_l[4:1];
+	sample_r <= $signed(sample_pre_r) >>> ~vol_ma_r[4:1];
 end
 
 endmodule
