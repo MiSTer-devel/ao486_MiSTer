@@ -79,6 +79,7 @@ module system
 	output  [4:0] vol_midi_r,
 	output  [4:0] vol_line_l,
 	output  [4:0] vol_line_r,
+	output  [1:0] vol_spk,
 
 	input         clk_vga,
 	input  [27:0] clock_rate_vga,
@@ -656,6 +657,7 @@ sound sound
 	.vol_midi_r        (vol_midi_r),
 	.vol_line_l        (vol_line_l),
 	.vol_line_r        (vol_line_r),
+	.vol_spk           (vol_spk),
 
 	.sample_l          (sound_sample_l),
 	.sample_r          (sound_sample_r),

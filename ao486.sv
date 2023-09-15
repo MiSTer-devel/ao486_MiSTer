@@ -735,6 +735,7 @@ assign VIDEO_ARY = fb_en ? fb_ary : ary;
 assign DDRAM_ADDR[28:25] = 4'h3;
 
 wire [4:0] vol_l, vol_r, vol_cd_l, vol_cd_r, vol_midi_l, vol_midi_r, vol_line_l, vol_line_r;
+wire [1:0] vol_spk;
 
 system system
 (
@@ -787,6 +788,7 @@ system system
 	.vol_midi_r           (vol_midi_r),
 	.vol_line_l           (vol_line_l),
 	.vol_line_r           (vol_line_r),
+	.vol_spk              (vol_spk),
 	.speaker_out          (speaker_out),
 
 	.ps2_reset_n          (ps2_reset_n),
@@ -998,8 +1000,12 @@ wire mt32_lcd = mt32_lcd_on & mt32_lcd_en;
 ////////////////////////////  AUDIO  /////////////////////////////////// 
 
 wire        speaker_out;
-reg  [16:0] spk_vol;
-always @(posedge CLK_AUDIO) spk_vol <= {2'b00, {3'b000,speaker_out} << status[19:18], 11'd0};
+reg  [16:0] spk_out;
+always @(posedge CLK_AUDIO) begin
+	reg [16:0] spk;
+	spk <= {2'b00, {3'b000,speaker_out} << status[19:18], 11'd0};
+	spk_out <= spk >> ~vol_spk;
+end
 
 wire [15:0] sb_out_l, sb_out_r;
 wire [16:0] sb_l, sb_r;
@@ -1066,8 +1072,8 @@ always @(posedge CLK_AUDIO) begin
 	mt32_l <= $signed(mt32_i2s_l) >>> ~(status[25] ? vol_line_l[4:1] : vol_midi_l[4:1]);
 	mt32_r <= $signed(mt32_i2s_r) >>> ~(status[25] ? vol_line_r[4:1] : vol_midi_r[4:1]);
 
-	tmp_l <= sb_l + spk_vol + (mt32_mute ? 17'd0 : {mt32_l[15],mt32_l}) + {cdda_l[15],cdda_l};
-	tmp_r <= sb_r + spk_vol + (mt32_mute ? 17'd0 : {mt32_r[15],mt32_r}) + {cdda_r[15],cdda_r};
+	tmp_l <= sb_l + spk_out + (mt32_mute ? 17'd0 : {mt32_l[15],mt32_l}) + {cdda_l[15],cdda_l};
+	tmp_r <= sb_r + spk_out + (mt32_mute ? 17'd0 : {mt32_r[15],mt32_r}) + {cdda_r[15],cdda_r};
 
 	// clamp the output
 	out_l <= (^tmp_l[16:15]) ? {tmp_l[16], {15{tmp_l[15]}}} : tmp_l[15:0];
