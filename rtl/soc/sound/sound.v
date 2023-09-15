@@ -266,7 +266,7 @@ always @(posedge clk) begin
 		sbp_stereo <= 0;
 	end
 	else if(write && sb_cs && address == 4'h5) begin
-		if(mixer_reg == 8'h0E) sbp_stereo <= writedata[1];
+		if(mixer_reg == 8'h0E) sbp_stereo <= writedata[1] & sbp; // only for SBPro!
 		if(mixer_reg == 8'h22) {vol_ma_l, vol_ma_r} <= sbp_vol;
 		if(mixer_reg == 8'h26) {vol_mi_l, vol_mi_r} <= sbp_vol;
 		if(mixer_reg == 8'h28) {vol_cd_l, vol_cd_r} <= sbp_vol;
