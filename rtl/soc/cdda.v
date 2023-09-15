@@ -5,7 +5,9 @@ module cdda #(parameter CLK_AUDIO_RATE)
 	output reg        CDDA_REQ,
 	input             CDDA_WR,
 	input      [31:0] CDDA_DATA,
-	
+	input       [3:0] VOLUME_L,
+	input       [3:0] VOLUME_R,
+
 	input             CLK_AUDIO,
 	output reg        AUDIO_CE,
 	output reg [15:0] AUDIO_L,
@@ -33,8 +35,8 @@ always @(posedge CLK_AUDIO) begin
 	old_clk <= clk_44100;
 	if(~old_clk & clk_44100) begin
 		AUDIO_CE <= 1;
-		AUDIO_L <= audio_l;
-		AUDIO_R <= audio_r;
+		AUDIO_L <= $signed(audio_l) >>> ~VOLUME_L;
+		AUDIO_R <= $signed(audio_r) >>> ~VOLUME_R;
 	end
 end
 

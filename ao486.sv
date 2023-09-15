@@ -193,7 +193,7 @@ led fdd_led(clk_sys, |mgmt_req[7:6], LED_USER);
 // 0         1         2         3          4         5         6
 // 01234567890123456789012345678901 23456789012345678901234567890123
 // 0123456789ABCDEFGHIJKLMNOPQRSTUV 0123456789ABCDEFGHIJKLMNOPQRSTUV
-// XXXXXXXXXXXXXXXXXXXXXXXXX XXXXXX XXXXXXXXXXXXXXXXXXXXXXX
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXX
 
 `include "build_id.v"
 localparam CONF_STR =
@@ -225,6 +225,7 @@ localparam CONF_STR =
 	"P1OIJ,Speaker Volume,1,2,3,4;",
 	"P1OKL,Audio Boost,No,2x,4x;",
 	"P1oBC,Stereo Mix,none,25%,50%,100%;",
+	"P1OP,MT32 Volume Ctl,MIDI,Line-In;",
 
 	"P2,Hardware;",
 	"P2o01,Boot 1st,Floppy/Hard Disk,Floppy,Hard Disk,CD-ROM;",
@@ -733,6 +734,8 @@ assign VIDEO_ARY = fb_en ? fb_ary : ary;
 
 assign DDRAM_ADDR[28:25] = 4'h3;
 
+wire [4:0] vol_l, vol_r, vol_cd_l, vol_cd_r, vol_midi_l, vol_midi_r, vol_line_l, vol_line_r;
+
 system system
 (
 	.clk_sys              (clk_sys),
@@ -776,7 +779,14 @@ system system
 	.sound_sample_r       (sb_out_r),
 	.sound_fm_mode        (status[3]),
 	.sound_cms_en         (status[17]),
-
+	.vol_l                (vol_l),
+	.vol_r                (vol_r),
+	.vol_cd_l             (vol_cd_l),
+	.vol_cd_r             (vol_cd_r),
+	.vol_midi_l           (vol_midi_l),
+	.vol_midi_r           (vol_midi_r),
+	.vol_line_l           (vol_line_l),
+	.vol_line_r           (vol_line_r),
 	.speaker_out          (speaker_out),
 
 	.ps2_reset_n          (ps2_reset_n),
@@ -1039,6 +1049,9 @@ cdda #(24576000) cdda
 	.CDDA_WR(cdda_wr),
 	.CDDA_DATA(cdda_dout),
 
+	.VOLUME_L(vol_cd_l[4:1]),
+	.VOLUME_R(vol_cd_r[4:1]),
+
 	.CLK_AUDIO(CLK_AUDIO),
 	.AUDIO_L(cdda_l),
 	.AUDIO_R(cdda_r)
@@ -1048,9 +1061,13 @@ reg [15:0] cmp_l, cmp_r;
 reg [15:0] out_l, out_r;
 always @(posedge CLK_AUDIO) begin
 	reg [16:0] tmp_l, tmp_r;
+	reg [15:0] mt32_l, mt32_r;
 
-	tmp_l <= sb_l + spk_vol + (mt32_mute ? 17'd0 : {mt32_i2s_l[15],mt32_i2s_l}) + {cdda_l[15],cdda_l};
-	tmp_r <= sb_r + spk_vol + (mt32_mute ? 17'd0 : {mt32_i2s_r[15],mt32_i2s_r}) + {cdda_r[15],cdda_r};
+	mt32_l <= $signed(mt32_i2s_l) >>> ~(status[25] ? vol_line_l[4:1] : vol_midi_l[4:1]);
+	mt32_r <= $signed(mt32_i2s_r) >>> ~(status[25] ? vol_line_r[4:1] : vol_midi_r[4:1]);
+
+	tmp_l <= sb_l + spk_vol + (mt32_mute ? 17'd0 : {mt32_l[15],mt32_l}) + {cdda_l[15],cdda_l};
+	tmp_r <= sb_r + spk_vol + (mt32_mute ? 17'd0 : {mt32_r[15],mt32_r}) + {cdda_r[15],cdda_r};
 
 	// clamp the output
 	out_l <= (^tmp_l[16:15]) ? {tmp_l[16], {15{tmp_l[15]}}} : tmp_l[15:0];
@@ -1060,8 +1077,14 @@ always @(posedge CLK_AUDIO) begin
 	cmp_r <= compr(out_r);
 end
 
-assign AUDIO_L   = status[21:20] ? cmp_l : out_l;
-assign AUDIO_R   = status[21:20] ? cmp_r : out_r;
+reg [15:0] audio_l, audio_r;
+always @(posedge CLK_AUDIO) begin
+	audio_l <= $signed(status[21:20] ? cmp_l : out_l) >>> ~vol_l[4:1];
+	audio_r <= $signed(status[21:20] ? cmp_r : out_r) >>> ~vol_r[4:1];
+end
+
+assign AUDIO_L   = audio_l;
+assign AUDIO_R   = audio_r;
 assign AUDIO_S   = 1;
 assign AUDIO_MIX = status[44:43];
 

@@ -46,6 +46,15 @@ module sound
 
 	input             fm_mode,
 	input             cms_en,
+	
+	output      [4:0] vol_l,
+	output      [4:0] vol_r,
+	output reg  [4:0] vol_cd_l,
+	output reg  [4:0] vol_cd_r,
+	output      [4:0] vol_midi_l,
+	output      [4:0] vol_midi_r,
+	output reg  [4:0] vol_line_l,
+	output reg  [4:0] vol_line_r,
 
 	//dma
 	output            dma_req8,
@@ -241,37 +250,55 @@ end
 
 wire irq_5_en = ~irq_7_en & ~irq_10_en;
 
+wire [9:0] sbp_vol = {writedata[7:4], writedata[7], writedata[3:0], writedata[3]};
+
 reg       sbp_stereo;
 reg [4:0] vol_ma_l, vol_ma_r;
 reg [4:0] vol_vo_l, vol_vo_r;
 reg [4:0] vol_mi_l, vol_mi_r;
 always @(posedge clk) begin
-	if(~rst_n) begin
+	if(~rst_n || (write && sb_cs && address == 4'h5 && mixer_reg == 8'h00)) begin
 		{vol_ma_l, vol_ma_r} <= 10'h3FF;
 		{vol_vo_l, vol_vo_r} <= 10'h3FF;
 		{vol_mi_l, vol_mi_r} <= 10'h3FF;
+		{vol_cd_l, vol_cd_r} <= 10'h3FF;
+		{vol_line_l, vol_line_r} <= 10'h3FF;
 		sbp_stereo <= 0;
 	end
 	else if(write && sb_cs && address == 4'h5) begin
-		if(mixer_reg == 8'h00) begin {vol_ma_l, vol_ma_r} <= 10'h3FF; sbp_stereo <= 0; end
 		if(mixer_reg == 8'h0E) sbp_stereo <= writedata[1];
-		if(mixer_reg == 8'h22) {vol_ma_l, vol_ma_r} <= {writedata[7:4], writedata[7], writedata[3:0], writedata[3]};
+		if(mixer_reg == 8'h22) {vol_ma_l, vol_ma_r} <= sbp_vol;
+		if(mixer_reg == 8'h26) {vol_mi_l, vol_mi_r} <= sbp_vol;
+		if(mixer_reg == 8'h28) {vol_cd_l, vol_cd_r} <= sbp_vol;
+		if(mixer_reg == 8'h2E) {vol_line_l, vol_line_r} <= sbp_vol;
 		if(mixer_reg == 8'h30 && ~sbp) vol_ma_l <= writedata[7:3];
 		if(mixer_reg == 8'h31 && ~sbp) vol_ma_r <= writedata[7:3];
 		if(mixer_reg == 8'h32 && ~sbp) vol_vo_l <= writedata[7:3];
 		if(mixer_reg == 8'h33 && ~sbp) vol_vo_r <= writedata[7:3];
 		if(mixer_reg == 8'h34 && ~sbp) vol_mi_l <= writedata[7:3];
 		if(mixer_reg == 8'h35 && ~sbp) vol_mi_r <= writedata[7:3];
+		if(mixer_reg == 8'h36 && ~sbp) vol_cd_l <= writedata[7:3];
+		if(mixer_reg == 8'h37 && ~sbp) vol_cd_r <= writedata[7:3];
+		if(mixer_reg == 8'h38 && ~sbp) vol_line_l <= writedata[7:3];
+		if(mixer_reg == 8'h39 && ~sbp) vol_line_r <= writedata[7:3];
 	end
 end
 
+assign vol_midi_l = vol_mi_l;
+assign vol_midi_r = vol_mi_r;
+
 reg [7:0] mixer_val;
 always @(posedge clk) begin
+
+	mixer_val <= 8'h00;
+
 	case(mixer_reg)
 		'h04: mixer_val <= 8'hFF;
 		'h0E: mixer_val <= {6'd0, sbp_stereo, 1'b0};
 		'h22: mixer_val <= {vol_ma_l[4:1], vol_ma_r[4:1]};
-	default: mixer_val <= 8'h00;
+		'h26: mixer_val <= {vol_mi_l[4:1], vol_mi_r[4:1]};
+		'h28: mixer_val <= {vol_cd_l[4:1], vol_cd_r[4:1]};
+		'h2E: mixer_val <= {vol_line_l[4:1], vol_line_r[4:1]};
 	endcase
 
 	if(~sbp) begin
@@ -282,6 +309,10 @@ always @(posedge clk) begin
 			'h33: mixer_val <= {vol_vo_r, 3'd0};
 			'h34: mixer_val <= {vol_mi_l, 3'd0};
 			'h35: mixer_val <= {vol_mi_r, 3'd0};
+			'h36: mixer_val <= {vol_cd_l, 3'd0};
+			'h37: mixer_val <= {vol_cd_r, 3'd0};
+			'h38: mixer_val <= {vol_line_l, 3'd0};
+			'h39: mixer_val <= {vol_line_r, 3'd0};
 			'h80: mixer_val <= {4'h0, irq_10_en, irq_7_en, irq_5_en, 1'b0}; //IRQ 7 or 5
 			'h81: mixer_val <= {2'b00,dma_16_en,1'b0,4'h2}; //DMA 5/1
 			'h82: mixer_val <= {6'd0, irq16, irq8};
@@ -301,15 +332,12 @@ always @(posedge clk) begin
 	sample_opl_r <= $signed(sample_from_opl_r) >>> ~vol_mi_r[4:1];
 end
 
-reg [15:0] sample_pre_l, sample_pre_r;
 always @(posedge clk) begin
-	sample_pre_l <= {sample_dsp_l[15], sample_dsp_l[15:1]} + {sample_opl_l[15], sample_opl_l[15:1]} + {2'b00, cms_l, cms_l[8:4]};
-	sample_pre_r <= {sample_dsp_r[15], sample_dsp_r[15:1]} + {sample_opl_r[15], sample_opl_r[15:1]} + {2'b00, cms_r, cms_r[8:4]};
+	sample_l <= {sample_dsp_l[15], sample_dsp_l[15:1]} + {sample_opl_l[15], sample_opl_l[15:1]} + {2'b00, cms_l, cms_l[8:4]};
+	sample_r <= {sample_dsp_r[15], sample_dsp_r[15:1]} + {sample_opl_r[15], sample_opl_r[15:1]} + {2'b00, cms_r, cms_r[8:4]};
 end
 
-always @(posedge clk) begin
-	sample_l <= $signed(sample_pre_l) >>> ~vol_ma_l[4:1];
-	sample_r <= $signed(sample_pre_r) >>> ~vol_ma_r[4:1];
-end
+assign vol_l = vol_ma_l;
+assign vol_r = vol_ma_r;
 
 endmodule

@@ -71,6 +71,15 @@ module system
 
 	output        speaker_out,
 
+	output  [4:0] vol_l,
+	output  [4:0] vol_r,
+	output  [4:0] vol_cd_l,
+	output  [4:0] vol_cd_r,
+	output  [4:0] vol_midi_l,
+	output  [4:0] vol_midi_r,
+	output  [4:0] vol_line_l,
+	output  [4:0] vol_line_r,
+
 	input         clk_vga,
 	input  [27:0] clock_rate_vga,
 
@@ -638,6 +647,15 @@ sound sound
 	.dma_ack           (dma_sb_ack_16 | dma_sb_ack_8),
 	.dma_readdata      (dma_sb_req_16 ? dma_sb_readdata_16 : dma_sb_readdata_8),
 	.dma_writedata     (dma_sb_writedata),
+
+	.vol_l             (vol_l),
+	.vol_r             (vol_r),
+	.vol_cd_l          (vol_cd_l),
+	.vol_cd_r          (vol_cd_r),
+	.vol_midi_l        (vol_midi_l),
+	.vol_midi_r        (vol_midi_r),
+	.vol_line_l        (vol_line_l),
+	.vol_line_r        (vol_line_r),
 
 	.sample_l          (sound_sample_l),
 	.sample_r          (sound_sample_r),
