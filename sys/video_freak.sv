@@ -173,7 +173,7 @@ sys_umul #(12,12) mul(CLK_VIDEO,mul_start,mul_run, mul_arg1,mul_arg2,mul_res);
 wire [11:0] wideres = mul_res[11:0] + hsize;
 
 always @(posedge CLK_VIDEO) begin
-	reg [11:0] oheight,wres;
+	reg [11:0] oheight,htarget,wres;
 	reg [12:0] arxf,aryf;
 	reg  [3:0] cnt;
 	reg        narrow;
@@ -188,11 +188,18 @@ always @(posedge CLK_VIDEO) begin
 	else if(~div_start & ~div_run & ~mul_start & ~mul_run) begin
 		cnt <= cnt + 1'd1;
 		case(cnt)
+			// example ideal and non-ideal cases:
+			// [1] 720x400 4:3 VGA 80x25 text-mode (non-square pixels)
+			// [2] 640x480 4:3 VGA graphics mode (square pixels)
+			// [3] 512x512 4:3 X68000 graphics mode (non-square pixels)
 			0: begin
 					div_num   <= HDMI_HEIGHT;
 					div_den   <= vsize;
 					div_start <= 1;
 				end
+				// [1] 1080 / 400 -> 2
+				// [2] 1080 / 480 -> 2
+				// [3] 1080 / 512 -> 2
 
 			1: if(!div_res[11:0]) begin
 					// screen resolution is lower than video resolution.
@@ -206,6 +213,9 @@ always @(posedge CLK_VIDEO) begin
 					mul_arg2  <= div_res[11:0];
 					mul_start <= 1;
 				end
+				// [1] 1080 / 400 * 400 -> 800
+				// [2] 1080 / 480 * 480 -> 960
+				// [3] 1080 / 512 * 512 -> 1024
 
 			2: begin
 					oheight   <= mul_res[11:0];
@@ -219,24 +229,39 @@ always @(posedge CLK_VIDEO) begin
 					mul_arg2  <= arx_i;
 					mul_start <= 1;
 				end
+				// [1] 1080 / 400 * 400 * 4 -> 3200
+				// [2] 1080 / 480 * 480 * 4 -> 3840
+				// [3] 1080 / 512 * 512 * 4 -> 4096
 
 			4: begin
 					div_num   <= mul_res;
 					div_den   <= ary_i;
 					div_start <= 1;
 				end
+				// [1] 1080 / 480 * 480 * 4 / 3 -> 1066
+				// [2] 1080 / 480 * 480 * 4 / 3 -> 1280
+				// [3] 1080 / 512 * 512 * 4 / 3 -> 1365
+				// saved as htarget
 
 			5: begin
+					htarget   <= div_res[11:0];
 					div_num   <= div_res;
 					div_den   <= hsize;
 					div_start <= 1;
 				end
+				// computes wide scaling factor as a ceiling division
+				// [1] 1080 / 400 * 400 * 4 / 3 / 720 -> 1
+				// [2] 1080 / 480 * 480 * 4 / 3 / 640 -> 2
+				// [3] 1080 / 512 * 512 * 4 / 3 / 512 -> 2
 
 			6: begin
 					mul_arg1  <= hsize;
 					mul_arg2  <= div_res[11:0] ? div_res[11:0] : 12'd1;
 					mul_start <= 1;
 				end
+				// [1] 1080 / 400 * 400 * 4 / 3 / 720 * 720 -> 720
+				// [2] 1080 / 480 * 480 * 4 / 3 / 640 * 640 -> 1280
+				// [3] 1080 / 512 * 512 * 4 / 3 / 512 * 512 -> 1024
 
 			7: if(mul_res <= HDMI_WIDTH) begin
 					cnt       <= 10;
@@ -247,17 +272,32 @@ always @(posedge CLK_VIDEO) begin
 					div_den   <= hsize;
 					div_start <= 1;
 				end
+				// [1] 1920 / 720 -> 2
+				// [2] 1920 / 640 -> 3
+				// [3] 1920 / 512 -> 3
 
 			9: begin
 					mul_arg1  <= hsize;
 					mul_arg2  <= div_res[11:0] ? div_res[11:0] : 12'd1;
 					mul_start <= 1;
 				end
+				// [1] 1920 / 720 * 720 -> 1440
+				// [2] 1920 / 640 * 640 -> 1920
+				// [3] 1920 / 512 * 512 -> 1536
 
 			10: begin
-					narrow    <= ((div_num[11:0] - mul_res[11:0]) <= (wideres - div_num[11:0])) || (wideres > HDMI_WIDTH);
-					wres      <= wideres;
+					narrow    <= ((htarget - mul_res[11:0]) <= (wideres - htarget)) || (wideres > HDMI_WIDTH);
+					wres      <= mul_res[11:0] == htarget ? mul_res[11:0] : wideres;
 				end
+				// [1] 1066 - 720  = 346 <= 1440 - 1066 = 374 || 1440 > 1920 -> true
+				// [2] 1280 - 1280 = 0   <= 1920 - 1280 = 640 || 1920 > 1920 -> true
+				// [3] 1365 - 1024 = 341 <= 1536 - 1365 = 171 || 1536 > 1920 -> false
+				// 1. narrow flag is true when mul_res[11:0] narrow width is closer to
+				//    htarget aspect ratio target width or when wideres wider width
+				//    does not fit to the screen.
+				// 2. wres becomes wideres only when mul_res[11:0] narrow width not equal
+				//    to target width, meaning it is not optimal for source aspect ratio.
+				//    otherwise it is set to narrow width that is optimal.
 
 			11: begin
 					case(SCALE)
