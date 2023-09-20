@@ -56,6 +56,7 @@ module sound
 	output reg  [4:0] vol_line_l,
 	output reg  [4:0] vol_line_r,
 	output reg  [1:0] vol_spk,
+	output reg  [4:0] vol_en,
 
 	//dma
 	output            dma_req8,
@@ -253,6 +254,7 @@ wire irq_5_en = ~irq_7_en & ~irq_10_en;
 
 wire [9:0] sb_vol = sbp ? {writedata[7:5], writedata[7:6], writedata[3:1], writedata[3:2]} : {writedata[7:4], writedata[7], writedata[3:0], writedata[3]};
 
+reg [6:0] rec_en[2];
 reg       sbp_stereo;
 reg [4:0] vol_ma_l, vol_ma_r;
 reg [4:0] vol_vo_l, vol_vo_r;
@@ -266,6 +268,9 @@ always @(posedge clk) begin
 		{vol_line_l, vol_line_r} <= 10'h3FF;
 		vol_spk <= 3;
 		sbp_stereo <= 0;
+		vol_en <= 5'b11111;
+		rec_en[0] <= 7'b0010101;
+		rec_en[1] <= 7'b0001011;
 	end
 	else if(write && sb_cs && address == 4'h5) begin
 		if(mixer_reg == 8'h0E) sbp_stereo <= writedata[1] & sbp; // only for SBPro!
@@ -285,6 +290,9 @@ always @(posedge clk) begin
 			if(mixer_reg == 8'h38) vol_line_l <= writedata[7:3];
 			if(mixer_reg == 8'h39) vol_line_r <= writedata[7:3];
 			if(mixer_reg == 8'h3B) vol_spk <= writedata[7:6];
+			if(mixer_reg == 8'h3C) vol_en  <= writedata[4:0];
+			if(mixer_reg == 8'h3D) rec_en[0] <= writedata[6:0];
+			if(mixer_reg == 8'h3E) rec_en[1] <= writedata[6:0];
 		end
 	end
 end
@@ -321,6 +329,9 @@ always @(posedge clk) begin
 			'h38: mixer_val <= {vol_line_l, 3'd0};
 			'h39: mixer_val <= {vol_line_r, 3'd0};
 			'h3B: mixer_val <= {vol_spk, 6'd0};
+			'h3C: mixer_val <= vol_en;
+			'h3D: mixer_val <= rec_en[0];
+			'h3E: mixer_val <= rec_en[1];
 			'h80: mixer_val <= {4'h0, irq_10_en, irq_7_en, irq_5_en, 1'b0}; //IRQ 7 or 5
 			'h81: mixer_val <= {2'b00,dma_16_en,1'b0,4'h2}; //DMA 5/1
 			'h82: mixer_val <= {6'd0, irq16, irq8};
@@ -328,16 +339,22 @@ always @(posedge clk) begin
 	end
 end
 
+function signed [15:0] volume(input [15:0] inp, input [4:0] vol);
+	begin
+		volume = vol ? $signed($signed(inp) >>> ~vol[4:1]) : 16'd0;
+	end
+endfunction
+
 reg [15:0] sample_dsp_l, sample_dsp_r;
 always @(posedge clk) begin
-	sample_dsp_l <= $signed(dsp_value_l) >>> ~vol_vo_l[4:1];
-	sample_dsp_r <= $signed(dsp_value_r) >>> ~vol_vo_r[4:1];
+	sample_dsp_l <= volume(dsp_value_l, vol_vo_l);
+	sample_dsp_r <= volume(dsp_value_r, vol_vo_r);
 end
 
 reg [15:0] sample_opl_l, sample_opl_r;
 always @(posedge clk) begin
-	sample_opl_l <= $signed(sample_from_opl_l) >>> ~vol_mi_l[4:1];
-	sample_opl_r <= $signed(sample_from_opl_r) >>> ~vol_mi_r[4:1];
+	sample_opl_l <= volume(sample_from_opl_l, vol_mi_l);
+	sample_opl_r <= volume(sample_from_opl_r, vol_mi_r);
 end
 
 always @(posedge clk) begin

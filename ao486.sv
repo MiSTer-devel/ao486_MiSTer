@@ -736,6 +736,7 @@ assign DDRAM_ADDR[28:25] = 4'h3;
 
 wire [4:0] vol_l, vol_r, vol_cd_l, vol_cd_r, vol_midi_l, vol_midi_r, vol_line_l, vol_line_r;
 wire [1:0] vol_spk;
+wire [4:0] vol_en;
 
 system system
 (
@@ -789,6 +790,7 @@ system system
 	.vol_line_l           (vol_line_l),
 	.vol_line_r           (vol_line_r),
 	.vol_spk              (vol_spk),
+	.vol_en               (vol_en),
 	.speaker_out          (speaker_out),
 
 	.ps2_reset_n          (ps2_reset_n),
@@ -1021,27 +1023,6 @@ always @(posedge CLK_AUDIO) begin
 	if(old_r0 == old_r1) sb_r <= {old_r1[15],old_r1};
 end
 
-localparam [3:0] comp_f1 = 4;
-localparam [3:0] comp_a1 = 2;
-localparam       comp_x1 = ((32767 * (comp_f1 - 1)) / ((comp_f1 * comp_a1) - 1)) + 1; // +1 to make sure it won't overflow
-localparam       comp_b1 = comp_x1 * comp_a1;
-
-localparam [3:0] comp_f2 = 8;
-localparam [3:0] comp_a2 = 4;
-localparam       comp_x2 = ((32767 * (comp_f2 - 1)) / ((comp_f2 * comp_a2) - 1)) + 1; // +1 to make sure it won't overflow
-localparam       comp_b2 = comp_x2 * comp_a2;
-
-function [15:0] compr; input [15:0] inp;
-	reg [15:0] v, v1, v2;
-	begin
-		v  = inp[15] ? (~inp) + 1'd1 : inp;
-		v1 = (v < comp_x1[15:0]) ? (v * comp_a1) : (((v - comp_x1[15:0])/comp_f1) + comp_b1[15:0]);
-		v2 = (v < comp_x2[15:0]) ? (v * comp_a2) : (((v - comp_x2[15:0])/comp_f2) + comp_b2[15:0]);
-		v  = status[21] ? v2 : v1;
-		compr = inp[15] ? ~(v-1'd1) : v;
-	end
-endfunction 
-
 wire [15:0] cdda_l;
 wire [15:0] cdda_r;
 wire [31:0] cdda_dout;
@@ -1063,30 +1044,36 @@ cdda #(24576000) cdda
 	.AUDIO_R(cdda_r)
 );
 
-reg [15:0] cmp_l, cmp_r;
+function signed [15:0] volume(input [15:0] inp, input [4:0] vol);
+	begin
+		volume = vol ? $signed($signed(inp) >>> ~vol[4:1]) : 16'd0;
+	end
+endfunction
+
 reg [15:0] out_l, out_r;
 always @(posedge CLK_AUDIO) begin
 	reg [16:0] tmp_l, tmp_r;
 	reg [15:0] mt32_l, mt32_r;
 
-	mt32_l <= $signed(mt32_i2s_l) >>> ~(status[25] ? vol_line_l[4:1] : vol_midi_l[4:1]);
-	mt32_r <= $signed(mt32_i2s_r) >>> ~(status[25] ? vol_line_r[4:1] : vol_midi_r[4:1]);
+	mt32_l <= volume(mt32_i2s_l, ~status[25] ? vol_midi_l : vol_en[4] ? vol_line_l : 5'd0);
+	mt32_r <= volume(mt32_i2s_r, ~status[25] ? vol_midi_r : vol_en[3] ? vol_line_r : 5'd0);
 
-	tmp_l <= sb_l + spk_out + (mt32_mute ? 17'd0 : {mt32_l[15],mt32_l}) + {cdda_l[15],cdda_l};
-	tmp_r <= sb_r + spk_out + (mt32_mute ? 17'd0 : {mt32_r[15],mt32_r}) + {cdda_r[15],cdda_r};
+	tmp_l <= sb_l + spk_out + (mt32_mute ? 17'd0 : {mt32_l[15],mt32_l}) + (vol_en[2] ? {cdda_l[15],cdda_l} : 17'd0);
+	tmp_r <= sb_r + spk_out + (mt32_mute ? 17'd0 : {mt32_r[15],mt32_r}) + (vol_en[1] ? {cdda_r[15],cdda_r} : 17'd0);
 
 	// clamp the output
 	out_l <= (^tmp_l[16:15]) ? {tmp_l[16], {15{tmp_l[15]}}} : tmp_l[15:0];
 	out_r <= (^tmp_r[16:15]) ? {tmp_r[16], {15{tmp_r[15]}}} : tmp_r[15:0];
-
-	cmp_l <= compr(out_l);
-	cmp_r <= compr(out_r);
 end
+
+wire [15:0] cmp_l, cmp_r;
+acompr acompr_l(CLK_AUDIO, status[21], out_l, cmp_l);
+acompr acompr_r(CLK_AUDIO, status[21], out_r, cmp_r);
 
 reg [15:0] audio_l, audio_r;
 always @(posedge CLK_AUDIO) begin
-	audio_l <= $signed(status[21:20] ? cmp_l : out_l) >>> ~vol_l[4:1];
-	audio_r <= $signed(status[21:20] ? cmp_r : out_r) >>> ~vol_r[4:1];
+	audio_l <= volume(status[21:20] ? cmp_l : out_l, vol_l);
+	audio_r <= volume(status[21:20] ? cmp_r : out_r, vol_r);
 end
 
 assign AUDIO_L   = audio_l;
@@ -1114,6 +1101,43 @@ always @(posedge clk) begin
 	end
 	
 	if(in) counter <= 4500000;
+end
+
+endmodule
+
+module acompr
+(
+	input             clk,
+	input             mode,
+	input      [15:0] inp,
+	output reg [15:0] out
+);
+
+localparam [3:0] comp_f1 = 4;
+localparam [3:0] comp_a1 = 2;
+localparam       comp_x1 = ((32767 * (comp_f1 - 1)) / ((comp_f1 * comp_a1) - 1)) + 1; // +1 to make sure it won't overflow
+localparam       comp_b1 = comp_x1 * comp_a1;
+
+localparam [3:0] comp_f2 = 8;
+localparam [3:0] comp_a2 = 4;
+localparam       comp_x2 = ((32767 * (comp_f2 - 1)) / ((comp_f2 * comp_a2) - 1)) + 1; // +1 to make sure it won't overflow
+localparam       comp_b2 = comp_x2 * comp_a2;
+
+always @(posedge clk) begin
+	reg [15:0] v, v1, v2, v3;
+	reg vs, vs1, vs3;
+
+	v   <= inp[15] ? -inp : inp;
+	vs  <= inp[15];
+
+	v1  <= (v < comp_x1[15:0]) ? (v * comp_a1) : (((v - comp_x1[15:0])/comp_f1) + comp_b1[15:0]);
+	v2  <= (v < comp_x2[15:0]) ? (v * comp_a2) : (((v - comp_x2[15:0])/comp_f2) + comp_b2[15:0]);
+	vs1 <= vs;
+
+	v3  <= mode ? v2 : v1;
+	vs3 <= vs1;
+	
+	out <= vs3 ? -v3 : v3;
 end
 
 endmodule
