@@ -1,6 +1,8 @@
 # ao486 port for MiSTer by Sorgelig.
 
-Core was greatly reworked with many new features and performance added.
+MiSTer port of the ao486 core originally written by Aleksander Osman, which has been greatly reworked with many new features and performance added.
+
+Original Core [repository](https://github.com/alfikpl/ao486)
 
 ## Features:
 * 486DX33 performance (no-FPU).
@@ -95,5 +97,3 @@ It doesn't prevent windows from working but you need to keep in mind some specif
 * Driver for Secondary IDE (1-0/1-1) have yellow mark. It's recommended to delete this device from device list - it's not used anyway but will be installed every time you start automatic HW detection procedure.
 * CD-ROM needs oakcdrom.sys and mscdex.exe added to config.sys and autoexec.bat respectively (you may find them on bootable Window98 CD). Windows will use it to access CD-ROM.
 * CD-ROM autostart won't be automatically triggered (because work through BIOS). After replacing image file in CD-ROM you need to refresh the folder with drives (F5) and icon of CD will be changed if provided by image. Autostart will be triggered when you click on CD icon.
-
-Original core [repository](https://github.com/alfikpl/ao486)
