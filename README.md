@@ -43,7 +43,7 @@ Core options under Hardware:
 Optional programs and drivers:  https://github.com/MiSTer-devel/ao486_MiSTer/tree/master/releases/drv
 * MISTERFB.DRV/INF: Windows Video Driver
 * imgset.exe: Used for mounting fdd, cd, and ide drives. Run 'imgset' for options.
-* misterfs.exe:  You will need to copy this file to a VHD and run it using, "misterfs LETTER" where letter is the drive letter you want to mount the shared folder to.  Create a /games/ao486/shared folder and copy files named to the 8.3 filename standard (SFN - short filename). This allows for file copy from the shared folder and accessable from within dos on a mounted drive.  The tool is basic so it should be mainly used for file copy and not for running programs. 
+* misterfs.exe:  You will need to copy this file to a VHD and run it using, "misterfs LETTER" where letter is the drive letter you want to mount the shared folder to.  Create a /games/ao486/shared folder and copy files named to the 8.3 filename standard (SFN - short filename). This allows for file copy from the shared folder and accessable from within dos on a mounted drive.  The tool is basic so it should be mainly used for file copy and not for running programs.
 * modem9x.inf: Used for Windows modem setup.
 * mpuctl.exe: tool for sending commands to the optional mt32-pi baremetal synth.  See reference below.
 * sbctl.exe: set Sound Blaster configs.  Supported: I5,I7,I10,H5,H1,T4,T6
@@ -97,3 +97,11 @@ It doesn't prevent windows from working but you need to keep in mind some specif
 * Driver for Secondary IDE (1-0/1-1) have yellow mark. It's recommended to delete this device from device list - it's not used anyway but will be installed every time you start automatic HW detection procedure.
 * CD-ROM needs oakcdrom.sys and mscdex.exe added to config.sys and autoexec.bat respectively (you may find them on bootable Window98 CD). Windows will use it to access CD-ROM.
 * CD-ROM autostart won't be automatically triggered (because work through BIOS). After replacing image file in CD-ROM you need to refresh the folder with drives (F5) and icon of CD will be changed if provided by image. Autostart will be triggered when you click on CD icon.
+
+### Building core
+* Install Docker for your dist https://docs.docker.com/engine/install/
+* Download Docker image containing Quartus Lite Edition 17.0 from https://github.com/raetro/sdk-docker-fpga:
+    sudo docker pull ghcr.io/raetro/quartus:mister
+* Build project
+    * After cloning this repo and changing to the directory:
+        sudo docker run -it --rm -v $(pwd):/build raetro/quartus:mister quartus_sh --flow compile ao486.qpf
