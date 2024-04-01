@@ -2,17 +2,17 @@
  * Copyright (c) 2014, Aleksander Osman
  * Copyright (C) 2017-2020 Alexey Melnikov
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * * Redistributions of source code must retain the above copyright notice, this
  *   list of conditions and the following disclaimer.
- * 
+ *
  * * Redistributions in binary form must reproduce the above copyright notice,
  *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -46,7 +46,7 @@ module sound
 
 	input             fm_mode,
 	input             cms_en,
-	
+
 	output      [4:0] vol_l,
 	output      [4:0] vol_r,
 	output reg  [4:0] vol_cd_l,
@@ -153,19 +153,18 @@ wire opl_we = (           address[2:1] == 0 && sb_write)  //220-221,228-229
            || (             address[1] == 0 && fm_write)  //388-389
            || (fm_mode &&   address[1] == 1 && fm_write); //38A-38B
 
-opl3 #(50000000) opl
+opl
 (
 	.clk(clk),
 	.clk_opl(clk_opl),
 	.rst_n(rst_n),
 
-	.ce_1us(ce_1us),
-
-	.addr(address[1:0]),
-	.din(writedata),
-	.dout(opl_dout),
-	.we(opl_we & ~cms_wr),
-	.rd((sb_read || fm_read) && (address == 8)),
+	.address(address),
+	.read(sb_read || fm_read),
+	.readdata(opl_dout),
+	.write(opl_we && !cms_wr),
+	.writedata(writedata),
+	.fm_mode(fm_mode),
 
 	.sample_l(sample_from_opl_l),
 	.sample_r(sample_from_opl_r)
