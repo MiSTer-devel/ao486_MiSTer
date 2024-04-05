@@ -39,7 +39,7 @@
 #
 #******************************************************************************/
 `timescale 1ns / 1ps
-`default_nettype none  // disable implicit net type declarations
+`default_nettype none
 
 module channels
     import opl3_pkg::*;
@@ -78,10 +78,11 @@ module channels
     input wire chd [2][9],
     input wire [REG_FB_WIDTH-1:0] fb [2][9],
     input wire cnt [2][9],
-    output logic signed [SAMPLE_WIDTH-2:0] channel_a = 0,
-    output logic signed [SAMPLE_WIDTH-2:0] channel_b = 0,
-    output logic signed [SAMPLE_WIDTH-2:0] channel_c = 0,
-    output logic signed [SAMPLE_WIDTH-2:0] channel_d = 0
+    output logic signed [SAMPLE_WIDTH-1:0] channel_a = 0,
+    output logic signed [SAMPLE_WIDTH-1:0] channel_b = 0,
+    output logic signed [SAMPLE_WIDTH-1:0] channel_c = 0,
+    output logic signed [SAMPLE_WIDTH-1:0] channel_d = 0,
+    output logic channel_valid = 0
 );
     localparam CHAN_2_OP_WIDTH = OP_OUT_WIDTH + 1;
     localparam CHAN_4_OP_WIDTH = OP_OUT_WIDTH + 2;
@@ -109,7 +110,7 @@ module channels
         CALC_OUTPUTS
     } state = IDLE, next_state;
 
-    logic [$clog2(NUM_CHANNELS_PER_BANK)-1:0] channel = 0;
+    logic [$clog2(9)-1:0] channel = 0;
     logic bank = 0;
 
     always_ff @(posedge clk)
@@ -133,8 +134,10 @@ module channels
         else if (channel == 8)
             bank <= 1;
 
-    always_ff @(posedge clk)
-        latch_channels = state == CALC_OUTPUTS && next_state == IDLE;
+    always_ff @(posedge clk) begin
+        latch_channels <= state == CALC_OUTPUTS && next_state == IDLE;
+        channel_valid <= latch_channels;
+    end
 
     /*
      * One operator is instantiated; it replicates the necessary registers for
@@ -144,7 +147,9 @@ module channels
         .*
     );
 
-    for (genvar i = 0; i < NUM_BANKS; i++) begin
+    generate
+    genvar i;
+    for (i = 0; i < NUM_BANKS; i++) begin: bankgen
         /*
          * 2 operator channel output connections
          */
@@ -205,47 +210,54 @@ module channels
         end
     end
 
-    for (genvar i = 0; i < 3; i++)
+    for (i = 0; i < 3; i++) begin: chan_a03b0
         always_ff @(posedge clk)
             if (cha[0][i] || !is_new)
                 channel_a_ops[0][i] <= connection_sel[i] && is_new ? channel_4_op[0][i] : channel_2_op[0][i];
             else
                 channel_a_ops[0][i] <= 0;
+    end
 
-    for (genvar i = 3; i < 6; i++)
+    for (i = 3; i < 6; i++) begin: chan_a36b0
         always_ff @(posedge clk)
             if (cha[0][i] || !is_new)
                 channel_a_ops[0][i] <= channel_2_op[0][i];
             else
                 channel_a_ops[0][i] <= 0;
+    end
 
-    for (genvar i = 6; i < 9; i++)
+    for (i = 6; i < 9; i++) begin: chan_a69b0
         always_ff @(posedge clk)
             if (cha[0][i] || !is_new)
                 channel_a_ops[0][i] <= channel_2_op[0][i];
             else
                 channel_a_ops[0][i] <= 0;
+    end
 
-    for (genvar i = 0; i < 3; i++)
+    for (i = 0; i < 3; i++) begin: chan_a03b1
         always_ff @(posedge clk)
             if (cha[1][i])
                 channel_a_ops[1][i] <= connection_sel[i+3] && is_new ? channel_4_op[1][i] : channel_2_op[1][i];
             else
                 channel_a_ops[1][i] <= 0;
+    end
 
-    for (genvar i = 3; i < 6; i++)
+    for (i = 3; i < 6; i++) begin: chan_a36b1
         always_ff @(posedge clk)
             if (cha[1][i])
                 channel_a_ops[1][i] <= channel_2_op[1][i];
             else
                 channel_a_ops[1][i] <= 0;
+    end
 
-    for (genvar i = 6; i < 9; i++)
+    for (i = 6; i < 9; i++) begin: chan_a69b1
         always_ff @(posedge clk)
             if (cha[1][i])
                 channel_a_ops[1][i] <= channel_2_op[1][i];
             else
                 channel_a_ops[1][i] <= 0;
+    end
+    endgenerate
 
     always_ff @(posedge clk)
         if (sample_clk_en)
@@ -253,47 +265,55 @@ module channels
         else if (state == CALC_OUTPUTS)
             channel_a_acc_pre_clamp <= channel_a_acc_pre_clamp + channel_a_ops[bank][channel];
 
-    for (genvar i = 0; i < 3; i++)
+    generate
+    for (i = 0; i < 3; i++) begin: chan_b03b0
         always_ff @(posedge clk)
             if (chb[0][i] || !is_new)
                 channel_b_ops[0][i] <= connection_sel[i] && is_new ? channel_4_op[0][i] : channel_2_op[0][i];
             else
                 channel_b_ops[0][i] <= 0;
+    end
 
-    for (genvar i = 3; i < 6; i++)
+    for (i = 3; i < 6; i++) begin: chan_b36b0
         always_ff @(posedge clk)
             if (chb[0][i] || !is_new)
                 channel_b_ops[0][i] <= channel_2_op[0][i];
             else
                 channel_b_ops[0][i] <= 0;
+    end
 
-    for (genvar i = 6; i < 9; i++)
+    for (i = 6; i < 9; i++) begin: chan_b69b0
         always_ff @(posedge clk)
             if (chb[0][i] || !is_new)
                 channel_b_ops[0][i] <= channel_2_op[0][i];
             else
                 channel_b_ops[0][i] <= 0;
+    end
 
-    for (genvar i = 0; i < 3; i++)
+    for (i = 0; i < 3; i++) begin: chan_b03b1
         always_ff @(posedge clk)
             if (chb[1][i])
                 channel_b_ops[1][i] <= connection_sel[i+3] && is_new ? channel_4_op[1][i] : channel_2_op[1][i];
             else
                 channel_b_ops[1][i] <= 0;
+    end
 
-    for (genvar i = 3; i < 6; i++)
+    for (i = 3; i < 6; i++) begin: chan_b36b1
         always_ff @(posedge clk)
             if (chb[1][i])
                 channel_b_ops[1][i] <= channel_2_op[1][i];
             else
                 channel_b_ops[1][i] <= 0;
+    end
 
-    for (genvar i = 6; i < 9; i++)
+    for (i = 6; i < 9; i++) begin: chan_b69b1
         always_ff @(posedge clk)
             if (chb[1][i])
                 channel_b_ops[1][i] <= channel_2_op[1][i];
             else
                 channel_b_ops[1][i] <= 0;
+    end
+    endgenerate
 
     always_ff @(posedge clk)
         if (sample_clk_en)
@@ -301,47 +321,55 @@ module channels
         else if (state == CALC_OUTPUTS)
             channel_b_acc_pre_clamp <= channel_b_acc_pre_clamp + channel_b_ops[bank][channel];
 
-    for (genvar i = 0; i < 3; i++)
+    generate
+    for (i = 0; i < 3; i++) begin: chan_c03b0
         always_ff @(posedge clk)
             if (chc[0][i] || !is_new)
                 channel_c_ops[0][i] <= connection_sel[i] && is_new ? channel_4_op[0][i] : channel_2_op[0][i];
             else
                 channel_c_ops[0][i] <= 0;
+    end
 
-    for (genvar i = 3; i < 6; i++)
+    for (i = 3; i < 6; i++) begin: chan_c36b0
         always_ff @(posedge clk)
             if (chc[0][i] || !is_new)
                 channel_c_ops[0][i] <= channel_2_op[0][i];
             else
                 channel_c_ops[0][i] <= 0;
+    end
 
-    for (genvar i = 6; i < 9; i++)
+    for (i = 6; i < 9; i++) begin: chan_c69b0
         always_ff @(posedge clk)
             if (chc[0][i] || !is_new)
                 channel_c_ops[0][i] <= channel_2_op[0][i];
             else
                 channel_c_ops[0][i] <= 0;
+    end
 
-    for (genvar i = 0; i < 3; i++)
+    for (i = 0; i < 3; i++) begin: chan_c03b1
         always_ff @(posedge clk)
             if (chc[1][i])
                 channel_c_ops[1][i] <= connection_sel[i+3] && is_new ? channel_4_op[1][i] : channel_2_op[1][i];
             else
                 channel_c_ops[1][i] <= 0;
+    end
 
-    for (genvar i = 3; i < 6; i++)
+    for (i = 3; i < 6; i++) begin: chan_c36b1
         always_ff @(posedge clk)
             if (chc[1][i])
                 channel_c_ops[1][i] <= channel_2_op[1][i];
             else
                 channel_c_ops[1][i] <= 0;
+    end
 
-    for (genvar i = 6; i < 9; i++)
+    for (i = 6; i < 9; i++) begin: chan_c69b1
         always_ff @(posedge clk)
             if (chc[1][i])
                 channel_c_ops[1][i] <= channel_2_op[1][i];
             else
                 channel_c_ops[1][i] <= 0;
+    end
+    endgenerate
 
     always_ff @(posedge clk)
         if (sample_clk_en)
@@ -349,47 +377,55 @@ module channels
         else if (state == CALC_OUTPUTS)
             channel_c_acc_pre_clamp <= channel_c_acc_pre_clamp + channel_c_ops[bank][channel];
 
-    for (genvar i = 0; i < 3; i++)
+    generate
+    for (i = 0; i < 3; i++) begin: chan_d03b0
         always_ff @(posedge clk)
             if (chd[0][i] || !is_new)
                 channel_d_ops[0][i] <= connection_sel[i] && is_new ? channel_4_op[0][i] : channel_2_op[0][i];
             else
                 channel_d_ops[0][i] <= 0;
+    end
 
-    for (genvar i = 3; i < 6; i++)
+    for (i = 3; i < 6; i++) begin: chan_d36b0
         always_ff @(posedge clk)
             if (chd[0][i] || !is_new)
                 channel_d_ops[0][i] <= channel_2_op[0][i];
             else
                 channel_d_ops[0][i] <= 0;
+    end
 
-    for (genvar i = 6; i < 9; i++)
+    for (i = 6; i < 9; i++) begin: chan_d69b0
         always_ff @(posedge clk)
             if (chd[0][i] || !is_new)
                 channel_d_ops[0][i] <= channel_2_op[0][i];
             else
                 channel_d_ops[0][i] <= 0;
+    end
 
-    for (genvar i = 0; i < 3; i++)
+    for (i = 0; i < 3; i++) begin: chan_d03b1
         always_ff @(posedge clk)
             if (chd[1][i])
                 channel_d_ops[1][i] <= connection_sel[i+3] && is_new ? channel_4_op[1][i] : channel_2_op[1][i];
             else
                 channel_d_ops[1][i] <= 0;
+    end
 
-    for (genvar i = 3; i < 6; i++)
+    for (i = 3; i < 6; i++) begin: chan_d36b1
         always_ff @(posedge clk)
             if (chd[1][i])
                 channel_d_ops[1][i] <= channel_2_op[1][i];
             else
                 channel_d_ops[1][i] <= 0;
+    end
 
-    for (genvar i = 6; i < 9; i++)
+    for (i = 6; i < 9; i++) begin: chan_d69b1
         always_ff @(posedge clk)
             if (chd[1][i])
                 channel_d_ops[1][i] <= channel_2_op[1][i];
             else
                 channel_d_ops[1][i] <= 0;
+    end
+    endgenerate
 
     always_ff @(posedge clk)
         if (sample_clk_en)
@@ -402,34 +438,34 @@ module channels
      */
     always_ff @(posedge clk)
         if (latch_channels) begin
-            if (channel_a_acc_pre_clamp > 2**14 - 1)
-                channel_a <= 2**14 - 1;
-            else if (channel_a_acc_pre_clamp < -2**14)
-                channel_a <= -2**14;
+            if (channel_a_acc_pre_clamp > 2**(SAMPLE_WIDTH - 1) - 1)
+                channel_a <= 2**(SAMPLE_WIDTH - 1) - 1;
+            else if (channel_a_acc_pre_clamp < -2**(SAMPLE_WIDTH - 1))
+                channel_a <= -2**(SAMPLE_WIDTH - 1);
             else
                 channel_a <= channel_a_acc_pre_clamp;
 
-            if (channel_b_acc_pre_clamp > 2**14 - 1)
-                channel_b <= 2**14 - 1;
-            else if (channel_b_acc_pre_clamp < -2**14)
-                channel_b <= -2**14;
+            if (channel_b_acc_pre_clamp > 2**(SAMPLE_WIDTH - 1) - 1)
+                channel_b <= 2**(SAMPLE_WIDTH - 1) - 1;
+            else if (channel_b_acc_pre_clamp < -2**(SAMPLE_WIDTH - 1))
+                channel_b <= -2**(SAMPLE_WIDTH - 1);
             else
                 channel_b <= channel_b_acc_pre_clamp;
 
-            if (channel_c_acc_pre_clamp > 2**14 - 1)
-                channel_c <= 2**14 - 1;
-            else if (channel_c_acc_pre_clamp < -2**14)
-                channel_c <= -2**14;
+            if (channel_c_acc_pre_clamp > 2**(SAMPLE_WIDTH - 1) - 1)
+                channel_c <= 2**(SAMPLE_WIDTH - 1) - 1;
+            else if (channel_c_acc_pre_clamp < -2**(SAMPLE_WIDTH - 1))
+                channel_c <= -2**(SAMPLE_WIDTH - 1);
             else
                 channel_c <= channel_c_acc_pre_clamp;
 
-            if (channel_d_acc_pre_clamp > 2**14 - 1)
-                channel_d <= 2**14 - 1;
-            else if (channel_d_acc_pre_clamp < -2**14)
-                channel_d <= -2**14;
+            if (channel_d_acc_pre_clamp > 2**(SAMPLE_WIDTH - 1) - 1)
+                channel_d <= 2**(SAMPLE_WIDTH - 1) - 1;
+            else if (channel_d_acc_pre_clamp < -2**(SAMPLE_WIDTH - 1))
+                channel_d <= -2**(SAMPLE_WIDTH - 1);
             else
                 channel_d <= channel_d_acc_pre_clamp;
         end
 
 endmodule
-`default_nettype wire  // re-enable implicit net type declarations
+`default_nettype wire

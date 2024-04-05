@@ -39,13 +39,19 @@
 #
 #******************************************************************************/
 `timescale 1ns / 1ps
-`default_nettype none  // disable implicit net type declarations
+`default_nettype none
 
-import opl3_pkg::*;
-
-module register_file (
+module register_file
+    import opl3_pkg::*;
+(
     input wire clk,
-    input wire [7:0] opl_reg [NUM_BANKS][NUM_REGISTERS_PER_BANK],
+    input wire [REG_FILE_DATA_WIDTH-1:0] opl3_reg [NUM_BANKS][NUM_REG_PER_BANK],
+    input wire irq,
+    input wire ft1,
+    input wire ft2,
+    output logic [REG_TIMER_WIDTH-1:0] timer1,
+    output logic [REG_TIMER_WIDTH-1:0] timer2,
+    output logic irq_rst,
     output logic mt1,
     output logic mt2,
     output logic st1,
@@ -81,108 +87,125 @@ module register_file (
     output logic chc [2][9],
     output logic chd [2][9],
     output logic [REG_FB_WIDTH-1:0] fb [2][9],
-    output logic cnt [2][9]
+    output logic cnt [2][9],
+    output logic [REG_FILE_DATA_WIDTH-1:0] status
 );
     /*
      * Registers that are specific to a particular bank
      */
     always_comb begin
-        mt1 = opl_reg[0][4][6];
-        mt2 = opl_reg[0][4][5];
-        st2 = opl_reg[0][4][1];
-        st1 = opl_reg[0][4][0];
-        connection_sel = opl_reg[1][REG_CONNECTION_SEL_WIDTH-1:0];
-
-        is_new = opl_reg[1][0];
-        nts = opl_reg[0][8][6];
-
-        dam = opl_reg[0]['hBD][7];
-        dvb = opl_reg[0]['hBD][6];
-        ryt = opl_reg[0]['hBD][5];
-        bd  = opl_reg[0]['hBD][4];
-        sd  = opl_reg[0]['hBD][3];
-        tom = opl_reg[0]['hBD][2];
-        tc  = opl_reg[0]['hBD][1];
-        hh  = opl_reg[0]['hBD][0];
+        timer1 = opl3_reg[0][2];
+        timer2 = opl3_reg[0][3];
+        irq_rst = opl3_reg[0][4][7];
+        mt1 = opl3_reg[0][4][6];
+        mt2 = opl3_reg[0][4][5];
+        st2 = opl3_reg[0][4][1];
+        st1 = opl3_reg[0][4][0];
+        connection_sel = opl3_reg[1][4][REG_CONNECTION_SEL_WIDTH-1:0];
+        is_new = opl3_reg[1][5][0];
+        nts = opl3_reg[0][8][6];
+        dam = opl3_reg[0]['hBD][7];
+        dvb = opl3_reg[0]['hBD][6];
+        ryt = opl3_reg[0]['hBD][5];
+        bd  = opl3_reg[0]['hBD][4];
+        sd  = opl3_reg[0]['hBD][3];
+        tom = opl3_reg[0]['hBD][2];
+        tc  = opl3_reg[0]['hBD][1];
+        hh  = opl3_reg[0]['hBD][0];
     end
 
-    for (genvar bank = 0; bank < 2; bank++) begin
-        for (genvar i = 0; i < 6; i++)
+    generate
+    genvar bank;
+    genvar i;
+    for (bank = 0; bank < 2; bank++) begin: bank_gen
+        for (i = 0; i < 6; i++) begin: op0_5
             always_comb begin
-                am[bank][i]   = opl_reg[bank]['h20][7];
-                vib[bank][i]  = opl_reg[bank]['h20][6];
-                egt[bank][i]  = opl_reg[bank]['h20][5];
-                ksr[bank][i]  = opl_reg[bank]['h20][4];
-                mult[bank][i] = opl_reg[bank]['h20][3:0];
+                am[bank][i]   = opl3_reg[bank]['h20+i][7];
+                vib[bank][i]  = opl3_reg[bank]['h20+i][6];
+                egt[bank][i]  = opl3_reg[bank]['h20+i][5];
+                ksr[bank][i]  = opl3_reg[bank]['h20+i][4];
+                mult[bank][i] = opl3_reg[bank]['h20+i][3:0];
 
-                ksl[bank][i] = opl_reg[bank]['h40][7:6];
-                tl[bank][i]  = opl_reg[bank]['h40][5:0];
+                ksl[bank][i] = opl3_reg[bank]['h40+i][7:6];
+                tl[bank][i]  = opl3_reg[bank]['h40+i][5:0];
 
-                ar[bank][i] = opl_reg[bank]['h60][7:4];
-                dr[bank][i] = opl_reg[bank]['h60][3:0];
+                ar[bank][i] = opl3_reg[bank]['h60+i][7:4];
+                dr[bank][i] = opl3_reg[bank]['h60+i][3:0];
 
-                sl[bank][i] = opl_reg[bank]['h80][7:4];
-                rr[bank][i] = opl_reg[bank]['h80][3:0];
+                sl[bank][i] = opl3_reg[bank]['h80+i][7:4];
+                rr[bank][i] = opl3_reg[bank]['h80+i][3:0];
 
-                ws[bank][i] = opl_reg[bank]['hE0][2:0];
+                ws[bank][i] = opl3_reg[bank]['hE0+i][2:0];
             end
+        end
 
-        for (genvar i = 8; i < 14; i++)
+        for (i = 8; i < 14; i++) begin: op8_13
             always_comb begin
-                am[bank][i-2]   = opl_reg[bank]['h20][7];
-                vib[bank][i-2]  = opl_reg[bank]['h20][6];
-                egt[bank][i-2]  = opl_reg[bank]['h20][5];
-                ksr[bank][i-2]  = opl_reg[bank]['h20][4];
-                mult[bank][i-2] = opl_reg[bank]['h20][3:0];
+                am[bank][i-2]   = opl3_reg[bank]['h20+i][7];
+                vib[bank][i-2]  = opl3_reg[bank]['h20+i][6];
+                egt[bank][i-2]  = opl3_reg[bank]['h20+i][5];
+                ksr[bank][i-2]  = opl3_reg[bank]['h20+i][4];
+                mult[bank][i-2] = opl3_reg[bank]['h20+i][3:0];
 
-                ksl[bank][i-2] = opl_reg[bank]['h40][7:6];
-                tl[bank][i-2]  = opl_reg[bank]['h40][5:0];
+                ksl[bank][i-2] = opl3_reg[bank]['h40+i][7:6];
+                tl[bank][i-2]  = opl3_reg[bank]['h40+i][5:0];
 
-                ar[bank][i-2] = opl_reg[bank]['h60][7:4];
-                dr[bank][i-2] = opl_reg[bank]['h60][3:0];
+                ar[bank][i-2] = opl3_reg[bank]['h60+i][7:4];
+                dr[bank][i-2] = opl3_reg[bank]['h60+i][3:0];
 
-                sl[bank][i-2] = opl_reg[bank]['h80][7:4];
-                rr[bank][i-2] = opl_reg[bank]['h80][3:0];
+                sl[bank][i-2] = opl3_reg[bank]['h80+i][7:4];
+                rr[bank][i-2] = opl3_reg[bank]['h80+i][3:0];
 
-                ws[bank][i-2] = opl_reg[bank]['hE0][2:0];
+                ws[bank][i-2] = opl3_reg[bank]['hE0+i][2:0];
             end
+        end
 
-        for (genvar i = 16; i < 22; i++)
+        for (i = 16; i < 22; i++) begin: op16_21
             always_comb begin
-                am[bank][i-4]   = opl_reg[bank]['h20][7];
-                vib[bank][i-4]  = opl_reg[bank]['h20][6];
-                egt[bank][i-4]  = opl_reg[bank]['h20][5];
-                ksr[bank][i-4]  = opl_reg[bank]['h20][4];
-                mult[bank][i-4] = opl_reg[bank]['h20][3:0];
+                am[bank][i-4]   = opl3_reg[bank]['h20+i][7];
+                vib[bank][i-4]  = opl3_reg[bank]['h20+i][6];
+                egt[bank][i-4]  = opl3_reg[bank]['h20+i][5];
+                ksr[bank][i-4]  = opl3_reg[bank]['h20+i][4];
+                mult[bank][i-4] = opl3_reg[bank]['h20+i][3:0];
 
-                ksl[bank][i-4] = opl_reg[bank]['h40][7:6];
-                tl[bank][i-4]  = opl_reg[bank]['h40][5:0];
+                ksl[bank][i-4] = opl3_reg[bank]['h40+i][7:6];
+                tl[bank][i-4]  = opl3_reg[bank]['h40+i][5:0];
 
-                ar[bank][i-4] = opl_reg[bank]['h60][7:4];
-                dr[bank][i-4] = opl_reg[bank]['h60][3:0];
+                ar[bank][i-4] = opl3_reg[bank]['h60+i][7:4];
+                dr[bank][i-4] = opl3_reg[bank]['h60+i][3:0];
 
-                sl[bank][i-4] = opl_reg[bank]['h80][7:4];
-                rr[bank][i-4] = opl_reg[bank]['h80][3:0];
+                sl[bank][i-4] = opl3_reg[bank]['h80+i][7:4];
+                rr[bank][i-4] = opl3_reg[bank]['h80+i][3:0];
 
-                ws[bank][i-4] = opl_reg[bank]['hE0][2:0];
+                ws[bank][i-4] = opl3_reg[bank]['hE0+i][2:0];
             end
+        end
 
-        for (genvar i = 0; i < 9; i++)
+        for (i = 0; i < 9; i++) begin: chan0_8
             always_comb begin
-                fnum[bank][i][7:0] = opl_reg[bank]['hA0];
+                fnum[bank][i][7:0] = opl3_reg[bank]['hA0+i];
 
-                kon[bank][i]       = opl_reg[bank]['hB0][5];
-                block[bank][i]     = opl_reg[bank]['hB0][4:2];
-                fnum[bank][i][9:8] = opl_reg[bank]['hB0][1:0];
+                kon[bank][i]       = opl3_reg[bank]['hB0+i][5];
+                block[bank][i]     = opl3_reg[bank]['hB0+i][4:2];
+                fnum[bank][i][9:8] = opl3_reg[bank]['hB0+i][1:0];
 
-                chd[bank][i] = opl_reg[bank]['hC0][7];
-                chc[bank][i] = opl_reg[bank]['hC0][6];
-                chb[bank][i] = opl_reg[bank]['hC0][5];
-                cha[bank][i] = opl_reg[bank]['hC0][4];
+                chd[bank][i] = opl3_reg[bank]['hC0+i][7];
+                chc[bank][i] = opl3_reg[bank]['hC0+i][6];
+                chb[bank][i] = opl3_reg[bank]['hC0+i][5];
+                cha[bank][i] = opl3_reg[bank]['hC0+i][4];
 
-                fb[bank][i]  = opl_reg[bank]['hC0][3:1];
-                cnt[bank][i] = opl_reg[bank]['hC0][0];
+                fb[bank][i]  = opl3_reg[bank]['hC0+i][3:1];
+                cnt[bank][i] = opl3_reg[bank]['hC0+i][0];
             end
+        end
+    end
+    endgenerate
+
+    always_comb begin
+        status = 0;
+        status[7] = irq;
+        status[6] = ft1;
+        status[5] = ft2;
     end
 endmodule
-`default_nettype wire  // re-enable implicit net type declarations
+`default_nettype wire

@@ -1,15 +1,19 @@
 /*******************************************************************************
 #   +html+<pre>
 #
-#   FILENAME: clk_div.sv
-#   AUTHOR: Greg Taylor     CREATION DATE: 13 Oct 2014
+#   FILENAME: reset_sync.sv
+#   AUTHOR: Greg Taylor     CREATION DATE: 21 July 2009
 #
 #   DESCRIPTION:
-#   Generates a clk enable pulse based on the frequency specified by
-#   OUTPUT_CLK_EN_FREQ.
+#   To be used as the source for a local reset; takes global asynchronous reset
+#   as input. Ensures that deassertion of the local reset signal is synchronous
+#   to the local clock signal. Assertion of local reset remains asynchronous.
+#   Local reset remains asserted for 2 clock cycles after global asynchronous
+#   reset is deasserted. Taken from Xilinx Whitepaper 272.
+#   http://www.xilinx.com/support/documentation/white_papers/wp272.pdf
 #
 #   CHANGE HISTORY:
-#   13 Oct 2014        Greg Taylor
+#   21 July 2009        Greg Taylor
 #       Initial version
 #
 #   Copyright (C) 2014 Greg Taylor <gtaylor@sonic.net>
@@ -43,22 +47,26 @@
 `timescale 1ns / 1ps
 `default_nettype none
 
-module clk_div #(
-    parameter CLK_DIV_COUNT = 0
-)(
-    input wire clk,
-    output logic clk_en = 0
+module reset_sync (
+    input wire clk, // clock domain of the local logic
+    input wire arst_n, // global asynchronous active-low reset signal
+    output logic reset   // synchronous active-high local reset
 );
-    logic [$clog2(CLK_DIV_COUNT)-1:0] counter = 0;
+    (* ASYNC_REG = "true" *)
+    logic r0 = 0, r1 = 0, r2 = 0;
 
-    always_ff @(posedge clk)
-        if (counter == CLK_DIV_COUNT - 1)
-            counter <= 0;
-        else
-            counter <= counter + 1;
+    always_ff @(posedge clk or negedge arst_n)
+        if (!arst_n) begin
+            r0 <= 1;
+            r1 <= 1;
+            r2 <= 1;
+        end
+        else begin
+            r0 <= 0;
+            r1 <= r0;
+            r2 <= r1;
+        end
 
-    always_ff @(posedge clk)
-        clk_en <= (counter == CLK_DIV_COUNT - 1);
-
+    always_comb reset = r2;
 endmodule
 `default_nettype wire

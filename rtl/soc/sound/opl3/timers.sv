@@ -1,17 +1,16 @@
 /*******************************************************************************
 #   +html+<pre>
 #
-#   FILENAME: vibrato.sv
-#   AUTHOR: Greg Taylor     CREATION DATE: 13 Oct 2014
+#   FILENAME: timers.sv
+#   AUTHOR: Greg Taylor     CREATION DATE: 11 Jan 2015
 #
 #   DESCRIPTION:
-#   Prepare the phase increment for the NCO (calc multiplier and vibrato)
 #
 #   CHANGE HISTORY:
-#   13 Oct 2014    Greg Taylor
+#   11 Jan 2015    Greg Taylor
 #       Initial version
 #
-#   Copyright (C) 2014 Greg Taylor <gtaylor@sonic.net>
+#   Copyright (C) 2015 Greg Taylor <gtaylor@sonic.net>
 #
 #   This file is part of OPL3 FPGA.
 #
@@ -42,44 +41,61 @@
 `timescale 1ns / 1ps
 `default_nettype none
 
-module vibrato
+module timers
     import opl3_pkg::*;
 (
     input wire clk,
-    input wire sample_clk_en,
-    input wire [BANK_NUM_WIDTH-1:0] bank_num,
-    input wire [OP_NUM_WIDTH-1:0] op_num,
-    input wire [REG_FNUM_WIDTH-1:0] fnum,
-    input wire dvb,
-    output logic signed [REG_FNUM_WIDTH-1:0] vib_val_p2 = 0
+    input wire reset,
+    input wire [REG_TIMER_WIDTH-1:0] timer1,
+    input wire [REG_TIMER_WIDTH-1:0] timer2,
+    input wire irq_rst,
+    input wire mt1, // mask timer
+    input wire mt2,
+    input wire st1, // start timer
+    input wire st2,
+    output logic ft1 = 0,
+    output logic ft2 = 0,
+    output logic irq,
+    output logic irq_n = 0
 );
-    localparam VIBRATO_INDEX_WIDTH = 13;
+    logic timer1_overflow_pulse;
+    logic timer2_overflow_pulse;
 
-    logic [VIBRATO_INDEX_WIDTH-1:0] vibrato_index_p1 = 0;
-    logic [REG_FNUM_WIDTH-1:0] delta0_p1;
-    logic [REG_FNUM_WIDTH-1:0] delta1_p1;
-    logic [REG_FNUM_WIDTH-1:0] delta2_p1;
-    logic fnum_p1 = 0;
-    logic dvb_p1 = 0;
+    timer #(
+        .TIMER_TICK_INTERVAL(TIMER1_TICK_INTERVAL)
+    ) timer1_inst (
+        .clk,
+        .timer_reg(timer1),
+        .start_timer(st1),
+        .timer_overflow_pulse(timer1_overflow_pulse)
+    );
+
+    timer #(
+        .TIMER_TICK_INTERVAL(TIMER2_TICK_INTERVAL)
+    ) timer2_inst (
+        .clk,
+        .timer_reg(timer2),
+        .start_timer(st2),
+        .timer_overflow_pulse(timer2_overflow_pulse)
+    );
 
     always_ff @(posedge clk) begin
-        fnum_p1 <= fnum;
-        dvb_p1 <= dvb;
+        if (timer1_overflow_pulse && mt1)
+            ft1 <= 1;
+
+        if (timer2_overflow_pulse && mt2)
+            ft2 <= 1;
+
+        if (reset || irq_rst) begin
+            ft1 <= 0;
+            ft2 <= 0;
+        end
     end
 
-    /*
-     * Low-Frequency Oscillator (LFO)
-     * 6.07Hz (Sample Freq/2**13)
-     */
-    always_ff @(posedge clk)
-        if (sample_clk_en)
-            vibrato_index_p1 <= vibrato_index_p1 + 1;
-
-    always_comb delta0_p1 = fnum_p1 >> 7;
-    always_comb delta1_p1 = ((vibrato_index_p1 >> 10) & 3) == 3 ? delta0_p1 >> 1 : delta0_p1;
-    always_comb delta2_p1 = !dvb_p1 ? delta1_p1 >> 1 : delta1_p1;
+    always_comb irq = ft1 || ft2;
 
     always_ff @(posedge clk)
-        vib_val_p2 <= ((vibrato_index_p1 >> 10) & 4) != 0 ? ~delta2_p1 : delta2_p1;
+        irq_n <= !irq;
+
 endmodule
 `default_nettype wire

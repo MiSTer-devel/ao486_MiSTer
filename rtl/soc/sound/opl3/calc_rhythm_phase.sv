@@ -64,10 +64,9 @@ module calc_rhythm_phase
     logic [PHASE_ACC_WIDTH-1:0] noise_bit_p2;
     logic [RAND_NUM_WIDTH-1:0] rand_num = 1;
     logic [PIPELINE_DELAY:1] sample_clk_en_p;
-    operator_t [PIPELINE_DELAY:1] op_type_p;
+    logic [PIPELINE_DELAY:1] [$bits(operator_t)-1:0] op_type_p;
 
     pipeline_sr #(
-        .type_t(logic),
         .ENDING_CYCLE(PIPELINE_DELAY)
     ) sample_clk_en_sr (
         .clk,
@@ -76,7 +75,7 @@ module calc_rhythm_phase
     );
 
     pipeline_sr #(
-        .type_t(operator_t),
+        .DATA_WIDTH($bits(operator_t)),
         .ENDING_CYCLE(PIPELINE_DELAY),
         .POR_VALUE(OP_NORMAL)
     ) op_type_sr (
@@ -126,4 +125,4 @@ module calc_rhythm_phase
             else
                 rand_num <= rand_num >> 1;
 endmodule
-`default_nettype wire  // re-enable implicit net type declarations
+`default_nettype wire

@@ -153,21 +153,27 @@ wire opl_we = (           address[2:1] == 0 && sb_write)  //220-221,228-229
            || (             address[1] == 0 && fm_write)  //388-389
            || (fm_mode &&   address[1] == 1 && fm_write); //38A-38B
 
-opl
+wire opl_wr = opl_we & ~cms_wr;
+wire opl_rd = (sb_read || fm_read) && (address == 8);
+wire opl_cs = opl_wr || opl_rd;
+
+opl3 opl
 (
-	.clk(clk),
-	.clk_opl(clk_opl),
-	.rst_n(rst_n),
-
-	.address(address),
-	.read(sb_read || fm_read),
-	.readdata(opl_dout),
-	.write(opl_we && !cms_wr),
-	.writedata(writedata),
-	.fm_mode(fm_mode),
-
+    .clk(clk_opl), // opl3 clk
+    .clk_host(clk),
+    .ic_n(rst_n), // clk_host reset
+    .cs_n(!opl_cs),
+    .rd_n(!opl_rd),
+    .wr_n(!opl_wr),
+    .address(address[1:0]),
+    .din(writedata),
+    .dout(opl_dout),
+    .ack_host_wr(), // host needs to hold writes for clock domain crossing
+    .sample_valid(),
 	.sample_l(sample_from_opl_l),
-	.sample_r(sample_from_opl_r)
+	.sample_r(sample_from_opl_r),
+    .led(),
+    .irq_n()
 );
 
 //------------------------------------------------------------------------------ c/ms

@@ -44,13 +44,29 @@
 module opl3
     import opl3_pkg::*;
 (
-    input wire clk,
-    input wire [7:0] opl_reg [NUM_BANKS][NUM_REGISTERS_PER_BANK],
-    output logic signed [SAMPLE_WIDTH-1:0] sample_l = 0,
-    output logic signed [SAMPLE_WIDTH-1:0] sample_r = 0
+    input wire clk, // opl3 clk
+    input wire clk_host,
+    input wire ic_n, // clk_host reset
+    input wire cs_n,
+    input wire rd_n,
+    input wire wr_n,
+    input wire [1:0] address,
+    input wire [REG_FILE_DATA_WIDTH-1:0] din,
+    output logic [REG_FILE_DATA_WIDTH-1:0] dout,
+    output logic ack_host_wr, // host needs to hold writes for clock domain crossing
+    output logic sample_valid = 0,
+    output logic signed [DAC_OUTPUT_WIDTH-1:0] sample_l = 0, // synced to opl3 clk and sample_valid
+    output logic signed [DAC_OUTPUT_WIDTH-1:0] sample_r = 0,
+    output logic [NUM_LEDS-1:0] led = 0,
+    output logic irq_n
 );
-    logic sample_clk_en = 0;
+    logic reset;
+    logic sample_clk_en;
 
+    logic [REG_FILE_DATA_WIDTH-1:0] opl3_reg [NUM_BANKS][NUM_REG_PER_BANK];
+    logic [REG_TIMER_WIDTH-1:0] timer1;
+    logic [REG_TIMER_WIDTH-1:0] timer2;
+    logic irq_rst;
     logic mt1;
     logic mt2;
     logic st1;
@@ -87,34 +103,74 @@ module opl3
     logic chd [NUM_BANKS][NUM_CHANNELS_PER_BANK];
     logic [REG_FB_WIDTH-1:0] fb [NUM_BANKS][NUM_CHANNELS_PER_BANK];
     logic cnt [NUM_BANKS][NUM_CHANNELS_PER_BANK];
+    logic signed [SAMPLE_WIDTH-1:0] channel_a;
+    logic signed [SAMPLE_WIDTH-1:0] channel_b;
+    logic signed [SAMPLE_WIDTH-1:0] channel_c;
+    logic signed [SAMPLE_WIDTH-1:0] channel_d;
+    logic ft1;
+    logic ft2;
+    logic irq;
+    logic [REG_FILE_DATA_WIDTH-1:0] status;
+    logic channel_valid;
 
-    logic signed [SAMPLE_WIDTH-2:0] channel_a;
-    logic signed [SAMPLE_WIDTH-2:0] channel_b;
-    logic signed [SAMPLE_WIDTH-2:0] channel_c;
-    logic signed [SAMPLE_WIDTH-2:0] channel_d;
+    reset_sync reset_sync (
+        .clk,
+        .arst_n(ic_n),
+        .reset
+    );
 
-    logic [$clog2(CLK_DIV_COUNT)-1:0] counter = 0;
-
-    always_ff @(posedge clk)
-        if (counter == CLK_DIV_COUNT - 1)
-            counter <= 0;
-        else
-            counter <= counter + 1;
-
-    always_ff @(posedge clk)
-        sample_clk_en <= (counter == CLK_DIV_COUNT - 1);
+    clk_div #(
+        .CLK_DIV_COUNT(CLK_DIV_COUNT)
+    ) sample_clk_gen (
+        .clk_en(sample_clk_en),
+        .*
+    );
 
     channels channels (
         .*
     );
 
+    /*
+     * The 4 16-bit output channels are normally combined in the analog domain
+     * after the YAC512 DAC outputs. Here we'll just add digitally.
+     */
     always_ff @(posedge clk) begin
-        sample_l <= channel_a + channel_c;
-        sample_r <= channel_b + channel_d;
+        sample_valid <= channel_valid;
+        sample_l <= (channel_a + channel_c) <<< DAC_LEFT_SHIFT;
+        sample_r <= (channel_b + channel_d) <<< DAC_LEFT_SHIFT;
     end
+
+    generate
+    genvar i;
+    for (i = 0; i < NUM_LEDS; ++i) begin: gen_leds
+        always_ff @(posedge clk)
+            led[i] <= kon[0][i];
+    end
+    endgenerate
+
+    host_if host_if (
+        .*
+    );
 
     register_file register_file (
         .*
     );
+
+    /*
+     * If we don't need timers, don't instantiate to save area
+     */
+    generate
+    if (INSTANTIATE_TIMERS)
+        timers timers (
+            .*
+        );
+    else
+        always_comb begin
+            ft1 = 0;
+            ft2 = 0;
+            irq = 0;
+            irq_n = 1;
+        end
+    endgenerate
 endmodule
-`default_nettype wire  // re-enable implicit net type declarations
+`default_nettype wire

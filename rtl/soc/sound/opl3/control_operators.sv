@@ -41,7 +41,7 @@
 #
 #******************************************************************************/
 `timescale 1ns / 1ps
-`default_nettype none  // disable implicit net type declarations
+`default_nettype none
 
 module control_operators
     import opl3_pkg::*;
@@ -76,7 +76,7 @@ module control_operators
     input wire hh,
     input wire [REG_FB_WIDTH-1:0] fb [NUM_BANKS][NUM_CHANNELS_PER_BANK],
     input wire cnt [NUM_BANKS][NUM_CHANNELS_PER_BANK],
-    output logic signed [OP_OUT_WIDTH-1:0] operator_out [NUM_BANKS][NUM_OPERATORS_PER_BANK] = '{default: '0}
+    output logic signed [OP_OUT_WIDTH-1:0] operator_out [NUM_BANKS][NUM_OPERATORS_PER_BANK] = '{default: 0}
 );
     /*
      * 256/36 operators gives us ~7.1 cycles per operator before next
@@ -553,7 +553,6 @@ module control_operators
     );
 
     pipeline_sr #(
-        .type_t(logic),
         .ENDING_CYCLE(PIPELINE_DELAY)
     ) sample_clk_en_sr (
         .clk,
@@ -562,7 +561,7 @@ module control_operators
     );
 
     pipeline_sr #(
-        .type_t(logic [BANK_NUM_WIDTH-1:0]),
+        .DATA_WIDTH(BANK_NUM_WIDTH),
         .ENDING_CYCLE(PIPELINE_DELAY)
     ) bank_num_sr (
         .clk,
@@ -571,7 +570,7 @@ module control_operators
     );
 
     pipeline_sr #(
-        .type_t(logic [OP_NUM_WIDTH-1:0]),
+        .DATA_WIDTH(OP_NUM_WIDTH),
         .ENDING_CYCLE(PIPELINE_DELAY)
     ) op_num_sr (
         .clk,
@@ -583,7 +582,7 @@ module control_operators
     always_comb modulation_out_op_num = op_num >= 3 ? op_num - 3 : 0;
 
     mem_multi_bank #(
-        .type_t(logic [OP_OUT_WIDTH-1:0]),
+        .DATA_WIDTH(OP_OUT_WIDTH),
         .DEPTH(NUM_OPERATORS_PER_BANK),
         .OUTPUT_DELAY(0),
         .DEFAULT_VALUE(0),
@@ -600,13 +599,19 @@ module control_operators
         .dob(modulation_out_p0)
     );
 
-    for (genvar i = 0; i < NUM_BANKS; i++)
-        for (genvar j = 0; j < NUM_OPERATORS_PER_BANK; j++)
+    generate
+    genvar i;
+    genvar j;
+    for (i = 0; i < NUM_BANKS; i++) begin: bank_gen
+        for (j = 0; j < NUM_OPERATORS_PER_BANK; j++) begin: op_gen
             /*
              * Capture output from operator in the last cycle of the time slot
              */
             always_ff @(posedge clk)
                 if (i == bank_num && j == op_num && op_sample_clk_en_p[6])
                     operator_out[i][j] <= out_p6;
+        end
+    end
+    endgenerate
 endmodule
-`default_nettype wire  // re-enable implicit net type declarations
+`default_nettype wire
