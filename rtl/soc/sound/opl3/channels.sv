@@ -45,6 +45,7 @@ module channels
     import opl3_pkg::*;
 (
     input wire clk,
+    input wire clk_host,
     input wire sample_clk_en,
     input wire [REG_CONNECTION_SEL_WIDTH-1:0] connection_sel,
     input wire is_new,
@@ -78,11 +79,9 @@ module channels
     input wire chd [2][9],
     input wire [REG_FB_WIDTH-1:0] fb [2][9],
     input wire cnt [2][9],
-    output logic signed [SAMPLE_WIDTH-1:0] channel_a = 0,
-    output logic signed [SAMPLE_WIDTH-1:0] channel_b = 0,
-    output logic signed [SAMPLE_WIDTH-1:0] channel_c = 0,
-    output logic signed [SAMPLE_WIDTH-1:0] channel_d = 0,
-    output logic channel_valid = 0
+    output logic sample_valid,
+    output logic signed [DAC_OUTPUT_WIDTH-1:0] sample_l,
+    output logic signed [DAC_OUTPUT_WIDTH-1:0] sample_r
 );
     localparam CHAN_2_OP_WIDTH = OP_OUT_WIDTH + 1;
     localparam CHAN_4_OP_WIDTH = OP_OUT_WIDTH + 2;
@@ -104,6 +103,11 @@ module channels
     logic signed [CHANNEL_ACCUMULATOR_WIDTH-1:0] channel_d_acc_pre_clamp = 0;
     logic signed [CHAN_4_OP_WIDTH-1:0] channel_d_ops [2][9] = '{default: 0};
     logic latch_channels = 0;
+    logic signed [SAMPLE_WIDTH-1:0] channel_a = 0;
+    logic signed [SAMPLE_WIDTH-1:0] channel_b = 0;
+    logic signed [SAMPLE_WIDTH-1:0] channel_c = 0;
+    logic signed [SAMPLE_WIDTH-1:0] channel_d = 0;
+    logic channel_valid = 0;
 
     enum {
         IDLE,
@@ -216,7 +220,7 @@ module channels
                 channel_a_ops[0][i] <= connection_sel[i] && is_new ? channel_4_op[0][i] : channel_2_op[0][i];
             else
                 channel_a_ops[0][i] <= 0;
-    end
+end
 
     for (i = 3; i < 6; i++) begin: chan_a36b0
         always_ff @(posedge clk)
@@ -224,7 +228,7 @@ module channels
                 channel_a_ops[0][i] <= channel_2_op[0][i];
             else
                 channel_a_ops[0][i] <= 0;
-    end
+end
 
     for (i = 6; i < 9; i++) begin: chan_a69b0
         always_ff @(posedge clk)
@@ -232,7 +236,7 @@ module channels
                 channel_a_ops[0][i] <= channel_2_op[0][i];
             else
                 channel_a_ops[0][i] <= 0;
-    end
+end
 
     for (i = 0; i < 3; i++) begin: chan_a03b1
         always_ff @(posedge clk)
@@ -240,7 +244,7 @@ module channels
                 channel_a_ops[1][i] <= connection_sel[i+3] && is_new ? channel_4_op[1][i] : channel_2_op[1][i];
             else
                 channel_a_ops[1][i] <= 0;
-    end
+end
 
     for (i = 3; i < 6; i++) begin: chan_a36b1
         always_ff @(posedge clk)
@@ -248,7 +252,7 @@ module channels
                 channel_a_ops[1][i] <= channel_2_op[1][i];
             else
                 channel_a_ops[1][i] <= 0;
-    end
+end
 
     for (i = 6; i < 9; i++) begin: chan_a69b1
         always_ff @(posedge clk)
@@ -256,7 +260,7 @@ module channels
                 channel_a_ops[1][i] <= channel_2_op[1][i];
             else
                 channel_a_ops[1][i] <= 0;
-    end
+end
     endgenerate
 
     always_ff @(posedge clk)
@@ -272,7 +276,7 @@ module channels
                 channel_b_ops[0][i] <= connection_sel[i] && is_new ? channel_4_op[0][i] : channel_2_op[0][i];
             else
                 channel_b_ops[0][i] <= 0;
-    end
+end
 
     for (i = 3; i < 6; i++) begin: chan_b36b0
         always_ff @(posedge clk)
@@ -280,7 +284,7 @@ module channels
                 channel_b_ops[0][i] <= channel_2_op[0][i];
             else
                 channel_b_ops[0][i] <= 0;
-    end
+end
 
     for (i = 6; i < 9; i++) begin: chan_b69b0
         always_ff @(posedge clk)
@@ -288,7 +292,7 @@ module channels
                 channel_b_ops[0][i] <= channel_2_op[0][i];
             else
                 channel_b_ops[0][i] <= 0;
-    end
+end
 
     for (i = 0; i < 3; i++) begin: chan_b03b1
         always_ff @(posedge clk)
@@ -296,7 +300,7 @@ module channels
                 channel_b_ops[1][i] <= connection_sel[i+3] && is_new ? channel_4_op[1][i] : channel_2_op[1][i];
             else
                 channel_b_ops[1][i] <= 0;
-    end
+end
 
     for (i = 3; i < 6; i++) begin: chan_b36b1
         always_ff @(posedge clk)
@@ -304,7 +308,7 @@ module channels
                 channel_b_ops[1][i] <= channel_2_op[1][i];
             else
                 channel_b_ops[1][i] <= 0;
-    end
+end
 
     for (i = 6; i < 9; i++) begin: chan_b69b1
         always_ff @(posedge clk)
@@ -312,7 +316,7 @@ module channels
                 channel_b_ops[1][i] <= channel_2_op[1][i];
             else
                 channel_b_ops[1][i] <= 0;
-    end
+end
     endgenerate
 
     always_ff @(posedge clk)
@@ -328,7 +332,7 @@ module channels
                 channel_c_ops[0][i] <= connection_sel[i] && is_new ? channel_4_op[0][i] : channel_2_op[0][i];
             else
                 channel_c_ops[0][i] <= 0;
-    end
+end
 
     for (i = 3; i < 6; i++) begin: chan_c36b0
         always_ff @(posedge clk)
@@ -336,7 +340,7 @@ module channels
                 channel_c_ops[0][i] <= channel_2_op[0][i];
             else
                 channel_c_ops[0][i] <= 0;
-    end
+end
 
     for (i = 6; i < 9; i++) begin: chan_c69b0
         always_ff @(posedge clk)
@@ -344,7 +348,7 @@ module channels
                 channel_c_ops[0][i] <= channel_2_op[0][i];
             else
                 channel_c_ops[0][i] <= 0;
-    end
+end
 
     for (i = 0; i < 3; i++) begin: chan_c03b1
         always_ff @(posedge clk)
@@ -352,7 +356,7 @@ module channels
                 channel_c_ops[1][i] <= connection_sel[i+3] && is_new ? channel_4_op[1][i] : channel_2_op[1][i];
             else
                 channel_c_ops[1][i] <= 0;
-    end
+end
 
     for (i = 3; i < 6; i++) begin: chan_c36b1
         always_ff @(posedge clk)
@@ -360,7 +364,7 @@ module channels
                 channel_c_ops[1][i] <= channel_2_op[1][i];
             else
                 channel_c_ops[1][i] <= 0;
-    end
+end
 
     for (i = 6; i < 9; i++) begin: chan_c69b1
         always_ff @(posedge clk)
@@ -368,7 +372,7 @@ module channels
                 channel_c_ops[1][i] <= channel_2_op[1][i];
             else
                 channel_c_ops[1][i] <= 0;
-    end
+end
     endgenerate
 
     always_ff @(posedge clk)
@@ -384,7 +388,7 @@ module channels
                 channel_d_ops[0][i] <= connection_sel[i] && is_new ? channel_4_op[0][i] : channel_2_op[0][i];
             else
                 channel_d_ops[0][i] <= 0;
-    end
+end
 
     for (i = 3; i < 6; i++) begin: chan_d36b0
         always_ff @(posedge clk)
@@ -392,7 +396,7 @@ module channels
                 channel_d_ops[0][i] <= channel_2_op[0][i];
             else
                 channel_d_ops[0][i] <= 0;
-    end
+end
 
     for (i = 6; i < 9; i++) begin: chan_d69b0
         always_ff @(posedge clk)
@@ -400,7 +404,7 @@ module channels
                 channel_d_ops[0][i] <= channel_2_op[0][i];
             else
                 channel_d_ops[0][i] <= 0;
-    end
+end
 
     for (i = 0; i < 3; i++) begin: chan_d03b1
         always_ff @(posedge clk)
@@ -408,7 +412,7 @@ module channels
                 channel_d_ops[1][i] <= connection_sel[i+3] && is_new ? channel_4_op[1][i] : channel_2_op[1][i];
             else
                 channel_d_ops[1][i] <= 0;
-    end
+end
 
     for (i = 3; i < 6; i++) begin: chan_d36b1
         always_ff @(posedge clk)
@@ -416,7 +420,7 @@ module channels
                 channel_d_ops[1][i] <= channel_2_op[1][i];
             else
                 channel_d_ops[1][i] <= 0;
-    end
+end
 
     for (i = 6; i < 9; i++) begin: chan_d69b1
         always_ff @(posedge clk)
@@ -424,7 +428,7 @@ module channels
                 channel_d_ops[1][i] <= channel_2_op[1][i];
             else
                 channel_d_ops[1][i] <= 0;
-    end
+end
     endgenerate
 
     always_ff @(posedge clk)
@@ -466,6 +470,10 @@ module channels
             else
                 channel_d <= channel_d_acc_pre_clamp;
         end
+
+    channel_adder channel_adder (
+        .*
+    );
 
 endmodule
 `default_nettype wire

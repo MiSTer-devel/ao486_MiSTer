@@ -54,9 +54,9 @@ module opl3
     input wire [REG_FILE_DATA_WIDTH-1:0] din,
     output logic [REG_FILE_DATA_WIDTH-1:0] dout,
     output logic ack_host_wr, // host needs to hold writes for clock domain crossing
-    output logic sample_valid = 0,
-    output logic signed [DAC_OUTPUT_WIDTH-1:0] sample_l = 0, // synced to opl3 clk and sample_valid
-    output logic signed [DAC_OUTPUT_WIDTH-1:0] sample_r = 0,
+    output logic sample_valid,
+    output logic signed [DAC_OUTPUT_WIDTH-1:0] sample_l,
+    output logic signed [DAC_OUTPUT_WIDTH-1:0] sample_r,
     output logic [NUM_LEDS-1:0] led = 0,
     output logic irq_n
 );
@@ -130,16 +130,6 @@ module opl3
         .*
     );
 
-    /*
-     * The 4 16-bit output channels are normally combined in the analog domain
-     * after the YAC512 DAC outputs. Here we'll just add digitally.
-     */
-    always_ff @(posedge clk) begin
-        sample_valid <= channel_valid;
-        sample_l <= (channel_a + channel_c) <<< DAC_LEFT_SHIFT;
-        sample_r <= (channel_b + channel_d) <<< DAC_LEFT_SHIFT;
-    end
-
     generate
     genvar i;
     for (i = 0; i < NUM_LEDS; ++i) begin: gen_leds
@@ -159,7 +149,7 @@ module opl3
     /*
      * If we don't need timers, don't instantiate to save area
      */
-    generate
+generate
     if (INSTANTIATE_TIMERS)
         timers timers (
             .*
@@ -171,6 +161,6 @@ module opl3
             irq = 0;
             irq_n = 1;
         end
-    endgenerate
+endgenerate
 endmodule
 `default_nettype wire
