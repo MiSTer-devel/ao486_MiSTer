@@ -156,6 +156,7 @@ wire opl_we = (           address[2:1] == 0 && sb_write)  //220-221,228-229
 wire opl_wr = opl_we & ~cms_wr;
 wire opl_rd = (sb_read || fm_read) && (address == 8);
 wire opl_cs = opl_wr || opl_rd;
+wire opl_sample_valid;
 
 opl3 opl
 (
@@ -169,12 +170,31 @@ opl3 opl
     .din(writedata),
     .dout(opl_dout),
     .ack_host_wr(), // host needs to hold writes for clock domain crossing
-    .sample_valid(),
-	.sample_l(sample_from_opl_l),
+    .sample_valid(sample_valid),
+	.sample_l(sample_from_opl_l), // in opl3 clk domain
 	.sample_r(sample_from_opl_r),
     .led(),
     .irq_n()
 );
+
+wire [15:0] sample_from_opl_l_synched;
+wire [15:0] sample_from_opl_r_synched;
+wire opl_sample_valid_synched;
+
+// samples from opl are latched on sample_valid for a full sample period, so we only need to use a synchronizer on the enable
+// and use it to register the samples in the host clk domain
+synchronizer opl_sample_valid_sync (
+	.clk,
+	.in(sample_valid),
+	.out(opl_sample_valid_synched)
+);
+
+always @(posedge clk)
+	if (opl_sample_valid_synched) begin
+		sample_from_opl_l_synched <= sample_from_opl_l;
+		sample_from_opl_r_synched <= sample_from_opl_r;
+	end
+
 
 //------------------------------------------------------------------------------ c/ms
 
@@ -358,8 +378,8 @@ end
 
 reg [15:0] sample_opl_l, sample_opl_r;
 always @(posedge clk) begin
-	sample_opl_l <= volume(sample_from_opl_l, vol_mi_l);
-	sample_opl_r <= volume(sample_from_opl_r, vol_mi_r);
+	sample_opl_l <= volume(sample_from_opl_l_synched, vol_mi_l);
+	sample_opl_r <= volume(sample_from_opl_r_synched, vol_mi_r);
 end
 
 always @(posedge clk) begin
