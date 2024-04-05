@@ -104,4 +104,5 @@ It doesn't prevent windows from working but you need to keep in mind some specif
     sudo docker pull ghcr.io/raetro/quartus:mister
 * Build project
     * After cloning this repo and changing to the directory:
-        sudo docker run -it --rm -v $(pwd):/build raetro/quartus:mister quartus_sh --flow compile ao486.qpf
+
+            docker run -it --rm -v $(pwd):/build raetro/quartus:mister quartus_sh --flow compile ao486.qpf
