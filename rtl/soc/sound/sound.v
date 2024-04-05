@@ -184,7 +184,7 @@ wire opl_sample_valid_synched;
 // samples from opl are latched on sample_valid for a full sample period, so we only need to use a synchronizer on the enable
 // and use it to register the samples in the host clk domain
 synchronizer opl_sample_valid_sync (
-	.clk,
+	.clk(clk),
 	.in(sample_valid),
 	.out(opl_sample_valid_synched)
 );
