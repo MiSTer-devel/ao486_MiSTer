@@ -170,10 +170,8 @@ reg  [11:0] mul_arg1, mul_arg2;
 wire [23:0] mul_res;
 sys_umul #(12,12) mul(CLK_VIDEO,mul_start,mul_run, mul_arg1,mul_arg2,mul_res);
 
-wire [11:0] wideres = mul_res[11:0] + hsize;
-
 always @(posedge CLK_VIDEO) begin
-	reg [11:0] oheight,htarget,wres;
+	reg [11:0] oheight,htarget,wres,hinteger,wideres;
 	reg [12:0] arxf,aryf;
 	reg  [3:0] cnt;
 	reg        narrow;
@@ -264,7 +262,8 @@ always @(posedge CLK_VIDEO) begin
 				// [3] 1080 / 512 * 512 * 4 / 3 / 512 * 512 -> 1024
 
 			7: if(mul_res <= HDMI_WIDTH) begin
-					cnt       <= 10;
+					hinteger = mul_res[11:0];
+                    cnt       <= 12;
 				end
 
 			8:	begin
@@ -285,9 +284,21 @@ always @(posedge CLK_VIDEO) begin
 				// [2] 1920 / 640 * 640 -> 1920
 				// [3] 1920 / 512 * 512 -> 1536
 
-			10: begin
-					narrow    <= ((htarget - mul_res[11:0]) <= (wideres - htarget)) || (wideres > HDMI_WIDTH);
-					wres      <= mul_res[11:0] == htarget ? mul_res[11:0] : wideres;
+            10: begin
+                    hinteger  <= mul_res[11:0];
+                    mul_arg1  <= vsize;
+                    mul_arg2  <= div_res[11:0] ? div_res[11:0] : 12'd1;
+                    mul_start <= 1;
+                end
+                
+            11: begin
+                    oheight <= mul_res[11:0];
+                end
+            
+			12: begin
+                    wideres <= hinteger + hsize;
+					narrow    <= ((htarget - hinteger) <= (wideres - htarget)) || (wideres > HDMI_WIDTH);
+					wres      <= hinteger == htarget ? hinteger : wideres;
 				end
 				// [1] 1066 - 720  = 346 <= 1440 - 1066 = 374 || 1440 > 1920 -> true
 				// [2] 1280 - 1280 = 0   <= 1920 - 1280 = 640 || 1920 > 1920 -> true
@@ -299,11 +310,11 @@ always @(posedge CLK_VIDEO) begin
 				//    to target width, meaning it is not optimal for source aspect ratio.
 				//    otherwise it is set to narrow width that is optimal.
 
-			11: begin
+			13: begin
 					case(SCALE)
-							2: arxf <= {1'b1, mul_res[11:0]};
-							3: arxf <= {1'b1, (wres > HDMI_WIDTH) ? mul_res[11:0] : wres};
-							4: arxf <= {1'b1,              narrow ? mul_res[11:0] : wres};
+							2: arxf <= {1'b1, hinteger};
+							3: arxf <= {1'b1, (wres > HDMI_WIDTH) ? hinteger : wres};
+							4: arxf <= {1'b1,              narrow ? hinteger : wres};
 					default: arxf <= {1'b1, div_num[11:0]};
 					endcase
 					aryf <= {1'b1, oheight};

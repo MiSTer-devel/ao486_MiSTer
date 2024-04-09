@@ -16,7 +16,7 @@
 module altera_pll_reconfig_top
 #(
     parameter   reconf_width            = 64,
-    parameter   device_family           = "Stratix V",
+    parameter   device_family           = "Cyclone V",
     parameter   RECONFIG_ADDR_WIDTH     = 6,
     parameter   RECONFIG_DATA_WIDTH     = 32,
     
