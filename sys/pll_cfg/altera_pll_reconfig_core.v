@@ -16,7 +16,7 @@
 module altera_pll_reconfig_core
 #(
     parameter 	reconf_width       	= 64,
-    parameter 	device_family       	= "Stratix V",
+    parameter 	device_family       	= "Cyclone V",
     // MIF Streaming parameters
     parameter   RECONFIG_ADDR_WIDTH     = 6,
     parameter   RECONFIG_DATA_WIDTH     = 32,
@@ -1883,7 +1883,7 @@ module fpll_dprio_init (
 endmodule
 module dyn_phase_shift
 #(
-    parameter device_family       = "Stratix V"
+    parameter device_family       = "Cyclone V"
 ) ( 
 
     input   wire        clk,
@@ -2112,7 +2112,7 @@ endmodule
 module generic_lcell_comb
 #(
     //parameter
-    parameter family             = "Stratix V",
+    parameter family             = "Cyclone V",
     parameter lut_mask           = 64'hAAAAAAAAAAAAAAAA,
     parameter dont_touch         = "on"
 ) ( 

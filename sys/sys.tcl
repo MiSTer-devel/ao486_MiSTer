@@ -17,13 +17,6 @@ set_location_assignment PIN_AC4 -to ADC_SDI
 set_location_assignment PIN_AD4 -to ADC_SDO
 
 #============================================================
-# ARDUINO
-#============================================================
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[*]
-set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to ARDUINO_IO[*]
-set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to ARDUINO_IO[*]
-
-#============================================================
 # I2C LEDS/BUTTONS
 #============================================================
 set_location_assignment PIN_U14 -to IO_SCL

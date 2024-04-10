@@ -36,13 +36,15 @@ module yc_out
 	input	        hsync,
 	input	        vsync,
 	input	        csync,
+	input	        de,
 
 	input	 [23:0] din,
 	output [23:0] dout,
 
 	output reg	  hsync_o,
 	output reg	  vsync_o,
-	output reg	  csync_o
+	output reg	  csync_o,
+	output reg	  de_o
 );
 
 wire [7:0] red = din[23:16];
@@ -61,6 +63,7 @@ typedef struct {
 	logic        hsync;
 	logic        vsync;
 	logic        csync;
+	logic        de;
 } phase_t;
 
 localparam MAX_PHASES = 7'd8;
@@ -211,11 +214,11 @@ always_ff @(posedge clk) begin
 	end
 
 	// Adjust sync timing correctly
-	phase[1].hsync <= hsync; phase[1].vsync <= vsync; phase[1].csync <= csync;
-	phase[2].hsync <= phase[1].hsync; phase[2].vsync <= phase[1].vsync; phase[2].csync <= phase[1].csync;
-	phase[3].hsync <= phase[2].hsync; phase[3].vsync <= phase[2].vsync; phase[3].csync <= phase[2].csync;
-	phase[4].hsync <= phase[3].hsync; phase[4].vsync <= phase[3].vsync; phase[4].csync <= phase[3].csync;
-	hsync_o <= phase[4].hsync;        vsync_o <= phase[4].vsync;        csync_o <= phase[4].csync;
+	phase[1].hsync <= hsync; phase[1].vsync <= vsync; phase[1].csync <= csync; phase[1].de <= de;
+	phase[2].hsync <= phase[1].hsync; phase[2].vsync <= phase[1].vsync; phase[2].csync <= phase[1].csync; phase[2].de <= phase[1].de;
+	phase[3].hsync <= phase[2].hsync; phase[3].vsync <= phase[2].vsync; phase[3].csync <= phase[2].csync; phase[3].de <= phase[2].de;
+	phase[4].hsync <= phase[3].hsync; phase[4].vsync <= phase[3].vsync; phase[4].csync <= phase[3].csync; phase[4].de <= phase[3].de;
+	hsync_o <= phase[4].hsync;        vsync_o <= phase[4].vsync;        csync_o <= phase[4].csync;        de_o <= phase[4].de;
 
 	phase[1].y <= phase[0].y; phase[2].y <= phase[1].y; phase[3].y <= phase[2].y; phase[4].y <= phase[3].y; phase[5].y <= phase[4].y;
 
