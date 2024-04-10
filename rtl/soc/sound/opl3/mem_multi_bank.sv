@@ -77,7 +77,7 @@ module mem_multi_bank #(
 
     generate
     genvar i;
-    for (i = 0; i < NUM_BANKS; ++i) begin: bank_gen
+    for (i = 0; i < NUM_BANKS; ++i) begin: bankgen
         always_comb begin
             wea_array[i] = wea && banka == i;
             reb_array[i] = reb && bankb == i;

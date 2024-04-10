@@ -107,4 +107,18 @@ package opl3_pkg;
         OP_TOP_CYMBAL
     } operator_t;
 
+    typedef struct packed {
+        logic valid;
+        logic bank_num;
+        logic [REG_FILE_DATA_WIDTH-1:0] address;
+        logic [REG_FILE_DATA_WIDTH-1:0] data;
+    } opl3_reg_wr_t;
+
+    typedef struct packed {
+        logic valid;
+        logic bank_num;
+        logic [$clog2(NUM_OPERATORS_PER_BANK)-1:0] op_num;
+        logic signed [OP_OUT_WIDTH-1:0] op_out;
+    } operator_out_t;
+
 endpackage
