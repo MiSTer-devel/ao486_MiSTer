@@ -65,12 +65,20 @@ module dac_prep
 
     generate
     if (INSTANTIATE_SAMPLE_SYNC_TO_CPU_CLK) begin
+        logic [2:0] sample_valid_opl3_pulse_extend;
+        logic sample_valid_opl3_extended_pulse = 0;
         logic sample_valid_cpu_p0;
         logic sample_valid_cpu_p1 = 0;
 
+        always_ff @(posedge clk) begin
+            sample_valid_opl3_pulse_extend <= sample_valid_opl3_pulse_extend << 1;
+            sample_valid_opl3_pulse_extend[0] <= sample_valid_opl3_p1;
+            sample_valid_opl3_extended_pulse <= sample_valid_opl3_pulse_extend != 0;
+        end
+
         synchronizer channel_valid_sync (
             .clk(clk_host),
-            .in(sample_valid_opl3_p1),
+            .in(sample_valid_opl3_extended_pulse),
             .out(sample_valid_cpu_p0)
         );
 
