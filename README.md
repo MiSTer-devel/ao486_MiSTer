@@ -101,7 +101,9 @@ It doesn't prevent windows from working but you need to keep in mind some specif
 ### Building core
 * Install Docker for your dist https://docs.docker.com/engine/install/
 * Download Docker image containing Quartus Lite Edition 17.0 from https://github.com/raetro/sdk-docker-fpga:
-    sudo docker pull ghcr.io/raetro/quartus:mister
+
+        docker pull ghcr.io/raetro/quartus:mister
+
 * Build project
     * After cloning this repo and changing to the directory:
 

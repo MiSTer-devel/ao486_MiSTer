@@ -159,18 +159,17 @@ wire opl_cs = opl_wr || opl_rd;
 
 opl3 opl
 (
-    .clk(clk_opl), // opl3 clk
+    .clk(clk_opl),
     .clk_host(clk),
-    .ic_n(rst_n), // clk_host reset
+    .ic_n(rst_n),
     .cs_n(!opl_cs),
     .rd_n(!opl_rd),
     .wr_n(!opl_wr),
     .address(address[1:0]),
     .din(writedata),
     .dout(opl_dout),
-    .ack_host_wr(), // host needs to hold writes for clock domain crossing
     .sample_valid(),
-	.sample_l(sample_from_opl_l), // in opl3 clk domain
+	.sample_l(sample_from_opl_l),
 	.sample_r(sample_from_opl_r),
     .led(),
     .irq_n()

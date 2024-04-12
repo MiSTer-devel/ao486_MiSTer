@@ -1,4 +1,5 @@
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) opl3_pkg.sv ]
+set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) afifo.v ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) calc_phase_inc.sv ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) calc_rhythm_phase.sv ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) dac_prep.sv ]
