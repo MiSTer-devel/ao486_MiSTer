@@ -44,7 +44,7 @@ module sound
 	input             sb_cs,   //220h-22Fh
 	input             fm_cs,   //388h-38Bh
 
-	input             fm_mode,
+	input             fm_mode, // 0 = OPL2, 1 = OPL3
 	input             cms_en,
 
 	output      [4:0] vol_l,
@@ -74,8 +74,6 @@ module sound
 
 wire sb_read  = read  & sb_cs;
 wire sb_write = write & sb_cs;
-wire fm_read  = read  & fm_cs;
-wire fm_write = write & fm_cs;
 
 always @(posedge clk) readdata <= mixer_rd ? mixer_val : cms_rd ? data_from_cms : (!address[2:0]) ? (opl_dout | (fm_mode ? 8'h00 : 8'h06)) : data_from_dsp;
 
@@ -148,14 +146,14 @@ wire [15:0] sample_from_opl_l;
 wire [15:0] sample_from_opl_r;
 wire  [7:0] opl_dout;
 
-wire opl_we = (           address[2:1] == 0 && sb_write)  //220-221,228-229
-           || (fm_mode && address[3:1] == 1 && sb_write)  //222-223
-           || (             address[1] == 0 && fm_write)  //388-389
-           || (fm_mode &&   address[1] == 1 && fm_write); //38A-38B
+wire opl_we = (address[2:1] == 0) //220-221,228-229
+           || (address[3:1] == 1) //222-223
+           || (address[1] == 0)   //388-389
+           || (address[1] == 1);  //38A-38B
 
-wire opl_wr = opl_we & ~cms_wr;
-wire opl_rd = (sb_read || fm_read) && (address == 8);
-wire opl_cs = opl_wr || opl_rd;
+wire opl_wr = write && !cms_wr && opl_we;
+wire opl_rd = read && (address == 8);
+wire opl_cs = sb_cs || fm_cs;
 
 opl3 opl
 (
