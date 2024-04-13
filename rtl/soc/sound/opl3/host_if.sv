@@ -71,6 +71,7 @@ module host_if
         wr_p1 <= wr;
 
     afifo #(
+        .LGFIFO(5),
         .WIDTH(2 + REG_FILE_DATA_WIDTH) // address + data
     ) afifo (
 		.i_wclk(clk_host),
