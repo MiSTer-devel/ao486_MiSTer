@@ -71,7 +71,7 @@ module host_if
         wr_p1 <= wr;
 
     afifo #(
-        .LGFIFO(5),
+        .LGFIFO(6), // use at least 6 to get inferred into BRAM. Increase in ALMs at lower depths
         .WIDTH(2 + REG_FILE_DATA_WIDTH) // address + data
     ) afifo (
 		.i_wclk(clk_host),
