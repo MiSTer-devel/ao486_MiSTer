@@ -1,6 +1,6 @@
 //============================================================================
 //  ao486
-// 
+//
 //  Port to MiSTer.
 //  Copyright (C) 2017-2020 Alexey Melnikov
 //
@@ -282,7 +282,7 @@ localparam CONF_STR =
 	"V,v",`BUILD_DATE
 };
 
-//////////////////////////////////////////////////////////////////////// 
+////////////////////////////////////////////////////////////////////////
 
 wire        ps2_kbd_clk_out;
 wire        ps2_kbd_data_out;
@@ -374,7 +374,7 @@ hps_ext hps_ext
 	.ext_hotswap(status[39:38])
 );
 
-/////////////////////////////  PLL  //////////////////////////////////// 
+/////////////////////////////  PLL  ////////////////////////////////////
 
 wire clk_sys, clk_uart1, clk_uart2, clk_mpu, clk_opl, clk_vga;
 reg [27:0] cur_rate;
@@ -443,12 +443,12 @@ always @(posedge clk_sys) begin
 		'd4: begin clk_req <= 'd2; l1 <= 1'b1; l2 <= 1'b0; end  // ao486 AT 20
 		'd5: begin clk_req <= 'd1; l1 <= 1'b0; l2 <= 1'b0; end  // ao486 PS/2 20
 		'd6: begin clk_req <= 'd3; l1 <= 1'b1; l2 <= 1'b0; end  // ao486 3SX 25
-		'd7: begin clk_req <= 'd2; l1 <= 1'b0; l2 <= 1'b0; end  // ao486 3DX 33 
+		'd7: begin clk_req <= 'd2; l1 <= 1'b0; l2 <= 1'b0; end  // ao486 3DX 33
 		'd8: begin clk_req <= 'd0; l1 <= 1'b1; l2 <= 1'b0; end  // ao486 3DX 40
 		'd9: begin clk_req <= 'd3; l1 <= 1'b0; l2 <= 1'b0; end  // ao486 4SX 33
 		'd10: begin clk_req <= 'd0; l1 <= 1'b0; l2 <= 1'b0; end // ao486 MAX (stable)
 		'd11: begin clk_req <= 'd4; l1 <= 1'b0; l2 <= 1'b0; end // ao486 MAX+ (unstable)
-		default: begin 
+		default: begin
 		// CPU & Cache config
 		clk_req <= {status[7], syscfg[7] ? syscfg[1:0] : status[6:5]};
 		l1 <= syscfg[7] ? syscfg[4] : status[15];
@@ -460,10 +460,10 @@ end
 reg [2:0] speed;
 always @(posedge CLK_50M) begin
 	reg [2:0] sp1, sp2;
-	
+
 	sp1 <= clk_req;
 	sp2 <= sp1;
-	
+
 	if(sp2 == sp1) speed <= sp2;
 end
 
@@ -473,10 +473,10 @@ always @(posedge clk_sys) uspeed_sys <= (uart1_speed <= 115200);
 reg uspeed;
 always @(posedge CLK_50M) begin
 	reg sp1, sp2;
-	
+
 	sp1 <= uspeed_sys;
 	sp2 <= sp1;
-	
+
 	if(sp2 == sp1) uspeed <= sp2;
 end
 
@@ -490,9 +490,9 @@ always @(posedge CLK_50M) begin
 	reg       old_rst = 0;
 
 	if(!cfg_waitrequest) begin
-		
+
 		cfg_write <= 0;
-		
+
 		if(pll_locked) begin
 			if(state) state<=state+1'd1;
 			case(state)
@@ -531,7 +531,7 @@ always @(posedge clk_sys) cur_rate <= clk_rate[clk_req];
 
 `endif
 
-////////////////////////////  UART  //////////////////////////////////// 
+////////////////////////////  UART  ////////////////////////////////////
 
 /// UART1
 
@@ -575,7 +575,7 @@ wire uart2_cts = ~user_io_mode | USER_IN[3];
 wire uart2_dsr = ~user_io_mode | USER_IN[5];
 wire uart2_dcd = ~user_io_mode | USER_IN[6];
 
-////////////////////////////  VIDEO  /////////////////////////////////// 
+////////////////////////////  VIDEO  ///////////////////////////////////
 
 assign VGA_F1 = 0;
 assign VGA_SL = 0;
@@ -646,7 +646,7 @@ wire        vga_lores = ~status[14];
 reg vga_out_en;
 always @(posedge clk_vga) begin
 	reg old_hs, old_vs;
-	
+
 	if(vga_flags[3] & vga_lores) begin
 		old_hs <= HSync;
 		if(~old_hs & HSync) begin
@@ -730,7 +730,7 @@ video_freak video_freak
 assign VIDEO_ARX = fb_en ? fb_arx : arx;
 assign VIDEO_ARY = fb_en ? fb_ary : ary;
 
-//////////////////////////////////////////////////////////////////////// 
+////////////////////////////////////////////////////////////////////////
 
 assign DDRAM_ADDR[28:25] = 4'h3;
 
@@ -750,7 +750,7 @@ system system
 	.reset                (reset),
 
 	.clock_rate           (cur_rate),
-	
+
 	.syscfg               (syscfg),
 	.l1_disable           (l1),
 	.l2_disable           (l2),
@@ -841,10 +841,10 @@ system system
 
 	.mpu_rx               (mpu_rx),
 	.mpu_tx               (mpu_tx),
-	
+
 	.memcfg               (memcfg),
 	.bootcfg              (status[37:32]),
-	
+
 	.DDRAM_CLK            (DDRAM_CLK),
 	.DDRAM_ADDR           (DDRAM_ADDR[24:0]),
 	.DDRAM_DIN            (DDRAM_DIN),
@@ -879,13 +879,13 @@ always @(posedge clk_sys) begin
 	reg old_stb;
 	reg enter = 0;
 	reg esc = 0;
-	
+
 	old_stb <= ps2_key[10];
 	if(old_stb ^ ps2_key[10]) begin
 		if(ps2_key[7:0] == 'h5A) enter <= ps2_key[9];
 		if(ps2_key[7:0] == 'h76) esc   <= ps2_key[9];
 	end
-	
+
 	if(enter & esc) begin
 		dbg_menu <= ~dbg_menu;
 		enter <= 0;
@@ -935,7 +935,7 @@ always_comb begin
 	endcase
 end
 
-////////////////////////////  MT32pi  ////////////////////////////////// 
+////////////////////////////  MT32pi  //////////////////////////////////
 
 wire        mt32_reset    = status[40] | reset;
 wire        mt32_disable  = status[24];
@@ -971,7 +971,7 @@ always @(posedge clk_sys) begin
 
 	old_mode <= mt32_newmode;
 	mt32_info_req <= (old_mode ^ mt32_newmode) && (mt32_info == 1);
-	
+
 	mt32_info_disp <= (mt32_mode == 'hA2) ? (4'd1 + mt32_sf[2:0]) :
                      (mt32_mode == 'hA1 && mt32_rom == 0) ?  4'd9 :
                      (mt32_mode == 'hA1 && mt32_rom == 1) ?  4'd10 :
@@ -999,7 +999,7 @@ end
 
 wire mt32_lcd = mt32_lcd_on & mt32_lcd_en;
 
-////////////////////////////  AUDIO  /////////////////////////////////// 
+////////////////////////////  AUDIO  ///////////////////////////////////
 
 wire        speaker_out;
 reg  [16:0] spk_out;
@@ -1009,19 +1009,48 @@ always @(posedge CLK_AUDIO) begin
 	spk_out <= spk >> ~vol_spk;
 end
 
-wire [15:0] sb_out_l, sb_out_r;
+wire [16:0] sb_out_l, sb_out_r;
 wire [16:0] sb_l, sb_r;
-always @(posedge CLK_AUDIO) begin
-	reg [15:0] old_l0, old_l1, old_r0, old_r1;
-	
-	old_l0 <= sb_out_l;
-	old_l1 <= old_l0;
-	if(old_l0 == old_l1) sb_l <= {old_l1[15],old_l1};
+// always @(posedge CLK_AUDIO) begin
+// 	reg [16:0] old_l0, old_l1, old_r0, old_r1;
 
-	old_r0 <= sb_out_r;
-	old_r1 <= old_r0;
-	if(old_r0 == old_r1) sb_r <= {old_r1[15],old_r1};
+// 	old_l0 <= sb_out_l;
+// 	old_l1 <= old_l0;
+// 	if(old_l0 == old_l1) sb_l <= old_l1;
+
+// 	old_r0 <= sb_out_r;
+// 	old_r1 <= old_r0;
+// 	if(old_r0 == old_r1) sb_r <= old_r1;
+// end
+
+reg [31:0] sample_hold = 0;
+reg [16:0] sb_out_l_latched, sb_out_r_latched;
+reg sample_ready_clk_sys;
+wire sample_ready_clk_audio;
+
+always @(posedge clk_sys) begin
+	if (sample_hold == 0) begin
+		sample_hold[0] <= 1;
+		sb_out_l_latched <= sb_out_l;
+		sb_out_r_latched <= sb_out_r;
+	end
+	else
+		sample_hold <= sample_hold << 1;
+
+	sample_ready_clk_sys <= sample_hold[15:0] != 0;
 end
+
+synchronizer sb_audio_sync (
+	.clk(CLK_AUDIO),
+	.in(sample_ready_clk_sys),
+	.out(sample_ready_clk_audio)
+);
+
+always @(posedge CLK_AUDIO)
+	if (sample_ready_clk_audio) begin
+		sb_l <= sb_out_l_latched;
+		sb_r <= sb_out_r_latched;
+	end
 
 wire [15:0] cdda_l;
 wire [15:0] cdda_r;
@@ -1081,7 +1110,7 @@ assign AUDIO_R   = audio_r;
 assign AUDIO_S   = 1;
 assign AUDIO_MIX = status[44:43];
 
-//////////////////////////////////////////////////////////////////////// 
+////////////////////////////////////////////////////////////////////////
 
 endmodule
 
@@ -1099,7 +1128,7 @@ always @(posedge clk) begin
 		counter <= counter - 1'b1;
 		out <= 1;
 	end
-	
+
 	if(in) counter <= 4500000;
 end
 
@@ -1136,7 +1165,7 @@ always @(posedge clk) begin
 
 	v3  <= mode ? v2 : v1;
 	vs3 <= vs1;
-	
+
 	out <= vs3 ? -v3 : v3;
 end
 
