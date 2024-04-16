@@ -5,7 +5,7 @@ module system
 
 	input         clk_sys,
 	input  [27:0] clock_rate,
-	
+
 	input         l1_disable,
 	input         l2_disable,
 
@@ -64,8 +64,8 @@ module system
 	output        mpu_tx,
 
 	input         clk_opl,
-	output [15:0] sound_sample_l,
-	output [15:0] sound_sample_r,
+	output [16:0] sound_sample_l,
+	output [16:0] sound_sample_r,
 	input         sound_fm_mode,
 	input         sound_cms_en,
 
@@ -420,7 +420,7 @@ dma dma
 	.io_master_cs      (dma_master_cs),
 	.io_slave_cs       (dma_slave_cs),
 	.io_page_cs        (dma_page_cs),
-	
+
 	.dma_2_req         (dma_floppy_req),
 	.dma_2_ack         (dma_floppy_ack),
 	.dma_2_tc          (dma_floppy_tc),
@@ -450,7 +450,7 @@ floppy floppy
 	.io_read           (iobus_read & floppy0_cs),
 	.io_write          (iobus_write & floppy0_cs),
 	.io_readdata       (floppy0_readdata),
-	
+
 	.fdd0_inserted     (fdd0_inserted),
 
 	.dma_req           (dma_floppy_req),
