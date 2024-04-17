@@ -54,7 +54,6 @@ package opl3_pkg;
     localparam INSTANTIATE_TIMERS = 1; // set to 1 to use timers, 0 to save area
     localparam NUM_LEDS = 0; // connected to kon bank 0 starting at 0
     localparam INSTANTIATE_SAMPLE_SYNC_TO_CPU_CLK = 1;
-    localparam DAC_LEFT_SHIFT = 1;
 
     localparam DESIRED_SAMPLE_FREQ = 49.7159e3;
     // localparam int CLK_DIV_COUNT = $ceil(CLK_FREQ/DESIRED_SAMPLE_FREQ); unsupported by Quartus
@@ -75,6 +74,7 @@ package opl3_pkg;
     localparam REG_FB_WIDTH = 3;
 
     localparam SAMPLE_WIDTH = 16;
+    localparam DAC_LEFT_SHIFT = signed'(DAC_OUTPUT_WIDTH - SAMPLE_WIDTH - 2) < 0 ? 0 : DAC_OUTPUT_WIDTH - SAMPLE_WIDTH - 2;
     localparam ENV_WIDTH = 9;
     localparam OP_OUT_WIDTH = 13;
     localparam PHASE_ACC_WIDTH = 20;
