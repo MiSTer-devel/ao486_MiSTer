@@ -66,8 +66,8 @@ module sound
 	output     [15:0] dma_writedata,
 
 	//sound output
-	output reg [16:0] sample_l,
-	output reg [16:0] sample_r,
+	output reg [15:0] sample_l,
+	output reg [15:0] sample_r,
 
 	input      [27:0] clock_rate
 );
@@ -360,8 +360,8 @@ always @(posedge clk) begin
 end
 
 always @(posedge clk) begin
-	sample_l <= sample_dsp_l + sample_opl_l + {2'b00, cms_l, cms_l[8:3]};
-	sample_r <= sample_dsp_r + sample_opl_r + {2'b00, cms_r, cms_r[8:3]};
+	sample_l <= {sample_dsp_l[15], sample_dsp_l[15:1]} + {sample_opl_l[15], sample_opl_l[15:1]} + {2'b00, cms_l, cms_l[8:4]};
+	sample_r <= {sample_dsp_r[15], sample_dsp_r[15:1]} + {sample_opl_r[15], sample_opl_r[15:1]} + {2'b00, cms_r, cms_r[8:4]};
 end
 
 assign vol_l = vol_ma_l;

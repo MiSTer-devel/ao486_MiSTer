@@ -396,6 +396,7 @@ always @(posedge clk_sys) cur_rate <= 30000000;
 
 `else
 
+
 wire pll_locked;
 pll pll
 (
@@ -404,12 +405,19 @@ pll pll
 	.outclk_0(clk_sys),
 	.outclk_1(clk_uart1),
 	.outclk_2(clk_mpu),
-	.outclk_3(clk_opl),
+	.outclk_3(),
 	.outclk_4(clk_vga),
 	.outclk_5(clk_uart2),
 	.locked(pll_locked),
 	.reconfig_to_pll(reconfig_to_pll),
 	.reconfig_from_pll(reconfig_from_pll)
+);
+
+pll_opl3 pll_opl3 (
+	.refclk(CLK_50M),
+	.rst('0),
+	.outclk_0(clk_opl),
+	.locked()
 );
 
 wire [63:0] reconfig_to_pll;
@@ -1009,7 +1017,7 @@ always @(posedge CLK_AUDIO) begin
 	spk_out <= spk >> ~vol_spk;
 end
 
-wire [16:0] sb_out_l, sb_out_r;
+wire [15:0] sb_out_l, sb_out_r;
 wire [16:0] sb_l, sb_r;
 // always @(posedge CLK_AUDIO) begin
 // 	reg [16:0] old_l0, old_l1, old_r0, old_r1;
@@ -1024,7 +1032,7 @@ wire [16:0] sb_l, sb_r;
 // end
 
 reg [31:0] sample_hold = 0;
-reg [16:0] sb_out_l_latched, sb_out_r_latched;
+reg [15:0] sb_out_l_latched, sb_out_r_latched;
 reg sample_ready_clk_sys;
 wire sample_ready_clk_audio;
 
@@ -1048,8 +1056,8 @@ synchronizer sb_audio_sync (
 
 always @(posedge CLK_AUDIO)
 	if (sample_ready_clk_audio) begin
-		sb_l <= sb_out_l_latched;
-		sb_r <= sb_out_r_latched;
+		sb_l <= {sb_out_l_latched[15], sb_out_l_latched};
+		sb_r <= {sb_out_r_latched[15], sb_out_r_latched};
 	end
 
 wire [15:0] cdda_l;

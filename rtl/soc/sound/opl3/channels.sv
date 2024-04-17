@@ -57,7 +57,6 @@ module channels
 
     // + 1 because we combine 2 channels together for left and right
     localparam CHANNEL_ACCUMULATOR_WIDTH = OP_OUT_WIDTH + $clog2(NUM_OPERATORS_PER_BANK*NUM_BANKS) + 1;
-    localparam FINAL_ACC_WIDTH = CHANNEL_ACCUMULATOR_WIDTH + VOLUME_INCREASE_LEFT_SHIFT;
 
     operator_out_t operator_out;
     logic signed [OP_OUT_WIDTH-1:0] operator_mem_out;
@@ -74,8 +73,6 @@ module channels
     logic chd; // chan d on/off
     logic cnt; // operator connection
     logic [REG_FB_WIDTH-1:0] fb_dummy;
-    logic signed [FINAL_ACC_WIDTH-1:0] channel_l_acc_pre_clamp_post_volume_shift;
-    logic signed [FINAL_ACC_WIDTH-1:0] channel_r_acc_pre_clamp_post_volume_shift;
 
     always_ff @(posedge clk)
         if (opl3_reg_wr.valid) begin
@@ -349,31 +346,24 @@ module channels
     always_ff @(posedge clk)
         channel_valid <= signals.latch_channels;
 
-    always_comb begin
-        channel_l_acc_pre_clamp_post_volume_shift = self.channel_l_acc_pre_clamp <<< VOLUME_INCREASE_LEFT_SHIFT;
-        channel_r_acc_pre_clamp_post_volume_shift = self.channel_r_acc_pre_clamp <<< VOLUME_INCREASE_LEFT_SHIFT;
-    end
-
-    localparam logic [FINAL_ACC_WIDTH-SAMPLE_WIDTH-1:0] LOW_CLAMP_COMP = '1;
-
     /*
      * Clamp output channels
      */
     always_ff @(posedge clk)
         if (signals.latch_channels) begin
-            if (channel_l_acc_pre_clamp_post_volume_shift[FINAL_ACC_WIDTH-1:SAMPLE_WIDTH-1] == '0)
+            if (self.channel_l_acc_pre_clamp > 2**(SAMPLE_WIDTH - 1) - 1)
                 channel_l <= 2**(SAMPLE_WIDTH - 1) - 1;
-            else if (channel_l_acc_pre_clamp_post_volume_shift[FINAL_ACC_WIDTH-1:SAMPLE_WIDTH-1] == LOW_CLAMP_COMP)
+            else if (self.channel_l_acc_pre_clamp < -2**(SAMPLE_WIDTH - 1))
                 channel_l <= -2**(SAMPLE_WIDTH - 1);
             else
-                channel_l <= channel_l_acc_pre_clamp_post_volume_shift;
+                channel_l <= self.channel_l_acc_pre_clamp;
 
-            if (channel_r_acc_pre_clamp_post_volume_shift[FINAL_ACC_WIDTH-1:SAMPLE_WIDTH-1] == '0)
+            if (self.channel_r_acc_pre_clamp > 2**(SAMPLE_WIDTH - 1) - 1)
                 channel_r <= 2**(SAMPLE_WIDTH - 1) - 1;
-            else if (channel_r_acc_pre_clamp_post_volume_shift[FINAL_ACC_WIDTH-1:SAMPLE_WIDTH-1] == LOW_CLAMP_COMP)
+            else if (self.channel_r_acc_pre_clamp < -2**(SAMPLE_WIDTH - 1))
                 channel_r <= -2**(SAMPLE_WIDTH - 1);
             else
-                channel_r <= channel_l_acc_pre_clamp_post_volume_shift;
+                channel_r <= self.channel_r_acc_pre_clamp;
         end
 
     dac_prep dac_prep (

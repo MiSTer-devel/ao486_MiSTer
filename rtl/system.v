@@ -64,8 +64,8 @@ module system
 	output        mpu_tx,
 
 	input         clk_opl,
-	output [16:0] sound_sample_l,
-	output [16:0] sound_sample_r,
+	output [15:0] sound_sample_l,
+	output [15:0] sound_sample_r,
 	input         sound_fm_mode,
 	input         sound_cms_en,
 

@@ -49,16 +49,16 @@ package opl3_pkg;
      * give us a 49.7148KHz sample clock. We don't have to worry about clock
      * domain crossings.
      */
-    localparam CLK_FREQ = 50e6;
+    localparam CLK_FREQ = 12.727272e6;
     localparam DAC_OUTPUT_WIDTH = 16;
     localparam INSTANTIATE_TIMERS = 1; // set to 1 to use timers, 0 to save area
     localparam NUM_LEDS = 0; // connected to kon bank 0 starting at 0
     localparam INSTANTIATE_SAMPLE_SYNC_TO_CPU_CLK = 1;
-    localparam VOLUME_INCREASE_LEFT_SHIFT = 1;
+    localparam DAC_LEFT_SHIFT = 1;
 
     localparam DESIRED_SAMPLE_FREQ = 49.7159e3;
     // localparam int CLK_DIV_COUNT = $ceil(CLK_FREQ/DESIRED_SAMPLE_FREQ); unsupported by Quartus
-    localparam int CLK_DIV_COUNT = 1006;
+    localparam int CLK_DIV_COUNT = 256;
     localparam ACTUAL_SAMPLE_FREQ = CLK_FREQ/CLK_DIV_COUNT;
 
     localparam NUM_REG_PER_BANK = 'hF6;
@@ -75,7 +75,6 @@ package opl3_pkg;
     localparam REG_FB_WIDTH = 3;
 
     localparam SAMPLE_WIDTH = 16;
-    localparam DAC_LEFT_SHIFT = signed'(DAC_OUTPUT_WIDTH - SAMPLE_WIDTH - 2) < 0 ? 0 : DAC_OUTPUT_WIDTH - SAMPLE_WIDTH - 2;
     localparam ENV_WIDTH = 9;
     localparam OP_OUT_WIDTH = 13;
     localparam PHASE_ACC_WIDTH = 20;
