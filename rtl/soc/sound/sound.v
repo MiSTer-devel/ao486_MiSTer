@@ -29,6 +29,7 @@ module sound
 (
 	input             clk,
 	input             clk_opl,
+	input			  CLK_AUDIO,
 	input             rst_n,
 
 	output            irq_5,
@@ -68,6 +69,8 @@ module sound
 	//sound output
 	output reg [15:0] sample_l,
 	output reg [15:0] sample_r,
+	output reg [15:0] sample_opl_l,
+	output reg [15:0] sample_opl_r,
 
 	input      [27:0] clock_rate
 );
@@ -159,6 +162,7 @@ opl3 opl
 (
     .clk(clk_opl),
     .clk_host(clk),
+	.clk_dac(CLK_AUDIO),
     .ic_n(rst_n),
     .cs_n(!opl_cs),
     .rd_n(!opl_rd),
@@ -353,15 +357,14 @@ always @(posedge clk) begin
 	sample_dsp_r <= volume(dsp_value_r, vol_vo_r);
 end
 
-reg [15:0] sample_opl_l, sample_opl_r;
-always @(posedge clk) begin
+always @(posedge CLK_AUDIO) begin // vol reg expected to be held for a long time, clk domain crossing not a big deal
 	sample_opl_l <= volume(sample_from_opl_l, vol_mi_l);
 	sample_opl_r <= volume(sample_from_opl_r, vol_mi_r);
 end
 
 always @(posedge clk) begin
-	sample_l <= {sample_dsp_l[15], sample_dsp_l[15:1]} + {sample_opl_l[15], sample_opl_l[15:1]} + {2'b00, cms_l, cms_l[8:4]};
-	sample_r <= {sample_dsp_r[15], sample_dsp_r[15:1]} + {sample_opl_r[15], sample_opl_r[15:1]} + {2'b00, cms_r, cms_r[8:4]};
+	sample_l <= {sample_dsp_l[15], sample_dsp_l[15:1]} + {2'b00, cms_l, cms_l[8:4]};
+	sample_r <= {sample_dsp_r[15], sample_dsp_r[15:1]} + {2'b00, cms_r, cms_r[8:4]};
 end
 
 assign vol_l = vol_ma_l;

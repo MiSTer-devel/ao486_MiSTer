@@ -5,7 +5,7 @@ module system
 
 	input         clk_sys,
 	input  [27:0] clock_rate,
-	
+
 	input         l1_disable,
 	input         l2_disable,
 
@@ -64,8 +64,11 @@ module system
 	output        mpu_tx,
 
 	input         clk_opl,
-	output [15:0] sound_sample_l,
-	output [15:0] sound_sample_r,
+	input         CLK_AUDIO,
+	output [15:0] sample_sb_l,
+	output [15:0] sample_sb_r,
+	output [15:0] sample_opl_l,
+	output [15:0] sample_opl_r,
 	input         sound_fm_mode,
 	input         sound_cms_en,
 
@@ -420,7 +423,7 @@ dma dma
 	.io_master_cs      (dma_master_cs),
 	.io_slave_cs       (dma_slave_cs),
 	.io_page_cs        (dma_page_cs),
-	
+
 	.dma_2_req         (dma_floppy_req),
 	.dma_2_ack         (dma_floppy_ack),
 	.dma_2_tc          (dma_floppy_tc),
@@ -450,7 +453,7 @@ floppy floppy
 	.io_read           (iobus_read & floppy0_cs),
 	.io_write          (iobus_write & floppy0_cs),
 	.io_readdata       (floppy0_readdata),
-	
+
 	.fdd0_inserted     (fdd0_inserted),
 
 	.dma_req           (dma_floppy_req),
@@ -632,6 +635,7 @@ sound sound
 (
 	.clk               (clk_sys),
 	.clk_opl           (clk_opl),
+	.CLK_AUDIO         (CLK_AUDIO),
 	.rst_n             (~reset),
 
 	.clock_rate        (clock_rate),
@@ -661,8 +665,10 @@ sound sound
 	.vol_spk           (vol_spk),
 	.vol_en            (vol_en),
 
-	.sample_l          (sound_sample_l),
-	.sample_r          (sound_sample_r),
+	.sample_l          (sample_sb_l),
+	.sample_r          (sample_sb_r),
+	.sample_opl_l      (sample_opl_l),
+	.sample_opl_r      (sample_opl_r),
 
 	.fm_mode           (sound_fm_mode),
 	.cms_en            (sound_cms_en),

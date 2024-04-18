@@ -41,23 +41,14 @@
 #
 #******************************************************************************/
 package opl3_pkg;
-    /*
-     * Original OPL3 used a 14.31818MHz master clock, divided by 288 giving a
-     * sample clock of 49.7159KHz. Since our SSM2603 DAC uses fixed 256
-     * oversampling, we'll use a 12.727MHz master clock which is the closest
-     * value we can generate using an MMCM and 125MHz input clock. This will
-     * give us a 49.7148KHz sample clock. We don't have to worry about clock
-     * domain crossings.
-     */
-    localparam CLK_FREQ = 50e6;
+    localparam CLK_FREQ = 14.318181e6; // original OPL3 clk rate
     localparam DAC_OUTPUT_WIDTH = 16;
     localparam INSTANTIATE_TIMERS = 1; // set to 1 to use timers, 0 to save area
     localparam NUM_LEDS = 0; // connected to kon bank 0 starting at 0
-    localparam INSTANTIATE_SAMPLE_SYNC_TO_CPU_CLK = 1;
+    localparam INSTANTIATE_SAMPLE_SYNC_TO_DAC_CLK = 1;
 
     localparam DESIRED_SAMPLE_FREQ = 49.7159e3;
-    // localparam int CLK_DIV_COUNT = $ceil(CLK_FREQ/DESIRED_SAMPLE_FREQ); unsupported by Quartus
-    localparam int CLK_DIV_COUNT = 1006;
+    localparam int CLK_DIV_COUNT = 288;
     localparam ACTUAL_SAMPLE_FREQ = CLK_FREQ/CLK_DIV_COUNT;
 
     localparam NUM_REG_PER_BANK = 'hF6;
