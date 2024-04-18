@@ -99,7 +99,7 @@ It doesn't prevent windows from working but you need to keep in mind some specif
 * CD-ROM autostart won't be automatically triggered (because work through BIOS). After replacing image file in CD-ROM you need to refresh the folder with drives (F5) and icon of CD will be changed if provided by image. Autostart will be triggered when you click on CD icon.
 
 ### Building core
-* Install Docker for your dist https://docs.docker.com/engine/install/
+* Quartus 17.0 doesn't install properly on newer Linux distros, so use Docker instead. Install Docker for your dist https://docs.docker.com/engine/install/
 * Download Docker image containing Quartus Lite Edition 17.0 from https://github.com/raetro/sdk-docker-fpga:
 
         docker pull ghcr.io/raetro/quartus:mister
@@ -108,3 +108,7 @@ It doesn't prevent windows from working but you need to keep in mind some specif
     * After cloning this repo and changing to the directory:
 
             docker run -it --rm -v $(pwd):/build raetro/quartus:mister quartus_sh --flow compile ao486.qpf
+
+* Access GUI
+
+        docker run --rm -ti --net=host --ipc=host -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix --env="QT_X11_NO_MITSHM=1" -v $(pwd):/build raetro/quartus:mister quartus
