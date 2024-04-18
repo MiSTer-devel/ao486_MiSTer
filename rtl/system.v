@@ -64,8 +64,11 @@ module system
 	output        mpu_tx,
 
 	input         clk_opl,
-	output [15:0] sound_sample_l,
-	output [15:0] sound_sample_r,
+	input         CLK_AUDIO,
+	output [15:0] sample_sb_l,
+	output [15:0] sample_sb_r,
+	output [15:0] sample_opl_l,
+	output [15:0] sample_opl_r,
 	input         sound_fm_mode,
 	input         sound_cms_en,
 
@@ -632,6 +635,7 @@ sound sound
 (
 	.clk               (clk_sys),
 	.clk_opl           (clk_opl),
+	.CLK_AUDIO         (CLK_AUDIO),
 	.rst_n             (~reset),
 
 	.clock_rate        (clock_rate),
@@ -661,8 +665,10 @@ sound sound
 	.vol_spk           (vol_spk),
 	.vol_en            (vol_en),
 
-	.sample_l          (sound_sample_l),
-	.sample_r          (sound_sample_r),
+	.sample_l          (sample_sb_l),
+	.sample_r          (sample_sb_r),
+	.sample_opl_l      (sample_opl_l),
+	.sample_opl_r      (sample_opl_r),
 
 	.fm_mode           (sound_fm_mode),
 	.cms_en            (sound_cms_en),

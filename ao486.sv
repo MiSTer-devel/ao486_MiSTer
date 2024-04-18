@@ -750,6 +750,7 @@ system system
 (
 	.clk_sys              (clk_sys),
 	.clk_opl              (clk_opl),
+	.CLK_AUDIO            (CLK_AUDIO),
 	.clk_uart1            (clk_uart1),
 	.clk_uart2            (clk_uart2),
 	.clk_mpu              (clk_mpu),
@@ -785,8 +786,10 @@ system system
 	.video_fb_en          (fb_en),
 	.video_lores          (vga_lores),
 
-	.sound_sample_l       (sb_out_l),
-	.sound_sample_r       (sb_out_r),
+	.sample_sb_l          (sb_out_l),
+	.sample_sb_r          (sb_out_r),
+	.sample_opl_l         (opl_out_l),
+	.sample_opl_r         (opl_out_r),
 	.sound_fm_mode        (status[3]),
 	.sound_cms_en         (status[17]),
 	.vol_l                (vol_l),
@@ -1019,35 +1022,19 @@ end
 
 wire [15:0] sb_out_l, sb_out_r;
 wire [16:0] sb_l, sb_r;
+always @(posedge CLK_AUDIO) begin
+	reg [15:0] old_l0, old_l1, old_r0, old_r1;
 
-reg [31:0] sample_hold = 0;
-reg [15:0] sb_out_l_latched, sb_out_r_latched;
-reg sample_ready_clk_sys;
-wire sample_ready_clk_audio;
+	old_l0 <= sb_out_l;
+	old_l1 <= old_l0;
+	if(old_l0 == old_l1) sb_l <= {old_l1[15],old_l1};
 
-always @(posedge clk_sys) begin
-	if (sample_hold == 0) begin
-		sample_hold[0] <= 1;
-		sb_out_l_latched <= sb_out_l;
-		sb_out_r_latched <= sb_out_r;
+	old_r0 <= sb_out_r;
+	old_r1 <= old_r0;
+	if(old_r0 == old_r1) sb_r <= {old_r1[15],old_r1};
 	end
-	else
-		sample_hold <= sample_hold << 1;
 
-	sample_ready_clk_sys <= sample_hold[15:0] != 0;
-end
-
-synchronizer sb_audio_sync (
-	.clk(CLK_AUDIO),
-	.in(sample_ready_clk_sys),
-	.out(sample_ready_clk_audio)
-);
-
-always @(posedge CLK_AUDIO)
-	if (sample_ready_clk_audio) begin
-		sb_l <= {sb_out_l_latched[15], sb_out_l_latched};
-		sb_r <= {sb_out_r_latched[15], sb_out_r_latched};
-	end
+wire [15:0] opl_out_l, opl_out_r; // already synced to CLK_AUDIO
 
 wire [15:0] cdda_l;
 wire [15:0] cdda_r;
@@ -1084,8 +1071,8 @@ always @(posedge CLK_AUDIO) begin
 	mt32_l <= volume(mt32_i2s_l, ~status[25] ? vol_midi_l : vol_en[4] ? vol_line_l : 5'd0);
 	mt32_r <= volume(mt32_i2s_r, ~status[25] ? vol_midi_r : vol_en[3] ? vol_line_r : 5'd0);
 
-	tmp_l <= sb_l + spk_out + (mt32_mute ? 17'd0 : {mt32_l[15],mt32_l}) + (vol_en[2] ? {cdda_l[15],cdda_l} : 17'd0);
-	tmp_r <= sb_r + spk_out + (mt32_mute ? 17'd0 : {mt32_r[15],mt32_r}) + (vol_en[1] ? {cdda_r[15],cdda_r} : 17'd0);
+	tmp_l <= {opl_out_l[15],opl_out_l} + sb_l + spk_out + (mt32_mute ? 17'd0 : {mt32_l[15],mt32_l}) + (vol_en[2] ? {cdda_l[15],cdda_l} : 17'd0);
+	tmp_r <= {opl_out_r[15],opl_out_r} + sb_r + spk_out + (mt32_mute ? 17'd0 : {mt32_r[15],mt32_r}) + (vol_en[1] ? {cdda_r[15],cdda_r} : 17'd0);
 
 	// clamp the output
 	out_l <= (^tmp_l[16:15]) ? {tmp_l[16], {15{tmp_l[15]}}} : tmp_l[15:0];
