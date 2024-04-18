@@ -1,13 +1,13 @@
 /*******************************************************************************
 #   +html+<pre>
 #
-#   FILENAME: opl3.sv
-#   AUTHOR: Greg Taylor     CREATION DATE: 24 Feb 2015
+#   FILENAME: leds.sv
+#   AUTHOR: Greg Taylor     CREATION DATE: 1 April 2024
 #
 #   DESCRIPTION:
 #
 #   CHANGE HISTORY:
-#   24 Feb 2015        Greg Taylor
+#   1 April 2024    Greg Taylor
 #       Initial version
 #
 #   Copyright (C) 2014 Greg Taylor <gtaylor@sonic.net>
@@ -41,68 +41,20 @@
 `timescale 1ns / 1ps
 `default_nettype none
 
-module opl3
+module leds
     import opl3_pkg::*;
 (
-    input wire clk, // opl3 clk
-    input wire clk_host,
-    input wire clk_dac,
-    input wire ic_n, // clk_host reset
-    input wire cs_n,
-    input wire rd_n,
-    input wire wr_n,
-    input wire [1:0] address,
-    input wire [REG_FILE_DATA_WIDTH-1:0] din,
-    output logic [REG_FILE_DATA_WIDTH-1:0] dout,
-    output logic sample_valid,
-    output logic signed [DAC_OUTPUT_WIDTH-1:0] sample_l,
-    output logic signed [DAC_OUTPUT_WIDTH-1:0] sample_r,
-    output logic [NUM_LEDS-1:0] led,
-    output logic irq_n
+    input wire clk,
+    input var opl3_reg_wr_t opl3_reg_wr,
+    output logic [NUM_LEDS-1:0] led = 0
 );
-    logic reset;
-    logic sample_clk_en;
-    opl3_reg_wr_t opl3_reg_wr;
-    logic [REG_FILE_DATA_WIDTH-1:0] status;
-    logic force_timer_overflow;
-
-    reset_sync reset_sync (
-        .clk,
-        .arst_n(ic_n),
-        .reset
-    );
-
-    host_if host_if (
-        .*
-    );
-
-    // pulse once per sample period
-    clk_div #(
-        .CLK_DIV_COUNT(CLK_DIV_COUNT)
-    ) sample_clk_gen (
-        .clk_en(sample_clk_en),
-        .*
-    );
-
-    channels channels (
-        .*
-    );
-
-    leds leds (
-        .*
-    );
-
-    /*
-     * If we don't need timers, don't instantiate to save area
-     */
     generate
-    if (INSTANTIATE_TIMERS)
-        timers timers (
-            .*
-        );
-    else
-        always_comb
-            irq_n = 1;
+    genvar i;
+    for (i = 0; i < NUM_LEDS; ++i) begin: led_gen
+        always_ff @(posedge clk)
+            if (opl3_reg_wr.valid && opl3_reg_wr.bank_num == 0 && opl3_reg_wr.address == 'hB0 + i)
+                led[i] <= opl3_reg_wr.data[5];
+    end
     endgenerate
 endmodule
 `default_nettype wire

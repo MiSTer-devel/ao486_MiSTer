@@ -1,13 +1,13 @@
 /*******************************************************************************
 #   +html+<pre>
 #
-#   FILENAME: opl3.sv
-#   AUTHOR: Greg Taylor     CREATION DATE: 24 Feb 2015
+#   FILENAME: host_if.sv
+#   AUTHOR: Greg Taylor     CREATION DATE: 1 April 2024
 #
 #   DESCRIPTION:
 #
 #   CHANGE HISTORY:
-#   24 Feb 2015        Greg Taylor
+#   1 April 2024    Greg Taylor
 #       Initial version
 #
 #   Copyright (C) 2014 Greg Taylor <gtaylor@sonic.net>
@@ -41,12 +41,12 @@
 `timescale 1ns / 1ps
 `default_nettype none
 
-module opl3
+module host_if
     import opl3_pkg::*;
 (
     input wire clk, // opl3 clk
+    input wire reset,
     input wire clk_host,
-    input wire clk_dac,
     input wire ic_n, // clk_host reset
     input wire cs_n,
     input wire rd_n,
@@ -54,55 +54,67 @@ module opl3
     input wire [1:0] address,
     input wire [REG_FILE_DATA_WIDTH-1:0] din,
     output logic [REG_FILE_DATA_WIDTH-1:0] dout,
-    output logic sample_valid,
-    output logic signed [DAC_OUTPUT_WIDTH-1:0] sample_l,
-    output logic signed [DAC_OUTPUT_WIDTH-1:0] sample_r,
-    output logic [NUM_LEDS-1:0] led,
-    output logic irq_n
+    output opl3_reg_wr_t opl3_reg_wr = 0,
+    input wire [REG_FILE_DATA_WIDTH-1:0] status,
+    output logic force_timer_overflow
 );
-    logic reset;
-    logic sample_clk_en;
-    opl3_reg_wr_t opl3_reg_wr;
-    logic [REG_FILE_DATA_WIDTH-1:0] status;
-    logic force_timer_overflow;
+    logic opl3_fifo_empty;
+    logic [1:0] opl3_address;
+    logic [REG_FILE_DATA_WIDTH-1:0] opl3_data;
+    logic wr;
 
-    reset_sync reset_sync (
-        .clk,
-        .arst_n(ic_n),
-        .reset
+    always_comb wr = !cs_n && !wr_n;
+
+    afifo #(
+        .LGFIFO(6), // use at least 6 to get inferred into BRAM. Increase in ALMs at lower depths
+        .WIDTH(2 + REG_FILE_DATA_WIDTH) // address + data
+    ) afifo (
+		.i_wclk(clk_host),
+		.i_wr_reset_n(ic_n),
+		.i_wr(wr), // edge detect if write is held for more than 1 cycle
+		.i_wr_data({address, din}),
+		.o_wr_full(),
+		.i_rclk(clk),
+		.i_rd_reset_n(!reset),
+		.i_rd(!opl3_fifo_empty),
+		.o_rd_data({opl3_address, opl3_data}),
+		.o_rd_empty(opl3_fifo_empty)
+	);
+
+    always_ff @(posedge clk) begin
+        opl3_reg_wr.valid <= 0;
+
+        if (!opl3_fifo_empty)
+            if (!opl3_address[0]) begin // address write mode
+                opl3_reg_wr.bank_num <= opl3_address[1];
+                opl3_reg_wr.address <= opl3_data;
+            end
+            else begin                  // data write mode
+                opl3_reg_wr.data <= opl3_data;
+                opl3_reg_wr.valid <= 1;
+            end
+
+        if (reset)
+            opl3_reg_wr <= 0;
+    end
+
+    // bits do not need to be coherant, can use synchronizers
+    synchronizer #(
+        .DATA_WIDTH(REG_FILE_DATA_WIDTH)
+    ) dout_sync (
+        .clk(clk_host),
+        .in(status),
+        .out(dout)
     );
 
-    host_if host_if (
-        .*
-    );
-
-    // pulse once per sample period
-    clk_div #(
-        .CLK_DIV_COUNT(CLK_DIV_COUNT)
-    ) sample_clk_gen (
-        .clk_en(sample_clk_en),
-        .*
-    );
-
-    channels channels (
-        .*
-    );
-
-    leds leds (
-        .*
-    );
-
-    /*
-     * If we don't need timers, don't instantiate to save area
-     */
     generate
     if (INSTANTIATE_TIMERS)
-        timers timers (
+        trick_sw_detection trick_sw_detection (
             .*
         );
     else
-        always_comb
-            irq_n = 1;
+        always_comb force_timer_overflow = 0;
     endgenerate
+
 endmodule
 `default_nettype wire

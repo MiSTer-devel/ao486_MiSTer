@@ -2,17 +2,17 @@
  * Copyright (c) 2014, Aleksander Osman
  * Copyright (C) 2017-2020 Alexey Melnikov
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * * Redistributions of source code must retain the above copyright notice, this
  *   list of conditions and the following disclaimer.
- * 
+ *
  * * Redistributions in binary form must reproduce the above copyright notice,
  *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -29,6 +29,7 @@ module sound
 (
 	input             clk,
 	input             clk_opl,
+	input			  CLK_AUDIO,
 	input             rst_n,
 
 	output            irq_5,
@@ -44,9 +45,9 @@ module sound
 	input             sb_cs,   //220h-22Fh
 	input             fm_cs,   //388h-38Bh
 
-	input             fm_mode,
+	input             fm_mode, // 0 = OPL2, 1 = OPL3
 	input             cms_en,
-	
+
 	output      [4:0] vol_l,
 	output      [4:0] vol_r,
 	output reg  [4:0] vol_cd_l,
@@ -68,14 +69,14 @@ module sound
 	//sound output
 	output reg [15:0] sample_l,
 	output reg [15:0] sample_r,
+	output reg [15:0] sample_opl_l,
+	output reg [15:0] sample_opl_r,
 
 	input      [27:0] clock_rate
 );
 
 wire sb_read  = read  & sb_cs;
 wire sb_write = write & sb_cs;
-wire fm_read  = read  & fm_cs;
-wire fm_write = write & fm_cs;
 
 always @(posedge clk) readdata <= mixer_rd ? mixer_val : cms_rd ? data_from_cms : (!address[2:0]) ? (opl_dout | (fm_mode ? 8'h00 : 8'h06)) : data_from_dsp;
 
@@ -148,27 +149,32 @@ wire [15:0] sample_from_opl_l;
 wire [15:0] sample_from_opl_r;
 wire  [7:0] opl_dout;
 
-wire opl_we = (           address[2:1] == 0 && sb_write)  //220-221,228-229
-           || (fm_mode && address[3:1] == 1 && sb_write)  //222-223
-           || (             address[1] == 0 && fm_write)  //388-389
-           || (fm_mode &&   address[1] == 1 && fm_write); //38A-38B
+wire opl_we = (address[2:1] == 0) //220-221,228-229
+           || (address[3:1] == 1) //222-223
+           || (address[1] == 0)   //388-389
+           || (address[1] == 1);  //38A-38B
 
-opl3 #(50000000) opl
+wire opl_wr = write && !cms_wr && opl_we;
+wire opl_rd = read && (address == 8);
+wire opl_cs = sb_cs || fm_cs;
+
+opl3 opl
 (
-	.clk(clk),
-	.clk_opl(clk_opl),
-	.rst_n(rst_n),
-
-	.ce_1us(ce_1us),
-
-	.addr(address[1:0]),
-	.din(writedata),
-	.dout(opl_dout),
-	.we(opl_we & ~cms_wr),
-	.rd((sb_read || fm_read) && (address == 8)),
-
+    .clk(clk_opl),
+    .clk_host(clk),
+	.clk_dac(CLK_AUDIO),
+    .ic_n(rst_n),
+    .cs_n(!opl_cs),
+    .rd_n(!opl_rd),
+    .wr_n(!opl_wr),
+    .address(address[1:0]),
+    .din(writedata),
+    .dout(opl_dout),
+    .sample_valid(),
 	.sample_l(sample_from_opl_l),
-	.sample_r(sample_from_opl_r)
+	.sample_r(sample_from_opl_r),
+    .led(),
+    .irq_n()
 );
 
 //------------------------------------------------------------------------------ c/ms
@@ -351,15 +357,14 @@ always @(posedge clk) begin
 	sample_dsp_r <= volume(dsp_value_r, vol_vo_r);
 end
 
-reg [15:0] sample_opl_l, sample_opl_r;
-always @(posedge clk) begin
+always @(posedge CLK_AUDIO) begin // vol reg expected to be held for a long time, clk domain crossing not a big deal
 	sample_opl_l <= volume(sample_from_opl_l, vol_mi_l);
 	sample_opl_r <= volume(sample_from_opl_r, vol_mi_r);
 end
 
 always @(posedge clk) begin
-	sample_l <= {sample_dsp_l[15], sample_dsp_l[15:1]} + {sample_opl_l[15], sample_opl_l[15:1]} + {2'b00, cms_l, cms_l[8:4]};
-	sample_r <= {sample_dsp_r[15], sample_dsp_r[15:1]} + {sample_opl_r[15], sample_opl_r[15:1]} + {2'b00, cms_r, cms_r[8:4]};
+	sample_l <= {sample_dsp_l[15], sample_dsp_l[15:1]} + {2'b00, cms_l, cms_l[8:4]};
+	sample_r <= {sample_dsp_r[15], sample_dsp_r[15:1]} + {2'b00, cms_r, cms_r[8:4]};
 end
 
 assign vol_l = vol_ma_l;

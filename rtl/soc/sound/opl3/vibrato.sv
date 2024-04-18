@@ -1,13 +1,14 @@
 /*******************************************************************************
 #   +html+<pre>
 #
-#   FILENAME: opl3.sv
-#   AUTHOR: Greg Taylor     CREATION DATE: 24 Feb 2015
+#   FILENAME: vibrato.sv
+#   AUTHOR: Greg Taylor     CREATION DATE: 13 Oct 2014
 #
 #   DESCRIPTION:
+#   Prepare the phase increment for the NCO (calc multiplier and vibrato)
 #
 #   CHANGE HISTORY:
-#   24 Feb 2015        Greg Taylor
+#   13 Oct 2014    Greg Taylor
 #       Initial version
 #
 #   Copyright (C) 2014 Greg Taylor <gtaylor@sonic.net>
@@ -41,68 +42,44 @@
 `timescale 1ns / 1ps
 `default_nettype none
 
-module opl3
+module vibrato
     import opl3_pkg::*;
 (
-    input wire clk, // opl3 clk
-    input wire clk_host,
-    input wire clk_dac,
-    input wire ic_n, // clk_host reset
-    input wire cs_n,
-    input wire rd_n,
-    input wire wr_n,
-    input wire [1:0] address,
-    input wire [REG_FILE_DATA_WIDTH-1:0] din,
-    output logic [REG_FILE_DATA_WIDTH-1:0] dout,
-    output logic sample_valid,
-    output logic signed [DAC_OUTPUT_WIDTH-1:0] sample_l,
-    output logic signed [DAC_OUTPUT_WIDTH-1:0] sample_r,
-    output logic [NUM_LEDS-1:0] led,
-    output logic irq_n
+    input wire clk,
+    input wire sample_clk_en,
+    input wire [BANK_NUM_WIDTH-1:0] bank_num,
+    input wire [OP_NUM_WIDTH-1:0] op_num,
+    input wire [REG_FNUM_WIDTH-1:0] fnum,
+    input wire dvb,
+    output logic signed [REG_FNUM_WIDTH-1:0] vib_val_p2 = 0
 );
-    logic reset;
-    logic sample_clk_en;
-    opl3_reg_wr_t opl3_reg_wr;
-    logic [REG_FILE_DATA_WIDTH-1:0] status;
-    logic force_timer_overflow;
+    localparam VIBRATO_INDEX_WIDTH = 13;
 
-    reset_sync reset_sync (
-        .clk,
-        .arst_n(ic_n),
-        .reset
-    );
+    logic [VIBRATO_INDEX_WIDTH-1:0] vibrato_index_p1 = 0;
+    logic [REG_FNUM_WIDTH-1:0] delta0_p1;
+    logic [REG_FNUM_WIDTH-1:0] delta1_p1;
+    logic [REG_FNUM_WIDTH-1:0] delta2_p1;
+    logic fnum_p1 = 0;
+    logic dvb_p1 = 0;
 
-    host_if host_if (
-        .*
-    );
-
-    // pulse once per sample period
-    clk_div #(
-        .CLK_DIV_COUNT(CLK_DIV_COUNT)
-    ) sample_clk_gen (
-        .clk_en(sample_clk_en),
-        .*
-    );
-
-    channels channels (
-        .*
-    );
-
-    leds leds (
-        .*
-    );
+    always_ff @(posedge clk) begin
+        fnum_p1 <= fnum;
+        dvb_p1 <= dvb;
+    end
 
     /*
-     * If we don't need timers, don't instantiate to save area
+     * Low-Frequency Oscillator (LFO)
+     * 6.07Hz (Sample Freq/2**13)
      */
-    generate
-    if (INSTANTIATE_TIMERS)
-        timers timers (
-            .*
-        );
-    else
-        always_comb
-            irq_n = 1;
-    endgenerate
+    always_ff @(posedge clk)
+        if (sample_clk_en)
+            vibrato_index_p1 <= vibrato_index_p1 + 1;
+
+    always_comb delta0_p1 = fnum_p1 >> 7;
+    always_comb delta1_p1 = ((vibrato_index_p1 >> 10) & 3) == 3 ? delta0_p1 >> 1 : delta0_p1;
+    always_comb delta2_p1 = !dvb_p1 ? delta1_p1 >> 1 : delta1_p1;
+
+    always_ff @(posedge clk)
+        vib_val_p2 <= ((vibrato_index_p1 >> 10) & 4) != 0 ? ~delta2_p1 : delta2_p1;
 endmodule
 `default_nettype wire

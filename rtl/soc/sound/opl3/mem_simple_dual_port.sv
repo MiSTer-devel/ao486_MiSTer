@@ -1,13 +1,13 @@
 /*******************************************************************************
 #   +html+<pre>
 #
-#   FILENAME: opl3.sv
-#   AUTHOR: Greg Taylor     CREATION DATE: 24 Feb 2015
+#   FILENAME: mem_simple_dual_port.sv
+#   AUTHOR: Greg Taylor     CREATION DATE: 1 April 2024
 #
 #   DESCRIPTION:
 #
 #   CHANGE HISTORY:
-#   24 Feb 2015        Greg Taylor
+#   1 April 2024    Greg Taylor
 #       Initial version
 #
 #   Copyright (C) 2014 Greg Taylor <gtaylor@sonic.net>
@@ -41,68 +41,49 @@
 `timescale 1ns / 1ps
 `default_nettype none
 
-module opl3
-    import opl3_pkg::*;
-(
-    input wire clk, // opl3 clk
-    input wire clk_host,
-    input wire clk_dac,
-    input wire ic_n, // clk_host reset
-    input wire cs_n,
-    input wire rd_n,
-    input wire wr_n,
-    input wire [1:0] address,
-    input wire [REG_FILE_DATA_WIDTH-1:0] din,
-    output logic [REG_FILE_DATA_WIDTH-1:0] dout,
-    output logic sample_valid,
-    output logic signed [DAC_OUTPUT_WIDTH-1:0] sample_l,
-    output logic signed [DAC_OUTPUT_WIDTH-1:0] sample_r,
-    output logic [NUM_LEDS-1:0] led,
-    output logic irq_n
+module mem_simple_dual_port #(
+    parameter DATA_WIDTH = 0,
+    parameter DEPTH = 0,
+    parameter OUTPUT_DELAY = 0, // 0, 1, or 2
+    parameter DEFAULT_VALUE = 0
+) (
+    input wire clka,
+    input wire clkb,
+    input wire wea,
+    input wire reb, // only used if OUTPUT_DELAY >0
+    input wire [$clog2(DEPTH)-1:0] addra,
+    input wire [$clog2(DEPTH)-1:0] addrb,
+    input wire [DATA_WIDTH-1:0] dia,
+    output logic [DATA_WIDTH-1:0] dob
 );
-    logic reset;
-    logic sample_clk_en;
-    opl3_reg_wr_t opl3_reg_wr;
-    logic [REG_FILE_DATA_WIDTH-1:0] status;
-    logic force_timer_overflow;
+    logic [DATA_WIDTH-1:0] dob_p0;
+    logic [DATA_WIDTH-1:0] dob_p1 = DEFAULT_VALUE;
+    logic [DATA_WIDTH-1:0] dob_p2 = DEFAULT_VALUE;
 
-    reset_sync reset_sync (
-        .clk,
-        .arst_n(ic_n),
-        .reset
-    );
+    logic [DATA_WIDTH-1:0] ram [DEPTH-1:0] = '{default: DEFAULT_VALUE};
 
-    host_if host_if (
-        .*
-    );
+    always_ff @(posedge clka)
+        if (wea)
+            ram[addra] <= dia;
 
-    // pulse once per sample period
-    clk_div #(
-        .CLK_DIV_COUNT(CLK_DIV_COUNT)
-    ) sample_clk_gen (
-        .clk_en(sample_clk_en),
-        .*
-    );
+    always_comb dob_p0 = ram[addrb];
 
-    channels channels (
-        .*
-    );
+    always_ff @(posedge clkb) begin
+        if (reb)
+            dob_p1 <= dob_p0;
 
-    leds leds (
-        .*
-    );
+        dob_p2 <= dob_p1;
+    end
 
-    /*
-     * If we don't need timers, don't instantiate to save area
-     */
     generate
-    if (INSTANTIATE_TIMERS)
-        timers timers (
-            .*
-        );
-    else
-        always_comb
-            irq_n = 1;
+    if (OUTPUT_DELAY == 0)
+        always_comb dob = dob_p0;
+    else if (OUTPUT_DELAY == 1)
+        always_comb dob = dob_p1;
+    else if (OUTPUT_DELAY == 2)
+        always_comb dob = dob_p2;
+    // else
+    //     $fatal("OUTPUT_DELAY must be 0, 1, or 2"); unsupported by Quartus 17
     endgenerate
 endmodule
 `default_nettype wire
