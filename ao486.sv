@@ -387,7 +387,7 @@ pll2 pll
 	.outclk_0(clk_vga),
 	.outclk_1(clk_uart1),
 	.outclk_2(clk_mpu),
-	.outclk_3(clk_opl),
+	.outclk_3(),
 	.outclk_4(clk_sys),
 	.outclk_5(clk_uart2)
 );
@@ -1019,17 +1019,6 @@ end
 
 wire [15:0] sb_out_l, sb_out_r;
 wire [16:0] sb_l, sb_r;
-// always @(posedge CLK_AUDIO) begin
-// 	reg [16:0] old_l0, old_l1, old_r0, old_r1;
-
-// 	old_l0 <= sb_out_l;
-// 	old_l1 <= old_l0;
-// 	if(old_l0 == old_l1) sb_l <= old_l1;
-
-// 	old_r0 <= sb_out_r;
-// 	old_r1 <= old_r0;
-// 	if(old_r0 == old_r1) sb_r <= old_r1;
-// end
 
 reg [31:0] sample_hold = 0;
 reg [15:0] sb_out_l_latched, sb_out_r_latched;
