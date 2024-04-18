@@ -416,8 +416,7 @@ pll pll
 pll_opl3 pll_opl3 (
 	.refclk(CLK_50M),
 	.rst('0),
-	.outclk_0(clk_opl),
-	.locked()
+	.outclk_0(clk_opl)
 );
 
 wire [63:0] reconfig_to_pll;
