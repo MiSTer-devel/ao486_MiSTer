@@ -41,6 +41,7 @@
 #******************************************************************************/
 `timescale 1ns / 1ps
 `default_nettype none
+/* altera message_off 10230 */
 
 module calc_phase_inc
     import opl3_pkg::*;

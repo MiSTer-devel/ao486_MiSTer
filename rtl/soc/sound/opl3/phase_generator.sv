@@ -39,7 +39,8 @@
 #
 #******************************************************************************/
 `timescale 1ns / 1ps
-`default_nettype none // disable implicit net type declarations
+`default_nettype none
+/* altera message_off 10230 */
 
 module phase_generator
     import opl3_pkg::*;
