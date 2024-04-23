@@ -43,6 +43,7 @@
 `timescale 1ns / 1ps
 `default_nettype none
 /* altera message_off 10230 */
+/* altera message_off 10958 */
 
 module control_operators
     import opl3_pkg::*;
