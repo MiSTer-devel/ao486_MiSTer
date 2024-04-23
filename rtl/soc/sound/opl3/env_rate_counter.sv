@@ -60,12 +60,12 @@ module env_rate_counter
     localparam OVERFLOW_TMP_MAX_VALUE = 7<<15;
     localparam PIPELINE_DELAY = 2;
 
-    logic [ENV_RATE_COUNTER_OVERFLOW_WIDTH-1:0] rate_tmp0_p0;
-    logic [ENV_RATE_COUNTER_OVERFLOW_WIDTH-1:0] rate_tmp1_p0;
-    logic [ENV_RATE_COUNTER_OVERFLOW_WIDTH-1:0] rate_tmp2_p0;
-    logic [ENV_RATE_COUNTER_OVERFLOW_WIDTH-1:0] effective_rate_p1 = 0;
-    logic [ENV_RATE_COUNTER_OVERFLOW_WIDTH-1:0] rate_value_p1;
-    logic [ENV_RATE_COUNTER_OVERFLOW_WIDTH-1:0] requested_rate_shifted_p0;
+    logic rate_tmp0_p0;
+    logic [REG_BLOCK_WIDTH+1-1:0] rate_tmp1_p0;
+    logic [REG_BLOCK_WIDTH+1-1:0] rate_tmp2_p0;
+    logic [$clog2(60)-1:0] effective_rate_p1 = 0;
+    logic [$clog2(60)-2-1:0] rate_value_p1;
+    logic [REG_ENV_WIDTH+2-1:0] requested_rate_shifted_p0;
     logic [1:0] rof_p1;
     logic [COUNTER_WIDTH-1:0] counter_p1;
     logic [COUNTER_WIDTH-1:0] counter_new_p2;
