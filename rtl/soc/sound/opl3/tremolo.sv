@@ -40,6 +40,7 @@
 #******************************************************************************/
 `timescale 1ns / 1ps
 `default_nettype none // disable implicit net type declarations
+/* altera message_off 10230 */
 
 module tremolo
     import opl3_pkg::*;
@@ -52,12 +53,10 @@ module tremolo
     output logic [AM_VAL_WIDTH-1:0] am_val_p2 = 0
 );
     localparam PIPELINE_DELAY = 2;
-    localparam TREMOLO_MAX_COUNT = 13*1024;
-    localparam TREMOLO_INDEX_WIDTH = $clog2(TREMOLO_MAX_COUNT);
 
     logic [TREMOLO_INDEX_WIDTH-1:0] tremolo_index_p1 = '0;
     logic [TREMOLO_INDEX_WIDTH-8-1:0] am_val_tmp0_p1;
-    logic [TREMOLO_INDEX_WIDTH-8-1:0] am_val_tmp1_p1;
+    logic [AM_VAL_WIDTH-1:0] am_val_tmp1_p1;
     logic dam_p1 = 0;
 
     /*

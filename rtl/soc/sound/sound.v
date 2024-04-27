@@ -149,14 +149,13 @@ wire [15:0] sample_from_opl_l;
 wire [15:0] sample_from_opl_r;
 wire  [7:0] opl_dout;
 
-wire opl_we = (address[2:1] == 0) //220-221,228-229
-           || (address[3:1] == 1) //222-223
-           || (address[1] == 0)   //388-389
-           || (address[1] == 1);  //38A-38B
+wire opl_cs = (           address[2:1] == 0 && sb_cs)  //220-221,228-229
+           || (fm_mode && address[3:1] == 1 && sb_cs)  //222-223
+           || (             address[1] == 0 && fm_cs)  //388-389
+           || (fm_mode &&   address[1] == 1 && fm_cs); //38A-38B
 
-wire opl_wr = write && !cms_wr && opl_we;
+wire opl_wr = write && !cms_wr;
 wire opl_rd = read && (address == 8);
-wire opl_cs = sb_cs || fm_cs;
 
 opl3 opl
 (

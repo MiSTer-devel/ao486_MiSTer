@@ -42,6 +42,7 @@
 #******************************************************************************/
 `timescale 1ns / 1ps
 `default_nettype none
+/* altera message_off 10230 */
 
 module clk_div #(
     parameter CLK_DIV_COUNT = 0

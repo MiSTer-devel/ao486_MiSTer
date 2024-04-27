@@ -39,7 +39,8 @@
 #
 #******************************************************************************/
 `timescale 1ns / 1ps
-`default_nettype none // disable implicit net type declarations
+`default_nettype none
+/* altera message_off 10230 */
 
 module envelope_generator
     import opl3_pkg::*;
@@ -68,14 +69,9 @@ module envelope_generator
     input wire key_off_pulse_p0,
     output logic [ENV_WIDTH-1:0] env_p3 = SILENCE
 );
-    localparam KSL_ADD_WIDTH = 8;
     localparam PIPELINE_DELAY = 3;
 
-    /*
-     * Because of the 2D array of state_p1 registers, this state_p1 machine isn't
-     * picked up by Vivado synthesis, therefore is not optimized. Manually
-     * optimize encoding to 1-hot
-     */
+    // state_t goes on a memory--explicitly define width/values
     typedef enum logic [3:0] {
         ATTACK    = 4'b0001,
         DECAY     = 4'b0010,
@@ -89,11 +85,11 @@ module envelope_generator
     logic [ENV_WIDTH-1:0] env_int_p0;
     logic [ENV_WIDTH-1:0] env_int_p1 = 0;
     logic [ENV_WIDTH-1:0] env_int_p2 = 0;
+    logic [ENV_WIDTH:0] env_add_p1; // one more bit for overflow check
     logic [AM_VAL_WIDTH-1:0] am_val_p2;
     logic [REG_ENV_WIDTH-1:0] requested_rate_p0;
     logic [ENV_RATE_COUNTER_OVERFLOW_WIDTH-1:0] rate_counter_overflow_p1;
-    logic [ENV_RATE_COUNTER_OVERFLOW_WIDTH-1:0] rate_counter_overflow_p2 = 0;
-    logic signed [ENV_WIDTH+1:0] env_tmp_p2; // two more bits wide than env for >, < comparison
+    logic [ENV_WIDTH+1:0] env_tmp_p2; // two more bits wide than env for overflow check
     logic [PIPELINE_DELAY:1] sample_clk_en_p;
     logic [PIPELINE_DELAY:1] [BANK_NUM_WIDTH-1:0] bank_num_p;
     logic [PIPELINE_DELAY:1] [OP_NUM_WIDTH-1:0] op_num_p;
@@ -169,7 +165,7 @@ module envelope_generator
         endcase
 
         if (key_on_pulse_p0)
-            next_state_p0 = ATTACK;
+            next_state_p0 = env_int_p0 == 0 ? DECAY : ATTACK;
         else if (key_off_pulse_p0)
             next_state_p0 = RELEASE;
     end
@@ -207,20 +203,29 @@ module envelope_generator
         .dob(env_int_p0)
     );
 
+    always_comb env_add_p1 = env_int_p1 + rate_counter_overflow_p1;
+
     always_ff @(posedge clk) begin
         env_int_p1 <= env_int_p0;
         env_int_p2 <= env_int_p1;
-        rate_counter_overflow_p2 <= rate_counter_overflow_p1;
 
         if (sample_clk_en_p[1]) begin
-            if (state_p1 == ATTACK && rate_counter_overflow_p1 != 0 && env_int_p1 != 0)
+            if (state_p1 == ATTACK && rate_counter_overflow_p1 != 0)
+                // The maximum value of overflow is 7. An overflow can only occur
+                // if m_env < floor(m_env/8)*7 + 1. Let's substitute m_env by 8*x:
+                // 8*x < 1 + x*7
+                // <=> 8*x - 7*x < 1
+                // <=> x < 1
+                // But the attack only occurs if m_env>0, so an overflow cannot occur
+                // here.
+                // +1 for one's complement.
                 env_int_p2 <= env_int_p1 - (((env_int_p1*rate_counter_overflow_p1) >> 3) + 1);
             else if (state_p1 == DECAY || state_p1 == RELEASE) begin
-                if (env_int_p1 + rate_counter_overflow_p1 > SILENCE)
+                if (env_add_p1[ENV_WIDTH])
                     // env_int would overflow
                     env_int_p2 <= SILENCE;
                 else
-                    env_int_p2 <= env_int_p1 + rate_counter_overflow_p1;
+                    env_int_p2 <= env_add_p1;
             end
         end
     end
@@ -234,15 +239,13 @@ module envelope_generator
 
     always_comb
         if (am)
-            env_tmp_p2 = env_int_p2 + (tl_p[2] << 2) + ksl_add_p2 + am_val_p2;
+            env_tmp_p2 = env_int_p2 + (tl_p[2] << 2) + ksl_add_p2 + am_val_p2; // max val 1044
         else
             env_tmp_p2 = env_int_p2 + (tl_p[2] << 2) + ksl_add_p2;
 
     // clamp envelope
     always_ff @(posedge clk)
-        if (env_tmp_p2 < 0)
-            env_p3 <= 0;
-        else if (env_tmp_p2 > SILENCE)
+        if (env_tmp_p2[ENV_WIDTH+1:ENV_WIDTH] != 0) // overflow
             env_p3 <= SILENCE;
         else
             env_p3 <= env_tmp_p2;

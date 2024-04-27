@@ -41,6 +41,7 @@
 #******************************************************************************/
 `timescale 1ns / 1ps
 `default_nettype none
+/* altera message_off 10230 */
 
 module calc_phase_inc
     import opl3_pkg::*;
@@ -59,34 +60,37 @@ module calc_phase_inc
     localparam PIPELINE_DELAY = 2;
 
     logic signed [PHASE_ACC_WIDTH-1:0] pre_mult_p0;
-    logic signed [PHASE_ACC_WIDTH-1:0] post_mult_p1 = 0;
+    logic signed [PHASE_ACC_WIDTH-1:0] pre_mult_p1 = 0;
     logic signed [PHASE_ACC_WIDTH-1:0] post_mult_p2 = 0;
-    logic signed [REG_FNUM_WIDTH-1:0] vib_val_p2;
+    logic [VIB_VAL_WIDTH-1:0] vib_val_p2;
     logic [PIPELINE_DELAY:1] vib_p;
+    logic [$clog2(30)-1:0] multiplier_p1 = 0;
 
     always_comb pre_mult_p0 = fnum << block;
 
-    always_ff @(posedge clk) begin
+    always_ff @(posedge clk)
         unique case (mult)
-        'h0: post_mult_p1 <= pre_mult_p0 >> 1;
-        'h1: post_mult_p1 <= pre_mult_p0;
-        'h2: post_mult_p1 <= pre_mult_p0*2;
-        'h3: post_mult_p1 <= pre_mult_p0*3;
-        'h4: post_mult_p1 <= pre_mult_p0*4;
-        'h5: post_mult_p1 <= pre_mult_p0*5;
-        'h6: post_mult_p1 <= pre_mult_p0*6;
-        'h7: post_mult_p1 <= pre_mult_p0*7;
-        'h8: post_mult_p1 <= pre_mult_p0*8;
-        'h9: post_mult_p1 <= pre_mult_p0*9;
-        'hA: post_mult_p1 <= pre_mult_p0*10;
-        'hB: post_mult_p1 <= pre_mult_p0*10;
-        'hC: post_mult_p1 <= pre_mult_p0*12;
-        'hD: post_mult_p1 <= pre_mult_p0*12;
-        'hE: post_mult_p1 <= pre_mult_p0*15;
-        'hF: post_mult_p1 <= pre_mult_p0*15;
+        'h0: multiplier_p1 <= 1;
+        'h1: multiplier_p1 <= 2;
+        'h2: multiplier_p1 <= 4;
+        'h3: multiplier_p1 <= 6;
+        'h4: multiplier_p1 <= 8;
+        'h5: multiplier_p1 <= 10;
+        'h6: multiplier_p1 <= 12;
+        'h7: multiplier_p1 <= 14;
+        'h8: multiplier_p1 <= 16;
+        'h9: multiplier_p1 <= 18;
+        'hA: multiplier_p1 <= 20;
+        'hB: multiplier_p1 <= 20;
+        'hC: multiplier_p1 <= 24;
+        'hD: multiplier_p1 <= 24;
+        'hE: multiplier_p1 <= 30;
+        'hF: multiplier_p1 <= 30;
         endcase
 
-        post_mult_p2 <= post_mult_p1;
+    always_ff @(posedge clk) begin
+        pre_mult_p1 <= pre_mult_p0;
+        post_mult_p2 <= (pre_mult_p1*multiplier_p1) >> 1;
     end
 
     pipeline_sr #(
