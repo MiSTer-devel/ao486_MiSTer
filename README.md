@@ -5,7 +5,7 @@ MiSTer port of the ao486 core originally written by Aleksander Osman, which has 
 Original Core [repository](https://github.com/alfikpl/ao486)
 
 ## Features:
-* 486DX33 performance (no-FPU).
+* 486SX33 performance (no-FPU).
 * 256MB RAM
 * SVGA with up to 1280x1024@256, 1024x768@64K, 640x480@16M resolutions
 * Sound Blaster 16 (DSP v4.05) and Sound Blaster Pro (DSP v3.02) with OPL3 and C/MS
