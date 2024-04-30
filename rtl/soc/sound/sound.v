@@ -78,7 +78,7 @@ module sound
 wire sb_read  = read  & sb_cs;
 wire sb_write = write & sb_cs;
 
-always @(posedge clk) readdata <= mixer_rd ? mixer_val : cms_rd ? data_from_cms : (!address[2:0]) ? (opl_dout | (fm_mode ? 8'h00 : 8'h06)) : data_from_dsp;
+always @(posedge clk) readdata <= mixer_rd ? mixer_val : cms_rd ? data_from_cms : opl_cs ? (opl_dout | (fm_mode ? 8'h00 : 8'h06)) : data_from_dsp;
 
 //------------------------------------------------------------------------------
 
@@ -155,7 +155,7 @@ wire opl_cs = (           address[2:1] == 0 && sb_cs)  //220-221,228-229
            || (fm_mode &&   address[1] == 1 && fm_cs); //38A-38B
 
 wire opl_wr = write && !cms_wr;
-wire opl_rd = read && (address == 8);
+wire opl_rd = read;
 
 opl3 opl
 (
