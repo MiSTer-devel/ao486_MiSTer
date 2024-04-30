@@ -58,13 +58,25 @@ module host_if
     input wire [REG_FILE_DATA_WIDTH-1:0] status,
     output logic force_timer_overflow
 );
+    logic cs_p1_n = 1;
+    logic wr_p1_n = 1;
+    logic [1:0] address_p1 = 0;
+    logic [REG_FILE_DATA_WIDTH-1:0] din_p1 = 0;
     logic opl3_fifo_empty;
     logic [1:0] opl3_address;
     logic [REG_FILE_DATA_WIDTH-1:0] opl3_data;
-    logic wr;
+    logic wr_p1;
     logic [REG_FILE_DATA_WIDTH-1:0] host_status;
 
-    always_comb wr = !cs_n && !wr_n;
+    // relax timing on clk_host
+    always_ff @(posedge clk_host) begin
+        cs_p1_n <= cs_n;
+        wr_p1_n <= wr_n;
+        address_p1 <= address;
+        din_p1 <= din;
+    end
+
+    always_comb wr_p1 = !cs_p1_n && !wr_p1_n;
 
     afifo #(
         .LGFIFO(6), // use at least 6 to get inferred into BRAM. Increase in ALMs at lower depths
@@ -72,8 +84,8 @@ module host_if
     ) afifo (
 		.i_wclk(clk_host),
 		.i_wr_reset_n(ic_n),
-		.i_wr(wr), // edge detect if write is held for more than 1 cycle
-		.i_wr_data({address, din}),
+		.i_wr(wr_p1),
+		.i_wr_data({address_p1, din_p1}),
 		.o_wr_full(),
 		.i_rclk(clk),
 		.i_rd_reset_n(!reset),
@@ -108,7 +120,7 @@ module host_if
         .out(host_status)
     );
 
-    // Doom DMXOPTION=-opl3-phase specifically reads address 0+2 to see if it's all ones
+    // Doom DMXOPTION=-opl3-phase detection routine specifically reads address 'b10 to see if it's all ones
     always_comb dout = address == 0 ? host_status : '1;
 
     generate

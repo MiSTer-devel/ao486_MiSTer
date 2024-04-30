@@ -81,28 +81,41 @@ module trick_sw_detection
 );
     localparam NUM_READS_TO_TRIGGER_OVERFLOW = 50;
 
-    logic wr;
+    logic cs_p1_n = 1;
+    logic wr_p1_n = 1;
+    logic rd_p1_n = 1;
+    logic [1:0] address_p1 = 0;
+    logic [REG_FILE_DATA_WIDTH-1:0] din_p1 = 0;
+    logic wr_p1;
     logic [$clog2(NUM_READS_TO_TRIGGER_OVERFLOW)-1:0] host_rd_counter = 0;
     opl3_reg_wr_t host_reg_wr;
-    logic rd;
-    logic rd_p1 = 0;
+    logic rd_p1;
+    logic rd_p2 = 0;
     logic host_force_timer_overflow = 0;
     logic start_counter = 0;
     logic [REG_TIMER_WIDTH-1:0] timer1 = 0;
 
-    always_comb wr = !cs_n && !wr_n;
+    always_ff @(posedge clk_host) begin
+        cs_p1_n <= cs_n;
+        wr_p1_n <= wr_n;
+        rd_p1_n <= rd_n;
+        address_p1 <= address;
+        din_p1 <= din;
+    end
+
+    always_comb wr_p1 = !cs_p1_n && !wr_p1_n;
 
     always_ff @(posedge clk_host) begin
         host_reg_wr.valid <= 0;
 
-        if (wr)
-            if (!address[0]) begin // address write mode
-                host_reg_wr.bank_num <= address[1];
-                host_reg_wr.address <= din;
+        if (wr_p1)
+            if (!address_p1[0]) begin // address write mode
+                host_reg_wr.bank_num <= address_p1[1];
+                host_reg_wr.address <= din_p1;
             end
             else begin             // data write mode
                 host_reg_wr.valid <= 1;
-                host_reg_wr.data <= din;
+                host_reg_wr.data <= din_p1;
             end
 
         if (host_reg_wr.valid && host_reg_wr.bank_num == 0 && host_reg_wr.address == 'h2)
@@ -114,10 +127,10 @@ module trick_sw_detection
         end
     end
 
-    always_comb rd = !cs_n && !rd_n;
+    always_comb rd_p1 = !cs_p1_n && !rd_p1_n;
 
     always_ff @(posedge clk_host) begin
-        rd_p1 <= rd;
+        rd_p2 <= rd_p1;
 
         if (host_reg_wr.valid && host_reg_wr.bank_num == 0 && host_reg_wr.address == 'h4 && host_reg_wr.data[0] && timer1 == 'hff) begin
             start_counter <= 1;
@@ -125,7 +138,7 @@ module trick_sw_detection
             host_force_timer_overflow <= 0;
         end
 
-        if (start_counter && rd && !rd_p1)
+        if (start_counter && rd_p1 && !rd_p2)
             host_rd_counter <= host_rd_counter + 1;
 
         if (host_rd_counter == NUM_READS_TO_TRIGGER_OVERFLOW)
