@@ -53,7 +53,7 @@ module host_if
     input wire wr_n,
     input wire [1:0] address,
     input wire [REG_FILE_DATA_WIDTH-1:0] din,
-    output logic [REG_FILE_DATA_WIDTH-1:0] dout,
+    output logic [REG_FILE_DATA_WIDTH-1:0] dout = 0,
     output opl3_reg_wr_t opl3_reg_wr = 0,
     input wire [REG_FILE_DATA_WIDTH-1:0] status,
     output logic force_timer_overflow
@@ -121,7 +121,9 @@ module host_if
     );
 
     // Doom DMXOPTION=-opl3-phase detection routine specifically reads address 'b10 to see if it's all ones
-    always_comb dout = address == 0 ? host_status : '1;
+    // Decompiled routine provided by Never_Again at https://www.vogons.org/viewtopic.php?f=7&t=100285
+    always_ff @(posedge clk_host)
+        dout <= address_p1 == 0 ? host_status : '1;
 
     generate
     if (INSTANTIATE_TIMERS)
