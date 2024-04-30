@@ -62,6 +62,7 @@ module host_if
     logic [1:0] opl3_address;
     logic [REG_FILE_DATA_WIDTH-1:0] opl3_data;
     logic wr;
+    logic [REG_FILE_DATA_WIDTH-1:0] host_status;
 
     always_comb wr = !cs_n && !wr_n;
 
@@ -104,8 +105,11 @@ module host_if
     ) dout_sync (
         .clk(clk_host),
         .in(status),
-        .out(dout)
+        .out(host_status)
     );
+
+    // Doom DMXOPTION=-opl3-phase specifically reads address 0+2 to see if it's all ones
+    always_comb dout = address == 0 ? host_status : '1;
 
     generate
     if (INSTANTIATE_TIMERS)
