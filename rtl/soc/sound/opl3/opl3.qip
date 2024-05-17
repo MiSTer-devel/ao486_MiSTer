@@ -12,6 +12,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) e
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) host_if.sv ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) ksl_add_rom.sv ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) leds.sv ]
+set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) mem_multi_bank_reset.sv ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) mem_multi_bank.sv ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) mem_simple_dual_port.sv ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) operator.sv ]
