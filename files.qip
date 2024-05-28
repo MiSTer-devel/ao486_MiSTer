@@ -1,6 +1,5 @@
 set_global_assignment -name SEARCH_PATH ./rtl/ao486
 set_global_assignment -name QIP_FILE rtl/pll2.qip
-set_global_assignment -name QIP_FILE rtl/pll_opl3.qip
 set_global_assignment -name QIP_FILE rtl/ao486/ao486.qip
 set_global_assignment -name QIP_FILE rtl/cache/cache.qip
 set_global_assignment -name QIP_FILE rtl/soc/uart/uart.qip

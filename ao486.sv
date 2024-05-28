@@ -387,7 +387,7 @@ pll2 pll
 	.outclk_0(clk_vga),
 	.outclk_1(clk_uart1),
 	.outclk_2(clk_mpu),
-	.outclk_3(),
+	.outclk_3(clk_opl),
 	.outclk_4(clk_sys),
 	.outclk_5(clk_uart2)
 );
@@ -405,18 +405,12 @@ pll pll
 	.outclk_0(clk_sys),
 	.outclk_1(clk_uart1),
 	.outclk_2(clk_mpu),
-	.outclk_3(),
+	.outclk_3(clk_opl), // 14.285714 instead of 14.318181 which is within tolerance of typical resonator
 	.outclk_4(clk_vga),
 	.outclk_5(clk_uart2),
 	.locked(pll_locked),
 	.reconfig_to_pll(reconfig_to_pll),
 	.reconfig_from_pll(reconfig_from_pll)
-);
-
-pll_opl3 pll_opl3 (
-	.refclk(CLK_50M),
-	.rst('0),
-	.outclk_0(clk_opl)
 );
 
 wire [63:0] reconfig_to_pll;
