@@ -28,8 +28,7 @@
 module sound
 (
 	input             clk,
-	input             clk_opl,
-	input			  CLK_AUDIO,
+	input			  clk_audio,
 	input             rst_n,
 
 	output            irq_5,
@@ -159,9 +158,9 @@ wire opl_rd = read;
 
 opl3 opl
 (
-    .clk(clk_opl),
+    .clk(clk_audio),
     .clk_host(clk),
-	.clk_dac(CLK_AUDIO),
+	.clk_dac(),
     .ic_n(rst_n),
     .cs_n(!opl_cs),
     .rd_n(!opl_rd),

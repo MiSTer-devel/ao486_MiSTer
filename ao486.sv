@@ -376,7 +376,7 @@ hps_ext hps_ext
 
 /////////////////////////////  PLL  ////////////////////////////////////
 
-wire clk_sys, clk_uart1, clk_uart2, clk_mpu, clk_opl, clk_vga;
+wire clk_sys, clk_uart1, clk_uart2, clk_mpu, clk_vga;
 reg [27:0] cur_rate;
 
 `ifdef DEBUG
@@ -387,7 +387,7 @@ pll2 pll
 	.outclk_0(clk_vga),
 	.outclk_1(clk_uart1),
 	.outclk_2(clk_mpu),
-	.outclk_3(clk_opl),
+	.outclk_3(),
 	.outclk_4(clk_sys),
 	.outclk_5(clk_uart2)
 );
@@ -405,7 +405,7 @@ pll pll
 	.outclk_0(clk_sys),
 	.outclk_1(clk_uart1),
 	.outclk_2(clk_mpu),
-	.outclk_3(clk_opl), // 14.285714 instead of 14.318181 which is within tolerance of typical resonator
+	.outclk_3(), // 14.285714 instead of 14.318181 which is within tolerance of typical resonator
 	.outclk_4(clk_vga),
 	.outclk_5(clk_uart2),
 	.locked(pll_locked),
@@ -742,8 +742,7 @@ wire [4:0] vol_en;
 system system
 (
 	.clk_sys              (clk_sys),
-	.clk_opl              (clk_opl),
-	.CLK_AUDIO            (CLK_AUDIO),
+	.clk_audio            (CLK_AUDIO),
 	.clk_uart1            (clk_uart1),
 	.clk_uart2            (clk_uart2),
 	.clk_mpu              (clk_mpu),
