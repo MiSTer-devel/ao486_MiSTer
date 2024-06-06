@@ -28,8 +28,7 @@
 module sound
 (
 	input             clk,
-	input             clk_opl,
-	input			  CLK_AUDIO,
+	input			  clk_audio,
 	input             rst_n,
 
 	output            irq_5,
@@ -159,9 +158,9 @@ wire opl_rd = read;
 
 opl3 opl
 (
-    .clk(clk_opl),
+    .clk(clk_audio),
     .clk_host(clk),
-	.clk_dac(CLK_AUDIO),
+	.clk_dac(),
     .ic_n(rst_n),
     .cs_n(!opl_cs),
     .rd_n(!opl_rd),
@@ -356,7 +355,7 @@ always @(posedge clk) begin
 	sample_dsp_r <= volume(dsp_value_r, vol_vo_r);
 end
 
-always @(posedge CLK_AUDIO) begin // vol reg expected to be held for a long time, clk domain crossing not a big deal
+always @(posedge clk_audio) begin // vol reg expected to be held for a long time, clk domain crossing not a big deal
 	sample_opl_l <= volume(sample_from_opl_l, vol_mi_l);
 	sample_opl_r <= volume(sample_from_opl_r, vol_mi_r);
 end

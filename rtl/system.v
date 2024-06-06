@@ -63,8 +63,7 @@ module system
 	input         mpu_rx,
 	output        mpu_tx,
 
-	input         clk_opl,
-	input         CLK_AUDIO,
+	input         clk_audio,
 	output [15:0] sample_sb_l,
 	output [15:0] sample_sb_r,
 	output [15:0] sample_opl_l,
@@ -634,8 +633,7 @@ rtc rtc
 sound sound
 (
 	.clk               (clk_sys),
-	.clk_opl           (clk_opl),
-	.CLK_AUDIO         (CLK_AUDIO),
+	.clk_audio         (clk_audio),
 	.rst_n             (~reset),
 
 	.clock_rate        (clock_rate),

@@ -376,7 +376,7 @@ hps_ext hps_ext
 
 /////////////////////////////  PLL  ////////////////////////////////////
 
-wire clk_sys, clk_uart1, clk_uart2, clk_mpu, clk_opl, clk_vga;
+wire clk_sys, clk_uart1, clk_uart2, clk_mpu, clk_vga;
 reg [27:0] cur_rate;
 
 `ifdef DEBUG
@@ -387,7 +387,7 @@ pll2 pll
 	.outclk_0(clk_vga),
 	.outclk_1(clk_uart1),
 	.outclk_2(clk_mpu),
-	.outclk_3(clk_opl),
+	.outclk_3(),
 	.outclk_4(clk_sys),
 	.outclk_5(clk_uart2)
 );
@@ -405,7 +405,7 @@ pll pll
 	.outclk_0(clk_sys),
 	.outclk_1(clk_uart1),
 	.outclk_2(clk_mpu),
-	.outclk_3(clk_opl), // 14.285714 instead of 14.318181 which is within tolerance of typical resonator
+	.outclk_3(), // 14.285714 instead of 14.318181 which is within tolerance of typical resonator
 	.outclk_4(clk_vga),
 	.outclk_5(clk_uart2),
 	.locked(pll_locked),
@@ -742,8 +742,7 @@ wire [4:0] vol_en;
 system system
 (
 	.clk_sys              (clk_sys),
-	.clk_opl              (clk_opl),
-	.CLK_AUDIO            (CLK_AUDIO),
+	.clk_audio            (CLK_AUDIO),
 	.clk_uart1            (clk_uart1),
 	.clk_uart2            (clk_uart2),
 	.clk_mpu              (clk_mpu),
@@ -1013,19 +1012,54 @@ always @(posedge CLK_AUDIO) begin
 	spk_out <= spk >> ~vol_spk;
 end
 
+// cross clk_host->clk_audio domains using single bit synchronized handshaking signal
+// 100e6/24.576e6 * 2 + 1 = hold signals stable for 9 cycles to pass through synchronizer
 wire [15:0] sb_out_l, sb_out_r;
+reg [15:0] sb_out_l_p1, sb_out_r_p1, sb_out_l_hold, sb_out_r_hold;
+reg new_sample_l_clk_sys, new_sample_r_clk_sys;
+reg [8:0] new_sample_l_hold_sr, new_sample_r_hold_sr;
+reg new_sample_l_clk_audio_p0, new_sample_r_clk_audio_p0, new_sample_l_clk_audio_p1, new_sample_r_clk_audio_p1;
 wire [16:0] sb_l, sb_r;
-always @(posedge CLK_AUDIO) begin
-	reg [15:0] old_l0, old_l1, old_r0, old_r1;
 
-	old_l0 <= sb_out_l;
-	old_l1 <= old_l0;
-	if(old_l0 == old_l1) sb_l <= {old_l1[15],old_l1};
+always @(posedge clk_sys) begin
+	sb_out_l_p1 <= sb_out_l;
+	sb_out_r_p1 <= sb_out_r;
 
-	old_r0 <= sb_out_r;
-	old_r1 <= old_r0;
-	if(old_r0 == old_r1) sb_r <= {old_r1[15],old_r1};
+	new_sample_l_hold_sr <= new_sample_l_hold_sr << 1;
+	new_sample_r_hold_sr <= new_sample_r_hold_sr << 1;
+
+	if (new_sample_l_hold_sr == 0)
+		new_sample_l_clk_sys <= 0;
+
+	if (new_sample_r_hold_sr == 0)
+		new_sample_r_clk_sys <= 0;
+
+	if (sb_out_l != sb_out_l_p1 && new_sample_l_hold_sr == 0) begin
+		new_sample_l_clk_sys <= 1;
+		new_sample_l_hold_sr[0] <= 1;
+		sb_out_l_hold <= sb_out_l;
 	end
+
+	if (sb_out_r != sb_out_r_p1 && new_sample_r_hold_sr == 0) begin
+		new_sample_r_clk_sys <= 1;
+		new_sample_r_hold_sr[0] <= 1;
+		sb_out_r_hold <= sb_out_r;
+	end
+end
+
+always @(posedge CLK_AUDIO) begin
+	new_sample_l_clk_audio_p0 <= new_sample_l_clk_sys;
+	new_sample_l_clk_audio_p1 <= new_sample_l_clk_audio_p0;
+
+	new_sample_r_clk_audio_p0 <= new_sample_r_clk_sys;
+	new_sample_r_clk_audio_p1 <= new_sample_r_clk_audio_p0;
+
+	if (new_sample_l_clk_audio_p1)
+		sb_l <= {sb_out_l_hold[15],sb_out_l_hold};
+
+	if (new_sample_r_clk_audio_p1)
+		sb_r <= {sb_out_r_hold[15],sb_out_r_hold};
+end
 
 wire [15:0] opl_out_l, opl_out_r; // already synced to CLK_AUDIO
 
