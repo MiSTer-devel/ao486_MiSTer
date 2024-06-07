@@ -25,7 +25,7 @@ wire [15:0] audio_l_clk_audio, audio_r_clk_audio;
 
 cdc_vector_handshake_continuous #(
     .DATA_WIDTH(16*2)
-) sb_cdc (
+) audio_cdc (
     .clk_in(CLK),
     .clk_out(CLK_AUDIO),
     .data_in({audio_l, audio_r}),

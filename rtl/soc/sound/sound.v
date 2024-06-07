@@ -368,7 +368,7 @@ end
 
 cdc_vector_handshake_continuous #(
     .DATA_WIDTH(16*2)
-) sb_cdc (
+) audio_cdc (
     .clk_in(clk),
     .clk_out(clk_audio),
     .data_in({sample_l_clk_sys, sample_r_clk_sys}),
