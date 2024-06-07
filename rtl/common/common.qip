@@ -1,5 +1,5 @@
 set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) bram.vhd ]
-set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) cdc_vector_handshake_no_ack_continuous.sv ]
+set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) cdc_vector_handshake_continuous.sv ]
 set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) simple_fifo.v ]
 set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) simple_fifo_mlab.v ]
 set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) simple_mult.v ]

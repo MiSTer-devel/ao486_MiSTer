@@ -366,10 +366,8 @@ always @(posedge clk) begin
 	sample_r_clk_sys <= {sample_dsp_r[15], sample_dsp_r[15:1]} + {2'b00, cms_r, cms_r[8:4]};
 end
 
-cdc_vector_handshake_no_ack_continuous #(
-    .DATA_WIDTH(16*2),
-    .MAX_INPUT_CLK_FREQ(100e6),
-    .MIN_OUTPUT_CLK_FREQ(24.576e6)
+cdc_vector_handshake_continuous #(
+    .DATA_WIDTH(16*2)
 ) sb_cdc (
     .clk_in(clk),
     .clk_out(clk_audio),

@@ -23,10 +23,8 @@ reg  [31:0] clk_44100_cnt;
 wire [31:0] clk_44100_cnt_next = clk_44100_cnt + 88200;
 wire [15:0] audio_l_clk_audio, audio_r_clk_audio;
 
-cdc_vector_handshake_no_ack_continuous #(
-    .DATA_WIDTH(16*2),
-    .MAX_INPUT_CLK_FREQ(100e6),
-    .MIN_OUTPUT_CLK_FREQ(CLK_AUDIO_RATE)
+cdc_vector_handshake_continuous #(
+    .DATA_WIDTH(16*2)
 ) sb_cdc (
     .clk_in(CLK),
     .clk_out(CLK_AUDIO),
