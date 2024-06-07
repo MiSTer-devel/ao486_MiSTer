@@ -23,7 +23,6 @@ set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) o
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) phase_generator.sv ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) pipeline_sr.sv ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) reset_sync.sv ]
-set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) synchronizer.sv ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) timer.sv ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) timers.sv ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) tremolo.sv ]

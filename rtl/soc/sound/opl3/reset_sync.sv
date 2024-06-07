@@ -52,7 +52,6 @@ module reset_sync (
     input wire arst_n, // global asynchronous active-low reset signal
     output logic reset   // synchronous active-high local reset
 );
-    (* ASYNC_REG = "true" *)
     logic r0 = 1, r1 = 1, r2 = 1;
 
     always_ff @(posedge clk or negedge arst_n)
