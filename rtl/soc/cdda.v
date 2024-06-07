@@ -21,6 +21,16 @@ localparam BUFFER_SIZE  = 2**BUFFER_WIDTH;
 reg         clk_44100;
 reg  [31:0] clk_44100_cnt;
 wire [31:0] clk_44100_cnt_next = clk_44100_cnt + 88200;
+wire [15:0] audio_l_clk_audio, audio_r_clk_audio;
+
+cdc_vector_handshake_continuous #(
+    .DATA_WIDTH(16*2)
+) audio_cdc (
+    .clk_in(CLK),
+    .clk_out(CLK_AUDIO),
+    .data_in({audio_l, audio_r}),
+    .data_out({audio_l_clk_audio, audio_r_clk_audio})
+);
 
 always @(posedge CLK_AUDIO) begin
 	reg old_clk;
@@ -35,8 +45,8 @@ always @(posedge CLK_AUDIO) begin
 	old_clk <= clk_44100;
 	if(~old_clk & clk_44100) begin
 		AUDIO_CE <= 1;
-		AUDIO_L <= $signed(audio_l) >>> ~VOLUME_L;
-		AUDIO_R <= $signed(audio_r) >>> ~VOLUME_R;
+		AUDIO_L <= $signed(audio_l_clk_audio) >>> ~VOLUME_L;
+		AUDIO_R <= $signed(audio_r_clk_audio) >>> ~VOLUME_R;
 	end
 end
 
@@ -52,7 +62,7 @@ always @(posedge CLK) begin
 	reg old_clk;
 	reg clk_d1, clk_d2;
 	reg old_wr = 0, rd_req = 0;
-	
+
 	rd_req <= 0;
 	wr_req <= 0;
 	if(wr_req) write_addr <= write_addr + 1'b1;

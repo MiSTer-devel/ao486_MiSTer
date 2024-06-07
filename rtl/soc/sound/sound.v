@@ -66,8 +66,8 @@ module sound
 	output     [15:0] dma_writedata,
 
 	//sound output
-	output reg [15:0] sample_l,
-	output reg [15:0] sample_r,
+	output     [15:0] sample_l,
+	output     [15:0] sample_r,
 	output reg [15:0] sample_opl_l,
 	output reg [15:0] sample_opl_r,
 
@@ -360,10 +360,20 @@ always @(posedge clk_audio) begin // vol reg expected to be held for a long time
 	sample_opl_r <= volume(sample_from_opl_r, vol_mi_r);
 end
 
+reg [15:0] sample_l_clk_sys, sample_r_clk_sys;
 always @(posedge clk) begin
-	sample_l <= {sample_dsp_l[15], sample_dsp_l[15:1]} + {2'b00, cms_l, cms_l[8:4]};
-	sample_r <= {sample_dsp_r[15], sample_dsp_r[15:1]} + {2'b00, cms_r, cms_r[8:4]};
+	sample_l_clk_sys <= {sample_dsp_l[15], sample_dsp_l[15:1]} + {2'b00, cms_l, cms_l[8:4]};
+	sample_r_clk_sys <= {sample_dsp_r[15], sample_dsp_r[15:1]} + {2'b00, cms_r, cms_r[8:4]};
 end
+
+cdc_vector_handshake_continuous #(
+    .DATA_WIDTH(16*2)
+) audio_cdc (
+    .clk_in(clk),
+    .clk_out(clk_audio),
+    .data_in({sample_l_clk_sys, sample_r_clk_sys}),
+    .data_out({sample_l, sample_r})
+);
 
 assign vol_l = vol_ma_l;
 assign vol_r = vol_ma_r;

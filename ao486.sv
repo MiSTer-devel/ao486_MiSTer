@@ -1004,64 +1004,24 @@ wire mt32_lcd = mt32_lcd_on & mt32_lcd_en;
 
 ////////////////////////////  AUDIO  ///////////////////////////////////
 
-wire        speaker_out;
+wire        speaker_out, speaker_out_clk_audio;
 reg  [16:0] spk_out;
+
+synchronizer speaker_out_sync
+(
+	.clk(CLK_AUDIO),
+	.in(speaker_out),
+	.out(speaker_out_clk_audio)
+);
+
 always @(posedge CLK_AUDIO) begin
 	reg [16:0] spk;
-	spk <= {2'b00, {3'b000,speaker_out} << status[19:18], 11'd0};
+	spk <= {2'b00, {3'b000,speaker_out_clk_audio} << status[19:18], 11'd0};
 	spk_out <= spk >> ~vol_spk;
 end
 
-// cross clk_host->clk_audio domains using single bit synchronized handshaking signal
-// 100e6/24.576e6 * 2 + 1 = hold signals stable for 9 cycles to pass through synchronizer
 wire [15:0] sb_out_l, sb_out_r;
-reg [15:0] sb_out_l_p1, sb_out_r_p1, sb_out_l_hold, sb_out_r_hold;
-reg new_sample_l_clk_sys, new_sample_r_clk_sys;
-reg [8:0] new_sample_l_hold_sr, new_sample_r_hold_sr;
-reg new_sample_l_clk_audio_p0, new_sample_r_clk_audio_p0, new_sample_l_clk_audio_p1, new_sample_r_clk_audio_p1;
-wire [16:0] sb_l, sb_r;
-
-always @(posedge clk_sys) begin
-	sb_out_l_p1 <= sb_out_l;
-	sb_out_r_p1 <= sb_out_r;
-
-	new_sample_l_hold_sr <= new_sample_l_hold_sr << 1;
-	new_sample_r_hold_sr <= new_sample_r_hold_sr << 1;
-
-	if (new_sample_l_hold_sr == 0)
-		new_sample_l_clk_sys <= 0;
-
-	if (new_sample_r_hold_sr == 0)
-		new_sample_r_clk_sys <= 0;
-
-	if (sb_out_l != sb_out_l_p1 && new_sample_l_hold_sr == 0) begin
-		new_sample_l_clk_sys <= 1;
-		new_sample_l_hold_sr[0] <= 1;
-		sb_out_l_hold <= sb_out_l;
-	end
-
-	if (sb_out_r != sb_out_r_p1 && new_sample_r_hold_sr == 0) begin
-		new_sample_r_clk_sys <= 1;
-		new_sample_r_hold_sr[0] <= 1;
-		sb_out_r_hold <= sb_out_r;
-	end
-end
-
-always @(posedge CLK_AUDIO) begin
-	new_sample_l_clk_audio_p0 <= new_sample_l_clk_sys;
-	new_sample_l_clk_audio_p1 <= new_sample_l_clk_audio_p0;
-
-	new_sample_r_clk_audio_p0 <= new_sample_r_clk_sys;
-	new_sample_r_clk_audio_p1 <= new_sample_r_clk_audio_p0;
-
-	if (new_sample_l_clk_audio_p1)
-		sb_l <= {sb_out_l_hold[15],sb_out_l_hold};
-
-	if (new_sample_r_clk_audio_p1)
-		sb_r <= {sb_out_r_hold[15],sb_out_r_hold};
-end
-
-wire [15:0] opl_out_l, opl_out_r; // already synced to CLK_AUDIO
+wire [15:0] opl_out_l, opl_out_r;
 
 wire [15:0] cdda_l;
 wire [15:0] cdda_r;
@@ -1098,8 +1058,8 @@ always @(posedge CLK_AUDIO) begin
 	mt32_l <= volume(mt32_i2s_l, ~status[25] ? vol_midi_l : vol_en[4] ? vol_line_l : 5'd0);
 	mt32_r <= volume(mt32_i2s_r, ~status[25] ? vol_midi_r : vol_en[3] ? vol_line_r : 5'd0);
 
-	tmp_l <= {opl_out_l[15],opl_out_l} + sb_l + spk_out + (mt32_mute ? 17'd0 : {mt32_l[15],mt32_l}) + (vol_en[2] ? {cdda_l[15],cdda_l} : 17'd0);
-	tmp_r <= {opl_out_r[15],opl_out_r} + sb_r + spk_out + (mt32_mute ? 17'd0 : {mt32_r[15],mt32_r}) + (vol_en[1] ? {cdda_r[15],cdda_r} : 17'd0);
+	tmp_l <= {opl_out_l[15],opl_out_l} + {sb_out_l[15],sb_out_l} + spk_out + (mt32_mute ? 17'd0 : {mt32_l[15],mt32_l}) + (vol_en[2] ? {cdda_l[15],cdda_l} : 17'd0);
+	tmp_r <= {opl_out_r[15],opl_out_r} + {sb_out_r[15],sb_out_r} + spk_out + (mt32_mute ? 17'd0 : {mt32_r[15],mt32_r}) + (vol_en[1] ? {cdda_r[15],cdda_r} : 17'd0);
 
 	// clamp the output
 	out_l <= (^tmp_l[16:15]) ? {tmp_l[16], {15{tmp_l[15]}}} : tmp_l[15:0];

@@ -111,7 +111,7 @@ module afifo #(
 					rd_wgray, wr_rgray;
 	wire	[LGFIFO:0]		next_rd_addr, next_wr_addr;
 	reg	[LGFIFO:0]		rgray, wgray;
-	(* ASYNC_REG = "TRUE" *) reg	[(LGFIFO+1)*(NFF-1)-1:0]
+	reg	[(LGFIFO+1)*(NFF-1)-1:0]
 					rgray_cross, wgray_cross;
 	wire				wclk;
 	reg	[WIDTH-1:0]		lcl_rd_data;
