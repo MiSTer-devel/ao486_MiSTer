@@ -30,7 +30,7 @@ module cdc_vector_handshake_no_ack_continuous #(
     always_ff @(posedge clk_in) begin
         // hold low for HOLD_INPUT_CYCLES so a 0 resolves through synchronizer
         // and we don't immediately latch the next value while new_value_clk_out is
-        // still high from the previous input value as it's delayed. New value transision
+        // still high from the previous input value as it's delayed. New value transition
         // during this period could cause metastability.
         if (new_value_clk_in_hold_sr[HOLD_INPUT_CYCLES-1])
             new_value_clk_in <= 0;
