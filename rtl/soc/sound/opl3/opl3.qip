@@ -7,7 +7,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) c
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) clk_div.sv ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) control_operators.sv ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) edge_detector.sv ]
-set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) env_rate_counter.sv ]
+set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) calc_envelope_shift.sv ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) envelope_generator.sv ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) host_if.sv ]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) ksl_add_rom.sv ]

@@ -40,7 +40,7 @@
 #
 #******************************************************************************/
 `timescale 1ns / 1ps
-`default_nettype none // disable implicit net type declarations
+`default_nettype none
 /* altera message_off 10230 */
 
 module ksl_add_rom
