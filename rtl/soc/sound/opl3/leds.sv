@@ -56,7 +56,7 @@ module leds
         for (i = 0; i < NUM_LEDS; ++i) begin: led_gen
             always_ff @(posedge clk)
                 if (opl3_reg_wr.valid && opl3_reg_wr.bank_num == 0 && opl3_reg_wr.address == 'hB0 + i)
-                    led[i] <= opl3_reg_wr.data[5];
+                    led[i] <= opl3_reg_wr.data[5]; // kon bit
         end
     end
     endgenerate
