@@ -92,7 +92,7 @@ wire [7:0] io_readdata_next =
     (ram_address == 7'h00) ? rtc_second :
     (ram_address == 7'h01) ? alarm_second :
     (ram_address == 7'h02) ? rtc_minute :
-    (ram_address == 7'h03) ? alarm_second :
+    (ram_address == 7'h03) ? alarm_minute :
     (ram_address == 7'h04) ? rtc_hour :
     (ram_address == 7'h05) ? alarm_hour :
     (ram_address == 7'h06) ? rtc_dayofweek :
@@ -104,8 +104,6 @@ wire [7:0] io_readdata_next =
                                1'b0, crb_binarymode, crb_24hour, crb_daylightsaving } :
     (ram_address == 7'h0C) ? { irq, periodic_interrupt, alarm_interrupt, update_interrupt, 4'd0 } :
     (ram_address == 7'h0D) ? 8'h80 :
-    (ram_address == 7'h34 & memcfg) ? 8'h00 :
-    (ram_address == 7'h35 & memcfg) ? 8'h00 :
     (ram_address == 7'h38) ? {2'b00, bootcfg[5:4], 4'h1} :
     (ram_address == 7'h3D) ? {2'b00, bootcfg[3:2], 2'b00, bootcfg[1:0]} :
     (ram_address == 7'h32) ? rtc_century :
