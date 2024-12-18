@@ -112,16 +112,16 @@ end
 
 reg msb_write;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                 msb_write <= 1'b0;
-    else if(set_control_mode)         msb_write <= 1'b0;
-    else if(write && rw_mode == 2'd3) msb_write <= ~msb_write;
+    if(rst_n == 1'b0)                       msb_write <= 1'b0;
+    else if(set_control_mode)               msb_write <= 1'b0;
+    else if(write_pulse && rw_mode == 2'd3) msb_write <= ~msb_write;
 end
 
 reg msb_read;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                msb_read <= 1'b0;
-    else if(set_control_mode)        msb_read <= 1'b0;
-    else if(read && rw_mode == 2'd3) msb_read <= ~msb_read;
+    if(rst_n == 1'b0)                      msb_read <= 1'b0;
+    else if(set_control_mode)              msb_read <= 1'b0;
+    else if(read_pulse && rw_mode == 2'd3) msb_read <= ~msb_read;
 end
 
 reg [7:0] status;
@@ -146,6 +146,31 @@ assign data_out =
                                      output_m;
 
 //------------------------------------------------------------------------------
+
+reg two_byte_write;
+always @(posedge clk) begin
+    if(rst_n == 1'b0)                 two_byte_write <= 1'b0;
+    else if(write && rw_mode == 2'd3) two_byte_write <= 1'b1;
+    else if(set_control_mode || load) two_byte_write <= 1'b0;
+end
+
+reg set_control_mode_last;
+always @(posedge clk) set_control_mode_last <= set_control_mode;
+
+reg set_control_mode_pulse;
+always @(posedge clk) set_control_mode_pulse <= set_control_mode_last & ~set_control_mode;
+
+reg write_last;
+always @(posedge clk) write_last <= write;
+
+reg write_pulse;
+always @(posedge clk) write_pulse <= write_last & ~write;
+
+reg read_last;
+always @(posedge clk) read_last <= read;
+
+reg read_pulse;
+always @(posedge clk) read_pulse <= read_last & ~read;
 
 reg clock_last;
 always @(posedge clk) clock_last <= clock;
@@ -178,45 +203,44 @@ end
 //------------------------------------------------------------------------------
 
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                                         out <= 1'b1;
+    if(rst_n == 1'b0)                                                 out <= 1'b1;
 
-    else if(set_control_mode && data_in[3:1] == 3'd0)         out <= 1'b0;
-    else if(set_control_mode && data_in[3:1] == 3'd1)         out <= 1'b1;
-    else if(set_control_mode && data_in[2:1] == 2'd2)         out <= 1'b1;
-    else if(set_control_mode && data_in[2:1] == 2'd3)         out <= 1'b1;
-    else if(set_control_mode && data_in[3:1] == 3'd4)         out <= 1'b1;
-    else if(set_control_mode && data_in[3:1] == 3'd5)         out <= 1'b1;
+    else if(set_control_mode_pulse && mode      == 3'd0)              out <= 1'b0;
+    else if(set_control_mode_pulse && mode      == 3'd1)              out <= 1'b1;
+    else if(set_control_mode_pulse && mode[1:0] == 2'd2)              out <= 1'b1;
+    else if(set_control_mode_pulse && mode[1:0] == 2'd3)              out <= 1'b1;
+    else if(set_control_mode_pulse && mode      == 3'd4)              out <= 1'b1;
+    else if(set_control_mode_pulse && mode      == 3'd5)              out <= 1'b1;
 
-    else if(mode      == 3'd0 && load)                        out <= 1'b0;
-    else if(mode      == 3'd0 && counter == 16'd1 && enable)  out <= 1'b1;
+    else if(mode      == 3'd0 && (load || two_byte_write))            out <= 1'b0;
+    else if(mode      == 3'd0 && counter == 16'd1 && enable)          out <= 1'b1;
 
-    else if(mode      == 3'd1 && load)                        out <= 1'b0;
-    else if(mode      == 3'd1 && counter == 16'd1 && enable)  out <= 1'b1;
+    else if(mode      == 3'd1 && load)                                out <= 1'b0;
+    else if(mode      == 3'd1 && counter == 16'd1 && enable)          out <= 1'b1;
 
-    else if(mode[1:0] == 2'd2 && ~gate)                       out <= 1'b1;
-    else if(mode[1:0] == 2'd2 && load)                        out <= 1'b1;
-    else if(mode[1:0] == 2'd2 && counter == 16'd2 && enable)  out <= 1'b0;
+    else if(mode[1:0] == 2'd2 && ~gate)                               out <= 1'b1;
+    else if(mode[1:0] == 2'd2 && load)                                out <= 1'b1;
+    else if(mode[1:0] == 2'd2 && counter == 16'd2 && enable)          out <= 1'b0;
 
-    else if(mode[1:0] == 2'd3 && ~gate)                       out <= 1'b1;
-    else if(mode[1:0] == 2'd3 && load)                        out <= ~out;
+    else if(mode[1:0] == 2'd3 && ~gate)                               out <= 1'b1;
+    else if(mode[1:0] == 2'd3 && load && loaded && ~trigger_sampled)  out <= ~out;
 
-    else if(mode      == 3'd4 && load)                        out <= 1'b1;
-    else if(mode      == 3'd4 && counter == 16'd2 && enable)  out <= 1'b0;
-    else if(mode      == 3'd4 && counter == 16'd1 && enable)  out <= 1'b1;
+    else if(mode      == 3'd4 && counter == 16'd1 && enable)          out <= 1'b0;
+    else if(mode      == 3'd4 && counter == 16'd0 && enable)          out <= 1'b1;
 
-    else if(mode      == 3'd5 && counter == 16'd2 && enable)  out <= 1'b0;
-    else if(mode      == 3'd5 && counter == 16'd1 && enable)  out <= 1'b1;
+    else if(mode      == 3'd5 && counter == 16'd1 && enable)          out <= 1'b0;
+    else if(mode      == 3'd5 && counter == 16'd0 && enable)          out <= 1'b1;
 end
 
 //------------------------------------------------------------------------------
 
 reg written;
 always @(posedge clk) begin
-    if(rst_n == 1'b0)                              written <= 1'b0;
-    else if(set_control_mode)                      written <= 1'b0;
-    else if(write && rw_mode != 2'd3)              written <= 1'b1;
-    else if(write && rw_mode == 2'd3 && msb_write) written <= 1'b1;
-    else if(load)                                  written <= 1'b0;
+    if(rst_n == 1'b0)                                    written <= 1'b0;
+    else if(set_control_mode)                            written <= 1'b0;
+    else if(write_pulse && rw_mode != 2'd3)              written <= 1'b1;
+    else if(write_pulse && rw_mode == 2'd3 && msb_write) written <= 1'b1;
+    else if(load)                                        written <= 1'b0;
 end
 
 reg control_set;
@@ -235,18 +259,18 @@ end
 
 wire load = clock_pulse && (
     (mode      == 3'd0 &&   written) ||
-    (mode      == 3'd1 &&  (written && control_set) && trigger_sampled) ||
+    (mode      == 3'd1 &&   trigger_sampled) ||
     (mode[1:0] == 2'd2 && ((written && control_set) || trigger_sampled || (loaded && gate_sampled && counter == 16'd1))) ||
     (mode[1:0] == 2'd3 && ((written && control_set) || trigger_sampled || (loaded && gate_sampled && counter == ((counter_l[0] & out) ? 16'd0 : 16'd2)))) ||
     (mode      == 3'd4 &&   written) ||
     (mode      == 3'd5 && ((written && control_set) || loaded) && trigger_sampled)
 );
 
-wire enable = ~load && loaded && clock_pulse && ( 
-    (mode      == 3'd0 && gate_sampled) ||
+wire enable = ~load && loaded && clock_pulse && (
+    (mode      == 3'd0 && gate_sampled && ~two_byte_write) ||
     (mode      == 3'd1) ||
     (mode[1:0] == 2'd2 && gate_sampled) ||
-	 (mode[1:0] == 2'd3 && gate_sampled) ||
+    (mode[1:0] == 2'd3 && gate_sampled) ||
     (mode      == 3'd4 && gate_sampled) ||
     (mode      == 3'd5)
 );
