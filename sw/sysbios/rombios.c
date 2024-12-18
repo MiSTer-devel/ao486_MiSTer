@@ -454,12 +454,15 @@ typedef unsigned long  Bit32u;
   ;; cmp function
   lcmpl:
   lcmpul:
-    and eax, #0x0000FFFF
-    shl ebx, #16
-    or  eax, ebx
-    shr ebx, #16
+    push eax
+    push ebx
+    and  eax, #0x0000FFFF
+    shl  ebx, #16
+    or   eax, ebx
     SEG SS
       cmp eax, dword ptr [di]
+    pop  ebx
+    pop  eax
     ret
 
   ;; sub function
@@ -474,13 +477,21 @@ typedef unsigned long  Bit32u;
   ;; mul function
   lmull:
   lmulul:
-    and eax, #0x0000FFFF
-    shl ebx, #16
-    or  eax, ebx
+    push edx
+    push ebx
+    push eax
+    and  eax, #0x0000FFFF
+    shl  ebx, #16
+    or   eax, ebx
     SEG SS
-    mul eax, dword ptr [di]
-    mov ebx, eax
-    shr ebx, #16
+    mul  eax, dword ptr [di]
+    mov  edx, eax
+    pop  eax
+    mov  ax, dx
+    shr  edx, #16
+    pop  ebx
+    mov  bx, dx
+    pop  edx
     ret
 
   ;; dec function
@@ -509,42 +520,41 @@ typedef unsigned long  Bit32u;
   ;; tst function
   ltstl:
   ltstul:
-    and eax, #0x0000FFFF
-    shl ebx, #16
-    or  eax, ebx
-    shr ebx, #16
+    push eax
+    push ebx
+    and  eax, #0x0000FFFF
+    shl  ebx, #16
+    or   eax, ebx
     test eax, eax
+    pop  ebx
+    pop  eax
     ret
 
   ;; sr function
   lsrul:
-    mov  cx,di
+    push ecx
+    mov  cx, di
     jcxz lsr_exit
-    and  eax, #0x0000FFFF
-    shl  ebx, #16
-    or   eax, ebx
   lsr_loop:
-    shr  eax, #1
+    shr  bx, #1
+    rcr  ax, #1
     loop lsr_loop
-    mov  ebx, eax
-    shr  ebx, #16
   lsr_exit:
+    pop  ecx
     ret
 
   ;; sl function
   lsll:
   lslul:
-    mov  cx,di
+    push ecx
+    mov  cx, di
     jcxz lsl_exit
-    and  eax, #0x0000FFFF
-    shl  ebx, #16
-    or   eax, ebx
   lsl_loop:
-    shl  eax, #1
+    shl  ax, #1
+    rcl  bx, #1
     loop lsl_loop
-    mov  ebx, eax
-    shr  ebx, #16
   lsl_exit:
+    pop  ecx
     ret
 
   idiv_:
@@ -558,6 +568,9 @@ typedef unsigned long  Bit32u;
     ret
 
   ldivul:
+    push edx
+    push ebx
+    push eax
     and  eax, #0x0000FFFF
     shl  ebx, #16
     or   eax, ebx
@@ -568,8 +581,13 @@ typedef unsigned long  Bit32u;
     SEG SS
     mov  bx,  [di]
     div  ebx
-    mov  ebx, eax
-    shr  ebx, #16
+    mov  edx, eax
+    pop  eax
+    mov  ax, dx
+    shr  edx, #16
+    pop  ebx
+    mov  bx, dx
+    pop  edx
     ret
 
   ASM_END
@@ -5474,8 +5492,8 @@ int13_edd(DS, SI, device)
 }
 
   void
-int13_harddisk(EHAX, DS, ES, DI, SI, BP, ELDX, BX, DX, CX, AX, IP, CS, FLAGS)
-  Bit16u EHAX, DS, ES, DI, SI, BP, ELDX, BX, DX, CX, AX, IP, CS, FLAGS;
+int13_harddisk(DS, ES, DI, SI, BP, ELDX, BX, DX, CX, AX, IP, CS, FLAGS)
+  Bit16u DS, ES, DI, SI, BP, ELDX, BX, DX, CX, AX, IP, CS, FLAGS;
 {
   Bit32u lba_low, lba_high;
   Bit16u cylinder, head, sector;
@@ -6339,8 +6357,8 @@ ASM_END
 }
 
   void
-int13_harddisk(EHAX, DS, ES, DI, SI, BP, ELDX, BX, DX, CX, AX, IP, CS, FLAGS)
-  Bit16u EHAX, DS, ES, DI, SI, BP, ELDX, BX, DX, CX, AX, IP, CS, FLAGS;
+int13_harddisk(DS, ES, DI, SI, BP, ELDX, BX, DX, CX, AX, IP, CS, FLAGS)
+  Bit16u DS, ES, DI, SI, BP, ELDX, BX, DX, CX, AX, IP, CS, FLAGS;
 {
   Bit8u    drive, num_sectors, sector, head, status, mod;
   Bit8u    drive_map;
@@ -8763,12 +8781,7 @@ int13_notcdrom:
 #endif
 
 int13_disk:
-  ;; int13_harddisk modifies high word of EAX
-  shr   eax, #16
-  push  ax
   call  _int13_harddisk
-  pop   ax
-  shl   eax, #16
 
 int13_out:
   pop ds
