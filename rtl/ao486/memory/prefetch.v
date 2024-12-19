@@ -102,7 +102,7 @@ always @(posedge clk) begin
       linear        <= cs_base + prefetch_eip; 
       delivered_eip <= cs_base + prefetch_eip;
     end else begin
-      if(reset_prefetch)         linear <= delivered_eip;
+      if(reset_prefetch)         linear <= prefetched_accept_do_1 ? delivered_eip + prefetched_accept_length_1 : delivered_eip;
       else if(prefetched_do)     linear <= linear + { 27'd0, length };
       
       if(prefetched_accept_do_1) delivered_eip <= delivered_eip + prefetched_accept_length_1;
