@@ -182,11 +182,11 @@ always @(posedge CLK) begin
 			end
 	endcase
 end
-   
-wire ram_rgn = !CPU_ADDR[29:ADDRBITS+2];
-wire rom_rgn = (CPU_ADDR[ADDRBITS+1:14] == 'hC)  || (CPU_ADDR[ADDRBITS+1:14] == 'hF);
-wire vga_rgn = (CPU_ADDR[ADDRBITS+1:15] == 'h5)  && ((CPU_ADDR[14:13] & vga_mask) == vga_cmp);
-wire shr_rgn = (CPU_ADDR[ADDRBITS+1:11] == 'h67) && shr_rgn_en;
+
+wire ram_rgn = !CPU_ADDR[29:ADDRBITS+2];                                                       // = below 256MB
+wire rom_rgn = (CPU_ADDR[ADDRBITS+1:16] == 'h3);                                               // = 0xC0000-0xFFFFF (VGA-ROM...BIOS-ROM)
+wire vga_rgn = (CPU_ADDR[ADDRBITS+1:15] == 'h5)  && ((CPU_ADDR[14:13] & vga_mask) == vga_cmp); // = 0xA0000-0xBFFFF (VGA: exact region depends on VGA_MODE)
+wire shr_rgn = (CPU_ADDR[ADDRBITS+1:11] == 'h67) && shr_rgn_en;                                // = 0xCE000-0xCFFFF (used by shared folder)
 
 wire [7:0] be64 = CPU_ADDR[0] ? {CPU_BE, 4'h0} : {4'h0, CPU_BE};
 
@@ -287,7 +287,7 @@ always @(posedge CLK) begin
 
 						if (CPU_RD) begin
 							state     <= READONE;
-							if (vga_rgn) begin
+							if (vga_rgn & ram_rgn) begin
 								if(VGA_FB_EN) begin
 									ram_addr[24:13]  <= {6'b111110, VGA_RD_SEG};
 									read_addr[24:13] <= {6'b111110, VGA_RD_SEG};
