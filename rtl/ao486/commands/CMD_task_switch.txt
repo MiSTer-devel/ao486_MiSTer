@@ -129,7 +129,7 @@ IF(`CMDEX_task_switch_STEP_9);
     ENDIF();
 ENDIF();
 
-IF(mc_cmd == `CMD_task_switch_3);
+IF(mc_cmd == `CMD_task_switch_3 && mc_cmdex_last < `CMDEX_task_switch_3_STEP_15);
     DIRECT(mc_cmd, mc_cmdex_last + 4'd1);
 ENDIF();
 
