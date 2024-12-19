@@ -3868,20 +3868,6 @@ BX_DEBUG_INT15("int15 AX=%04x\n",regs.u.r16.ax);
       regs.u.r8.ah = 0;  // "ok ejection may proceed"
       break;
 
-    case 0x80:
-      /* Device open */
-    case 0x81:
-      /* Device close */
-    case 0x82:
-      /* Program termination */
-    case 0x90:
-      /* Device busy interrupt. Called by Int 16h when no key available */
-    case 0x91:
-      /* Interrupt complete. Called by IRQ handlers */
-      CLEAR_CF();
-      regs.u.r8.ah = 0;  // "operation success"
-      break;
-
     case 0x83: {
       // Set DS to 0x40
       set_DS(0x40);
@@ -10062,7 +10048,7 @@ enable_iomem_space:
   call pcibios_init_sel_reg
   mov  dx, #0x0cfc
   in   al, dx
-  or   al, #0x07
+  or   al, #0x03
   out  dx, al
 next_pci_dev:
   mov  byte ptr[bp-8], #0x10
@@ -11378,6 +11364,16 @@ int11_handler:
 ;----------
 .org 0xf859 ; INT 15h System Services Entry Point
 int15_handler:
+  cmp ah, #0x80 ; Device open
+  je int15_stub
+  cmp ah, #0x81 ; Device close
+  je int15_stub
+  cmp ah, #0x82 ; Program termination
+  je int15_stub
+  cmp ah, #0x90 ; Device busy interrupt. Called by Int 16h when no key available
+  je int15_stub
+  cmp ah, #0x91 ; Interrupt complete. Called by IRQ handlers
+  je int15_stub
   pushf
 #if BX_APM
   cmp ah, #0x53
@@ -11406,6 +11402,10 @@ int15_handler32_ret:
 apm_call:
   jmp _apmreal_entry
 #endif
+int15_stub:
+  xor ah, ah ; "operation success"
+  clc
+  jmp iret_modify_cf
 
 #if BX_USE_PS2_MOUSE
 int15_handler_mouse:
