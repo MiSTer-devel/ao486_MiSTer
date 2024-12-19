@@ -106,6 +106,7 @@ module system
 	output        video_off,
 	input         video_fb_en,
 	input         video_lores,
+	input         video_border,
 
 	output        DDRAM_CLK,
 	input         DDRAM_BUSY,
@@ -790,6 +791,7 @@ vga vga
 	.vga_stride        (video_stride),
 	.vga_off           (video_off),
 	.vga_lores         (video_lores),
+	.vga_border        (video_border),
 
 	.irq               (irq_2)
 );
