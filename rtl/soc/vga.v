@@ -871,7 +871,7 @@ assign mem_readdata =
 	(~graph_read_mode  && graph_read_map_select == 2'd1)                                    ? host_ram1_q:
 	(~graph_read_mode  && graph_read_map_select == 2'd2)                                    ? host_ram2_q:
 	(~graph_read_mode  && graph_read_map_select == 2'd3)                                    ? host_ram3_q:
-																			                                    host_read_mode_1;
+	                                                                                          host_read_mode_1;
 
 always @(posedge clk_sys) begin
 	if(~rst_n) begin
@@ -1472,6 +1472,8 @@ always @(posedge clk_vga) if (ce_video) begin
   dot_memory_load_dot_cnt <= (seq_dotclock_divided ^ dot_cnt_enable) && dot_cnt == { 1'b0, seq_dotclock_divided, ~seq_8dot_char, seq_8dot_char };
 end
 
+// horizontally shifted -2 whole characters and +dot_memory_load_dot_cnt dots (to accommodate pel shift register data propagation)
+// load +1 extra (to accommodate horizontal panning)
 assign dot_memory_load_active = (crtc_horizontal_total + VGA_H_TOTAL_EXTRA - 2'd2 < horiz_cnt || horiz_cnt < crtc_horizontal_display_size) && (vert_cnt <= crtc_vertical_display_size);
 
 assign dot_memory_load = dot_memory_load_dot_cnt && dot_memory_load_active;
