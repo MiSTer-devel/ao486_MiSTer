@@ -58,10 +58,10 @@ localparam DW = WIDE  ? 15 : 7;
 localparam SZ = OCTAL ?  8 : 1;
 localparam SW = SZ-1;
 
-wire [7:0] DATA_TOKEN_CMD25    = 8'hfc;
-wire [7:0] STOP_TRAN           = 8'hfd;
-wire [7:0] DATA_TOKEN          = 8'hfe;
-wire [7:0] WRITE_DATA_RESPONSE = 8'h05;
+localparam DATA_TOKEN_CMD25    = 8'hfc;
+localparam STOP_TRAN           = 8'hfd;
+localparam DATA_TOKEN          = 8'hfe;
+localparam WRITE_DATA_RESPONSE = 8'he5;
 
 // number of bytes to wait after a command before sending the reply
 localparam NCR = 5+3; // 5 bytes are required (command length)

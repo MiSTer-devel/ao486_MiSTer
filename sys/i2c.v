@@ -75,7 +75,7 @@ always @(posedge CLK) begin
 		END  <= 0;
 		rd   <= READ;
 		len  <= I2C_WLEN;
-		if(READ) SD <= {2'b10, I2C_ADDR, 1'b1, 1'b1, 8'b11111111, 1'b0, 3'b011, 9'b111111111};
+		if(READ) SD <= {2'b10, I2C_ADDR, 1'b1, 1'b1, 8'b11111111, 1'b1, 3'b011, 9'b111111111};
 			else  SD <= {2'b10, I2C_ADDR, 1'b0, 1'b1, I2C_WDATA1,  1'b1, I2C_WDATA2,  4'b1011};
 		SD_COUNTER <= 0;
 	end else begin

@@ -99,6 +99,11 @@ generate
 		assign G = {RGB_fix[7:4],RGB_fix[7:4]};
 		assign B = {RGB_fix[3:0],RGB_fix[3:0]};
 	end
+	else if(DW == 18) begin
+		assign R = {RGB_fix[17:12],RGB_fix[17:16]};
+		assign G = {RGB_fix[11: 6],RGB_fix[11:10]};
+		assign B = {RGB_fix[ 5: 0],RGB_fix[ 5: 4]};
+	end
 	else begin // 24
 		assign R = RGB_fix[23:16];
 		assign G = RGB_fix[15:8];
