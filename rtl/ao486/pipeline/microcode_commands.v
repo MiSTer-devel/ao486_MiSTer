@@ -35,6 +35,7 @@ module microcode_commands(
     input               protected_mode,
     input               real_mode,
     input               v8086_mode,
+    input               tss_fix,
     
     input               io_allow_check_needed,
     input               exc_push_error,

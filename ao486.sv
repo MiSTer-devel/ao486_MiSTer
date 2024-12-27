@@ -57,6 +57,7 @@ module emu
 	input  [11:0] HDMI_WIDTH,
 	input  [11:0] HDMI_HEIGHT,
 	output        HDMI_FREEZE,
+	output        HDMI_BLACKOUT,
 
 `ifdef MISTER_FB
 	// Use framebuffer in DDRAM
@@ -184,6 +185,7 @@ assign LED_DISK[1] = 0;
 assign LED_POWER   = 0;
 assign BUTTONS     = {~ps2_reset_n, 1'b0};
 assign HDMI_FREEZE = 0;
+assign HDMI_BLACKOUT = 0;
 assign VGA_DISABLE = 0;
 
 led hdd_led(clk_sys, |mgmt_req[5:0], LED_DISK[0]);
@@ -193,7 +195,7 @@ led fdd_led(clk_sys, |mgmt_req[7:6], LED_USER);
 // 0         1         2         3          4         5         6
 // 01234567890123456789012345678901 23456789012345678901234567890123
 // 0123456789ABCDEFGHIJKLMNOPQRSTUV 0123456789ABCDEFGHIJKLMNOPQRSTUV
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXX
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXXX
 
 `include "build_id.v"
 localparam CONF_STR =
@@ -245,6 +247,8 @@ localparam CONF_STR =
 	"H5D2P2OG,L2 Cache,On,Off;",
 `endif
 	"P2-;",
+	"P2oO,TSS Fix,Off,On;",
+	"P2-;",
 	"P2OA,USER I/O,MIDI,COM2;",
 	"P2-;",
 	"P2OCD,Joystick type,2 Buttons,4 Buttons,Gravis Pro,None;",
@@ -263,7 +267,7 @@ localparam CONF_STR =
 	"h3P3OTV,SoundFont,0,1,2,3,4,5,6,7;",
 	"h3P3-;",
 	"h3P3r8,Reset Hanging Notes;",
-	"-;",
+	"- ;",
 	"R0,Reset and apply HDD;",
 	"J,Button 1,Button 2,Button 3,Button 4,Start,Select,R1,L1,R2,L2;",
 	"jn,A,B,X,Y,Start,Select,R,L;",
@@ -738,6 +742,7 @@ system system
 	.syscfg               (syscfg),
 	.l1_disable           (l1),
 	.l2_disable           (l2),
+	.tss_fix              (status[56]), // Fixes TSS task switching but introduces issues in Win95. Needs further fix, so currently it's an optional. 
 
 	.video_ce             (vga_ce),
 	.video_f60            (~status[4] | f60),
