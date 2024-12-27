@@ -24,7 +24,7 @@ IF(rd_cmd == `CMD_CPUID);
     SET(rd_req_ebx);
     SET(rd_req_ecx);
     SET(rd_req_edx);
-
+    
     IF(rd_mutex_busy_eax); SET(rd_waiting); ENDIF();
 ENDIF();
 </read>
@@ -34,14 +34,21 @@ IF(wr_cmd == `CMD_CPUID);
     
     IF(eax == 32'd0);
         SAVE(eax, 32'd1);
-        SAVE(ebx, "TSiM");
-        SAVE(edx, "A re");
-        SAVE(ecx, "684O");
+        SAVE(ebx, "uneG");
+        SAVE(edx, "Ieni");
+        SAVE(ecx, "letn");
     ENDIF();
     
-    IF(eax != 32'd0);
+    IF(eax == 32'd1);
         SAVE(eax, `CPUID_MODEL_FAMILY_STEPPING);
         SAVE(ebx, 32'h00010000);
+        SAVE(ecx, 32'd0);
+        SAVE(edx, 32'd0);
+    ENDIF();
+    
+    IF(eax > 32'd1);
+        SAVE(eax, 32'd0);
+        SAVE(ebx, 32'd0);
         SAVE(ecx, 32'd0);
         SAVE(edx, 32'd0);
     ENDIF();
@@ -52,4 +59,3 @@ IF(wr_cmd == `CMD_CPUID);
     SET(wr_req_reset_exe);
 ENDIF();  
 </write>
-
