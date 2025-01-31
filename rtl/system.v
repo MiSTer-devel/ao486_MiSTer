@@ -8,7 +8,6 @@ module system
 
 	input         l1_disable,
 	input         l2_disable,
-	input         tss_fix,
 
 	output [1:0]  fdd_request,
 	output [2:0]  ide0_request,
@@ -279,7 +278,6 @@ ao486 ao486
 	.rst_n             (~reset),
 
 	.cache_disable     (l1_disable),
-	.tss_fix           (tss_fix),
 
 	.avm_address       (mem_address),
 	.avm_writedata     (mem_writedata),

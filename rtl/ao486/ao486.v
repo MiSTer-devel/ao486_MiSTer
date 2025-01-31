@@ -33,7 +33,6 @@ module ao486 (
 	input               a20_enable,
 	
 	input               cache_disable,
-	input               tss_fix,
 
 	//--------------------------------------------------------------------------
 	input               interrupt_do,
@@ -548,10 +547,9 @@ pipeline pipeline_inst(
     .rd_reset                      (rd_reset),                      //output
     .exe_reset                     (exe_reset),                     //output
     .wr_reset                      (wr_reset),                      //output
-                       
+    
     .real_mode                     (real_mode),                     //output
-    .tss_fix                       (tss_fix),
-
+    
     //exception
     .exc_restore_esp               (exc_restore_esp),               //input
     .exc_set_rflag                 (exc_set_rflag),                 //input
