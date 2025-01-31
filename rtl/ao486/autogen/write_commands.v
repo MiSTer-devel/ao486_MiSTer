@@ -450,7 +450,7 @@ assign ss_to_reg =
     ss;
 assign ebx_to_reg =
     (cond_164 && cond_165)? ( "uneG") :
-    (cond_164 && cond_166)? ( 32'h00010000) :
+    (cond_164 && cond_166)? ( 32'h0) :
     (cond_164 && cond_275)? ( 32'd0) :
     (cond_240)? ( (glob_descriptor[`DESC_BITS_TYPE] <= 4'd3)? { 16'hFFFF, exe_buffer_shifted[255:240] } : exe_buffer_shifted[271:240]) :
     (cond_263 && cond_264)? ( { wr_operand_16bit? ebx[31:16] : exe_buffer_shifted[95:80],   exe_buffer_shifted[79:64] }) :
