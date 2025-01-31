@@ -37,7 +37,6 @@ module rtc(
 	input             io_write,
 	input       [7:0] io_writedata,
 
-	input             memcfg,
 	input       [5:0] bootcfg,
 
 	//mgmt slave

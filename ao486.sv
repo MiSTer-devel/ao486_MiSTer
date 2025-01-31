@@ -832,7 +832,6 @@ system system
 	.mpu_rx               (mpu_rx),
 	.mpu_tx               (mpu_tx),
 
-	.memcfg               (memcfg),
 	.uma_ram              (status[57]),
 	.bootcfg              (status[37:32]),
 
@@ -850,9 +849,6 @@ system system
 
 wire [7:0] syscfg;
 wire       ps2_reset_n;
-
-reg memcfg = 0;
-always @(posedge clk_sys) if(reset) memcfg <= status[11];
 
 reg reset;
 always @(posedge clk_sys) begin

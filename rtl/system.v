@@ -38,8 +38,7 @@ module system
 	output        ps2_reset_n,
 
 	input   [5:0] bootcfg,
-	input         memcfg,
-	input         uma_ram,
+  input         uma_ram,
 	output  [7:0] syscfg,
 
 	input         clk_uart1,
@@ -628,7 +627,6 @@ rtc rtc
 	.mgmt_write        (mgmt_write & mgmt_rtc_cs),
 	.mgmt_writedata    (mgmt_writedata[7:0]),
 
-	.memcfg            (memcfg),
 	.bootcfg           ({bootcfg[5:2], bootcfg[1:0] ? bootcfg[1:0] : {~fdd0_inserted, fdd0_inserted}}),
 
 	.irq               (irq_8)
