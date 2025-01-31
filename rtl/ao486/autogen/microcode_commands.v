@@ -203,7 +203,7 @@ wire cond_200 = mc_cmd == `CMD_task_switch && mc_cmdex_last == `CMDEX_task_switc
 wire cond_201 = mc_cmd == `CMD_task_switch && mc_cmdex_last == `CMDEX_task_switch_STEP_12;
 wire cond_202 = mc_cmd == `CMD_task_switch && mc_cmdex_last == `CMDEX_task_switch_STEP_13;
 wire cond_203 = mc_cmd == `CMD_task_switch && mc_cmdex_last == `CMDEX_task_switch_STEP_14;
-wire cond_204 = mc_cmd == `CMD_task_switch_3 && (!tss_fix || (mc_cmdex_last < `CMDEX_task_switch_3_STEP_15));
+wire cond_204 = mc_cmd == `CMD_task_switch_3 && mc_cmdex_last < `CMDEX_task_switch_3_STEP_15;
 wire cond_205 = mc_cmd == `CMD_task_switch_3 && mc_cmdex_last == `CMDEX_task_switch_3_STEP_15;
 wire cond_206 = mc_cmd == `CMD_task_switch_4 && mc_cmdex_last < `CMDEX_task_switch_4_STEP_10;
 wire cond_207 = mc_cmd == `CMD_SGDT || mc_cmd == `CMD_SIDT;
