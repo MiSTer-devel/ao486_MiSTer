@@ -195,7 +195,7 @@ led fdd_led(clk_sys, |mgmt_req[7:6], LED_USER);
 // 0         1         2         3          4         5         6
 // 01234567890123456789012345678901 23456789012345678901234567890123
 // 0123456789ABCDEFGHIJKLMNOPQRSTUV 0123456789ABCDEFGHIJKLMNOPQRSTUV
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXXX
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXXXX
 
 `include "build_id.v"
 localparam CONF_STR =
@@ -239,6 +239,7 @@ localparam CONF_STR =
 	"P2o7,IDE 1-1 CD Hot-Swap,No,Yes;",
 	"P2-;",
 	"P2OB,RAM Size,256MB,16MB;",
+	"P2oP,D0000h-EFFFFh RAM,Off,On;",
 `ifndef DEBUG
 	"H5P2-;",
 	"H5D2D1P2O56,CPU Clock,90MHz,15MHz,30MHz,56MHz;",
@@ -835,6 +836,7 @@ system system
 	.mpu_tx               (mpu_tx),
 
 	.memcfg               (memcfg),
+	.uma_ram              (status[57]),
 	.bootcfg              (status[37:32]),
 
 	.DDRAM_CLK            (DDRAM_CLK),

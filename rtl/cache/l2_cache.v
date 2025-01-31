@@ -1,46 +1,48 @@
 
 module l2_cache #(parameter ADDRBITS = 24)
 (
-   input         CLK,
-   input         RESET,
-	
-   input         DISABLE,
-   
-   // CPU bus, master, 32bit
-   input  [29:0] CPU_ADDR,
-   input  [31:0] CPU_DIN,
-   output [31:0] CPU_DOUT,
-   output        CPU_DOUT_READY,
-   input   [3:0] CPU_BE,
-   input   [3:0] CPU_BURSTCNT,
-   output        CPU_BUSY,
-   input         CPU_RD,
-   input         CPU_WE,
-   
-   // DDR3 RAM, slave, 64bit
-   output [ADDRBITS:0] DDRAM_ADDR,
-   output [63:0] DDRAM_DIN,
-   input  [63:0] DDRAM_DOUT,
-   input         DDRAM_DOUT_READY,
-   output  [7:0] DDRAM_BE,
-   output  [7:0] DDRAM_BURSTCNT,
-   input         DDRAM_BUSY,
-   output        DDRAM_RD,
-   output        DDRAM_WE,
-   
-   // VGA bus, slave, 8bit
-   output [16:0] VGA_ADDR,
-   input   [7:0] VGA_DIN,
-   output  [7:0] VGA_DOUT,
-   input   [2:0] VGA_MODE,
-   output        VGA_RD,
-   output        VGA_WE,
+	input         CLK,
+	input         RESET,
+
+	input         DISABLE,
+
+	// CPU bus, master, 32bit
+	input  [29:0] CPU_ADDR,
+	input  [31:0] CPU_DIN,
+	output [31:0] CPU_DOUT,
+	output        CPU_DOUT_READY,
+	input   [3:0] CPU_BE,
+	input   [3:0] CPU_BURSTCNT,
+	output        CPU_BUSY,
+	input         CPU_RD,
+	input         CPU_WE,
+
+	// DDR3 RAM, slave, 64bit
+	output [ADDRBITS:0] DDRAM_ADDR,
+	output [63:0] DDRAM_DIN,
+	input  [63:0] DDRAM_DOUT,
+	input         DDRAM_DOUT_READY,
+	output  [7:0] DDRAM_BE,
+	output  [7:0] DDRAM_BURSTCNT,
+	input         DDRAM_BUSY,
+	output        DDRAM_RD,
+	output        DDRAM_WE,
+
+	// VGA bus, slave, 8bit
+	output [16:0] VGA_ADDR,
+	input   [7:0] VGA_DIN,
+	output  [7:0] VGA_DOUT,
+	input   [2:0] VGA_MODE,
+	output        VGA_RD,
+	output        VGA_WE,
 
 	input   [5:0] VGA_WR_SEG,
 	input   [5:0] VGA_RD_SEG,
-	input         VGA_FB_EN
+	input         VGA_FB_EN,
+
+	input         uma_ram
 );
-   
+
 
 // cache settings
 localparam LINES         = 128;
@@ -184,7 +186,8 @@ always @(posedge CLK) begin
 end
 
 wire ram_rgn = !CPU_ADDR[29:ADDRBITS+2];                                                       // = below 256MB
-wire rom_rgn = (CPU_ADDR[ADDRBITS+1:16] == 'h3);                                               // = 0xC0000-0xFFFFF (VGA-ROM...BIOS-ROM)
+wire rom_rgn = uma_ram ? (CPU_ADDR[ADDRBITS+1:14] == 'hC) || (CPU_ADDR[ADDRBITS+1:14] == 'hF)  // = 0xC0000-0xCFFFF (VGA-ROM), 0xD0000-0xEFFFF (UMA RAM), 0xF0000-0xFFFFF (BIOS-ROM)
+                       : (CPU_ADDR[ADDRBITS+1:16] == 'h3);                                     // = 0xC0000-0xFFFFF (VGA-ROM...BIOS-ROM) (UMA RAM disabled)
 wire vga_rgn = (CPU_ADDR[ADDRBITS+1:15] == 'h5)  && ((CPU_ADDR[14:13] & vga_mask) == vga_cmp); // = 0xA0000-0xBFFFF (VGA: exact region depends on VGA_MODE)
 wire shr_rgn = (CPU_ADDR[ADDRBITS+1:11] == 'h67) && shr_rgn_en;                                // = 0xCE000-0xCFFFF (used by shared folder)
 
