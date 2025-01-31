@@ -40,6 +40,7 @@ module system
 
 	input   [5:0] bootcfg,
 	input         memcfg,
+	input         uma_ram,
 	output  [7:0] syscfg,
 
 	input         clk_uart1,
@@ -270,7 +271,9 @@ l2_cache cache
 
 	.VGA_WR_SEG        (video_wr_seg),
 	.VGA_RD_SEG        (video_rd_seg),
-	.VGA_FB_EN         (video_fb_en)
+	.VGA_FB_EN         (video_fb_en),
+
+	.uma_ram           (uma_ram)
 );
 
 ao486 ao486
