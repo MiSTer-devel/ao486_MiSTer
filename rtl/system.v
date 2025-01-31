@@ -8,7 +8,6 @@ module system
 
 	input         l1_disable,
 	input         l2_disable,
-	input         tss_fix,
 
 	output [1:0]  fdd_request,
 	output [2:0]  ide0_request,
@@ -39,6 +38,7 @@ module system
 	output        ps2_reset_n,
 
 	input   [5:0] bootcfg,
+  input         uma_ram,
 	output  [7:0] syscfg,
 
 	input         clk_uart1,
@@ -269,7 +269,9 @@ l2_cache cache
 
 	.VGA_WR_SEG        (video_wr_seg),
 	.VGA_RD_SEG        (video_rd_seg),
-	.VGA_FB_EN         (video_fb_en)
+	.VGA_FB_EN         (video_fb_en),
+
+	.uma_ram           (uma_ram)
 );
 
 ao486 ao486
@@ -278,7 +280,6 @@ ao486 ao486
 	.rst_n             (~reset),
 
 	.cache_disable     (l1_disable),
-	.tss_fix           (tss_fix),
 
 	.avm_address       (mem_address),
 	.avm_writedata     (mem_writedata),
