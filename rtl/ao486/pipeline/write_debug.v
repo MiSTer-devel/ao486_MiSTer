@@ -135,28 +135,28 @@ end
 
 always @(posedge clk) begin
     if(rst_n == 1'b0)   wr_debug_b0_write_trigger <= `FALSE;
-    else                wr_debug_b0_write_trigger <= dr7[16] == 1'b1 && // RW bits = (read or write) or write only
+    else                wr_debug_b0_write_trigger <= write_for_wr_ready && dr7[16] == 1'b1 && // RW bits = (read or write) or write only
                                                      ( write_address_last        <= { dr0[31:3], dr0[2:0] | ~(debug_len0)} ) &&
                                                      ( wr_debug_linear_last_reg  >= { dr0[31:3], dr0[2:0] &   debug_len0 } );
 end
 
 always @(posedge clk) begin
     if(rst_n == 1'b0)   wr_debug_b1_write_trigger <= `FALSE;
-    else                wr_debug_b1_write_trigger <= dr7[20] == 1'b1 && // RW bits = (read or write) or write only
+    else                wr_debug_b1_write_trigger <= write_for_wr_ready && dr7[20] == 1'b1 && // RW bits = (read or write) or write only
                                                      ( write_address_last        <= { dr1[31:3], dr1[2:0] | ~(debug_len1)} ) &&
                                                      ( wr_debug_linear_last_reg  >= { dr1[31:3], dr1[2:0] &   debug_len1 } );
 end
 
 always @(posedge clk) begin
     if(rst_n == 1'b0)   wr_debug_b2_write_trigger <= `FALSE;
-    else                wr_debug_b2_write_trigger <= dr7[24] == 1'b1 && // RW bits = (read or write) or write only
+    else                wr_debug_b2_write_trigger <= write_for_wr_ready && dr7[24] == 1'b1 && // RW bits = (read or write) or write only
                                                      ( write_address_last        <= { dr2[31:3], dr2[2:0] | ~(debug_len2)} ) &&
                                                      ( wr_debug_linear_last_reg  >= { dr2[31:3], dr2[2:0] &   debug_len2 } );
 end
 
 always @(posedge clk) begin
     if(rst_n == 1'b0)   wr_debug_b3_write_trigger <= `FALSE;
-    else                wr_debug_b3_write_trigger <= dr7[28] == 1'b1 && // RW bits = (read or write) or write only
+    else                wr_debug_b3_write_trigger <= write_for_wr_ready && dr7[28] == 1'b1 && // RW bits = (read or write) or write only
                                                      ( write_address_last        <= { dr3[31:3], dr3[2:0] | ~(debug_len3)} ) &&
                                                      ( wr_debug_linear_last_reg  >= { dr3[31:3], dr3[2:0] &   debug_len3 } );
 end
