@@ -184,8 +184,7 @@ module envelope_generator
         .*
     );
 
-    // on reset all operators will go into RELEASE state
-    mem_multi_bank_reset #(
+    mem_multi_bank #(
         .DATA_WIDTH($bits(state_t)),
         .DEPTH(NUM_OPERATORS_PER_BANK),
         .OUTPUT_DELAY(0),
@@ -193,8 +192,6 @@ module envelope_generator
         .NUM_BANKS(NUM_BANKS)
     ) state_mem (
         .clk,
-        .reset('0),
-        .reset_mem(reset),
         .wea(sample_clk_en_p[3]),
         .reb(sample_clk_en),
         .banka(bank_num_p[3]),
@@ -202,8 +199,7 @@ module envelope_generator
         .bankb(bank_num),
         .addrb(op_num),
         .dia({state_p3}),
-        .dob({state_p0}),
-        .reset_mem_done_pulse()
+        .dob({state_p0})
     );
 
     always_comb begin

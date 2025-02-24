@@ -313,15 +313,38 @@ module control_operators
         .dob(fnum[7:0])
     );
 
-    localparam kon_block_fnum_high_mem_width = $bits(kon) + $bits(block) + $bits(fnum[9:8]);
-
-    mem_multi_bank #(
-        .DATA_WIDTH(kon_block_fnum_high_mem_width),
+    // store kon in separate memory that is wrapped in reset state machine, so kon goes low on
+    // reset, bringing envelope into RELEASE state
+    mem_multi_bank_reset #(
+        .DATA_WIDTH(1),
         .DEPTH('h9),
         .OUTPUT_DELAY(0),
         .DEFAULT_VALUE(0),
         .NUM_BANKS(NUM_BANKS)
-    ) kon_block_fnum_high_mem (
+    ) kon_mem (
+        .clk,
+        .reset('0),
+        .reset_mem(reset),
+        .wea(opl3_reg_wr.valid && opl3_reg_wr.address >= 'hB0 && opl3_reg_wr.address <= 'hB8),
+        .reb(op_sample_clk_en),
+        .banka(opl3_reg_wr.bank_num),
+        .addra(opl3_reg_wr.address[$clog2('h9)-1:0]),
+        .bankb(bank_num),
+        .addrb(kon_block_fnum_channel_mem_rd_address),
+        .dia(opl3_reg_wr.data[5]),
+        .dob(kon),
+        .reset_mem_done_pulse()
+    );
+
+    localparam block_fnum_high_mem_width = $bits(block) + $bits(fnum[9:8]);
+
+    mem_multi_bank #(
+        .DATA_WIDTH(block_fnum_high_mem_width),
+        .DEPTH('h9),
+        .OUTPUT_DELAY(0),
+        .DEFAULT_VALUE(0),
+        .NUM_BANKS(NUM_BANKS)
+    ) block_fnum_high_mem (
         .clk,
         .wea(opl3_reg_wr.valid && opl3_reg_wr.address >= 'hB0 && opl3_reg_wr.address <= 'hB8),
         .reb(op_sample_clk_en),
@@ -329,8 +352,8 @@ module control_operators
         .addra(opl3_reg_wr.address[$clog2('h9)-1:0]),
         .bankb(bank_num),
         .addrb(kon_block_fnum_channel_mem_rd_address),
-        .dia(opl3_reg_wr.data[kon_block_fnum_high_mem_width-1:0]),
-        .dob({kon, block, fnum[9:8]})
+        .dia(opl3_reg_wr.data[block_fnum_high_mem_width-1:0]),
+        .dob({block, fnum[9:8]})
     );
 
     localparam fb_cnt_mem_width = $bits(fb_p1) + $bits(cnt0_p1);
