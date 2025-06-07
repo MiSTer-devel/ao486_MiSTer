@@ -50,7 +50,7 @@ module pit(
 // Accurate accumulator-based NCO for PIT frequency
 // NTSC-based master oscillator frequency     = 315/22 MHz = 14.318181818... MHz
 // 315/22 * 1/4  = NTSC color burst frequency = 315/88 MHz =  3.579545454... MHz
-// 315/22 * 1/12 = PIT frequency              = 105/88 MHz =  1.193181818... MHz = 11 * 13125000 Hz
+// 315/22 * 1/12 = PIT frequency              = 105/88 MHz =  1.193181818... MHz = 13125000 / 11 Hz
 
 localparam INCREMENT = 32'd26250000; // = 11 * (2 * PIT_frequency)
 reg [31:0] clk_rate;                 // = 11 * (clock_rate)
