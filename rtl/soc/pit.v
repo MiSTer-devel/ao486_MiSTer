@@ -25,39 +25,54 @@
  */
 
 module pit(
-	input               clk,
-	input               rst_n,
+  input               clk,
+  input               rst_n,
 
-	output              irq,
+  output              irq,
 
-	//io slave 040h-043h / 61h
-	input       [2:0]   io_address,
-	input               io_read,
-	output reg  [7:0]   io_readdata,
-	input               io_write,
-	input       [7:0]   io_writedata,
+  //io slave 040h-043h / 61h
+  input       [2:0]   io_address,
+  input               io_read,
+  output reg  [7:0]   io_readdata,
+  input               io_write,
+  input       [7:0]   io_writedata,
 
-	//speaker output
-	output              speaker_out,
+  //speaker output
+  output              speaker_out,
 
-	input      [27:0]   clock_rate
+  input      [27:0]   clock_rate
 );
 
 //------------------------------------------------------------------------------ system clock
 
-reg [27:0] clk_rate;
-always @(posedge clk) clk_rate <= clock_rate;
+// PIT counter clock input frequency: 105/88 MHz = 1193181.81818... Hz
 
+// Accurate accumulator-based NCO for PIT frequency
+// NTSC-based master oscillator frequency     = 315/22 MHz = 14.318181818... MHz
+// 315/22 * 1/4  = NTSC color burst frequency = 315/88 MHz =  3.579545454... MHz
+// 315/22 * 1/12 = PIT frequency              = 105/88 MHz =  1.193181818... MHz = 13125000 / 11 Hz
+
+localparam INCREMENT = 32'd26250000; // = 11 * (2 * PIT_frequency)
+reg [31:0] clk_rate;                 // = 11 * (clock_rate)
+always @(posedge clk) begin
+    clk_rate <= ({4'b0, clock_rate} << 3) + ({4'b0, clock_rate} << 1) + {4'b0, clock_rate};
+end
+
+reg [31:0] sum;
 reg ce_system_counter;
 always @(posedge clk) begin
-	reg [27:0] sum = 0;
-
-	ce_system_counter = 0;
-	sum = sum + 28'd2386362; // 1193181hz * 2
-	if(sum >= clk_rate) begin
-		sum = sum - clk_rate;
-		ce_system_counter = 1;
-	end
+    if (!rst_n) begin
+        sum <= 32'd0;
+        ce_system_counter <= 1'b0;
+    end else begin
+        if ((sum + INCREMENT) >= clk_rate) begin
+            sum <= (sum + INCREMENT) - clk_rate;
+            ce_system_counter <= 1'b1;
+        end else begin
+            sum <= (sum + INCREMENT);
+            ce_system_counter <= 1'b0;
+        end
+    end
 end
 
 reg system_clock;
