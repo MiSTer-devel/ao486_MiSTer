@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2014, Aleksander Osman
  * All rights reserved.
