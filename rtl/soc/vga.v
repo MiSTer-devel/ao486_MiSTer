@@ -1482,11 +1482,10 @@ assign dot_memory_load_first_in_frame = dot_memory_load_dot_cnt && horiz_cnt == 
 
 assign dot_memory_load_first_in_line  = dot_memory_load_dot_cnt && horiz_cnt == crtc_horizontal_total + VGA_H_TOTAL_EXTRA - 1'd1 && vert_cnt <= crtc_vertical_display_size;
 
-assign dot_memory_load_first_in_line_matched = dot_memory_load_first_in_line && 
-  (
-     vert_cnt == crtc_line_compare + (~seq_dotclock_divided || crtc_line_compare == 1'd0) // EGA compatible operation modes 0, 1, 4, 5, D and VGA modes
-                                   - ((crtc_vertical_doublescan || crtc_row_max == 1'd1) && crtc_line_compare > 1'd1 && seq_dotclock_divided == crtc_line_compare[0]) // Split screen alignment when doublescan is active
-  );
+assign dot_memory_load_first_in_line_matched = dot_memory_load_first_in_line && (
+  // svga_et4000: when vertical line doubling is active use aligned line compare
+  vert_cnt == crtc_line_compare + (~(crtc_vertical_doublescan || crtc_row_max == 1'd1) || crtc_line_compare[0])
+);
 
 //------------------------------------------------------------------------------ blink rate
 
