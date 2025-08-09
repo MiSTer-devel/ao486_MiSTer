@@ -195,7 +195,7 @@ led fdd_led(clk_sys, |mgmt_req[7:6], LED_USER);
 // 0         1         2         3          4         5         6
 // 01234567890123456789012345678901 23456789012345678901234567890123
 // 0123456789ABCDEFGHIJKLMNOPQRSTUV 0123456789ABCDEFGHIJKLMNOPQRSTUV
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXX X
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXX XXX
 
 `include "build_id.v"
 localparam CONF_STR =
@@ -252,6 +252,7 @@ localparam CONF_STR =
 	"P2-;",
 	"P2OCD,Joystick type,2 Buttons,4 Buttons,Gravis Pro,None;",
 	"P2oFG,Joystick Mode,2 Joysticks,2 Sticks,2 Wheels,4-axes Wheel;",
+	"P2oQR,Joystick Axes,Timed,Count 8+141,Count 0+256,Count 6+256;",
 	"P2oH,Joystick 1,Enabled,Disabled;",
 	"P2oI,Joystick 2,Enabled,Disabled;",
 
@@ -801,6 +802,7 @@ system system
 	.joystick_ana_1       ({ja_1y,ja_1x}),
 	.joystick_ana_2       ({ja_2y,ja_2x}),
 	.joystick_mode        (status[13:12]),
+	.joystick_timed       (status[59:58]),
 
 	.mgmt_readdata        (mgmt_din),
 	.mgmt_writedata       (mgmt_dout),
