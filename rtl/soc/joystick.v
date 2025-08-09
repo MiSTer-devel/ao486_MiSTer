@@ -1,146 +1,84 @@
-// ============================================================================
-// JOYSTICK MODULE FOR ao486_MiSTer
-// ============================================================================
-// This module implements PC-compatible joystick interface with support for:
-// - Standard analog joysticks (using timing-based position encoding)
-// - Digital joysticks/gamepads
-// - Gravis GamePad Pro (serial protocol)
-// 
-// When using the 90.5 MHz clk, an 8-bit CLK_DIV and 9-bit X/Y value gives a reading of around 1400 microseconds using the JoyCheck DOS program (by Henrik K Jensen).
-//
-// The "standard" maximum X/Y timing value for old-skool PC joysticks is around 1124 microseconds, so have a good range now for ao486.
-//
-//
-// It should be possible to increase the resolution of the X/Y counters by also decreasing the width of CLK_DIV. eg...
-//
-//  9-bit X/Y counter. 8-bit CLK_DIV.
-// 10-bit X/Y counter. 7-bit CLK_DIV.
-// 11-bit X/Y counter. 6-bit CLK_DIV.
-// 12-bit X/Y counter. 5-bit CLK_DIV.
-//
-//
-// (For digital joysticks / joypads, the "resolution" obviously isn't too important, but the aim is to add support for analog joysticks later.)
-//
-//
-// Notes...
-//
-// 90.5 MHz = 11.05ns per clk tick.
-//
-// So, assuming an 8-bit clk divider...
-//
-// 24us   (standard minimum value) = 2172 clk ticks.
-// 1124us (standard maximum value) = 101,719 clk ticks.
-//
-// With an 8-bit clk divider, the min X/Y counter value would then be around 8.
-// And the max X/Y counter value would be around 397.
-//
-//
-
-// Gravis Pro:
-// Gravis Gamepad Pro uses a serial protocol. Button 0 is 20-25khz 50% duty cycle clock for P1, and
-// Button 1 is the data line, with 1 indicating a button is held, and 0 not held. The same applies
-// to Player 2, but with buttons 2 and 3. The analog axis pins appear to be unused, but possibly
-// should be set to either 0 or 1 and left there. I have left them in case there is any variant of
-// this controller that also has an analog input. They seem not to matter. On each falling edge of
-// each B0 clock, the state of B1 is read. Frames are 24 bits long and is formatted as follows:
-
-//  -----------------------------------------------
-// |0      |1      |1      |1      |1      |1      |
-// |0      |Select |Start  |R2     |Blue   |       |
-// |0      |L2     |Green  |Yellow |Red    |       |
-// |0      |L1     |R1     |Up     |Down   |       |
-// |0      |Right  |Left   |       |       |       |
-//  -----------------------------------------------
-
-// There is a frame identification header of 0 and then 5 1's, after which the button states are
-// read out in groups of four bits or less, each group preceeded by a 0. Presumptively this format
-// prevents any false positives for frame header detection.
-
-// 4525 divider, For a 20 khz clk at 90.5mhz master clk. We use 40khz to handle each phase of the
-// 20khz clock.
-// 2262 to handle highs and lows.
+// Joystick Module - Implements PC-compatible joystick interface with support for:
+// - Standard analog joysticks or digital joysticks/gamepads
+// - Options to use timed (IBM joystick time formula) or count methods
+// - Gravis GamePad Pro (Gravis Interface Protocol (GrIP))
 
 module joystick
 (
-	// System signals
-	input         rst_n,        // Active-low reset
-	input         clk,          // Main system clock (90.5 MHz typical)
+  input            rst_n,
+  input            clk,
 
-	// Clock configuration
-	input  [27:0] clock_rate,   // System clock frequency for Gravis clock generation
+  input  [27:0]    clock_rate,
 
-	// Digital inputs from controllers
-	input [13:0]  dig_1,        // Player 1 digital buttons [13:0]
-	input [13:0]  dig_2,        // Player 2 digital buttons [13:0]
-	
-	// Analog inputs from controllers
-	input [15:0]  ana_1,        // Player 1 analog axes [15:8]=Y, [7:0]=X
-	input [15:0]  ana_2,        // Player 2 analog axes [15:8]=Y, [7:0]=X
-	
-	// Configuration
-	input  [1:0]  mode,         // Operation mode: 0=2-button, 1=4-button, 2=Gravis, 3=disabled
-	input  [1:0]  dis,          // Disable flags: [0]=disable P1, [1]=disable P2
+  input [13:0]     dig_1, // joystick_0[13:0] & dig_mask[13:0]
+  input [13:0]     dig_2, // status[47] ? 14'd0 : (joystick_1[13:0] & dig_mask[13:0])
+  input [15:0]     ana_1, // { ja_1y[7:0], ja_1x[7:0] }
+  input [15:0]     ana_2, // { ja_2y[7:0], ja_2x[7:0] }
+  input  [1:0]     mode,  // status[13:12] 0=2_Buttons, 1=4_Buttons, 2=Gravis_Pro, 3=None
+  input  [1:0]     timed, // status[59:58] 0=Timed, 1=Count_8+141, 2=Count_0+256, 3=Count_6+256
+  input  [1:0]     dis,   // joystick_dis[1:0]
 
-	// CPU interface
-	output reg [7:0] readdata,  // Data read by CPU (status register)
-	input         write         // Write strobe to start position timing
+  input            read,
+  input            write,
+  output reg [7:0] readdata
 );
 
-// ============================================================================
-// GRAVIS CLOCK GENERATION
-// ============================================================================
-// WARNING: Clock domain crossing issue!
-// clk_grav is generated in clk domain but used for edge detection
-// This can cause metastability issues
+localparam signed [7:0] ANALOG_ACTIVITY_THRESHOLD = 8'd60; // threshold used to detect analog input activity
+wire ana_1_activity = $signed(ana_1[ 7:0]) < -ANALOG_ACTIVITY_THRESHOLD || ANALOG_ACTIVITY_THRESHOLD < $signed(ana_1[ 7:0]) ||
+                      $signed(ana_1[15:8]) < -ANALOG_ACTIVITY_THRESHOLD || ANALOG_ACTIVITY_THRESHOLD < $signed(ana_1[15:8]);
+wire ana_2_activity = $signed(ana_2[ 7:0]) < -ANALOG_ACTIVITY_THRESHOLD || ANALOG_ACTIVITY_THRESHOLD < $signed(ana_2[ 7:0]) ||
+                      $signed(ana_2[15:8]) < -ANALOG_ACTIVITY_THRESHOLD || ANALOG_ACTIVITY_THRESHOLD < $signed(ana_2[15:8]);
+
+// 20 kHz clock for Gravis Interface Protocol (GrIP)
 reg clk_grav;
 always @(posedge clk) begin
-	reg [31:0] sum = 0;  // Static variable for accumulator
+  reg [27:0] sum_grav = 28'd0;
 
-	// Generate ~20kHz clock for Gravis protocol (40kHz toggle rate)
-	sum = sum + 40000;
-	if(sum >= clock_rate) begin
-		sum = sum - clock_rate;
-		clk_grav = ~clk_grav;
-	end
+  sum_grav = sum_grav + 16'd40000;
+  if(sum_grav >= clock_rate) begin
+    sum_grav = sum_grav - clock_rate;
+    clk_grav = ~clk_grav;
+  end
 end
 
-// ============================================================================
-// CPU READ DATA GENERATION
-// ============================================================================
-// Bit mapping for readdata:
-// [7] = Button 4/P2 Button 2 (mode dependent) | disabled flag
-// [6] = Button 3/P2 Button 1 (mode dependent) | disabled flag  
-// [5] = Button 2 | disabled flag
-// [4] = Button 1 | disabled flag
-// [3] = P2 Y axis active | disabled flag
-// [2] = P2 X axis active | disabled flag
-// [1] = P1 Y axis active | disabled flag
-// [0] = P1 X axis active | disabled flag
-//
-// NOTE: Buttons are active low (0=pressed), axes are active high (1=timing)
-always @(posedge clk) readdata <= (mode == 3) ? 8'hff : {jb4 | dis[1], jb3 | dis[1], jb2 | dis[0], jb1 | dis[0], |JOY2_Y | dis[1], |JOY2_X | dis[1], |JOY1_Y | dis[0], |JOY1_X | dis[0]};
+// 1.1 us tick used for the IBM joystick time formula
+// (see the relevant code below for more information)
+reg tick_1100ns;
+always @(posedge clk) begin
+  reg [27:0] sum_timed = 28'd0;
 
-// ============================================================================
-// TIMING COUNTERS AND REGISTERS
-// ============================================================================
-// PC joystick position encoding: Write to port starts timing, 
-// counter decrements create pulse width proportional to position
-reg  [7:0] JOY1_X,JOY1_Y,JOY2_X,JOY2_Y;  // Position timing counters
-reg [10:0] CLK_DIV;                       // Clock divider for timing generation
-// WARNING: CLK_DIV is 11 bits but compared to 100 - could be optimized
+  sum_timed = write ? 28'd0 : sum_timed + 20'd909091; // tick every 1.1 us
+  tick_1100ns = 1'b0;
+  if(sum_timed >= clock_rate) begin
+    sum_timed = sum_timed - clock_rate;
+    tick_1100ns = 1'b1;
+  end
+end
 
-// ============================================================================
-// BUTTON MAPPING FROM INPUT VECTORS
-// ============================================================================
-// Digital button assignments for Player 1
+reg [10:0] j1x, j1y, j2x, j2y; // axis measurement countdown value
+reg        jb1, jb2, jb3, jb4; // button (active low)
+
+// Allow jb3 and jb4 when:
+// - Joystick Type: 4 Buttons
+// - Joystick 1:    Enabled
+// - Joystick 2:    Disabled
+wire dis_jb3_jb4 = dis[1] && ~(mode==2'd1 && dis==2'b10);
+
+// Read data
+always @(posedge clk) begin
+  readdata <= (mode==2'd3) ? 8'hff : // None
+                            {      jb4,    jb3,    jb2,    jb1,   |j2y,   |j2x,   |j1y,   |j1x } |
+                            { {2{dis_jb3_jb4}}, dis[0], dis[0], dis[1], dis[1], dis[0], dis[0] }; // disable mask
+end
+
 wire JOY1_RIGHT = dig_1[0];
 wire JOY1_LEFT  = dig_1[1];
 wire JOY1_DOWN  = dig_1[2];
 wire JOY1_UP    = dig_1[3];
-wire JOY1_BUT1  = dig_1[4];   // A/Red
-wire JOY1_BUT2  = dig_1[5];   // B/Green
-wire JOY1_BUT3  = dig_1[6];   // X/Blue
-wire JOY1_BUT4  = dig_1[7];   // Y/Yellow
+wire JOY1_BUT1  = dig_1[4];
+wire JOY1_BUT2  = dig_1[5];
+wire JOY1_BUT3  = dig_1[6];
+wire JOY1_BUT4  = dig_1[7];
 wire JOY1_START = dig_1[8];
 wire JOY1_SEL   = dig_1[9];
 wire JOY1_R1    = dig_1[10];
@@ -148,15 +86,14 @@ wire JOY1_L1    = dig_1[11];
 wire JOY1_R2    = dig_1[12];
 wire JOY1_L2    = dig_1[13];
 
-// Digital button assignments for Player 2
 wire JOY2_RIGHT = dig_2[0];
 wire JOY2_LEFT  = dig_2[1];
 wire JOY2_DOWN  = dig_2[2];
 wire JOY2_UP    = dig_2[3];
-wire JOY2_BUT1  = dig_2[4];   // A/Red
-wire JOY2_BUT2  = dig_2[5];   // B/Green
-wire JOY2_BUT3  = dig_2[6];   // X/Blue
-wire JOY2_BUT4  = dig_2[7];   // Y/Yellow
+wire JOY2_BUT1  = dig_2[4];
+wire JOY2_BUT2  = dig_2[5];
+wire JOY2_BUT3  = dig_2[6];
+wire JOY2_BUT4  = dig_2[7];
 wire JOY2_START = dig_2[8];
 wire JOY2_SEL   = dig_2[9];
 wire JOY2_R1    = dig_2[10];
@@ -164,152 +101,215 @@ wire JOY2_L1    = dig_2[11];
 wire JOY2_R2    = dig_2[12];
 wire JOY2_L2    = dig_2[13];
 
-// ============================================================================
-// OUTPUT BUTTON REGISTERS
-// ============================================================================
-reg       jb1, jb2, jb3, jb4;     // Button states for CPU interface
-reg [1:0] gravis_out = 0;         // Gravis serial data output
-reg       gravis_clk = 0;         // Synchronized Gravis clock
+reg read_last;
 
-// ============================================================================
-// MAIN STATE MACHINE
-// ============================================================================
+// Used to auto switch between 0=analog and 1=dpad when input activity is detected
+reg use_dpad1, use_dpad2;
+
+// Gravis Interface Protocol (GrIP)
+reg       gravis_clk;
+reg [1:0] gravis_out;
+reg [4:0] gravis_pos;
+
+// Current joystick position value in the range [0,255]
+reg [7:0] j1x_pos, j1y_pos, j2x_pos, j2y_pos;
+
 always @(posedge clk) begin : joy_block
-	// Local state variables (static across clock cycles)
-	reg [4:0] gravis_pos;         // Gravis protocol bit position (0-23)
-	reg use_dpad1, use_dpad2;     // Flags: 1=use digital pad, 0=use analog
-	
-	// WARNING: Asynchronous reset with synchronous logic can cause issues
-	if (!rst_n) begin
-		// Initialize position counters to center (128 = neutral position)
-		JOY1_X <= 128;
-		JOY1_Y <= 128;
-		JOY2_X <= 128;
-		JOY2_Y <= 128;
-		
-		// Clear Gravis protocol state
-		gravis_clk <= 0;
-		gravis_out <= 0;
-		gravis_pos <= 0;
-		
-		// Set buttons to unpressed state (active low, so 1=unpressed)
-		{jb1, jb2, jb3, jb4} <= 4'b1111;
-		
-		// Default to digital pad mode
-		use_dpad1 <= 1;
-		use_dpad2 <= 1;
-	end
-	else begin
-		// ====================================================================
-		// BUTTON OUTPUT MULTIPLEXING
-		// ====================================================================
-		// Mode 0: 2-button mode (P1 buttons only)
-		// Mode 1: 4-button mode (all P1 buttons)
-		// Mode 2: Gravis mode (serial protocol)
-		// Mode 3: Disabled (handled in readdata)
-		jb1 <= mode == 2 ? gravis_clk : !JOY1_BUT1;      // In Gravis: clock, else button 1
-		jb2 <= mode == 2 ? gravis_out[0] : !JOY1_BUT2;   // In Gravis: P1 data, else button 2
-		jb3 <= mode == 2 ? gravis_clk : (mode == 1 ? !JOY1_BUT3 : !JOY2_BUT1);
-		jb4 <= mode == 2 ? gravis_out[1] : (mode == 1 ? !JOY1_BUT4 : !JOY2_BUT2);
+  if (!rst_n) begin
+    j1x <= 11'd128; // center
+    j1y <= 11'd128; // center
+    j2x <= 11'd128; // center
+    j2y <= 11'd128; // center
+    {jb1, jb2, jb3, jb4} <= 4'b1111; // buttons not pressed (active low)
 
-		// ====================================================================
-		// GRAVIS PROTOCOL HANDLER
-		// ====================================================================
-		// Synchronize Gravis clock to avoid metastability
-		// WARNING: Direct assignment without proper synchronization!
-		gravis_clk <= clk_grav;
-		
-		// Detect falling edge of Gravis clock
-		// WARNING: Clock domain crossing without synchronizer!
-		if (~gravis_clk & clk_grav) begin
-			// Advance position in 24-bit frame
-			gravis_pos <= gravis_pos == 23 ? 5'd0 : gravis_pos + 5'd1;
+    use_dpad1 <= 1'b1; // d-pad
+    use_dpad2 <= 1'b1; // d-pad
 
-			// Output data based on position in frame
-			// Frame format: [0][1,1,1,1,1][0][button data]...
-			case (gravis_pos)
-				// Frame sync and group separators
-				0, 6, 11, 16, 21:
-				    gravis_out <= 0;
+    gravis_clk <= 1'b0;
+    gravis_out <= 2'b00;
+    gravis_pos <= 5'd0;
+  end else begin
+    // Button assignment
+    if (mode==2'd2) begin
+      // Gravis Pro
+      jb1 <= gravis_clk;
+      jb2 <= gravis_out[0];
+      jb3 <= gravis_clk;
+      jb4 <= gravis_out[1];
+    end else begin
+      jb1 <= !JOY1_BUT1;
+      jb2 <= !JOY1_BUT2;
+      jb3 <= (mode==2'd1) ? !JOY1_BUT3 : !JOY2_BUT1;
+      jb4 <= (mode==2'd1) ? !JOY1_BUT4 : !JOY2_BUT2;
+    end
 
-				// Frame header (5 ones after initial 0)
-				1, 2, 3, 4, 5:
-				    gravis_out <= 1;
+    // Gravis Interface Protocol (GrIP)
+    //
+    // Gravis Pro:
+    // Gravis Gamepad Pro uses a serial protocol. Button 0 is 20-25khz 50% duty cycle clock for P1, and
+    // Button 1 is the data line, with 1 indicating a button is held, and 0 not held. The same applies
+    // to Player 2, but with buttons 2 and 3. The analog axis pins appear to be unused, but possibly
+    // should be set to either 0 or 1 and left there. I have left them in case there is any variant of
+    // this controller that also has an analog input. They seem not to matter. On each falling edge of
+    // each B0 clock, the state of B1 is read. Frames are 24 bits long and is formatted as follows:
+    //
+    //  -----------------------------------------------
+    // |0      |1      |1      |1      |1      |1      |
+    // |0      |Select |Start  |R2     |Blue   |       |
+    // |0      |L2     |Green  |Yellow |Red    |       |
+    // |0      |L1     |R1     |Up     |Down   |       |
+    // |0      |Right  |Left   |       |       |       |
+    //  -----------------------------------------------
+    //
+    // There is a frame identification header of 0 and then 5 1's, after which the button states are
+    // read out in groups of four bits or less, each group preceeded by a 0. Presumptively this format
+    // prevents any false positives for frame header detection.
+    //
+    gravis_clk <= clk_grav;
+    if (~gravis_clk & clk_grav) begin
+      gravis_pos <= (gravis_pos == 5'd23) ? 5'd0 : gravis_pos + 5'd1;
 
-				// Button data for both players
-				// Format: {Player2_button, Player1_button}
-				 7: gravis_out <= {JOY2_SEL,   JOY1_SEL};
-				 8: gravis_out <= {JOY2_START, JOY1_START};
-				 9: gravis_out <= {JOY2_R2,    JOY1_R2};
-				10: gravis_out <= {JOY2_BUT4,  JOY1_BUT4};   // Blue
+      case (gravis_pos)
+        0, 6, 11, 16, 21:
+            gravis_out <= {1'b0,       1'b0};
 
-				12: gravis_out <= {JOY2_L2,    JOY1_L2};
-				13: gravis_out <= {JOY2_BUT2,  JOY1_BUT2};   // Green
-				14: gravis_out <= {JOY2_BUT1,  JOY1_BUT1};   // Red
-				15: gravis_out <= {JOY2_BUT3,  JOY1_BUT3};   // Yellow
+        1, 2, 3, 4, 5:
+            gravis_out <= {1'b1,       1'b1};
 
-				17: gravis_out <= {JOY2_L1,    JOY1_L1};
-				18: gravis_out <= {JOY2_R1,    JOY1_R1};
-				19: gravis_out <= {JOY2_UP,    JOY1_UP};
-				20: gravis_out <= {JOY2_DOWN,  JOY1_DOWN};
+         7: gravis_out <= {JOY2_SEL,   JOY1_SEL};
+         8: gravis_out <= {JOY2_START, JOY1_START};
+         9: gravis_out <= {JOY2_R2,    JOY1_R2};
+        10: gravis_out <= {JOY2_BUT4,  JOY1_BUT4};
 
-				22: gravis_out <= {JOY2_RIGHT, JOY1_RIGHT};
-				23: gravis_out <= {JOY2_LEFT,  JOY1_LEFT};
-			endcase
-		end
-		
-		// ====================================================================
-		// POSITION TIMING COUNTER MANAGEMENT
-		// ====================================================================
-		// Increment clock divider
-		CLK_DIV <= CLK_DIV + 1'b1;
-		
-		// Every 100 clocks, decrement position counters if non-zero
-		// This creates the timing pulse for PC joystick interface
-		if (CLK_DIV==100) begin
-			CLK_DIV <= 0;
-			// Decrement only if non-zero (creates pulse width)
-			if (JOY1_X) JOY1_X <= JOY1_X - 1'b1;
-			if (JOY1_Y) JOY1_Y <= JOY1_Y - 1'b1;
-			if (JOY2_X) JOY2_X <= JOY2_X - 1'b1;
-			if (JOY2_Y) JOY2_Y <= JOY2_Y - 1'b1;
-		end
+        12: gravis_out <= {JOY2_L2,    JOY1_L2};
+        13: gravis_out <= {JOY2_BUT2,  JOY1_BUT2};
+        14: gravis_out <= {JOY2_BUT1,  JOY1_BUT1};
+        15: gravis_out <= {JOY2_BUT3,  JOY1_BUT3};
 
-		// ====================================================================
-		// ANALOG/DIGITAL MODE DETECTION
-		// ====================================================================
-		// Switch to analog mode if analog stick is moved from center
-		// Center dead zone is approximately 60-196 (out of 0-255)
-		// WARNING: Mode switching could glitch if inputs change simultaneously
-		if((ana_1[7:0] > 60 && ana_1[7:0] < 196) || (ana_1[15:8] > 60 && ana_1[15:8] < 196)) 
-			use_dpad1 <= 0;  // Use analog
-		else if(dig_1[3:0])  // If any D-pad button pressed
-			use_dpad1 <= 1;  // Switch back to digital
+        17: gravis_out <= {JOY2_L1,    JOY1_L1};
+        18: gravis_out <= {JOY2_R1,    JOY1_R1};
+        19: gravis_out <= {JOY2_UP,    JOY1_UP};
+        20: gravis_out <= {JOY2_DOWN,  JOY1_DOWN};
 
-		// Same for Player 2
-		if((ana_2[7:0] > 60 && ana_2[7:0] < 196) || (ana_2[15:8] > 60 && ana_2[15:8] < 196)) 
-			use_dpad2 <= 0;
-		else if(dig_2[3:0]) 
-			use_dpad2 <= 1;
+        22: gravis_out <= {JOY2_RIGHT, JOY1_RIGHT};
+        23: gravis_out <= {JOY2_LEFT,  JOY1_LEFT};
+        default: ;
+      endcase
+    end
 
-		// ====================================================================
-		// CPU WRITE HANDLER - START POSITION TIMING
-		// ====================================================================
-		// WARNING: Potential race condition if write occurs when CLK_DIV==100
-		if (write) begin
-			// Set position counters based on current mode and input
-			// Digital mode: 4=left/up, 252=right/down, 128=center
-			// Analog mode: Invert MSB to convert signed to unsigned
-			JOY1_X <= ~use_dpad1 ? {~ana_1[7],  ana_1[6:0]}  : JOY1_LEFT  ? 8'd4 : JOY1_RIGHT ? 8'd252 : 8'd128;
-			JOY1_Y <= ~use_dpad1 ? {~ana_1[15], ana_1[14:8]} : JOY1_UP    ? 8'd4 : JOY1_DOWN  ? 8'd252 : 8'd128;
+    // Auto switch between analog or dpad input
+    // - Analog: when analog activity threshold crossing is detected
+    // - D-pad: when digital input is detected and there was no analog activity detected
+    if(ana_1_activity)  use_dpad1 <= 1'b0;
+    else if(dig_1[3:0]) use_dpad1 <= 1'b1;
+    if(ana_2_activity)  use_dpad2 <= 1'b0;
+    else if(dig_2[3:0]) use_dpad2 <= 1'b1;
 
-			JOY2_X <= ~use_dpad2 ? {~ana_2[7],  ana_2[6:0]}  : JOY2_LEFT  ? 8'd4 : JOY2_RIGHT ? 8'd252 : 8'd128;
-			JOY2_Y <= ~use_dpad2 ? {~ana_2[15], ana_2[14:8]} : JOY2_UP    ? 8'd4 : JOY2_DOWN  ? 8'd252 : 8'd128;
+    if (write) begin
+      // Get the current joystick position values in the range [0,255] at the start of a measurement.
+      
+      j1x_pos = ~use_dpad1  ? { ~ana_1[7],  ana_1[6:0] }  : // convert signed [-128,127] => unsigned [0,255]
+                 JOY1_LEFT  ? 8'd0   : // d-pad 1 left
+                 JOY1_RIGHT ? 8'd255 : // d-pad 1 right
+                              8'd128;  // d-pad 1 center
 
-			// Reset clock divider to ensure consistent timing
-			CLK_DIV <= 0;
-		end
-	end
+      j1y_pos = ~use_dpad1  ? { ~ana_1[15], ana_1[14:8] } : // convert signed [-128,127] => unsigned [0,255]
+                 JOY1_UP    ? 8'd0   : // d-pad 1 up
+                 JOY1_DOWN  ? 8'd255 : // d-pad 1 down
+                              8'd128;  // d-pad 1 center
+
+      j2x_pos = ~use_dpad2  ? { ~ana_2[7],  ana_2[6:0] }  : // convert signed [-128,127] => unsigned [0,255]
+                 JOY2_LEFT  ? 8'd0   : // d-pad 2 left
+                 JOY2_RIGHT ? 8'd255 : // d-pad 2 right
+                              8'd128;  // d-pad 2 center
+
+      j2y_pos = ~use_dpad2  ? { ~ana_2[15], ana_2[14:8] } : // convert signed [-128,127] => unsigned [0,255]
+                 JOY2_UP    ? 8'd0   : // d-pad 2 up
+                 JOY2_DOWN  ? 8'd255 : // d-pad 2 down
+                              8'd128;  // d-pad 2 center
+
+      // Games often use either a timed method or count method to determine the joystick position.
+      // 
+      // Timed
+      // -----
+      // Simulates the charging of a capacitor, as used to measure
+      // the resistance value (position) of the potentiometer inside the joystick
+      // Note: Uses the IBM joystick time formula (see below)
+      // 
+      // Count
+      // -----
+      // The joystick position is determined by the number of reads required
+      // before the signal goes low (the number of reads are counted in software)
+      // Note: Smaller value ranges allow the joystick position to be determined
+      //       more quickly, but with maybe reduced resolution (good for platformers)
+      //       (for Jazz Jackrabbit the max count value seems to be 1000)
+      // Note: For flight simulators with analog joystick support the Count 256 mode
+      //       offers the full analog resolution currently provided
+      // Note: This mode might resolve joystick drift issues
+      // Note: Count 8+141 mode is compatible with the DOS game Paratrooper,
+      //       but can also be used for other games (e.g. platformers)
+      case(timed)
+        2'd0: begin // Timed
+          // IBM Joystick Time = 24.2 us + 0.011 (r) us = 0.011 * (2200 + r) us
+          // The typical potentiometer resistor value r seems to be around 100 kOhm
+          // Note: The 24.2 us accommodates a 2.2 kOhm resistor in series with the potentiometer
+          // 
+          // In timed mode this value simulates the time needed to charge a capacitor
+          // through the potentiometer of the joytick to determine the position
+          // 
+          // Map joystick axis position range [0,255] to potentiometer resistance range [0,1000]
+          // Note: Potentiometer resistance is divided by 100, so the value 1000 represents a 100 kOhm pot
+          // Note: The timed countdown is clocked by tick_1100ns (1.1 us)
+          // Note: joy = 22 + (1000 * pos/255) = 22 + 1000/255 * pos
+          j1x <= 5'd22 + (j1x_pos == 8'd255 ? 11'd1000 : (j1x_pos << 2) - (j1x_pos >> 4) - (j1x_pos >> 6) - (j1x_pos >> 8));
+          j1y <= 5'd22 + (j1y_pos == 8'd255 ? 11'd1000 : (j1y_pos << 2) - (j1y_pos >> 4) - (j1y_pos >> 6) - (j1y_pos >> 8));
+          j2x <= 5'd22 + (j2x_pos == 8'd255 ? 11'd1000 : (j2x_pos << 2) - (j2x_pos >> 4) - (j2x_pos >> 6) - (j2x_pos >> 8));
+          j2y <= 5'd22 + (j2y_pos == 8'd255 ? 11'd1000 : (j2y_pos << 2) - (j2y_pos >> 4) - (j2y_pos >> 6) - (j2y_pos >> 8));
+        end
+        2'd1: begin // Count 8+141
+          // DOS game Paratrooper compatible mappings:
+          // Map [0,255] ->  5 + [0,146]
+          // Map [0,255] ->  6 + [0,144]
+          // Map [0,255] ->  7 + [0,142]
+          // Map [0,255] ->  8 + [0,140]
+          // Map [0,255] ->  9 + [0,138]
+          // Map [0,255] -> 10 + [0,136]
+          // Map [0,255] -> 11 + [0,134]
+          // 
+          // Map [0,255] -> 8 + [0,140]
+          j1x <= 4'd8 + (j1x_pos >> 1) + (j1x_pos >> 4) - (j1x_pos >> 7) - (j1x_pos >> 7);
+          j1y <= 4'd8 + (j1y_pos >> 1) + (j1y_pos >> 4) - (j1y_pos >> 7) - (j1y_pos >> 7);
+          j2x <= 4'd8 + (j2x_pos >> 1) + (j2x_pos >> 4) - (j2x_pos >> 7) - (j2x_pos >> 7);
+          j2y <= 4'd8 + (j2y_pos >> 1) + (j2y_pos >> 4) - (j2y_pos >> 7) - (j2y_pos >> 7);
+        end
+        2'd2: begin // Count 0+256
+          // Map: [0,255] -> [0,255]
+          j1x <= j1x_pos;
+          j1y <= j1y_pos;
+          j2x <= j2x_pos;
+          j2y <= j2y_pos;
+        end
+        2'd3: begin // Count 6+256
+          // Map: [0,255] -> 6 + [0,255]
+          // TODO: Change this to something more useful for certain games?
+          j1x <= 3'd6 + j1x_pos;
+          j1y <= 3'd6 + j1y_pos;
+          j2x <= 3'd6 + j2x_pos;
+          j2y <= 3'd6 + j2y_pos;
+        end
+        default: ;
+      endcase
+    end
+
+    read_last <= read;
+    if (timed==2'd0 ? tick_1100ns : read_last && ~read) begin
+      if (j1x) j1x <= j1x - 1'b1;
+      if (j1y) j1y <= j1y - 1'b1;
+      if (j2x) j2x <= j2x - 1'b1;
+      if (j2y) j2y <= j2y - 1'b1;
+    end
+
+  end
 end
 
 endmodule
