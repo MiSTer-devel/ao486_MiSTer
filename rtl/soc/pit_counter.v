@@ -49,8 +49,14 @@ module pit_counter(
 reg clock_last;
 always @(posedge clk) clock_last <= clock;
 
+wire clock_rise = ~clock_last &&  clock;
+wire clock_fall =  clock_last && ~clock;
+
 reg gate_last;
 always @(posedge clk) gate_last <= gate;
+
+wire gate_rise = ~gate_last &&  gate;
+wire gate_fall =  gate_last && ~gate;
 
 reg write_last;
 always @(posedge clk) write_last <= write;
@@ -93,40 +99,48 @@ end
 
 //-------------------------------------------------------------------------------------------------
 
+wire write_done = write_last && ~write;
+wire read_done  = read_last  && ~read;
+
 // Write sequence flip-flop for read/write mode 3 (LSB/MSB)
-reg write_seq_ff;
+// Toggles on each write in read/write mode 3: 0 = LSB write expected; 1 = MSB write expected
+reg write_seq_msb;
 always @(posedge clk) begin
-    if(!rst_n || set_control_mode)                   write_seq_ff <= 1'b0;
-    else if(write_last && ~write && rw_mode == 2'd3) write_seq_ff <= ~write_seq_ff;
+    if(!rst_n || set_control_mode)         write_seq_msb <= 1'b0;
+    else if(write_done && rw_mode == 2'd3) write_seq_msb <= ~write_seq_msb;
 end
 
 // Read sequence flip-flop for read/write mode 3 (LSB/MSB)
-reg read_seq_ff;
+// Toggles on each read in read/write mode 3 (when status is not latched): 0 = LSB read expected; 1 = MSB read expected
+reg read_seq_msb;
 always @(posedge clk) begin
-    if(!rst_n || set_control_mode)                                    read_seq_ff <= 1'b0;
-    else if(read_last && ~read && rw_mode == 2'd3 && ~status_latched) read_seq_ff <= ~read_seq_ff;
+    if(!rst_n || set_control_mode)                           read_seq_msb <= 1'b0;
+    else if(read_done && rw_mode == 2'd3 && ~status_latched) read_seq_msb <= ~read_seq_msb;
 end
 
-//-------------------------------------------------------------------------------------------------
+// The read/write sequence is determined by rw_mode
+wire write_seq_done = write_done && (rw_mode != 2'd3 || write_seq_msb);
+wire read_seq_done  = read_done  && (rw_mode != 2'd3 || read_seq_msb);
 
-// Note:
-// The Samsung KS82C54 datasheet states that the count registers reset when
-// a new mode is written. This is not mentioned in the Intel 8254 datasheet.
+wire write_lsb = write && rw_mode != 2'd2 && ~write_seq_msb;
+wire write_msb = write && (rw_mode == 2'd2 || write_seq_msb);
+
+//-------------------------------------------------------------------------------------------------
 
 // Count Register LSB (CR_L)
 reg [7:0] counter_l;
 always @(posedge clk) begin
-    if(!rst_n)                                         counter_l <= 8'd0;
-    else if(set_control_mode)                          counter_l <= 8'd0; // Samsung KS82C54
-    else if(write && rw_mode != 2'd2 && ~write_seq_ff) counter_l <= data_in; // write_lsb
+    if(!rst_n)                        counter_l <= 8'd0;
+    else if(write && rw_mode == 2'd2) counter_l <= 8'd0; // set lsb to zero for read/write mode 2 (not in the Intel 8254 datasheet)
+    else if(write_lsb)                counter_l <= data_in;
 end
 
 // Count Register MSB (CR_M)
 reg [7:0] counter_m;
 always @(posedge clk) begin
-    if(!rst_n)                                          counter_m <= 8'd0;
-    else if(set_control_mode)                           counter_m <= 8'd0; // Samsung KS82C54
-    else if(write && (rw_mode == 2'd2 || write_seq_ff)) counter_m <= data_in; // write_msb
+    if(!rst_n)                        counter_m <= 8'd0;
+    else if(write && rw_mode == 2'd1) counter_m <= 8'd0; // set msb to zero for read/write mode 1 (not in the Intel 8254 datasheet)
+    else if(write_msb)                counter_m <= data_in;
 end
 
 // Output Latch LSB (OL_L)
@@ -146,18 +160,18 @@ end
 // Output Latched state
 reg output_latched;
 always @(posedge clk) begin
-    if(!rst_n || set_control_mode)                                  output_latched <= 1'b0;
-    else if(latch_count)                                            output_latched <= 1'b1;
-    else if(read_last && ~read && (rw_mode != 2'd3 || read_seq_ff)) output_latched <= 1'b0; // read_sequence_completed
+    if(!rst_n || set_control_mode) output_latched <= 1'b0; // set_control_mode releases a latched count
+    else if(latch_count)           output_latched <= 1'b1;
+    else if(read_seq_done)         output_latched <= 1'b0;
 end
 
 // Null Count flag
 reg null_count;
 always @(posedge clk) begin
-    if(!rst_n)                                                         null_count <= 1'b0;
-    else if(set_control_mode)                                          null_count <= 1'b1;
-    else if(write_last && ~write && (rw_mode != 2'd3 || write_seq_ff)) null_count <= 1'b1; // write_sequence_completed
-    else if(load)                                                      null_count <= 1'b0;
+    if(!rst_n)                null_count <= 1'b0;
+    else if(set_control_mode) null_count <= 1'b1;
+    else if(write_seq_done)   null_count <= 1'b1;
+    else if(load)             null_count <= 1'b0;
 end
 
 // Latched status information
@@ -170,63 +184,73 @@ end
 // Status Latched state
 reg status_latched;
 always @(posedge clk) begin
-    if(!rst_n || set_control_mode) status_latched <= 1'b0;
+    if(!rst_n || set_control_mode) status_latched <= 1'b0; // set_control_mode releases a latched status
     else if(latch_status)          status_latched <= 1'b1;
-    else if(read_last && ~read)    status_latched <= 1'b0; // read_done
+    else if(read_done)             status_latched <= 1'b0;
 end
 
 // Data Out
-assign data_out =
-    (status_latched)                 ? status   :
-    (rw_mode == 2'd2 || read_seq_ff) ? output_m : output_l;
+assign data_out = 
+    (status_latched)                  ? status   : 
+    (rw_mode == 2'd2 || read_seq_msb) ? output_m : output_l;
 
 //-------------------------------------------------------------------------------------------------
 
-// In Modes 0, 2, 3 and 4 the counter is (re)loaded when a write sequence is completed.
+// In modes 0, 2, 3, 4 the counter is (re)loaded when a write sequence is completed.
 
 // Write sequence completed flip-flop
 reg written;
 always @(posedge clk) begin
-    if(!rst_n || set_control_mode)                                     written <= 1'b0;
-    else if(write_last && ~write && (rw_mode != 2'd3 || write_seq_ff)) written <= 1'b1; // write_sequence_completed
-    else if(load)                                                      written <= 1'b0;
+    if(!rst_n || set_control_mode)                                        written <= 1'b0; // setting a new mode aborts pending load
+    else if(write_seq_done && mode[1:0] != 2'b01 && ~(mode[1] && loaded)) written <= 1'b1; // only modes 0, 2, 3, 4: see "load events per mode" table
+    else if(load)                                                         written <= 1'b0;
 end
 
 // Written is sampled on the rising edge of clock
 reg written_sampled;
 always @(posedge clk) begin
-    if(!rst_n || set_control_mode) written_sampled <= 1'b0;
-    else if(~clock_last && clock)  written_sampled <= written;
+    if(!rst_n || set_control_mode) written_sampled <= 1'b0; // setting a new mode aborts pending load
+    else if(clock_rise)            written_sampled <= written;
 end
 
 //-------------------------------------------------------------------------------------------------
 
-// In Modes 1, 2, 3 and 5 the gate input is rising-edge sensitive (trigger).
+// In modes 1, 2, 3, 5 the gate input is rising-edge sensitive (trigger).
+
+reg armed;
+always @(posedge clk) begin
+    if(!rst_n || set_control_mode)                armed <= 1'b0;
+    else if(write_seq_done && mode[1:0] == 2'b01) armed <= 1'b1; // only modes 1, 5
+end
+
+wire trigger_pulse   = gate_rise;                        // trigger = rising edge of gate
+wire trigger_allowed = (armed  && mode[1:0] == 2'b01) || // in modes 1, 5 triggers are ignored until the counter is armed
+                       (loaded && mode[1]);              // in modes 2, 3 triggers are ignored until the initial count is loaded
 
 // Gate rising-edge sensitive flip-flop
 reg trigger;
 always @(posedge clk) begin
-    if(!rst_n || set_control_mode) trigger <= 1'b0;
-    else if(~gate_last && gate)    trigger <= 1'b1; // trigger = rising edge of gate
-    else if(~clock_last && clock)  trigger <= 1'b0; // reset flip-flop after it has been sampled
+    if(!rst_n || set_control_mode)            trigger <= 1'b0; // setting a new mode aborts pending load
+    else if(trigger_pulse && trigger_allowed) trigger <= 1'b1; // trigger start
+    else if(clock_rise)                       trigger <= 1'b0; // reset flip-flop after it has been sampled
 end
 
 // Trigger is sampled on the rising edge of clock
 reg trigger_sampled;
 always @(posedge clk) begin
-    if(!rst_n || set_control_mode) trigger_sampled <= 1'b0;
-    else if(~clock_last && clock)  trigger_sampled <= trigger;
+    if(!rst_n || set_control_mode) trigger_sampled <= 1'b0; // setting a new mode aborts pending load
+    else if(clock_rise)            trigger_sampled <= trigger;
 end
 
 //-------------------------------------------------------------------------------------------------
 
-// In Modes 0, 2, 3 and 4 the gate input is level sensitive.
+// In modes 0, 2, 3, 4 the gate input is level sensitive.
 
 // The gate logic level is sampled on the rising edge of clock
 reg gate_level_sampled;
 always @(posedge clk) begin
-    if(!rst_n || set_control_mode) gate_level_sampled <= 1'b0;
-    else if(~clock_last && clock)  gate_level_sampled <= gate;
+    if(!rst_n)          gate_level_sampled <= 1'b0; // setting a new mode does not affect gate_level_sampled
+    else if(clock_rise) gate_level_sampled <= gate;
 end
 
 //-------------------------------------------------------------------------------------------------
@@ -236,8 +260,9 @@ always @(posedge clk) begin
     else if (set_control_mode)                                  out <= (data_in[3:1] > 3'd0);
     else begin
         case(mode)
+            // In modes 0, 1, 4, 5 gate has no effect on out
             3'd0: begin
-                if      (write_last && ~write && ~write_seq_ff) out <= 1'b0;
+                if      (write_done && ~write_seq_msb)          out <= 1'b0;
                 else if (counter == 16'd1 && enable)            out <= 1'b1;
             end
             3'd1: begin
@@ -245,11 +270,11 @@ always @(posedge clk) begin
                 else if (counter == 16'd1 && enable)            out <= 1'b1;
             end
             3'd2, 3'd6: begin
-                if      (load || (gate_last && ~gate))          out <= 1'b1;
+                if      (load || gate_fall)                     out <= 1'b1;
                 else if (counter == 16'd2 && enable)            out <= 1'b0;
             end
             3'd3, 3'd7: begin
-                if      (gate_last && ~gate)                    out <= 1'b1;
+                if      (gate_fall)                             out <= 1'b1;
                 else if (load && loaded && ~trigger_sampled)    out <= ~out;
             end
             3'd4, 3'd5: begin
@@ -279,26 +304,31 @@ end
 
 */
 
-// In modes 0, 2, 3 and 4, when a count is written it will be (re)loaded on the next clock pulse
-wire load_written = (clock_last && ~clock) && (
-    mode[1:0] != 2'b01 && written_sampled && (~mode[1] || ~loaded)
-);
+// In modes 0, 2, 3, 4, when a count is fully written it will be (re)loaded on the next clock pulse
+wire load_written = clock_fall && written_sampled;
 
-// In modes 1, 2, 3 and 5 a trigger (re)loads the counter on the next clock pulse
-wire load_trigger = (clock_last && ~clock) && (
-    mode[1:0] != 2'b00 && trigger_sampled && (written || loaded)
-);
+// In modes 1, 2, 3, 5 a trigger (re)loads the counter on the next clock pulse
+wire load_trigger = clock_fall && trigger_sampled;
 
-// In modes 2 and 3, reaching the terminal count reloads the counter on the falling edge of clock
-// Mode 2 periodic reload after terminal count value: 16'd1
-// Mode 3 periodic reload after terminal count value: (counter_l[0] && out) ? 16'd0 : 16'd2
-wire load_terminal = (clock_last && ~clock) && loaded && gate_level_sampled && (
-    mode[1] && counter == { 14'b0, ~(counter_l[0] && out) && mode[0], ~mode[0] }
-);
+// Terminal count for modes 2, 3
+// Mode 2 terminal count value: 16'd1
+// Mode 3 terminal count value: (counter_l[0] && out) ? 16'd0 : 16'd2
+reg terminal_count;
+always @(posedge clk) begin
+    terminal_count <= counter == { 14'b0, ~(counter_l[0] && out) && mode[0], ~mode[0] };
+end
 
-// The counter is (re)loaded on the falling edge of clock (according to the Intel 8254 datasheet)
+// In the periodic modes 2, 3 reaching the terminal count reloads the counter on the falling edge of clock
+wire load_terminal = clock_fall
+    && mode[1]             // modes 2, 3
+    && terminal_count      // terminal count
+    && loaded              // counting is disabled until the initial count is loaded
+    && gate_level_sampled; // in modes 0, 2, 3, 4 the sampled gate level can disable counting
+
+// The counter can be (re)loaded on the falling edge of clock (Intel 8254 datasheet)
 wire load = load_written || load_trigger || load_terminal;
 
+// Flag indicating if the initial count has been loaded into the counter
 reg loaded;
 always @(posedge clk) begin
     if(!rst_n || set_control_mode) loaded <= 1'b0;
@@ -319,22 +349,25 @@ end
     |  4     |      v       |
     |  5     |              |
 
-    (*) For mode 0 in LSB/MSB read/wite mode,
+    Modes 0, 2, 3, 4: gate 1 enables counting; gate 0 disables counting
+
+    (*) For mode 0 in read/wite mode 3 (LSB/MSB),
     writing the first byte disables counting.
 
 */
 
-// Counters are decremented on the falling edge of clock
-wire enable = (clock_last && ~clock) && ~load && loaded && (
-    (mode[1:0] == 2'b01) ||
-    (mode[1:0] != 2'b01 && gate_level_sampled && (mode != 3'd0 || ~write_seq_ff))
-);
+// The counter can be decremented on the falling edge of clock
+wire enable = clock_fall
+    && ~load                                      // the counter is not decremented on (re)load
+    && (mode[1:0] == 2'b01 || loaded)             // in modes 0, 2, 3, 4 counting is disabled until the initial count is loaded (disabling this line will fix Lemmings 2 (with Adlib music) on the highest speed settings)
+    && (mode[1:0] == 2'b01 || gate_level_sampled) // in modes 0, 2, 3, 4 the sampled gate level can disable counting
+    && ~(mode == 3'd0 && write_seq_msb);          // for mode 0 in read/wite mode 3 (LSB/MSB), writing the first byte disables counting
 
 `ifdef AO486_PIT_NO_IMMEDIATE_LOAD
 // ================================================================================================
 // Standard PIT behavior in accordance with the Intel 8254 datasheet never immediategly (re)loads
 // the counter. The counter will always be (re)loaded on the next clock pulse. This can cause
-// issues with certain timing critial code on fast systems.
+// issues with certain timing critial code on fast enough systems.
 
 wire load_counter    = load;
 wire enable_counting = enable;
@@ -350,26 +383,37 @@ wire enable_counting = enable;
 // critical code. Immediate loading can help mitigate some of these issues on fast systems.
 // 
 // On real hardware the counter can allegedly be (re)loaded immediately:
-// - Load the initial count immediately after it has been written (reloads excluded)
+// - Immediately load the initial count (reloads excluded) after it has been written
 //   See also: https://github.com/joncampbell123/doslib/blob/master/hw/8254/tpcrapi4.c
-// - Load or reload the counter immediately after a trigger
+// - Immediately (re)load the counter after a trigger
 //   See also: https://github.com/joncampbell123/doslib/blob/master/hw/8254/tpcrapi6.c
 // This behavior is not mentioned in the Intel 8254 datasheet.
 
-// Load the initial count immediately after it has been written (reloads excluded)
-reg load_written_imm;
+// In modes 0, 2, 3, 4, immediately load the initial count (reloads will be excluded) after it has been written
+wire load_written_imm = write_seq_done && mode[1:0] != 2'b01;
+
+// In modes 1, 2, 3, 5, immediately (re)load the counter after a trigger
+wire load_trigger_imm = trigger_pulse && trigger_allowed;
+
+// Counter (re)load including immediate (re)load
+wire load_imm = (load_written_imm && ~loaded_imm) || load_trigger_imm || 
+                (load_written     &&  loaded_imm) || load_terminal;
+
+// Flag indicating if the initial count has been immediately loaded into the counter
+reg loaded_imm;
 always @(posedge clk) begin
-    load_written_imm <= mode[1:0] != 2'b01 && (write_last && ~write && (rw_mode != 2'd3 || write_seq_ff)) && ~loaded;
+    if(!rst_n || set_control_mode) loaded_imm <= 1'b0;
+    else if(load_imm)              loaded_imm <= 1'b1;
 end
 
-// Load the counter immediately after a trigger
-reg load_trigger_imm;
-always @(posedge clk) begin
-    load_trigger_imm <= mode[1:0] != 2'b00 && (~gate_last && gate) && (written || loaded);
-end
+// Premature counter decrements after immediate trigger (re)load have to be prevented,
+// to remain consistant with the original PIT behavior
+wire enable_imm = enable && (
+    mode[1:0] == 2'b00 || ~( (trigger || trigger_sampled) && trigger_allowed )
+);
 
-wire load_counter    = load_written_imm || (load_written && loaded) || load_trigger_imm || load_terminal;
-wire enable_counting = enable && ~trigger && ~trigger_sampled;
+wire load_counter    = load_imm;
+wire enable_counting = enable_imm;
 
 // ================================================================================================
 `endif
@@ -382,6 +426,9 @@ wire [15:0] counter_minus_1 =
                                 counter - 1'd1;
 
 // Counting Element (CE)
+// On the falling edge of clock the counter can be:
+// - Reset to the (re)load value
+// - Decremented
 reg [15:0] counter;
 always @(posedge clk) begin
     if(!rst_n)               counter <= 16'd0;
