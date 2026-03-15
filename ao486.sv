@@ -197,7 +197,7 @@ led fdd_led(clk_sys, |mgmt_req[7:6], LED_USER);
 // 0         1         2         3          4         5         6
 // 01234567890123456789012345678901 23456789012345678901234567890123
 // 0123456789ABCDEFGHIJKLMNOPQRSTUV 0123456789ABCDEFGHIJKLMNOPQRSTUV
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXX XXX
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 `include "build_id.v"
 localparam CONF_STR =
@@ -227,9 +227,10 @@ localparam CONF_STR =
 	"P1-;",
 	"P1O3,FM mode,OPL2,OPL3;",
 	"P1OH,C/MS,Disable,Enable;",
-	"P1OIJ,Speaker Volume,1,2,3,4;",
+	"P1OIJ,PC Speaker Volume,1,2,3,4;",
 	"P1OKL,Audio Boost,No,2x,4x;",
 	"P1oBC,Stereo Mix,none,25%,50%,100%;",
+	"P1oO,SB Swap L/R,Off,On;",
 	"P1OP,MT32 Volume Ctl,MIDI,Line-In;",
 
 	"P2,Hardware;",
@@ -252,7 +253,7 @@ localparam CONF_STR =
 	"P2-;",
 	"P2OA,USER I/O,MIDI,COM2;",
 	"P2-;",
-	"P2OCD,Joystick type,2 Buttons,4 Buttons,Gravis Pro,None;",
+	"P2OCD,Joystick Type,2 Buttons,4 Buttons,Gravis Pro,None;",
 	"P2oFG,Joystick Mode,2 Joysticks,2 Sticks,2 Wheels,4-axes Wheel;",
 	"P2oQR,Joystick Axes,Timed,Count 8+141,Count 0+256,Count 6+256;",
 	"P2oH,Joystick 1,Enabled,Disabled;",
@@ -724,10 +725,6 @@ assign VIDEO_ARY = fb_en ? fb_ary : ary;
 
 assign DDRAM_ADDR[28:25] = 4'h3;
 
-wire [4:0] vol_l, vol_r, vol_cd_l, vol_cd_r, vol_midi_l, vol_midi_r, vol_line_l, vol_line_r;
-wire [1:0] vol_spk;
-wire [4:0] vol_en;
-
 system system
 (
 	.clk_sys              (clk_sys),
@@ -768,18 +765,23 @@ system system
 	.video_lores          (~status[14]),
 	.video_border         (status[55]),
 
+	.sample_cms_l         (cms_out_l),
+	.sample_cms_r         (cms_out_r),
 	.sample_sb_l          (sb_out_l),
 	.sample_sb_r          (sb_out_r),
 	.sample_opl_l         (opl_out_l),
 	.sample_opl_r         (opl_out_r),
 	.sound_fm_mode        (status[3]),
 	.sound_cms_en         (status[17]),
-	.vol_l                (vol_l),
-	.vol_r                (vol_r),
-	.vol_cd_l             (vol_cd_l),
-	.vol_cd_r             (vol_cd_r),
+	.sbp                  (sbp),
+	.vol_master_l         (vol_master_l),
+	.vol_master_r         (vol_master_r),
+	.vol_voice_l          (vol_voice_l),
+	.vol_voice_r          (vol_voice_r),
 	.vol_midi_l           (vol_midi_l),
 	.vol_midi_r           (vol_midi_r),
+	.vol_cd_l             (vol_cd_l),
+	.vol_cd_r             (vol_cd_r),
 	.vol_line_l           (vol_line_l),
 	.vol_line_r           (vol_line_r),
 	.vol_spk              (vol_spk),
@@ -964,9 +966,9 @@ always @(posedge clk_sys) begin
 	mt32_info_req <= (old_mode ^ mt32_newmode) && (mt32_info == 1);
 
 	mt32_info_disp <= (mt32_mode == 'hA2) ? (4'd1 + mt32_sf[2:0]) :
-                     (mt32_mode == 'hA1 && mt32_rom == 0) ?  4'd9 :
-                     (mt32_mode == 'hA1 && mt32_rom == 1) ?  4'd10 :
-                     (mt32_mode == 'hA1 && mt32_rom == 2) ?  4'd11 : 4'd12;
+	                  (mt32_mode == 'hA1 && mt32_rom == 0) ?  4'd9 :
+	                  (mt32_mode == 'hA1 && mt32_rom == 1) ?  4'd10 :
+	                  (mt32_mode == 'hA1 && mt32_rom == 2) ?  4'd11 : 4'd12;
 end
 
 reg mt32_lcd_on;
@@ -992,7 +994,9 @@ wire mt32_lcd = mt32_lcd_on & mt32_lcd_en;
 
 ////////////////////////////  AUDIO  ///////////////////////////////////
 
+// PC Speaker
 wire        speaker_out, speaker_out_clk_audio;
+wire  [1:0] vol_spk;
 reg  [16:0] spk_out;
 
 synchronizer speaker_out_sync
@@ -1008,9 +1012,7 @@ always @(posedge CLK_AUDIO) begin
 	spk_out <= spk >> ~vol_spk;
 end
 
-wire [15:0] sb_out_l, sb_out_r;
-wire [15:0] opl_out_l, opl_out_r;
-
+// CD-DA (Redbook audio)
 wire [15:0] cdda_l;
 wire [15:0] cdda_r;
 wire [31:0] cdda_dout;
@@ -1024,45 +1026,93 @@ cdda #(24576000) cdda
 	.CDDA_WR(cdda_wr),
 	.CDDA_DATA(cdda_dout),
 
-	.VOLUME_L(vol_cd_l[4:1]),
-	.VOLUME_R(vol_cd_r[4:1]),
+	.VOLUME_L(4'b1111),
+	.VOLUME_R(4'b1111),
 
 	.CLK_AUDIO(CLK_AUDIO),
 	.AUDIO_L(cdda_l),
 	.AUDIO_R(cdda_r)
 );
 
-function signed [15:0] volume(input [15:0] inp, input [4:0] vol);
-	begin
-		volume = vol ? $signed($signed(inp) >>> ~vol[4:1]) : 16'd0;
-	end
-endfunction
+wire  [8:0] cms_out_l, cms_out_r;
+wire [15:0] sb_out_l,  sb_out_r;
+wire [15:0] opl_out_l, opl_out_r;
 
-reg [15:0] out_l, out_r;
-always @(posedge CLK_AUDIO) begin
-	reg [16:0] tmp_l, tmp_r;
-	reg [15:0] mt32_l, mt32_r;
+wire        sbp;
+wire  [4:0] vol_master_l, vol_master_r, vol_voice_l, vol_voice_r, vol_midi_l, vol_midi_r, vol_cd_l, vol_cd_r, vol_line_l, vol_line_r;
+wire  [4:0] vol_en;
 
-	mt32_l <= volume(mt32_i2s_l, ~status[25] ? vol_midi_l : vol_en[4] ? vol_line_l : 5'd0);
-	mt32_r <= volume(mt32_i2s_r, ~status[25] ? vol_midi_r : vol_en[3] ? vol_line_r : 5'd0);
+// Select MT-32 volume control
+wire  [4:0] vol_mt32_l = ~status[25] ? vol_midi_l : vol_en[4] ? vol_line_l : 5'd0;
+wire  [4:0] vol_mt32_r = ~status[25] ? vol_midi_r : vol_en[3] ? vol_line_r : 5'd0;
 
-	tmp_l <= {opl_out_l[15],opl_out_l} + {sb_out_l[15],sb_out_l} + spk_out + (mt32_mute ? 17'd0 : {mt32_l[15],mt32_l}) + (vol_en[2] ? {cdda_l[15],cdda_l} : 17'd0);
-	tmp_r <= {opl_out_r[15],opl_out_r} + {sb_out_r[15],sb_out_r} + spk_out + (mt32_mute ? 17'd0 : {mt32_r[15],mt32_r}) + (vol_en[1] ? {cdda_r[15],cdda_r} : 17'd0);
+// Apply per-channel volume controls
+wire [15:0] master_l, master_r, sb_l, sb_r, opl_l, opl_r, cd_l, cd_r, mt32_l, mt32_r;
+wire        sb_volume_valid;
+sb_volume #(.NUM_CH(10), .SAMPLE_WIDTH(16)) sb_volume_inst (
+	.clk(CLK_AUDIO),
+	.sbp(sbp),
+	// Volume controls
+	.volumes_in({vol_master_l, vol_master_r,  // Master volume  
+	             vol_voice_l,  vol_voice_r,   // Voice (SB DAC/DMA)
+	             vol_midi_l,   vol_midi_r,    // MIDI (FM/OPL)
+	             vol_cd_l,     vol_cd_r,      // CD
+	             vol_mt32_l,   vol_mt32_r}),  // MT-32
+	// Pre-volume audio samples
+	.samples_in({mix_pre_l,    mix_pre_r,     // Master mix (pre-volume)
+	             sb_out_l,     sb_out_r,      // SB DAC/DMA
+	             opl_out_l,    opl_out_r,     // OPL2/3 FM synthesis
+	             cdda_l,       cdda_r,        // CD-DA (Redbook audio)
+	             mt32_i2s_l,   mt32_i2s_r}),  // MT-32 I2S
+	// Post-volume audio samples
+	.samples_out({master_l,    master_r,
+	              sb_l,        sb_r,
+	              opl_l,       opl_r,
+	              cd_l,        cd_r,
+	              mt32_l,      mt32_r}),
+	.valid(sb_volume_valid)
+);
 
-	// clamp the output
-	out_l <= (^tmp_l[16:15]) ? {tmp_l[16], {15{tmp_l[15]}}} : tmp_l[15:0];
-	out_r <= (^tmp_r[16:15]) ? {tmp_r[16], {15{tmp_r[15]}}} : tmp_r[15:0];
-end
+// SB channel swap after volume stage
+wire [15:0] sb_l_swap = status[56] ? sb_r : sb_l;
+wire [15:0] sb_r_swap = status[56] ? sb_l : sb_r;
 
-wire [15:0] cmp_l, cmp_r;
-acompr acompr_l(CLK_AUDIO, status[21], out_l, cmp_l);
-acompr acompr_r(CLK_AUDIO, status[21], out_r, cmp_r);
-
+reg [15:0] mix_dry_l, mix_dry_r;
 reg [15:0] audio_l, audio_r;
 always @(posedge CLK_AUDIO) begin
-	audio_l <= volume(status[21:20] ? cmp_l : out_l, vol_l);
-	audio_r <= volume(status[21:20] ? cmp_r : out_r, vol_r);
+	reg [16:0] mix_tmp_l, mix_tmp_r;
+
+	if (sb_volume_valid) begin
+		audio_l <= master_l;
+		audio_r <= master_r;
+
+		mix_tmp_l <= spk_out                                    // PC Speaker
+		           + {2'b00, cms_out_l, cms_out_l[8:4]}         // C/MS or Game Blaster
+		           + {sb_l_swap[15],sb_l_swap}                  // SB DAC/DMA
+		           + {opl_l[15],opl_l}                          // OPL2/3 FM synthesis
+		           + (vol_en[2] ? {cd_l[15],cd_l} : 17'd0)      // CD-DA (Redbook audio)
+		           + (mt32_mute ? 17'd0 : {mt32_l[15],mt32_l}); // MT-32
+		mix_tmp_r <= spk_out
+		           + {2'b00, cms_out_r, cms_out_r[8:4]}
+		           + {sb_r_swap[15],sb_r_swap}
+		           + {opl_r[15],opl_r}
+		           + (vol_en[1] ? {cd_r[15],cd_r} : 17'd0)
+		           + (mt32_mute ? 17'd0 : {mt32_r[15],mt32_r});
+	end
+
+	// Hard clip to prevent overflow
+	mix_dry_l <= (^mix_tmp_l[16:15]) ? {mix_tmp_l[16], {15{mix_tmp_l[15]}}} : mix_tmp_l[15:0];
+	mix_dry_r <= (^mix_tmp_r[16:15]) ? {mix_tmp_r[16], {15{mix_tmp_r[15]}}} : mix_tmp_r[15:0];
 end
+
+// Audio compression
+wire [15:0] mix_cmp_l, mix_cmp_r;
+acompr acompr_l(CLK_AUDIO, status[21], mix_dry_l, mix_cmp_l);
+acompr acompr_r(CLK_AUDIO, status[21], mix_dry_r, mix_cmp_r);
+
+// Select between compressed/dry pre-volume master mix
+wire [15:0] mix_pre_l = status[21:20] ? mix_cmp_l : mix_dry_l;
+wire [15:0] mix_pre_r = status[21:20] ? mix_cmp_r : mix_dry_r;
 
 assign AUDIO_L   = audio_l;
 assign AUDIO_R   = audio_r;
