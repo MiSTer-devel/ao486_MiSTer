@@ -39,7 +39,7 @@ module system
 	output        ps2_reset_n,
 
 	input   [5:0] bootcfg,
-  input         uma_ram,
+	input         uma_ram,
 	output  [7:0] syscfg,
 
 	input         clk_uart1,
@@ -65,6 +65,8 @@ module system
 	output        mpu_tx,
 
 	input         clk_audio,
+	output  [8:0] sample_cms_l,
+	output  [8:0] sample_cms_r,
 	output [15:0] sample_sb_l,
 	output [15:0] sample_sb_r,
 	output [15:0] sample_opl_l,
@@ -74,12 +76,16 @@ module system
 
 	output        speaker_out,
 
-	output  [4:0] vol_l,
-	output  [4:0] vol_r,
-	output  [4:0] vol_cd_l,
-	output  [4:0] vol_cd_r,
+	output        sbp,
+
+	output  [4:0] vol_master_l,
+	output  [4:0] vol_master_r,
+	output  [4:0] vol_voice_l,
+	output  [4:0] vol_voice_r,
 	output  [4:0] vol_midi_l,
 	output  [4:0] vol_midi_r,
+	output  [4:0] vol_cd_l,
+	output  [4:0] vol_cd_r,
 	output  [4:0] vol_line_l,
 	output  [4:0] vol_line_r,
 	output  [1:0] vol_spk,
@@ -657,19 +663,25 @@ sound sound
 	.dma_readdata      (dma_sb_req_16 ? dma_sb_readdata_16 : dma_sb_readdata_8),
 	.dma_writedata     (dma_sb_writedata),
 
-	.vol_l             (vol_l),
-	.vol_r             (vol_r),
-	.vol_cd_l          (vol_cd_l),
-	.vol_cd_r          (vol_cd_r),
+	.sbp               (sbp),
+
+	.vol_master_l      (vol_master_l),
+	.vol_master_r      (vol_master_r),
+	.vol_voice_l       (vol_voice_l),
+	.vol_voice_r       (vol_voice_r),
 	.vol_midi_l        (vol_midi_l),
 	.vol_midi_r        (vol_midi_r),
+	.vol_cd_l          (vol_cd_l),
+	.vol_cd_r          (vol_cd_r),
 	.vol_line_l        (vol_line_l),
 	.vol_line_r        (vol_line_r),
 	.vol_spk           (vol_spk),
 	.vol_en            (vol_en),
 
-	.sample_l          (sample_sb_l),
-	.sample_r          (sample_sb_r),
+	.sample_cms_l      (sample_cms_l),
+	.sample_cms_r      (sample_cms_r),
+	.sample_sb_l       (sample_sb_l),
+	.sample_sb_r       (sample_sb_r),
 	.sample_opl_l      (sample_opl_l),
 	.sample_opl_r      (sample_opl_r),
 
