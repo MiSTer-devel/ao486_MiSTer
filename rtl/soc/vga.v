@@ -810,7 +810,7 @@ assign vga_memmode = { general_enable_ram, graph_system_memory };
 
 //------------------------------------------------------------------------------ mem read
 
-reg [7:0] host_ram_q [3:0];
+wire [7:0] host_ram_q [3:0];
 
 reg [7:0] host_ram_reg [3:0]; // latched data
 
@@ -871,8 +871,8 @@ end
 
 //------------------------------------------------------------------------------ mem write
 
-wire [7:0] host_write_set  [3:0]; // one byte per plane
-wire [7:0] host_writedata  [3:0]; // one byte per plane
+wire [7:0] host_write_set [3:0]; // one byte per plane
+wire [7:0] host_writedata [3:0]; // one byte per plane
 
 // Rotate
 wire [7:0] host_writedata_rotate = (mem_writedata << (8 - graph_write_rotate)) |
@@ -884,11 +884,22 @@ wire [7:0] host_write_mode_3_mask = host_writedata_rotate & graph_write_mask;
 genvar plane_i;
 generate
 	for (plane_i = 0; plane_i < 4; plane_i = plane_i + 1) begin : gen_host_writedata
-		// Set/Reset for Write Modes 0 and 2
-		assign host_write_set[plane_i] = graph_write_enable_map[plane_i] ? {8{graph_write_set_map[plane_i]}} : // set/reset enable (also for write mode 2 with ET4000)
+`ifdef AO486_VGA_ET4000_WRITE_MODE_2_SET_RESET_OVERRIDE
+		// The ET4000 datasheet explicitly states that, in Write Mode 2, the set/reset operation
+		// functions normally, overriding the write mode 2 bit for a given map when enabled.
+		// Could this be an ET4000 documentation error or an ET4000 hardware deviation from standard VGA behavior?
+		// This causes disappearing Japanese main menu text in the game Rusty.
+
+		// Set/Reset for Write Mode 0, 2 (host_write_set is only used for write mode 0, 2)
+		assign host_write_set[plane_i] = graph_write_enable_map[plane_i] ? {8{graph_write_set_map[plane_i]}} : // write mode 0, 2 with set/reset enable (also for write mode 2 according to the ET4000 datasheet)
 		                                 graph_write_mode[1]             ? {8{mem_writedata[plane_i]}} :       // write mode 2
 		                                                                   host_writedata_rotate;              // write mode 0
-
+`else
+		// Set/Reset for Write Mode 0, 2 (host_write_set is only used for write mode 0, 2)
+		assign host_write_set[plane_i] = graph_write_mode[1]             ? {8{mem_writedata[plane_i]}} :       // write mode 2 ignores set/reset
+		                                 graph_write_enable_map[plane_i] ? {8{graph_write_set_map[plane_i]}} : // write mode 0 with    set/reset enable
+		                                                                   host_writedata_rotate;              // write mode 0 without set/reset enable
+`endif
 		assign host_writedata[plane_i] =
 			(~graph_write_mode[0]) ? ( // Write Mode 0, 2
 				// Logical function (ALU) and Bit Mask combined
