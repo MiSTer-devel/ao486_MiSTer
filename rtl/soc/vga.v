@@ -156,7 +156,7 @@ reg seq_8dot_char;
 
 reg seq_dotclock_divided;
 
-reg seq_screen_disable; // Disables video output (blanks the screen) and turns off display data fetches, while CRTC synchronization pules are maintained.
+reg seq_screen_disable; // Disables video output (blanks the screen) and turns off display data fetches, while CRTC synchronization pulses are maintained.
 
 reg [3:0] seq_map_write_enable;
 
@@ -770,7 +770,7 @@ wire [7:0] host_io_read_wire =
 	(host_io_ignored)                                            ? 8'hFF :
 	(io_c_read_valid && io_address == 4'hC)                      ? { general_vsync, general_hsync, general_not_impl_odd_even_page, 1'b0, general_clock_select, general_enable_ram, general_io_space } : //misc output reg
 	(io_c_read_valid && io_address == 4'h2)                      ? { interrupt, 2'b0, 1'b1, 4'b0 } : //input status 0
-	((io_b_read_valid || io_d_read_valid) && io_address == 4'hA) ? { 4'b0, host_io_vertical_retrace, 2'b0, host_io_not_displaying } : //input status 1
+	((io_b_read_valid || io_d_read_valid) && io_address == 4'hA) ? { ~host_io_vertical_retrace, 3'b0, host_io_vertical_retrace, 2'b0, host_io_not_displaying } : //input status 1
 	(io_c_read_valid && io_address == 4'h0)                      ? { 2'b0, attrib_pas, attrib_io_index } : //attrib read index (regardless the flip-flop state)
 	(io_c_read_valid && io_address == 4'h1)                      ? host_io_read_attrib : //attrib read data
 	(io_c_read_valid && io_address == 4'h4)                      ? { 5'd0, seq_io_index } : //seq index
@@ -973,7 +973,7 @@ always @(posedge clk_vga) if (ce_video) begin
 	if(dot_memory_load_first_in_frame || dot_memory_load_first_in_line_matched || (dot_memory_load_first_in_line && memory_row_scan == 5'd0))  memory_char_map_b <= seq_char_map_b;
 end
 
-// Latch Start Address at Vertical Retrace Start
+// Latch Start Address and Byte Panning at Vertical Retrace Start
 reg [15:0] memory_address_start_reg;
 always @(posedge clk_vga) if (ce_video) begin
 	if(dot_memory_load_vertical_retrace_start)  memory_address_start_reg <= crtc_address_start[15:0] + { 14'd0, crtc_address_byte_panning };
@@ -1373,6 +1373,8 @@ end
 
 //------------------------------------------------------------------------------ sequencer
 
+wire vertical_doublescan = crtc_vertical_doublescan || crtc_row_max == 1'd1;
+
 // VGA
 localparam [2:0] VGA_H_TOTAL_EXTRA = 3'd4; // +5 = +4 zero-based
 localparam [0:0] VGA_V_TOTAL_EXTRA = 1'd1; // +2 = +1 zero-based
@@ -1380,6 +1382,26 @@ localparam [0:0] VGA_V_TOTAL_EXTRA = 1'd1; // +2 = +1 zero-based
 reg  [3:0] dot_cnt;
 reg  [8:0] horiz_cnt;
 reg [10:0] vert_cnt;
+
+wire  [8:0] horiz_total    = crtc_horizontal_total + VGA_H_TOTAL_EXTRA;
+wire [10:0] vert_total     = crtc_vertical_total   + VGA_V_TOTAL_EXTRA;
+
+wire hde = horiz_cnt < crtc_horizontal_display_size;
+wire vde = vert_cnt <= crtc_vertical_display_size;
+
+wire hbs = horiz_cnt      == crtc_horizontal_blanking_start;
+wire hbe = horiz_cnt[5:0] == crtc_horizontal_blanking_end;
+wire vbs = vert_cnt       == crtc_vertical_blanking_start;
+wire vbe = vert_cnt[7:0]  == crtc_vertical_blanking_end;
+wire hss = horiz_cnt      == crtc_horizontal_retrace_start + crtc_horizontal_retrace_skew;
+wire hse = horiz_cnt[4:0] == crtc_horizontal_retrace_end + crtc_horizontal_retrace_skew;
+wire vss = vert_cnt       == crtc_vertical_retrace_start;
+wire vse = vert_cnt[3:0]  == crtc_vertical_retrace_end;
+
+wire horiz_2nd_to_last_cnt = (horiz_cnt == horiz_total - 1'd1);
+wire horiz_last_cnt        = (horiz_cnt == horiz_total);
+wire vert_first_cnt        = (vert_cnt  == 11'd0);
+wire vert_last_cnt         = (vert_cnt  == vert_total);
 
 reg dot_cnt_div;
 always @(posedge clk_vga) if (ce_video) dot_cnt_div <= ~(dot_cnt_div);
@@ -1392,51 +1414,61 @@ wire character_last_dot = dot_cnt_enable && dot_cnt == { ~seq_8dot_char, {3{seq_
 // dot_cnt (the dot counter) is clocked by dot_cnt_enable
 always @(posedge clk_vga) if (ce_video) begin
 	if (dot_cnt_enable) begin
-		if (character_last_dot)                                       dot_cnt <= 4'd0;
-		else                                                          dot_cnt <= dot_cnt + 1'd1;
+		if (character_last_dot)   dot_cnt <= 4'd0;
+		else                      dot_cnt <= dot_cnt + 1'd1;
 	end
 end
 
 // horiz_cnt (the character counter) is clocked by character_last_dot
 always @(posedge clk_vga) if (ce_video) begin
 	if (character_last_dot) begin
-		if (horiz_cnt == crtc_horizontal_total + VGA_H_TOTAL_EXTRA)   horiz_cnt <= 9'd0;
-		else                                                          horiz_cnt <= horiz_cnt + 1'd1;
+		if (horiz_last_cnt)       horiz_cnt <= 9'd0;
+		else                      horiz_cnt <= horiz_cnt + 1'd1;
 	end
 end
 
 // vert_cnt (the scanline counter) is clocked by HSYNC
 always @(posedge clk_vga) if (ce_video) begin
-	if (character_last_dot && horiz_cnt == crtc_horizontal_retrace_start + { 9'h0, crtc_horizontal_retrace_skew }) begin
-		if (vert_cnt == crtc_vertical_total + VGA_V_TOTAL_EXTRA)      vert_cnt <= 11'd0;
-		else                                                          vert_cnt <= vert_cnt + 1'd1;
+	if (character_last_dot && hss) begin
+		if (vert_last_cnt)        vert_cnt <= 11'd0;
+		else                      vert_cnt <= vert_cnt + 1'd1;
 	end
 end
 
 //------------------------------------------------------------------------------ dot memory load
 
-reg dot_memory_load_dot_cnt;
-always @(posedge clk_vga) if (ce_video) begin
-	//dot_memory_load_dot_cnt <= (  seq_8dot_char  && ~(seq_dotclock_divided) &&   dot_cnt_enable  && dot_cnt == 4'd1) || // dot_cnt == 4'b0001   e.g. mode 03 or mode 13
-	//                           (  seq_8dot_char  &&   seq_dotclock_divided  && ~(dot_cnt_enable) && dot_cnt == 4'd5) || // dot_cnt == 4'b0101   e.g. mode 0d
-	//                           (~(seq_8dot_char) && ~(seq_dotclock_divided) &&   dot_cnt_enable  && dot_cnt == 4'd2) || // dot_cnt == 4'b0010   e.g. mode 07
-	//                           (~(seq_8dot_char) &&   seq_dotclock_divided  && ~(dot_cnt_enable) && dot_cnt == 4'd6);   // dot_cnt == 4'b0110   e.g. mode 00_400
-	dot_memory_load_dot_cnt <= (seq_dotclock_divided ^ dot_cnt_enable) && dot_cnt == { 1'b0, seq_dotclock_divided, ~seq_8dot_char, seq_8dot_char };
-end
+// Horizontally offset -2 characters to prime the pipeline and add +1 extra character to accommodate horizontal panning
+//localparam [1:0] PREFETCH_OFFSET    = 2'd2; // amount of horizontal characters needed to prime the pipeline before active display ouput starts
+//localparam       EXTRA_PANNING_CHAR = 1'd1; // amount of horizontal characters needed extra at the end of each line to accommodate possible panning
+//wire horiz_line_fetch = (horiz_total - PREFETCH_OFFSET < horiz_cnt) || (horiz_cnt <= crtc_horizontal_display_size - PREFETCH_OFFSET + EXTRA_PANNING_CHAR);
+//wire horiz_line_fetch = (horiz_total - PREFETCH_OFFSET < horiz_cnt) || (horiz_cnt < crtc_horizontal_display_size);
+//wire horiz_line_fetch = (horiz_total - PREFETCH_OFFSET < horiz_cnt) || hde;
+wire horiz_line_fetch = horiz_2nd_to_last_cnt || horiz_last_cnt || hde;
+wire vert_frame_fetch = vde;
 
-// horizontally shifted -2 whole characters and +dot_memory_load_dot_cnt dots (to accommodate pel shift register data propagation)
-// load +1 extra (to accommodate horizontal panning)
-assign dot_memory_load_active = (crtc_horizontal_total + VGA_H_TOTAL_EXTRA - 2'd2 < horiz_cnt || horiz_cnt < crtc_horizontal_display_size) && (vert_cnt <= crtc_vertical_display_size);
+//reg dot_memory_load_dot_cnt;
+//always @(posedge clk_vga) if (ce_video) begin
+//	//dot_memory_load_dot_cnt <= (  seq_8dot_char  && ~(seq_dotclock_divided) &&   dot_cnt_enable  && dot_cnt == 4'd1) || // dot_cnt == 4'b0001   e.g. mode 03 or mode 13
+//	//                           (  seq_8dot_char  &&   seq_dotclock_divided  && ~(dot_cnt_enable) && dot_cnt == 4'd5) || // dot_cnt == 4'b0101   e.g. mode 0d
+//	//                           (~(seq_8dot_char) && ~(seq_dotclock_divided) &&   dot_cnt_enable  && dot_cnt == 4'd2) || // dot_cnt == 4'b0010   e.g. mode 07
+//	//                           (~(seq_8dot_char) &&   seq_dotclock_divided  && ~(dot_cnt_enable) && dot_cnt == 4'd6);   // dot_cnt == 4'b0110   e.g. mode 00_400
+//	dot_memory_load_dot_cnt <= (seq_dotclock_divided ^ dot_cnt_enable) && dot_cnt == { 1'b0, seq_dotclock_divided, ~seq_8dot_char, seq_8dot_char };
+//end
 
-assign dot_memory_load = dot_memory_load_dot_cnt && dot_memory_load_active;
+//wire dot_memory_load_dot_cnt = 
+//	(  seq_8dot_char  && ~(seq_dotclock_divided) && dot_cnt_enable && dot_cnt == 4'd2) || // dot_cnt == 4'b0010   e.g. mode 03 or mode 13
+//	(  seq_8dot_char  &&   seq_dotclock_divided  && dot_cnt_enable && dot_cnt == 4'd5) || // dot_cnt == 4'b0101   e.g. mode 0d
+//	(~(seq_8dot_char) && ~(seq_dotclock_divided) && dot_cnt_enable && dot_cnt == 4'd3) || // dot_cnt == 4'b0011   e.g. mode 07
+//	(~(seq_8dot_char) &&   seq_dotclock_divided  && dot_cnt_enable && dot_cnt == 4'd6);   // dot_cnt == 4'b0110   e.g. mode 00_400
+wire dot_memory_load_dot_cnt = dot_cnt_enable && dot_cnt == { 1'b0, seq_dotclock_divided, ~(seq_8dot_char & seq_dotclock_divided), seq_8dot_char ~^ seq_dotclock_divided };
 
-assign dot_memory_load_first_in_frame = dot_memory_load_dot_cnt && horiz_cnt == crtc_horizontal_total + VGA_H_TOTAL_EXTRA - 1'd1 && vert_cnt == 1'd0;
-
-assign dot_memory_load_first_in_line  = dot_memory_load_dot_cnt && horiz_cnt == crtc_horizontal_total + VGA_H_TOTAL_EXTRA - 1'd1 && vert_cnt <= crtc_vertical_display_size;
-
+assign dot_memory_load_active                = horiz_line_fetch && vert_frame_fetch;
+assign dot_memory_load                       = dot_memory_load_dot_cnt && dot_memory_load_active;
+assign dot_memory_load_first_in_line         = dot_memory_load_dot_cnt && horiz_2nd_to_last_cnt && vde;
+assign dot_memory_load_first_in_frame        = dot_memory_load_first_in_line && vert_first_cnt;
 assign dot_memory_load_first_in_line_matched = dot_memory_load_first_in_line && (
 	// svga_et4000: when vertical line doubling is active use aligned line compare
-	vert_cnt == crtc_line_compare + (~(crtc_vertical_doublescan || crtc_row_max == 1'd1) || crtc_line_compare[0])
+	vert_cnt == crtc_line_compare + (~vertical_doublescan || crtc_line_compare[0])
 );
 
 //------------------------------------------------------------------------------ blink rate
@@ -1449,62 +1481,116 @@ assign blink_cursor_value = blink_cnt[4]; // = VSYNC rate divided by 16
 
 //------------------------------------------------------------------------------ vga timing signals
 
-reg vgaprep_dot_timing;
-always @(posedge clk_vga) if (ce_video) begin
-	//vgaprep_dot_timing <= (  seq_8dot_char  && ~(seq_dotclock_divided) && dot_cnt_enable && dot_cnt == 4'd5) || // dot_cnt == 4'b0101   e.g. mode 03 or mode 13
-	//                      (  seq_8dot_char  &&   seq_dotclock_divided  && dot_cnt_enable && dot_cnt == 4'd6) || // dot_cnt == 4'b0110   e.g. mode 0d
-	//                      (~(seq_8dot_char) && ~(seq_dotclock_divided) && dot_cnt_enable && dot_cnt == 4'd6) || // dot_cnt == 4'b0110   e.g. mode 07
-	//                      (~(seq_8dot_char) &&   seq_dotclock_divided  && dot_cnt_enable && dot_cnt == 4'd7);   // dot_cnt == 4'b0111   e.g. mode 00_400
-	vgaprep_dot_timing <= dot_cnt_enable && dot_cnt == { 2'b01, ~seq_8dot_char | seq_dotclock_divided, seq_8dot_char ^ seq_dotclock_divided };
-end
+//reg vgaprep_dot_timing;
+//always @(posedge clk_vga) if (ce_video) begin
+//	//vgaprep_dot_timing <= (  seq_8dot_char  && ~(seq_dotclock_divided) && dot_cnt_enable && dot_cnt == 4'd5) || // dot_cnt == 4'b0101   e.g. mode 03 or mode 13
+//	//                      (  seq_8dot_char  &&   seq_dotclock_divided  && dot_cnt_enable && dot_cnt == 4'd6) || // dot_cnt == 4'b0110   e.g. mode 0d
+//	//                      (~(seq_8dot_char) && ~(seq_dotclock_divided) && dot_cnt_enable && dot_cnt == 4'd6) || // dot_cnt == 4'b0110   e.g. mode 07
+//	//                      (~(seq_8dot_char) &&   seq_dotclock_divided  && dot_cnt_enable && dot_cnt == 4'd7);   // dot_cnt == 4'b0111   e.g. mode 00_400
+//	vgaprep_dot_timing <= dot_cnt_enable && dot_cnt == { 2'b01, ~seq_8dot_char | seq_dotclock_divided, seq_8dot_char ^ seq_dotclock_divided };
+//end
 
-reg vgaprep_horiz_blank;
+//wire vgaprep_dot_timing = 
+//	(  seq_8dot_char  && ~(seq_dotclock_divided) &&   dot_cnt_enable  && dot_cnt == 4'd6) || // dot_cnt == 4'b0110   e.g. mode 03 or mode 13
+//	(  seq_8dot_char  &&   seq_dotclock_divided  && ~(dot_cnt_enable) && dot_cnt == 4'd7) || // dot_cnt == 4'b0111   e.g. mode 0d
+//	(~(seq_8dot_char) && ~(seq_dotclock_divided) &&   dot_cnt_enable  && dot_cnt == 4'd7) || // dot_cnt == 4'b0111   e.g. mode 07
+//	(~(seq_8dot_char) &&   seq_dotclock_divided  && ~(dot_cnt_enable) && dot_cnt == 4'd8);   // dot_cnt == 4'b1000   e.g. mode 00_400
+wire vgaprep_dot_timing = (seq_dotclock_divided ^ dot_cnt_enable) && dot_cnt == { ~seq_8dot_char & seq_dotclock_divided, {2{seq_8dot_char | ~seq_dotclock_divided}}, seq_8dot_char ~^ seq_dotclock_divided };
+
+// Split blanking into non-wraparound and wraparound blanking to be able to present top blanking as active display to the scaler
+
+// Horizontal Blanking (Excluding Blanking Wraparound)
+reg vgaprep_horiz_blank_no_wraparound;
 always @(posedge clk_vga) if (ce_video) begin
 	if (vgaprep_dot_timing) begin
-		if      (horiz_cnt      == crtc_horizontal_blanking_start)                        vgaprep_horiz_blank <= 1'b1;
-		else if (horiz_cnt[5:0] == crtc_horizontal_blanking_end && vgaprep_horiz_blank)   vgaprep_horiz_blank <= 1'b0;
+		if      (hbs)                                                            vgaprep_horiz_blank_no_wraparound <= 1'b1;
+		else if ((hbe || horiz_last_cnt) && vgaprep_horiz_blank_no_wraparound)   vgaprep_horiz_blank_no_wraparound <= 1'b0;
 	end
 end
 
-reg vgaprep_vert_blank;
+// Horizontal Blanking Wraparound (when hbe happens in the next line (blanking characters at the left side of the next line))
+reg vgaprep_horiz_blank_wraparound;
 always @(posedge clk_vga) if (ce_video) begin
-	if (vgaprep_dot_timing) if (horiz_cnt == crtc_horizontal_retrace_start + { 9'h0, crtc_horizontal_retrace_skew }) begin
-		if      (vert_cnt      == crtc_vertical_blanking_start)                       vgaprep_vert_blank <= 1'b1;
-		else if (vert_cnt[7:0] == crtc_vertical_blanking_end && vgaprep_vert_blank)   vgaprep_vert_blank <= 1'b0;
+	if (vgaprep_dot_timing) begin
+		if      (~hbe && vgaprep_horiz_blank_no_wraparound && horiz_last_cnt)    vgaprep_horiz_blank_wraparound <= 1'b1;
+		else if ( hbe && vgaprep_horiz_blank_wraparound)                         vgaprep_horiz_blank_wraparound <= 1'b0;
 	end
 end
 
-wire vgaprep_blank = vgaprep_horiz_blank || vgaprep_vert_blank;
+reg [8:0] horiz_overscan_left;
+always @(posedge clk_vga) if (ce_video) begin
+	if (vgaprep_dot_timing) begin
+		if (hbe && vgaprep_horiz_blank_no_wraparound && horiz_cnt < horiz_total) horiz_overscan_left <= horiz_total - horiz_cnt;
+		else if   (vgaprep_horiz_blank_no_wraparound && horiz_last_cnt)          horiz_overscan_left <= 9'd0;
+	end
+end
 
+// Vertical Blanking (Excluding Blanking Wraparound)
+reg vgaprep_vert_blank_no_wraparound;
+always @(posedge clk_vga) if (ce_video) begin
+	if (vgaprep_dot_timing) if (hss) begin
+		if      (vbs)                                                            vgaprep_vert_blank_no_wraparound <= 1'b1;
+		else if ((vbe || vert_last_cnt) && vgaprep_vert_blank_no_wraparound)     vgaprep_vert_blank_no_wraparound <= 1'b0;
+	end
+end
+
+// Vertical Blanking Wraparound (when vbe happens in the next frame (blanking lines at the top of the next frame))
+reg vgaprep_vert_blank_wraparound;
+always @(posedge clk_vga) if (ce_video) begin
+	if (vgaprep_dot_timing) if (hss) begin
+		if      (~vbe && vgaprep_vert_blank_no_wraparound && vert_last_cnt)      vgaprep_vert_blank_wraparound <= 1'b1;
+		else if ( vbe && vgaprep_vert_blank_wraparound)                          vgaprep_vert_blank_wraparound <= 1'b0;
+	end
+end
+
+reg [10:0] vert_overscan_top;
+always @(posedge clk_vga) if (ce_video) begin
+	if (vgaprep_dot_timing) begin
+		if (vbe && vgaprep_vert_blank_no_wraparound && vert_cnt < vert_total)    vert_overscan_top <= vert_total - vert_cnt;
+		else if   (vgaprep_vert_blank_no_wraparound && vert_last_cnt)            vert_overscan_top <= 11'd0;
+	end
+end
+
+wire vgaprep_blank_no_wraparound = vgaprep_horiz_blank_no_wraparound || vgaprep_vert_blank_no_wraparound;
+wire vgaprep_blank_wraparound    = vgaprep_horiz_blank_wraparound    || vgaprep_vert_blank_wraparound;
+//wire vgaprep_horiz_blank = vgaprep_horiz_blank_no_wraparound || vgaprep_horiz_blank_wraparound;
+wire vgaprep_vert_blank  = vgaprep_vert_blank_no_wraparound  || vgaprep_vert_blank_wraparound;
+wire vgaprep_blank = vgaprep_blank_no_wraparound || vgaprep_blank_wraparound;
+
+// Horizontal Sync
 reg vgaprep_horiz_sync;
 always @(posedge clk_vga) if (ce_video) begin
 	if (vgaprep_dot_timing) begin
-		if      (horiz_cnt      == crtc_horizontal_retrace_start + { 9'h0, crtc_horizontal_retrace_skew })                       vgaprep_horiz_sync <= 1'b1;
-		else if (horiz_cnt[4:0] == crtc_horizontal_retrace_end + { 9'h0, crtc_horizontal_retrace_skew } && vgaprep_horiz_sync)   vgaprep_horiz_sync <= 1'b0;
-		else if (horiz_cnt[5:0] == crtc_horizontal_blanking_end && vgaprep_horiz_sync)                                           vgaprep_horiz_sync <= 1'b0; // also end horizontal sync at horizontal blanking end?
+		if      (hss)                          vgaprep_horiz_sync <= 1'b1;
+		else if (hse && vgaprep_horiz_sync)    vgaprep_horiz_sync <= 1'b0;
+		//else if (hbe && vgaprep_horiz_sync)    vgaprep_horiz_sync <= 1'b0; // also end horizontal sync at horizontal blanking end?
 	end
 end
 
+// Vertical Sync
 reg vgaprep_vert_sync;
 always @(posedge clk_vga) if (ce_video) begin
-	if (vgaprep_dot_timing) if (horiz_cnt == crtc_horizontal_retrace_start + { 9'h0, crtc_horizontal_retrace_skew }) begin
-		if      (vert_cnt      == crtc_vertical_retrace_start)                       vgaprep_vert_sync <= 1'b1;
-		else if (vert_cnt[3:0] == crtc_vertical_retrace_end && vgaprep_vert_sync)    vgaprep_vert_sync <= 1'b0;
-		else if (vert_cnt[7:0] == crtc_vertical_blanking_end && vgaprep_vert_sync)   vgaprep_vert_sync <= 1'b0; // also end vertical sync at vertical blanking end?
+	if (vgaprep_dot_timing) if (hss) begin
+		if      (vss)                          vgaprep_vert_sync <= 1'b1;
+		else if (vse && vgaprep_vert_sync)     vgaprep_vert_sync <= 1'b0;
+		//else if (vbe && vgaprep_vert_sync)     vgaprep_vert_sync <= 1'b0; // also end vertical sync at vertical blanking end?
 	end
 end
 
+// Display Enabled
 always @(posedge clk_vga) if (ce_video) begin
 	if (vgaprep_dot_timing) begin
-		if ((horiz_cnt == crtc_horizontal_total + VGA_H_TOTAL_EXTRA || horiz_cnt < crtc_horizontal_display_size) && vert_cnt <= crtc_vertical_display_size)   vgaprep_not_displaying <= 1'b0;
-		else                                                                                                                                                  vgaprep_not_displaying <= 1'b1;
+		if ((horiz_last_cnt || hde) && vde)    vgaprep_not_displaying <= 1'b0;
+		else                                   vgaprep_not_displaying <= 1'b1;
 	end
 end
 
-//------------------------------------------------------------------------------ VBS, VSS, VSE
+//------------------------------------------------------------------------------ Pulse: VBS, VSS, VSE
 
+// Input Status 1 Register - bit 0
+assign host_io_not_displaying   = vgaprep_not_displaying || vgaprep_blank; // 0=active_display, 1=(overscan||blank||sync)
+// Input Status 1 Register - bit 3
 assign host_io_vertical_retrace = vgaprep_vert_sync;
-assign host_io_not_displaying   = vgaprep_not_displaying;
 
 reg vgaprep_vert_blank_last;
 always @(posedge clk_vga) if (ce_video) vgaprep_vert_blank_last <= vgaprep_vert_blank;
@@ -1519,10 +1605,10 @@ assign dot_memory_load_vertical_retrace_end   = ~(host_io_vertical_retrace) && h
 
 wire hide_overscan = ~vga_border || (~attrib_pelclock_div2 && attrib_reg16[7]); // also hide overscan for high resolution and 16/24/32 bpp color modes
 
-always @(posedge clk_vga) if (ce_video) vgareg_blank <= vgaprep_blank;
+always @(posedge clk_vga) if (ce_video) vgareg_blank <= vgaprep_blank; // blanking gates DAC
 
 reg vgareg_blank_n;
-always @(posedge clk_vga) if (ce_video) vgareg_blank_n <= ~(vgaprep_blank || (hide_overscan && vgaprep_not_displaying));
+always @(posedge clk_vga) if (ce_video) vgareg_blank_n <= ~(vgaprep_blank_no_wraparound || (hide_overscan && vgaprep_not_displaying)); // omit blanking wraparound to show top blanking as active display
 always @(posedge clk_vga) if (ce_video) vga_blank_n <= vgareg_blank_n;
 
 reg vgareg_horiz_sync;
@@ -1565,7 +1651,7 @@ always @(posedge clk_vga) ce_video_reg <= ce_video;
 assign vga_ce = ce_video_reg & (
 	(vga_flags[1:0] == 3) ? ce_div3 : 
 	                        ~vga_lores | (                                                                                     // when in vga_lores mode (not 4x mode)...
-	                                        ~((crtc_vertical_doublescan | (crtc_row_max == 1)) & vert_cnt[0]) &                // undo vertical doublescan when active (omits odd lines)
+	                                        ~(vertical_doublescan & vert_cnt[0]) &                                             // undo vertical doublescan when active (omits odd lines)
 	                                        (attrib_pelclock_div2 ? pel_color_8bit_cnt : ~seq_dotclock_divided | ~dot_cnt_div) // undo horizontal pixel doubling when active (omits doubled pixels)
 	                                     )
 );
@@ -1576,10 +1662,12 @@ always @(posedge clk_sys) begin
 	vga_rd_seg     <= seg_rd;
 	vga_wr_seg     <= seg_wr;
 	vga_start_addr <= crtc_address_start;
-	vga_width      <= crtc_horizontal_display_size + 1'd1;
+	vga_width      <= hide_overscan ? ((crtc_horizontal_display_size <= crtc_horizontal_blanking_start) ? crtc_horizontal_display_size + 1'd1 : crtc_horizontal_blanking_start + 1'd1)
+	                                : crtc_horizontal_blanking_start + 1'd1 + horiz_overscan_left;
 	vga_stride     <= crtc_address_offset;
-	vga_height     <= crtc_vertical_display_size + 1'd1;
-	vga_flags      <= { crtc_vertical_doublescan || (crtc_row_max == 1),                                                                  // vga_flags[3]   = vertical doublescan
+	vga_height     <= hide_overscan ? ((crtc_vertical_display_size <= crtc_vertical_blanking_start) ? crtc_vertical_display_size + 1'd1 : crtc_vertical_blanking_start + 1'd1)
+	                                : crtc_vertical_blanking_start + 1'd1 + vert_overscan_top;
+	vga_flags      <= { vertical_doublescan,                                                                                              // vga_flags[3]   = vertical doublescan
 	                    attrib_pelclock_div2,                                                                                             // vga_flags[2]   = 256-color
 	                    ~attrib_reg16[7] ? 2'b00 : (attrib_reg16[5:4] == 2) ? 2'b10 : (crtc_reg37[7] && crtc_reg37[5]) ? 2'b11 : 2'b01 }; // vga_flags[1:0] = color bit depth
 	vga_off        <= 1'd0;

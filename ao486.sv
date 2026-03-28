@@ -662,9 +662,9 @@ reg         fb_off;
 always @(posedge clk_sys) begin
 	fb_en       <= ~vga_flags[2] && |vga_flags[1:0]; // framebuffer enabled for high resolution and 16-bit/24-bit/32-bit color modes
 	fb_base     <= {4'h3, 6'b111110, vga_start_addr, 2'b00};
-	fb_width    <= (vga_flags[1:0] == 3) ? 12'd640 /*({vga_width, 3'b000}/3)*/ : vga_flags[2] ? {1'b0, vga_width, 2'b00} : {vga_width, 3'b000};
+	fb_width    <= (vga_flags[1:0] == 3) ? 12'd640 /*({vga_width, 3'b000}/3)*/ : vga_flags[2] ? {vga_width, 2'b00} : {vga_width, 3'b000};
 	fb_stride   <= {vga_stride, 3'b000};
-	fb_height   <= vga_flags[3] ? vga_height[10:1] : vga_height;
+	fb_height   <= ~status[14] && vga_flags[3] ? vga_height[10:1] : vga_height;
 	fb_fmt[2:0] <= (vga_flags[1:0] == 3) ? 3'b101 : (vga_flags[1:0] == 2) ? 3'b100 : 3'b011; // 011=8bpp(palette) 100=16bpp 101=24bpp 110=32bpp
 	fb_fmt[4:3] <= {~status[8],~status[9]};
 	fb_off      <= vga_off;
