@@ -1603,7 +1603,7 @@ assign dot_memory_load_vertical_retrace_end   = ~(host_io_vertical_retrace) && h
 
 //------------------------------------------------------------------------------ vga output
 
-wire hide_overscan = ~vga_border || (~attrib_pelclock_div2 && attrib_reg16[7]); // also hide overscan for high resolution and 16/24/32 bpp color modes
+wire hide_overscan = ~vga_border;
 
 always @(posedge clk_vga) if (ce_video) vgareg_blank <= vgaprep_blank; // blanking gates DAC
 
@@ -1667,9 +1667,13 @@ always @(posedge clk_sys) begin
 	vga_stride     <= crtc_address_offset;
 	vga_height     <= hide_overscan ? ((crtc_vertical_display_size <= crtc_vertical_blanking_start) ? crtc_vertical_display_size + 1'd1 : crtc_vertical_blanking_start + 1'd1)
 	                                : crtc_vertical_blanking_start + 1'd1 + vert_overscan_top;
-	vga_flags      <= { vertical_doublescan,                                                                                              // vga_flags[3]   = vertical doublescan
-	                    attrib_pelclock_div2,                                                                                             // vga_flags[2]   = 256-color
-	                    ~attrib_reg16[7] ? 2'b00 : (attrib_reg16[5:4] == 2) ? 2'b10 : (crtc_reg37[7] && crtc_reg37[5]) ? 2'b11 : 2'b01 }; // vga_flags[1:0] = color bit depth
+	vga_flags      <= { vertical_doublescan,                        // vga_flags[3]   = vertical doublescan
+	                    attrib_pelclock_div2,                       // vga_flags[2]   = 256-color
+	                                                                // vga_flags[1:0] = color bit depth
+	                    ~attrib_reg16[7] ?                 2'b00 :  // NOT Bypass internal palette (disables fb_en)
+	                    (attrib_reg16[5:4] == 2) ?         2'b10 :  // 16bpp
+	                    (crtc_reg37[7] && crtc_reg37[5]) ? 2'b11 :  // 24bpp
+	                                                       2'b01 }; //  8bpp
 	vga_off        <= 1'd0;
 end
 
