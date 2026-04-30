@@ -114,19 +114,19 @@ wire general_io_write_misc = io_c_write && io_address == 4'h2;
 reg general_vsync;
 reg general_hsync;
 
+reg general_odd_even_page;
+
+reg [1:0] general_clock_select;
+
 reg general_enable_ram;
 reg general_io_space;
-
-//not implemented external regs:
-reg [1:0] general_clock_select;
-reg       general_not_impl_odd_even_page;
 
 //------------------------------------------------------------------------------ general data write
 
 always @(posedge clk_sys) if(general_io_write_misc) general_vsync <= io_writedata[7];
 always @(posedge clk_sys) if(general_io_write_misc) general_hsync <= io_writedata[6];
 
-always @(posedge clk_sys) if(general_io_write_misc) general_not_impl_odd_even_page <= io_writedata[5];
+always @(posedge clk_sys) if(general_io_write_misc) general_odd_even_page <= io_writedata[5];
 
 always @(posedge clk_sys) if(general_io_write_misc) general_clock_select <= io_writedata[3:2];
 
@@ -768,7 +768,7 @@ wire host_io_not_displaying;
 
 wire [7:0] host_io_read_wire = 
 	(host_io_ignored)                                            ? 8'hFF :
-	(io_c_read_valid && io_address == 4'hC)                      ? { general_vsync, general_hsync, general_not_impl_odd_even_page, 1'b0, general_clock_select, general_enable_ram, general_io_space } : //misc output reg
+	(io_c_read_valid && io_address == 4'hC)                      ? { general_vsync, general_hsync, general_odd_even_page, 1'b0, general_clock_select, general_enable_ram, general_io_space } : //misc output reg
 	(io_c_read_valid && io_address == 4'h2)                      ? { interrupt, 2'b0, 1'b1, 4'b0 } : //input status 0
 	((io_b_read_valid || io_d_read_valid) && io_address == 4'hA) ? { ~host_io_vertical_retrace, 3'b0, host_io_vertical_retrace, 2'b0, host_io_not_displaying } : //input status 1
 	(io_c_read_valid && io_address == 4'h0)                      ? { 2'b0, attrib_pas, attrib_io_index } : //attrib read index (regardless the flip-flop state)
@@ -802,8 +802,8 @@ wire host_memory_out_of_bounds = |((mem_address[16:15] ^ graph_system_memory) & 
 wire [16:0] host_address_reduced = { ~host_memory_out_of_bounds_mask & mem_address[16:15], mem_address[14:0] };
 
 wire [15:0] host_address =
-	(seq_access_chain4)             ? { host_address_reduced[15:2], 2'b00 } :
-	(~seq_access_odd_even_disabled) ? { host_address_reduced[15:1], 1'b0 } :
+	(seq_access_chain4)             ? { host_address_reduced[15:2], host_write ? seg_wr[1:0] : seg_rd[1:0] } : // segment select allows bank switching (4 banks) when 4 x 64kb plane RAM is active (used by e.g. Alien Carnage)
+	(~seq_access_odd_even_disabled) ? { host_address_reduced[15:1], ~general_odd_even_page } :                 // general_odd_even_page selects the 1=upper/0=lower 64kb page of memory when in odd/even mode
 	                                  host_address_reduced[15:0];
 
 assign vga_memmode = { general_enable_ram, graph_system_memory };
