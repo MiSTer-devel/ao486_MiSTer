@@ -60,11 +60,13 @@ module system
 	output        uart2_rts_n,
 	output        uart2_dtr_n,
 
-	// 2nd mouse (delivered over hps_io UIO 0x07) -> COM3 serial-mouse generator
+	// 2nd mouse (delivered over hps_io UIO 0x07) -> serial-mouse generator,
+	// routed to the COM port selected by mouse2_com (0=Off 1..4=COM1..COM4).
 	input   [7:0] mouse2_dx,
 	input   [7:0] mouse2_dy,
 	input   [2:0] mouse2_btn,
 	input         mouse2_stb,
+	input   [2:0] mouse2_com,
 
 	input         clk_mpu,
 	input         mpu_rx,
@@ -203,6 +205,7 @@ reg         sb_cs;
 reg         uart1_cs;
 reg         uart2_cs;
 reg         uart3_cs;
+reg         uart4_cs;
 reg         mpu_cs;
 reg         vga_b_cs;
 reg         vga_c_cs;
@@ -225,7 +228,50 @@ wire  [7:0] uart3_readdata;
 wire        uart3_irq;
 wire        uart3_rts_n;
 wire        uart3_dtr_n;
-wire        uart3_rx;
+wire  [7:0] uart4_readdata;
+wire        uart4_irq;
+wire        uart4_rts_n;
+wire        uart4_dtr_n;
+// --- 2nd-mouse COM-port selection, debounced -------------------------------
+// The OSD option updates status live as it is browsed; routing the mouse onto
+// COM1/COM2 even momentarily could disturb MIDI / user-port traffic. So only
+// APPLY a selection after it has been stable ~0.5s (on the fixed clk_uart2,
+// ~1.8432MHz). Scrolling THROUGH ports never settles, so it never takes effect.
+reg  [2:0] mouse2_com_m, mouse2_com_s;   // 2-FF sync clk_sys -> clk_uart2
+reg  [2:0] mouse2_com_app = 3'd0;        // the applied (routed) selection
+reg [19:0] mouse2_com_cnt = 0;           // stability counter (~0.57s @ 1.8432MHz)
+always @(posedge clk_uart2) begin
+	mouse2_com_m <= mouse2_com;
+	mouse2_com_s <= mouse2_com_m;
+	if (reset) begin
+		mouse2_com_app <= 3'd0;
+		mouse2_com_cnt <= 0;
+	end
+	else if (mouse2_com_s != mouse2_com_app) begin
+		if (&mouse2_com_cnt) mouse2_com_app <= mouse2_com_s; // stable long enough
+		else                 mouse2_com_cnt <= mouse2_com_cnt + 1'b1;
+	end
+	else mouse2_com_cnt <= 0;             // already applied: hold counter cleared
+end
+
+// Serial-mouse waveform + per-UART effective RX (mouse routed to the selected COM)
+wire        mouse_wave;
+wire        uart1_rx_eff  = (mouse2_com_app == 3'd1) ? mouse_wave : uart1_rx;
+wire        uart2_rx_eff  = (mouse2_com_app == 3'd2) ? mouse_wave : uart2_rx;
+wire        uart3_rx_eff  = (mouse2_com_app == 3'd3) ? mouse_wave : 1'b1;
+wire        uart4_rx_eff  = (mouse2_com_app == 3'd4) ? mouse_wave : 1'b1;
+// serial_mouse watches the selected port's RTS/DTR (active-low -> invert at use)
+reg         sm_rts_n;
+reg         sm_dtr_n;
+always @(*) begin
+	case (mouse2_com_app)
+		3'd1: begin sm_rts_n = uart1_rts_n; sm_dtr_n = uart1_dtr_n; end
+		3'd2: begin sm_rts_n = uart2_rts_n; sm_dtr_n = uart2_dtr_n; end
+		3'd3: begin sm_rts_n = uart3_rts_n; sm_dtr_n = uart3_dtr_n; end
+		3'd4: begin sm_rts_n = uart4_rts_n; sm_dtr_n = uart4_dtr_n; end
+		default: begin sm_rts_n = 1'b1; sm_dtr_n = 1'b1; end // Off: deasserted
+	endcase
+end
 wire  [7:0] mpu_readdata;
 wire  [7:0] dma_io_readdata;
 wire  [7:0] pic_readdata;
@@ -356,6 +402,7 @@ always @(posedge clk_sys) begin
 	uart1_cs      <= ({iobus_address[15:3], 3'd0} == 16'h03F8);
 	uart2_cs      <= ({iobus_address[15:3], 3'd0} == 16'h02F8);
 	uart3_cs      <= ({iobus_address[15:3], 3'd0} == 16'h03E8);  // COM3
+	uart4_cs      <= ({iobus_address[15:3], 3'd0} == 16'h02E8);  // COM4
 	mpu_cs        <= ({iobus_address[15:1], 1'd0} == 16'h0330);
 	vga_b_cs      <= ({iobus_address[15:4], 4'd0} == 16'h03B0);
 	vga_c_cs      <= ({iobus_address[15:4], 4'd0} == 16'h03C0);
@@ -393,6 +440,7 @@ wire [7:0] iobus_readdata8 =
 	( uart1_cs                               ) ? uart1_readdata    :
 	( uart2_cs                               ) ? uart2_readdata    :
 	( uart3_cs                               ) ? uart3_readdata    :
+	( uart4_cs                               ) ? uart4_readdata    :
 	( mpu_cs                                 ) ? mpu_readdata      :
 	( vga_b_cs|vga_c_cs|vga_d_cs             ) ? vga_io_readdata   :
 	( joy_cs                                 ) ? joystick_readdata :
@@ -720,7 +768,7 @@ uart uart1
 	.readdata          (uart1_readdata),
 	.cs                (uart1_cs),
 
-	.rx                (uart1_rx),
+	.rx                (uart1_rx_eff),
 	.tx                (uart1_tx),
 	.cts_n             (uart1_cts_n),
 	.dcd_n             (uart1_dcd_n),
@@ -745,7 +793,7 @@ uart uart2
 	.readdata          (uart2_readdata),
 	.cs                (uart2_cs),
 
-	.rx                (uart2_rx),
+	.rx                (uart2_rx_eff),
 	.tx                (uart2_tx),
 	.cts_n             (uart2_cts_n),
 	.dcd_n             (uart2_dcd_n),
@@ -757,9 +805,11 @@ uart uart2
 	.irq               (irq_3)
 );
 
-// COM3 (0x3E8). Shares IRQ4 with the otherwise-idle COM1 so a stock DOS
-// serial-mouse driver (CuteMouse CTMOUSE /S3) detects it without a
-// non-standard IRQ. Its RX is fed by the serial_mouse generator.
+// COM3 (0x3E8, IRQ4) and COM4 (0x2E8, IRQ3) are the two "extra" UARTs added for
+// the 2nd mouse. Either can host the serial-mouse waveform (selected via the OSD
+// "2nd Mouse Port"); when not selected their RX idles high. COM3/COM1 share IRQ4
+// and COM4/COM2 share IRQ3 — the standard PC COM IRQ map, which the games' own
+// "Microsoft Mouse, COMx, IRQy" option already expects.
 uart uart3
 (
 	.clk               (clk_sys),
@@ -773,7 +823,7 @@ uart uart3
 	.readdata          (uart3_readdata),
 	.cs                (uart3_cs),
 
-	.rx                (uart3_rx),
+	.rx                (uart3_rx_eff),
 	.tx                (),
 	.cts_n             (0),
 	.dcd_n             (0),
@@ -785,13 +835,40 @@ uart uart3
 	.irq               (uart3_irq)
 );
 
-// Generates the 1200-baud 7N1 Microsoft serial-mouse waveform into UART3 RX
-// from the 2nd-mouse deltas delivered over hps_io UIO 0x07.
+uart uart4
+(
+	.clk               (clk_sys),
+	.br_clk            (clk_uart2),    // standard 1.8432 MHz baud reference
+	.reset             (reset),
+
+	.address           (iobus_address[2:0]),
+	.writedata         (iobus_writedata[7:0]),
+	.read              (iobus_read),
+	.write             (iobus_write),
+	.readdata          (uart4_readdata),
+	.cs                (uart4_cs),
+
+	.rx                (uart4_rx_eff),
+	.tx                (),
+	.cts_n             (0),
+	.dcd_n             (0),
+	.dsr_n             (0),
+	.rts_n             (uart4_rts_n),
+	.dtr_n             (uart4_dtr_n),
+	.ri_n              (1),
+
+	.irq               (uart4_irq)
+);
+
+// Generates the 1200-baud 7N1 Microsoft serial-mouse waveform from the 2nd-mouse
+// deltas delivered over hps_io UIO 0x07. Its output (mouse_wave) is muxed onto
+// the RX of whichever COM port the OSD selects; it watches that same port's
+// RTS/DTR (sm_rts_n/sm_dtr_n) so the driver's detect handshake works on any port.
 //
 // IMPORTANT: clock this from clk_uart2 (the *fixed* 1.8432 MHz UART baud
 // reference), NOT clk_sys. clk_sys is reconfigured at runtime by the ao486
 // CPU-speed selector (15..100 MHz), which would shift the generated baud and
-// break the framing. UART3 receives one bit every 16*divisor br_clk cycles
+// break the framing. The UART receives one bit every 16*divisor br_clk cycles
 // (divisor=96 for the DOS-standard 1200 baud), so holding each generated bit
 // for exactly 16*96 = 1536 clk_uart2 cycles makes the generator bit-period
 // identical to the UART's sampling window on the very same clock.
@@ -799,13 +876,13 @@ serial_mouse #(.CLKS_PER_BIT(1536)) serial_mouse  // 16 * divisor(96) @ clk_uart
 (
 	.clk     (clk_uart2),
 	.reset   (reset),
-	.rts     (~uart3_rts_n),
-	.dtr     (~uart3_dtr_n),
+	.rts     (~sm_rts_n),
+	.dtr     (~sm_dtr_n),
 	.dx      (mouse2_dx),
 	.dy      (mouse2_dy),
 	.btn     (mouse2_btn),
 	.strobe  (mouse2_stb),
-	.rx      (uart3_rx)
+	.rx      (mouse_wave)
 );
 
 mpu mpu
@@ -901,7 +978,7 @@ always @* begin
 
 	interrupt[0]  = irq_0;
 	interrupt[1]  = irq_1;
-	interrupt[3]  = irq_3;
+	interrupt[3]  = irq_3 | uart4_irq;   // COM2 + COM4 (serial mouse)
 	interrupt[4]  = irq_4 | uart3_irq;   // COM1 + COM3 (serial mouse)
 	interrupt[5]  = irq_5;
 	interrupt[6]  = irq_6;

@@ -45,7 +45,8 @@ led fdd_led(clk_sys, |mgmt_req[7:6], LED_USER);
 // 0         1         2         3          4         5         6
 // 01234567890123456789012345678901 23456789012345678901234567890123
 // 0123456789ABCDEFGHIJKLMNOPQRSTUV 0123456789ABCDEFGHIJKLMNOPQRSTUV
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+//                                  (bits 60-62 = 2nd Mouse Port)
 
 `include "build_id.v"
 localparam CONF_STR =
@@ -100,6 +101,7 @@ localparam CONF_STR =
 `endif
 	"P2-;",
 	"P2OA,USER I/O,MIDI,COM2;",
+	"P2oSU,2nd Mouse Port,Off,COM1,COM2,COM3,COM4;",
 	"P2-;",
 	"P2OCD,Joystick Type,2 Buttons,4 Buttons,Gravis Pro,None;",
 	"P2oFG,Joystick Mode,2 Joysticks,2 Sticks,2 Wheels,4-axes Wheel;",
@@ -159,6 +161,9 @@ wire        mouse2_stb;
 
 wire  [1:0] buttons;
 wire [63:0] status;
+
+// 2nd-mouse target COM port (OSD "2nd Mouse Port"): 0=Off 1=COM1 2=COM2 3=COM3 4=COM4
+wire  [2:0] mouse2_com = status[62:60];
 
 wire [13:0] joystick_0;
 wire [13:0] joystick_1;
@@ -698,6 +703,7 @@ system system
 	.mouse2_dy            (mouse2_dy),
 	.mouse2_btn           (mouse2_btn[2:0]),
 	.mouse2_stb           (mouse2_stb),
+	.mouse2_com           (mouse2_com),
 
 	.mpu_rx               (mpu_rx),
 	.mpu_tx               (mpu_tx),
