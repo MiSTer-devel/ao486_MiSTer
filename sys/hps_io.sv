@@ -106,6 +106,12 @@ module hps_io #(parameter CONF_STR, CONF_STR_BRAM=0, PS2DIV=0, WIDE=0, VDNUM=1, 
 	output reg [24:0] ps2_mouse = 0,
 	output reg [15:0] ps2_mouse_ext = 0, // 15:8 - reserved(additional buttons), 7:0 - wheel movements
 
+	// 2nd mouse (UIO cmd 0x07): signed deltas + buttons, strobe toggles per update
+	output reg  [7:0] mouse2_dx = 0,
+	output reg  [7:0] mouse2_dy = 0,
+	output reg  [7:0] mouse2_btn = 0,
+	output reg        mouse2_stb = 0,
+
 	output      [1:0] buttons,
 	output            forced_scandoubler,
 	output            direct_video,
@@ -302,6 +308,7 @@ always@(posedge clk_sys) begin : uio_block
 
 	if(~io_enable) begin
 		if(cmd == 4 && !ps2skip) ps2_mouse[24] <= ~ps2_mouse[24];
+			if(cmd == 7) mouse2_stb <= ~mouse2_stb;   // 2nd mouse update complete
 		if(cmd == 5 && !ps2skip) begin
 			ps2_key <= {~ps2_key[10], pressed, extended, ps2_key_raw[7:0]};
 			if(ps2_key_raw == 'hE012E07C) ps2_key[9:0] <= 'h37C; // prnscr pressed
@@ -349,6 +356,10 @@ always@(posedge clk_sys) begin : uio_block
 			casex(cmd)
 				// buttons and switches
 				'h01: cfg <= io_din;
+				// 2nd mouse: byte1=dx, byte2=dy (signed 8-bit), byte3=buttons
+				'h07: if(byte_cnt==1) mouse2_dx <= io_din[7:0];
+				      else if(byte_cnt==2) mouse2_dy <= io_din[7:0];
+				      else if(byte_cnt==3) mouse2_btn <= io_din[7:0];
 				'h02: if(byte_cnt==1) joystick_0[15:0] <= io_din; else joystick_0[31:16] <= io_din;
 				'h03: if(byte_cnt==1) joystick_1[15:0] <= io_din; else joystick_1[31:16] <= io_din;
 				'h10: if(byte_cnt==1) joystick_2[15:0] <= io_din; else joystick_2[31:16] <= io_din;

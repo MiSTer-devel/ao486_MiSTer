@@ -60,6 +60,12 @@ module system
 	output        uart2_rts_n,
 	output        uart2_dtr_n,
 
+	// 2nd mouse (delivered over hps_io UIO 0x07) -> COM3 serial-mouse generator
+	input   [7:0] mouse2_dx,
+	input   [7:0] mouse2_dy,
+	input   [2:0] mouse2_btn,
+	input         mouse2_stb,
+
 	input         clk_mpu,
 	input         mpu_rx,
 	output        mpu_tx,
@@ -196,6 +202,7 @@ reg         fm_cs;
 reg         sb_cs;
 reg         uart1_cs;
 reg         uart2_cs;
+reg         uart3_cs;
 reg         mpu_cs;
 reg         vga_b_cs;
 reg         vga_c_cs;
@@ -214,6 +221,11 @@ wire  [7:0] ps2_readdata;
 wire  [7:0] rtc_readdata;
 wire  [7:0] uart1_readdata;
 wire  [7:0] uart2_readdata;
+wire  [7:0] uart3_readdata;
+wire        uart3_irq;
+wire        uart3_rts_n;
+wire        uart3_dtr_n;
+wire        uart3_rx;
 wire  [7:0] mpu_readdata;
 wire  [7:0] dma_io_readdata;
 wire  [7:0] pic_readdata;
@@ -343,6 +355,7 @@ always @(posedge clk_sys) begin
 	sb_cs         <= ({iobus_address[15:4], 4'd0} == 16'h0220);
 	uart1_cs      <= ({iobus_address[15:3], 3'd0} == 16'h03F8);
 	uart2_cs      <= ({iobus_address[15:3], 3'd0} == 16'h02F8);
+	uart3_cs      <= ({iobus_address[15:3], 3'd0} == 16'h03E8);  // COM3
 	mpu_cs        <= ({iobus_address[15:1], 1'd0} == 16'h0330);
 	vga_b_cs      <= ({iobus_address[15:4], 4'd0} == 16'h03B0);
 	vga_c_cs      <= ({iobus_address[15:4], 4'd0} == 16'h03C0);
@@ -379,6 +392,7 @@ wire [7:0] iobus_readdata8 =
 	( sb_cs|fm_cs                            ) ? sound_readdata    :
 	( uart1_cs                               ) ? uart1_readdata    :
 	( uart2_cs                               ) ? uart2_readdata    :
+	( uart3_cs                               ) ? uart3_readdata    :
 	( mpu_cs                                 ) ? mpu_readdata      :
 	( vga_b_cs|vga_c_cs|vga_d_cs             ) ? vga_io_readdata   :
 	( joy_cs                                 ) ? joystick_readdata :
@@ -743,6 +757,49 @@ uart uart2
 	.irq               (irq_3)
 );
 
+// COM3 (0x3E8). Shares IRQ4 with the otherwise-idle COM1 so a stock DOS
+// serial-mouse driver (CuteMouse CTMOUSE /S3) detects it without a
+// non-standard IRQ. Its RX is fed by the serial_mouse generator.
+uart uart3
+(
+	.clk               (clk_sys),
+	.br_clk            (clk_uart2),    // standard 1.8432 MHz baud reference
+	.reset             (reset),
+
+	.address           (iobus_address[2:0]),
+	.writedata         (iobus_writedata[7:0]),
+	.read              (iobus_read),
+	.write             (iobus_write),
+	.readdata          (uart3_readdata),
+	.cs                (uart3_cs),
+
+	.rx                (uart3_rx),
+	.tx                (),
+	.cts_n             (0),
+	.dcd_n             (0),
+	.dsr_n             (0),
+	.rts_n             (uart3_rts_n),
+	.dtr_n             (uart3_dtr_n),
+	.ri_n              (1),
+
+	.irq               (uart3_irq)
+);
+
+// Generates the 1200-baud 7N1 Microsoft serial-mouse waveform into UART3 RX
+// from the 2nd-mouse deltas delivered over hps_io UIO 0x07.
+serial_mouse #(.CLKS_PER_BIT(75000)) serial_mouse  // 90 MHz / 1200 baud
+(
+	.clk     (clk_sys),
+	.reset   (reset),
+	.rts     (~uart3_rts_n),
+	.dtr     (~uart3_dtr_n),
+	.dx      (mouse2_dx),
+	.dy      (mouse2_dy),
+	.btn     (mouse2_btn),
+	.strobe  (mouse2_stb),
+	.rx      (uart3_rx)
+);
+
 mpu mpu
 (
 	.clk               (clk_sys),
@@ -837,7 +894,7 @@ always @* begin
 	interrupt[0]  = irq_0;
 	interrupt[1]  = irq_1;
 	interrupt[3]  = irq_3;
-	interrupt[4]  = irq_4;
+	interrupt[4]  = irq_4 | uart3_irq;   // COM1 + COM3 (serial mouse)
 	interrupt[5]  = irq_5;
 	interrupt[6]  = irq_6;
 	interrupt[7]  = irq_7;

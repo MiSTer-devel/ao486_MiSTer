@@ -151,6 +151,12 @@ wire        ps2_mouse_data_out;
 wire        ps2_mouse_clk_in;
 wire        ps2_mouse_data_in;
 
+// 2nd mouse (COM3 serial mouse) delivered by hps_io UIO 0x07
+wire  [7:0] mouse2_dx;
+wire  [7:0] mouse2_dy;
+wire  [7:0] mouse2_btn;
+wire        mouse2_stb;
+
 wire  [1:0] buttons;
 wire [63:0] status;
 
@@ -180,6 +186,11 @@ hps_io #(.CONF_STR(CONF_STR), .CONF_STR_BRAM(0), .PS2DIV(2000), .PS2WE(1), .WIDE
 	.ps2_mouse_data_out(ps2_mouse_data_out),
 	.ps2_mouse_clk_in(ps2_mouse_clk_in),
 	.ps2_mouse_data_in(ps2_mouse_data_in),
+
+	.mouse2_dx(mouse2_dx),
+	.mouse2_dy(mouse2_dy),
+	.mouse2_btn(mouse2_btn),
+	.mouse2_stb(mouse2_stb),
 
 	.buttons(buttons),
 	.status(status),
@@ -682,6 +693,11 @@ system system
 	.uart2_dsr_n          (uart2_dsr),
 	.uart2_rts_n          (uart2_rts),
 	.uart2_dtr_n          (uart2_dtr),
+
+	.mouse2_dx            (mouse2_dx),
+	.mouse2_dy            (mouse2_dy),
+	.mouse2_btn           (mouse2_btn[2:0]),
+	.mouse2_stb           (mouse2_stb),
 
 	.mpu_rx               (mpu_rx),
 	.mpu_tx               (mpu_tx),
