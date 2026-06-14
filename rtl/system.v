@@ -787,9 +787,17 @@ uart uart3
 
 // Generates the 1200-baud 7N1 Microsoft serial-mouse waveform into UART3 RX
 // from the 2nd-mouse deltas delivered over hps_io UIO 0x07.
-serial_mouse #(.CLKS_PER_BIT(75000)) serial_mouse  // 90 MHz / 1200 baud
+//
+// IMPORTANT: clock this from clk_uart2 (the *fixed* 1.8432 MHz UART baud
+// reference), NOT clk_sys. clk_sys is reconfigured at runtime by the ao486
+// CPU-speed selector (15..100 MHz), which would shift the generated baud and
+// break the framing. UART3 receives one bit every 16*divisor br_clk cycles
+// (divisor=96 for the DOS-standard 1200 baud), so holding each generated bit
+// for exactly 16*96 = 1536 clk_uart2 cycles makes the generator bit-period
+// identical to the UART's sampling window on the very same clock.
+serial_mouse #(.CLKS_PER_BIT(1536)) serial_mouse  // 16 * divisor(96) @ clk_uart2 = 1200 baud
 (
-	.clk     (clk_sys),
+	.clk     (clk_uart2),
 	.reset   (reset),
 	.rts     (~uart3_rts_n),
 	.dtr     (~uart3_dtr_n),

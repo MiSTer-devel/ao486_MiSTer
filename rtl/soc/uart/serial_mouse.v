@@ -21,12 +21,18 @@
 //   * Each byte framed as start(0) + 7 data bits (LSB first) + stop(1);
 //     idle line = 1 (mark).
 //
-// CLKS_PER_BIT = clk frequency / 1200.  clk = clk_sys = 90 MHz -> 75000.
-// (The receiving 16550 runs off the standard 1.8432 MHz baud clock with the
-//  driver's divisor, so both reference real-time 1200 baud and stay in sync.)
+// CLOCK: drive `clk` from the FIXED UART baud reference (clk_uart2, 1.8432 MHz),
+// NOT clk_sys. clk_sys is reconfigured at runtime by the ao486 CPU-speed
+// selector (15..100 MHz), which would shift the generated baud. The 16550
+// receiver samples one bit every 16*divisor br_clk cycles; for the DOS-standard
+// 1200-baud divisor (96) that is 16*96 = 1536 cycles, so CLKS_PER_BIT = 1536
+// makes each generated bit exactly one receive-bit wide on the same clock.
+//
+// rts/dtr/strobe (and the dx/dy/btn buses) originate in the clk_sys domain, so
+// they are brought across with 2-FF synchronizers below before edge detection.
 // ===========================================================================
 
-module serial_mouse #(parameter CLKS_PER_BIT = 75000)
+module serial_mouse #(parameter CLKS_PER_BIT = 1536)
 (
 	input              clk,
 	input              reset,
@@ -44,11 +50,14 @@ module serial_mouse #(parameter CLKS_PER_BIT = 75000)
 
 localparam S_IDLE = 1'b0, S_SEND = 1'b1;
 
-// ---- edge / event detect ----
+// ---- CDC: rts/dtr/strobe come from the clk_sys domain; 2-FF synchronize ----
+reg rts_m, rts_s, dtr_m, dtr_s, strobe_m, strobe_s;
+
+// ---- edge / event detect (on the synchronized signals) ----
 reg rts_d, dtr_d, strobe_d;
-wire rts_rise   = rts & ~rts_d;
-wire dtr_rise   = dtr & ~dtr_d;
-wire strobe_evt = strobe ^ strobe_d;
+wire rts_rise   = rts_s & ~rts_d;
+wire dtr_rise   = dtr_s & ~dtr_d;
+wire strobe_evt = strobe_s ^ strobe_d;
 
 // ---- pending work ----
 reg              id_pending;
@@ -85,6 +94,7 @@ endtask
 
 always @(posedge clk) begin
 	if (reset) begin
+		rts_m <= 0; rts_s <= 0; dtr_m <= 0; dtr_s <= 0; strobe_m <= 0; strobe_s <= 0;
 		rts_d <= 0; dtr_d <= 0; strobe_d <= 0;
 		id_pending <= 0; move_pending <= 0;
 		acc_x <= 0; acc_y <= 0; btn_l <= 0;
@@ -92,7 +102,12 @@ always @(posedge clk) begin
 		byte_idx <= 0; nbytes <= 0;
 	end
 	else begin
-		rts_d <= rts; dtr_d <= dtr; strobe_d <= strobe;
+		// 2-FF synchronizers (clk_sys -> this clk domain)
+		rts_m <= rts; rts_s <= rts_m;
+		dtr_m <= dtr; dtr_s <= dtr_m;
+		strobe_m <= strobe; strobe_s <= strobe_m;
+		// edge-detect delay taps on the synchronized signals
+		rts_d <= rts_s; dtr_d <= dtr_s; strobe_d <= strobe_s;
 
 		// driver asserted RTS/DTR -> emit Microsoft 'M' identification byte
 		if (rts_rise | dtr_rise) id_pending <= 1'b1;
@@ -115,7 +130,7 @@ always @(posedge clk) begin
 				load_byte(7'h4D);            // 'M'
 				state <= S_SEND;
 			end
-			else if (move_pending && rts) begin
+			else if (move_pending && rts_s) begin
 				move_pending <= 1'b0;
 				// build packet from current accumulators, then clear them
 				pkt1 <= {1'b0, acc_x[5:0]};
