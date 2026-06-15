@@ -130,7 +130,7 @@ always @(posedge clk) begin
 				load_byte(7'h4D);            // 'M'
 				state <= S_SEND;
 			end
-			else if (move_pending && rts_s) begin
+			else if (move_pending && (rts_s | dtr_s)) begin   // powered by RTS OR DTR
 				move_pending <= 1'b0;
 				// build packet from current accumulators, then clear them
 				pkt1 <= {1'b0, acc_x[5:0]};
