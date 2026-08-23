@@ -99,6 +99,15 @@ localparam CONF_STR =
 	"H5D2P2OG,L2 Cache,On,Off;",
 `endif
 	"P2-;",
+	"P2oS,Network,Off,On;",
+	"P2oTU,NE2000 IRQ,11,10,5,3;",
+	// Letters 0-9,A-V are exhausted across status[63:0] (see the bit map above),
+	// so this uses direct [hi:lo] bracket addressing into the untouched
+	// status[127:64] range instead of a letter pair. user_io_status_bits()
+	// (Main_MiSTer/user_io.cpp) accepts both forms; only Main_MiSTer's HPS-side
+	// ne2000.cpp reads this bit -- the FPGA has no use for the delivery mode.
+	"P2O[65:64],NE2000 Mode,Shared,eth1,MACVLAN,Bridge;",
+	"P2-;",
 	"P2OA,USER I/O,MIDI,COM2;",
 	"P2-;",
 	"P2OCD,Joystick Type,2 Buttons,4 Buttons,Gravis Pro,None;",
@@ -411,6 +420,109 @@ assign UART_TXD  = ~hps_mpu ? uart1_tx : (mpu_tx & ~mt32_use);
 
 wire user_io_mode = status[10];
 
+// NE2000 network card. status[60] = enable, status[62:61] = IRQ select
+// (0 = IRQ 11, 1 = IRQ 10, 2 = IRQ 5, 3 = IRQ 3). status[65:64] selects the
+// HPS-side delivery mode (0=shared eth0, 1=eth1, 2=macvlan, 3=bridge) -- read
+// only by Main_MiSTer's support/ne2000/ne2000.cpp; nothing here consumes it.
+// ---------------------------------------------------------------------------
+// NE2000 shared-memory transport
+// ---------------------------------------------------------------------------
+// The mailbox shares the core's own DDR3 port (emu DDRAM_*) with the ao486
+// memory controller through a fixed-priority arbiter -- memory always wins.
+// sys/ is left untouched, which is what the MiSTer maintainer required of the
+// A2065 project when it tried the sys_top/ram2 route.
+//
+// DDRAM_CLK is clk_sys here (rtl/system.v), so the mailbox runs single-domain
+// and the clk_sys<->clk_audio CDC is not exercised at all -- which also avoids
+// the 1-cycle-reply pulse-width hazard A2065 hit at 114 MHz.
+//
+// No address overlap: ao486 RAM is {4'h3, addr[24:0]} >= 0x30000000, the
+// NE2000 window is 0x1FF00000 (Avalon word base 0x03FE0000).
+
+wire [24:0] sysddr_addr;
+wire [63:0] sysddr_din, sysddr_dout;
+wire  [7:0] sysddr_be, sysddr_burstcnt;
+wire        sysddr_rd, sysddr_we, sysddr_busy, sysddr_dout_ready;
+
+wire        eth_dma_req, eth_dma_write, eth_dma_wide, eth_dma_uds, eth_dma_lds;
+wire [15:1] eth_dma_addr;
+wire [15:0] eth_dma_wdata, eth_dma_rdata;
+wire [63:0] eth_dma_wdata64, eth_dma_rdata64;
+wire        eth_dma_ready;
+
+wire [28:0] mbx_address;
+wire  [7:0] mbx_burstcount, mbx_byteenable;
+wire [63:0] mbx_writedata, mbx_readdata;
+wire        mbx_read, mbx_write, mbx_waitrequest, mbx_readdatavalid;
+
+ne2000_ddr_mailbox ne2000_mbx
+(
+	.clk_sys          (clk_sys),
+	.reset_sys        (reset),
+	.eth_dma_req      (eth_dma_req),
+	.eth_dma_write    (eth_dma_write),
+	.eth_dma_addr     (eth_dma_addr),
+	.eth_dma_wdata    (eth_dma_wdata),
+	.eth_dma_uds      (eth_dma_uds),
+	.eth_dma_lds      (eth_dma_lds),
+	.eth_dma_wide     (eth_dma_wide),
+	.eth_dma_wdata64  (eth_dma_wdata64),
+	.eth_dma_ready    (eth_dma_ready),
+	.eth_dma_rdata    (eth_dma_rdata),
+	.eth_dma_rdata64  (eth_dma_rdata64),
+
+	.clk_avl          (clk_sys),
+	.reset_avl        (reset),
+	.avl_address      (mbx_address),
+	.avl_burstcount   (mbx_burstcount),
+	.avl_byteenable   (mbx_byteenable),
+	.avl_writedata    (mbx_writedata),
+	.avl_read         (mbx_read),
+	.avl_write        (mbx_write),
+	.avl_waitrequest  (mbx_waitrequest),
+	.avl_readdata     (mbx_readdata),
+	.avl_readdatavalid(mbx_readdatavalid)
+);
+
+ne2000_ddram_arbiter ne2000_arb
+(
+	.clk               (clk_sys),
+	.rst               (reset),
+
+	.m0_address        ({4'h3, sysddr_addr}),
+	.m0_burstcount     (sysddr_burstcnt),
+	.m0_read           (sysddr_rd),
+	.m0_readdata       (sysddr_dout),
+	.m0_readdatavalid  (sysddr_dout_ready),
+	.m0_writedata      (sysddr_din),
+	.m0_byteenable     (sysddr_be),
+	.m0_write          (sysddr_we),
+	.m0_waitrequest    (sysddr_busy),
+
+	.m1_address        (mbx_address),
+	.m1_burstcount     (mbx_burstcount),
+	.m1_read           (mbx_read),
+	.m1_readdata       (mbx_readdata),
+	.m1_readdatavalid  (mbx_readdatavalid),
+	.m1_writedata      (mbx_writedata),
+	.m1_byteenable     (mbx_byteenable),
+	.m1_write          (mbx_write),
+	.m1_waitrequest    (mbx_waitrequest),
+
+	.s_address         (DDRAM_ADDR),
+	.s_burstcount      (DDRAM_BURSTCNT),
+	.s_read            (DDRAM_RD),
+	.s_readdata        (DDRAM_DOUT),
+	.s_readdatavalid   (DDRAM_DOUT_READY),
+	.s_writedata       (DDRAM_DIN),
+	.s_byteenable      (DDRAM_BE),
+	.s_write           (DDRAM_WE),
+	.s_waitrequest     (DDRAM_BUSY)
+);
+
+wire       ne2000_en      = status[60];
+wire [1:0] ne2000_irq_sel = status[62:61];
+
 assign USER_OUT = user_io_mode ? {1'b1, 1'b1, uart2_dtr, 1'b1, uart2_rts, uart2_tx, 1'b1} : mt32_out;
 
 //
@@ -571,7 +683,9 @@ assign VIDEO_ARY = fb_en ? fb_ary : ary;
 
 ////////////////////////////////////////////////////////////////////////
 
-assign DDRAM_ADDR[28:25] = 4'h3;
+// DDRAM_ADDR is driven in full by ne2000_ddram_arbiter below: the ao486
+// memory controller keeps its implicit 0x30000000 base ({4'h3, addr[24:0]})
+// while the NE2000 mailbox addresses the reserved window at 0x1FF00000.
 
 system system
 (
@@ -650,6 +764,21 @@ system system
 	.ps2_mouseclk_out     (ps2_mouse_clk_in),
 	.ps2_mousedat_out     (ps2_mouse_data_in),
 
+	.eth_dma_req          (eth_dma_req),
+	.eth_dma_write        (eth_dma_write),
+	.eth_dma_addr         (eth_dma_addr),
+	.eth_dma_wdata        (eth_dma_wdata),
+	.eth_dma_wide         (eth_dma_wide),
+	.eth_dma_wdata64      (eth_dma_wdata64),
+	.eth_dma_uds          (eth_dma_uds),
+	.eth_dma_lds          (eth_dma_lds),
+	.eth_dma_ready        (eth_dma_ready),
+	.eth_dma_rdata        (eth_dma_rdata),
+	.eth_dma_rdata64      (eth_dma_rdata64),
+
+	.ne2000_en            (ne2000_en),
+	.ne2000_irq_sel       (ne2000_irq_sel),
+
 	.joystick_dis         (joystick_dis),
 	.joystick_dig_1       (joystick_0 & dig_mask),
 	.joystick_dig_2       (status[47] ? 14'd0 : (joystick_1 & dig_mask)),
@@ -692,15 +821,15 @@ system system
 	.bootcfg              (status[37:32]),
 
 	.DDRAM_CLK            (DDRAM_CLK),
-	.DDRAM_ADDR           (DDRAM_ADDR[24:0]),
-	.DDRAM_DIN            (DDRAM_DIN),
-	.DDRAM_DOUT           (DDRAM_DOUT),
-	.DDRAM_DOUT_READY     (DDRAM_DOUT_READY),
-	.DDRAM_BE             (DDRAM_BE),
-	.DDRAM_BURSTCNT       (DDRAM_BURSTCNT),
-	.DDRAM_BUSY           (DDRAM_BUSY),
-	.DDRAM_RD             (DDRAM_RD),
-	.DDRAM_WE             (DDRAM_WE),
+	.DDRAM_ADDR           (sysddr_addr),
+	.DDRAM_DIN            (sysddr_din),
+	.DDRAM_DOUT           (sysddr_dout),
+	.DDRAM_DOUT_READY     (sysddr_dout_ready),
+	.DDRAM_BE             (sysddr_be),
+	.DDRAM_BURSTCNT       (sysddr_burstcnt),
+	.DDRAM_BUSY           (sysddr_busy),
+	.DDRAM_RD             (sysddr_rd),
+	.DDRAM_WE             (sysddr_we),
 
 	.pll_locked           (pll_locked),
 	.SDRAM_DQ             (SDRAM_DQ),
