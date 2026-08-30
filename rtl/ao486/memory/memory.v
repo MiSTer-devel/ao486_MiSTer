@@ -364,10 +364,10 @@ avalon_mem avalon_mem_inst(
     .readcode_partial           (req_readcode_partial),        //output [31:0]
     //END
     
-    .snoop_addr                 (snoop_addr),
-    .snoop_data                 (snoop_data),
-    .snoop_be                   (snoop_be),  
-    .snoop_we                   (snoop_we),
+    .snoop_addr                 (snoop_addr),                   //output [27:2] (word aligned physical address)
+    .snoop_data                 (snoop_data),                   //output [31:0]
+    .snoop_be                   (snoop_be),                     //output [3:0]
+    .snoop_we                   (snoop_we),                     //output
     
     // avalon master
     .avm_address                (avm_address),                  //output [31:0]
@@ -433,10 +433,13 @@ icache icache_inst(
     .prefetched_length          (prefetched_length),          //output [4:0]
     //END
     
-    .snoop_addr                 (snoop_addr),
-    .snoop_data                 (snoop_data),
-    .snoop_be                   (snoop_be),  
-    .snoop_we                   (snoop_we)
+    .snoop_linear_addr          (write_address),              //input [31:0] (linear address)
+    .snoop_linear_we            (write_do && !write_done),    //input
+    
+    .snoop_addr                 (snoop_addr),                 //input [27:2] (word aligned physical address)
+    .snoop_data                 (snoop_data),                 //input [31:0]
+    .snoop_be                   (snoop_be),                   //input [3:0]
+    .snoop_we                   (snoop_we)                    //input
 );
 
 assign invdcode_done = 1'b1;
