@@ -2,6 +2,8 @@
 // - Standard analog joysticks or digital joysticks/gamepads
 // - Options to use timed (IBM joystick time formula) or count methods
 // - Gravis GamePad Pro (Gravis Interface Protocol (GrIP))
+// - CH Flightstick Pro
+// - Thrustmaster FCS
 
 module joystick
 (
@@ -14,7 +16,7 @@ module joystick
   input [13:0]     dig_2, // status[47] ? 14'd0 : (joystick_1[13:0] & dig_mask[13:0])
   input [15:0]     ana_1, // { ja_1y[7:0], ja_1x[7:0] }
   input [15:0]     ana_2, // { ja_2y[7:0], ja_2x[7:0] }
-  input  [1:0]     mode,  // status[13:12] 0=2_Buttons, 1=4_Buttons, 2=Gravis_Pro, 3=None
+  input  [2:0]     mode,  // status[14:12] 0=2_Buttons, 1=4_Buttons, 2=Gravis_Pro, 3=None, 4=CH_Flightstick_Pro, 5=Thrustmaster_FCS
   input  [1:0]     timed, // status[59:58] 0=Timed, 1=Count_8+141, 2=Count_0+256, 3=Count_6+256
   input  [1:0]     dis,   // joystick_dis[1:0]
 
@@ -59,14 +61,14 @@ reg [10:0] j1x, j1y, j2x, j2y; // axis measurement countdown value
 reg        jb1, jb2, jb3, jb4; // button (active low)
 
 // Allow jb3 and jb4 when:
-// - Joystick Type: 4 Buttons
+// - Joystick Type: 4 Buttons or CH Flightstick pro or Thrustmaster FCS
 // - Joystick 1:    Enabled
 // - Joystick 2:    Disabled
-wire dis_jb3_jb4 = dis[1] && ~(mode==2'd1 && dis==2'b10);
+wire dis_jb3_jb4 = dis[1] && ~(  (mode==3'd1 || mode==3'd4 || mode==3'd5) && dis==2'b10);
 
 // Read data
 always @(posedge clk) begin
-  readdata <= (mode==2'd3) ? 8'hff : // None
+  readdata <= (mode==3'd3) ? 8'hff : // None
                             {      jb4,    jb3,    jb2,    jb1,   |j2y,   |j2x,   |j1y,   |j1x } |
                             { {2{dis_jb3_jb4}}, dis[0], dis[0], dis[1], dis[1], dis[0], dis[0] }; // disable mask
 end
@@ -111,6 +113,9 @@ reg       gravis_clk;
 reg [1:0] gravis_out;
 reg [4:0] gravis_pos;
 
+// Thrustmaster FCS
+reg [7:0] y_fcs_hat;
+
 // Current joystick position value in the range [0,255]
 reg [7:0] j1x_pos, j1y_pos, j2x_pos, j2y_pos;
 
@@ -130,17 +135,51 @@ always @(posedge clk) begin : joy_block
     gravis_pos <= 5'd0;
   end else begin
     // Button assignment
-    if (mode==2'd2) begin
+    if (mode==3'd2) begin
       // Gravis Pro
       jb1 <= gravis_clk;
       jb2 <= gravis_out[0];
       jb3 <= gravis_clk;
       jb4 <= gravis_out[1];
+    end else if (mode==3'd4) begin
+      // CH Flightstick Pro
+      //
+      // The CH Flightstick Pro adds hat switch functionality to the very limited 15-pin gameport,
+      // by mapping the hat switch buttons to combinations of trigger buttons.
+      // As explained in the 16 bit edition of "Randall Hyde - The Art of Assembly Language", chapter 24:
+      // The Hat Switch buttons Up,Right,Down,Left are mapped to the trigger Buttons 1,2,3,4 as:
+      // Up    = 1,2,3,4 ON
+      // Right = 1,2  ,4 ON
+      // Down  = 1,2,3   ON
+      // Left  = 1,2     ON
+      //
+      // To prevent misinterpretation, the four buttons are encoded in the following priority order (high to low):
+      // Up, Right, Down, Left, Button 1, Button 2, Button 3, Button 4.
+      //
+      if (JOY1_UP) begin
+        {jb4,jb3,jb2,jb1} <= 4'b0000;
+      end else if(JOY1_RIGHT) begin
+        {jb4,jb3,jb2,jb1} <= 4'b0100;
+      end else if(JOY1_DOWN) begin
+        {jb4,jb3,jb2,jb1} <= 4'b1000;
+      end else if(JOY1_LEFT) begin
+        {jb4,jb3,jb2,jb1} <= 4'b1100;
+      end else if(JOY1_BUT1) begin
+        {jb4,jb3,jb2,jb1} <= 4'b1110;
+      end else if (JOY1_BUT2) begin
+        {jb4,jb3,jb2,jb1} <= 4'b1101;
+      end else if (JOY1_BUT3) begin
+        {jb4,jb3,jb2,jb1} <= 4'b1011;
+      end else if (JOY1_BUT4) begin
+        {jb4,jb3,jb2,jb1} <= 4'b0111;
+      end else begin
+        {jb4,jb3,jb2,jb1} <= 4'b1111;
+      end
     end else begin
       jb1 <= !JOY1_BUT1;
       jb2 <= !JOY1_BUT2;
-      jb3 <= (mode==2'd1) ? !JOY1_BUT3 : !JOY2_BUT1;
-      jb4 <= (mode==2'd1) ? !JOY1_BUT4 : !JOY2_BUT2;
+      jb3 <= (mode==3'd1 || mode==3'd5) ? !JOY1_BUT3 : !JOY2_BUT1;
+      jb4 <= (mode==3'd1 || mode==3'd5) ? !JOY1_BUT4 : !JOY2_BUT2;
     end
 
     // Gravis Interface Protocol (GrIP)
@@ -197,15 +236,31 @@ always @(posedge clk) begin : joy_block
       endcase
     end
 
-    // Auto switch between analog or dpad input
+    // Auto switch between analog or dpad input when not in CH Flightstick Pro or Thrustmaster mode
     // - Analog: when analog activity threshold crossing is detected
     // - D-pad: when digital input is detected and there was no analog activity detected
-    if(ana_1_activity)  use_dpad1 <= 1'b0;
-    else if(dig_1[3:0]) use_dpad1 <= 1'b1;
-    if(ana_2_activity)  use_dpad2 <= 1'b0;
-    else if(dig_2[3:0]) use_dpad2 <= 1'b1;
+    if (mode == 3'd4 || mode == 3'd5) begin
+      use_dpad1 <= 1'b0;
+      use_dpad2 <= 1'b0;
+    end else begin
+      if(ana_1_activity)  use_dpad1 <= 1'b0;
+      else if(dig_1[3:0]) use_dpad1 <= 1'b1;
+      if(ana_2_activity)  use_dpad2 <= 1'b0;
+      else if(dig_2[3:0]) use_dpad2 <= 1'b1;
+    end
 
     if (write) begin
+      // Thrustmaster FCS
+      //
+      // The Thrustmaster FCS encodes the Hat Switch buttons using fixed resistor values on the Y2 axis.
+      // According to https://www.epanorama.net/documents/joystick/pc_special.html#tmfcs these resistor values are:
+      // Up: 0.2 kOhm, Left: 20 kOhm, Down: 40 kOhm, Right: 60 kOhm, Center: 82 kOhm.
+      // However, in the dosbox-x source code the Left and Right have been swapped and testing confirms this
+      // With a maximum resistor value of 100 kOhm being equal to a maximum value of 255 in the [0,255] range,
+      // the following value mapping is obtained: Up: 1, Right: 51, Down: 102, Left: 153, Center: 209.
+      //
+      y_fcs_hat = JOY1_UP ? 8'd1 : JOY1_RIGHT ? 8'd51 : JOY1_DOWN ? 8'd102 : JOY1_LEFT ? 8'd153 : 8'd209;
+
       // Get the current joystick position values in the range [0,255] at the start of a measurement.
       
       j1x_pos = ~use_dpad1  ? { ~ana_1[7],  ana_1[6:0] }  : // convert signed [-128,127] => unsigned [0,255]
@@ -223,7 +278,8 @@ always @(posedge clk) begin : joy_block
                  JOY2_RIGHT ? 8'd255 : // d-pad 2 right
                               8'd128;  // d-pad 2 center
 
-      j2y_pos = ~use_dpad2  ? { ~ana_2[15], ana_2[14:8] } : // convert signed [-128,127] => unsigned [0,255]
+      j2y_pos = (mode == 3'd5) ? y_fcs_hat :
+                ~use_dpad2  ? { ~ana_2[15], ana_2[14:8] } : // convert signed [-128,127] => unsigned [0,255]
                  JOY2_UP    ? 8'd0   : // d-pad 2 up
                  JOY2_DOWN  ? 8'd255 : // d-pad 2 down
                               8'd128;  // d-pad 2 center

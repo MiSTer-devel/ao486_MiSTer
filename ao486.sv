@@ -69,7 +69,7 @@ localparam CONF_STR =
 	"P1O4,VSync,60Hz,Variable;",
 	"P1O8,16/24bit mode,BGR,RGB;",
 	"P1O9,16bit format,1555,565;",
-	"P1OE,Low-Res,Native,4x;",
+	"P1oS,Low-Res,Native,4x;",
 	"P1oDE,Scale,Normal,V-Integer,Narrower HV-Integer,Wider HV-Integer;",
 	"P1oN,Border,No,Yes;",
 	"P1-;",
@@ -101,7 +101,7 @@ localparam CONF_STR =
 	"P2-;",
 	"P2OA,USER I/O,MIDI,COM2;",
 	"P2-;",
-	"P2OCD,Joystick Type,2 Buttons,4 Buttons,Gravis Pro,None;",
+	"P2OCE,Joystick Type,2 Buttons,4 Buttons,Gravis Pro,None,CH Flightst., Thrustmaster;",
 	"P2oFG,Joystick Mode,2 Joysticks,2 Sticks,2 Wheels,4-axes Wheel;",
 	"P2oQR,Joystick Axes,Timed,Count 8+141,Count 0+256,Count 6+256;",
 	"P2oH,Joystick 1,Enabled,Disabled;",
@@ -512,7 +512,7 @@ always @(posedge clk_sys) begin
 	fb_base     <= {4'h3, 6'b111110, vga_start_addr, 2'b00};
 	fb_width    <= (vga_flags[1:0] == 3) ? 12'd640 /*({vga_width, 3'b000}/3)*/ : vga_flags[2] ? {vga_width, 2'b00} : {vga_width, 3'b000};
 	fb_stride   <= {vga_stride, 3'b000};
-	fb_height   <= ~status[14] && vga_flags[3] ? vga_height[10:1] : vga_height;
+	fb_height   <= ~status[60] && vga_flags[3] ? vga_height[10:1] : vga_height;
 	fb_fmt[2:0] <= (vga_flags[1:0] == 3) ? 3'b101 : (vga_flags[1:0] == 2) ? 3'b100 : 3'b011; // 011=8bpp 100=16bpp 101=24bpp 110=32bpp
 	fb_fmt[4:3] <= {~status[8],~status[9]};
 	fb_off      <= vga_off;
@@ -610,7 +610,7 @@ system system
 	.video_flags          (vga_flags),
 	.video_off            (vga_off),
 	.video_fb_en          (fb_en),
-	.video_lores          (~status[14]),
+	.video_lores          (~status[60]),
 	.video_border         (status[55] && ~fb_en), // hide border for high resolution and 16/24/32 bpp color modes (when fb_en)
 
 	.sample_cms_l         (cms_out_l),
@@ -655,7 +655,7 @@ system system
 	.joystick_dig_2       (status[47] ? 14'd0 : (joystick_1 & dig_mask)),
 	.joystick_ana_1       ({ja_1y,ja_1x}),
 	.joystick_ana_2       ({ja_2y,ja_2x}),
-	.joystick_mode        (status[13:12]),
+	.joystick_mode        (status[14:12]),
 	.joystick_timed       (status[59:58]),
 
 	.mgmt_readdata        (mgmt_din),
