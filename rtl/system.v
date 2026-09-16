@@ -14,6 +14,21 @@ module system
 	output [2:0]  ide1_request,
 	input  [1:0]  floppy_wp,
 
+	output        eth_dma_req,
+	output        eth_dma_write,
+	output [15:1] eth_dma_addr,
+	output [15:0] eth_dma_wdata,
+	output        eth_dma_wide,
+	output [63:0] eth_dma_wdata64,
+	output        eth_dma_uds,
+	output        eth_dma_lds,
+	input         eth_dma_ready,
+	input  [15:0] eth_dma_rdata,
+	input  [63:0] eth_dma_rdata64,
+
+	input         ne2000_en,
+	input   [1:0] ne2000_irq_sel,
+
 	input   [1:0] joystick_dis,
 	input  [13:0] joystick_dig_1,
 	input  [13:0] joystick_dig_2,
@@ -195,12 +210,25 @@ wire [15:0] irq;
 //  8 - RTC
 //  9 - MPU(MIDI)
 // 10 - SB
-// 11 - 
+// 11 - NE2000 (default)
 // 12 - Mouse
 // 13 - 
 // 14 - IDE 0
 // 15 - IDE 1
-assign irq[11] = 0;
+
+// NE2000 interrupt, OSD-selectable. IRQ 11 is the only line ao486 leaves free,
+// so it is the default; 10/5/3 are shared with SB/GUS/COM2 and are the user's
+// problem if those are also in use.
+wire       ne2000_irq;
+wire [3:0] ne2000_irq_line = (ne2000_irq_sel == 2'd1) ? 4'd10 :
+                             (ne2000_irq_sel == 2'd2) ? 4'd5  :
+                             (ne2000_irq_sel == 2'd3) ? 4'd3  : 4'd11;
+wire       ne2000_irq_11 = ne2000_irq & (ne2000_irq_line == 4'd11);
+wire       ne2000_irq_10 = ne2000_irq & (ne2000_irq_line == 4'd10);
+wire       ne2000_irq_5  = ne2000_irq & (ne2000_irq_line == 4'd5);
+wire       ne2000_irq_3  = ne2000_irq & (ne2000_irq_line == 4'd3);
+
+assign irq[11] = ne2000_irq_11;
 assign irq[13] = 0;
 
 
@@ -242,6 +270,8 @@ reg         rtc_cs;
 reg         fm_cs;
 reg         sb_cs;
 reg         gus_cs;
+reg         ne2k_cs;
+reg         shm_cs;
 reg         uart1_cs;
 reg         uart2_cs;
 reg         mpu_cs;
@@ -257,6 +287,21 @@ wire        gus_wait;
 wire  [7:0] sound_readdata;
 wire  [7:0] gus_readdata;
 wire  [7:0] floppy0_readdata;
+wire [31:0] ne2k_readdata;
+wire  [7:0] shm_readdata;
+
+// NE2000 core and probe transport masters, merged by ne2000_dma_mux below.
+wire        core_dma_req, core_dma_write, core_dma_wide, core_dma_uds, core_dma_lds;
+wire [15:1] core_dma_addr;
+wire [15:0] core_dma_wdata, core_dma_rdata;
+wire [63:0] core_dma_wdata64, core_dma_rdata64;
+wire        core_dma_ready;
+wire        probe_dma_req, probe_dma_write, probe_dma_wide, probe_dma_uds, probe_dma_lds;
+wire [15:1] probe_dma_addr;
+wire [15:0] probe_dma_wdata, probe_dma_rdata;
+wire [63:0] probe_dma_wdata64;
+wire        probe_dma_ready;
+wire        ne2k_wait;
 wire [31:0] ide0_readdata;
 wire [31:0] ide1_readdata;
 wire  [7:0] joystick_readdata;
@@ -265,6 +310,7 @@ wire  [7:0] ps2_readdata;
 wire  [7:0] rtc_readdata;
 wire  [7:0] uart1_readdata;
 wire  [7:0] uart2_readdata;
+wire        uart2_irq;
 wire  [7:0] mpu_readdata;
 wire  [7:0] dma_io_readdata;
 wire  [7:0] pic_readdata;
@@ -400,6 +446,12 @@ always @(posedge clk_sys) begin
 	vga_c_cs      <= ({iobus_address[15:4], 4'd0} == 16'h03C0);
 	vga_d_cs      <= ({iobus_address[15:4], 4'd0} == 16'h03D0);
 	sysctl_cs     <= ({iobus_address[15:0]      } == 16'h8888);
+	// NE2000 at 0x300: 0x300-0x31F is the card, 0x320-0x32F the debug aperture.
+	// 0x330-0x33F is left alone -- that is the MPU-401.
+	ne2k_cs       <= ne2000_en && ({iobus_address[15:6]} == 10'h00C) && (iobus_address[5:4] != 2'b11)
+	                                                                 && (iobus_address[5:3] != 3'b101);
+	// 0x328-0x32F: shared-window probe (Phase 1 transport bring-up)
+	shm_cs        <= ne2000_en && ({iobus_address[15:6]} == 10'h00C) && (iobus_address[5:3] == 3'b101);
 end
 
 reg [7:0] ctlport = 0;
@@ -435,6 +487,7 @@ wire [7:0] iobus_readdata8 =
 	( mpu_cs                                 ) ? mpu_readdata      :
 	( vga_b_cs|vga_c_cs|vga_d_cs             ) ? vga_io_readdata   :
 	( joy_cs                                 ) ? joystick_readdata :
+	( shm_cs                                 ) ? shm_readdata      :
 	                                             8'hFF;
 
 iobus iobus
@@ -456,11 +509,11 @@ iobus iobus
 	.bus_address       (iobus_address),
 	.bus_write         (iobus_write),
 	.bus_read          (iobus_read),
-	.bus_io32          (((ide0_cs | ide1_cs) & ~iobus_address[9]) | sysctl_cs),
+	.bus_io32          (((ide0_cs | ide1_cs) & ~iobus_address[9]) | sysctl_cs | ne2k_io32),
 	.bus_datasize      (iobus_datasize),
 	.bus_writedata     (iobus_writedata),
-	.bus_readdata      (ide0_cs ? ide0_readdata : ide1_cs ? ide1_readdata : iobus_readdata8),
-	.bus_wait          (ide0_wait | ide1_wait | gus_wait)
+	.bus_readdata      (ne2k_cs ? ne2k_readdata : ide0_cs ? ide0_readdata : ide1_cs ? ide1_readdata : iobus_readdata8),
+	.bus_wait          (ide0_wait | ide1_wait | gus_wait | ne2k_wait)
 );
 
 dma dma
@@ -551,6 +604,111 @@ always @(posedge clk_sys) begin
 	if(iobus_read & ide0_cs & ide0_nodata & !ide_address) ide0_wait <= 1;
 	if(~ide0_nodata) ide0_wait <= 0;
 end
+
+// ---------------------------------------------------------------------------
+// NE2000 network card (see NE2000_AO486_PLAN.md)
+// ---------------------------------------------------------------------------
+// I/O base 0x300. base+0x00..0x1F is the card; base+0x20..0x2F mirrors the
+// core's debug snapshot registers so a DOS utility can read transport state
+// without a JTAG session.
+// The 16-bit remote-DMA data port at base+0x10 retires in one bus cycle via
+// bus_io32, exactly like the IDE data port.
+wire ne2k_dataport = (iobus_address[5:3] == 3'b010);
+wire ne2k_io32     = ne2k_cs & ne2k_dataport & (iobus_datasize != 3'd1);
+
+ne2000_shm_probe ne2000_shm
+(
+	.clk               (clk_sys),
+	.reset             (reset),
+
+	.io_address        (iobus_address[3:0]),
+	.io_read           (iobus_read  & shm_cs),
+	.io_write          (iobus_write & shm_cs),
+	.io_writedata      (iobus_writedata[7:0]),
+	.io_readdata       (shm_readdata),
+
+	.eth_dma_req       (probe_dma_req),
+	.eth_dma_write     (probe_dma_write),
+	.eth_dma_addr      (probe_dma_addr),
+	.eth_dma_wdata     (probe_dma_wdata),
+	.eth_dma_wide      (probe_dma_wide),
+	.eth_dma_wdata64   (probe_dma_wdata64),
+	.eth_dma_uds       (probe_dma_uds),
+	.eth_dma_lds       (probe_dma_lds),
+	.eth_dma_ready     (probe_dma_ready),
+	.eth_dma_rdata     (probe_dma_rdata)
+);
+
+// The device model and the probe share one transport master; the core wins.
+ne2000_dma_mux ne2000_dma_arb
+(
+	.clk               (clk_sys),
+	.reset             (reset),
+
+	.m0_req            (core_dma_req),
+	.m0_write          (core_dma_write),
+	.m0_addr           (core_dma_addr),
+	.m0_wdata          (core_dma_wdata),
+	.m0_wide           (core_dma_wide),
+	.m0_wdata64        (core_dma_wdata64),
+	.m0_uds            (core_dma_uds),
+	.m0_lds            (core_dma_lds),
+	.m0_ready          (core_dma_ready),
+	.m0_rdata          (core_dma_rdata),
+	.m0_rdata64        (core_dma_rdata64),
+
+	.m1_req            (probe_dma_req),
+	.m1_write          (probe_dma_write),
+	.m1_addr           (probe_dma_addr),
+	.m1_wdata          (probe_dma_wdata),
+	.m1_wide           (probe_dma_wide),
+	.m1_wdata64        (probe_dma_wdata64),
+	.m1_uds            (probe_dma_uds),
+	.m1_lds            (probe_dma_lds),
+	.m1_ready          (probe_dma_ready),
+	.m1_rdata          (probe_dma_rdata),
+	.m1_rdata64        (),
+
+	.eth_dma_req       (eth_dma_req),
+	.eth_dma_write     (eth_dma_write),
+	.eth_dma_addr      (eth_dma_addr),
+	.eth_dma_wdata     (eth_dma_wdata),
+	.eth_dma_wide      (eth_dma_wide),
+	.eth_dma_wdata64   (eth_dma_wdata64),
+	.eth_dma_uds       (eth_dma_uds),
+	.eth_dma_lds       (eth_dma_lds),
+	.eth_dma_ready     (eth_dma_ready),
+	.eth_dma_rdata     (eth_dma_rdata),
+	.eth_dma_rdata64   (eth_dma_rdata64)
+);
+
+ne2000_isa ne2000
+(
+	.clk               (clk_sys),
+	.reset             (reset),
+
+	.io_address        (iobus_address[5:0]),
+	.io_read           (iobus_read  & ne2k_cs),
+	.io_write          (iobus_write & ne2k_cs),
+	.io_writedata      (iobus_writedata),
+	.io_32             (ne2k_io32),
+	.io_readdata       (ne2k_readdata),
+	.io_wait           (ne2k_wait),
+
+	.irq               (ne2000_irq),
+
+	.eth_dma_ready     (core_dma_ready),
+	.eth_dma_rdata     (core_dma_rdata),
+	.eth_dma_rdata64   (core_dma_rdata64),
+	.eth_dma_req       (core_dma_req),
+	.eth_dma_write     (core_dma_write),
+	.eth_dma_addr      (core_dma_addr),
+	.eth_dma_wdata     (core_dma_wdata),
+	.eth_dma_wide      (core_dma_wide),
+	.eth_dma_wdata64   (core_dma_wdata64),
+	.eth_dma_uds       (core_dma_uds),
+	.eth_dma_lds       (core_dma_lds)
+);
 
 ide ide0
 (
@@ -797,9 +955,9 @@ gus gus
 );
 
 // GUS uses IRQ5 if SB doesn't occupy it, otherwise IRQ7
-assign irq[5]  = (sb_irq_5_en & sb_irq) | (~sb_irq_5_en & gus_irq);
+assign irq[5]  = (sb_irq_5_en & sb_irq) | (~sb_irq_5_en & gus_irq) | ne2000_irq_5;
 assign irq[7]  = (sb_irq_7_en & sb_irq) | ( sb_irq_5_en & gus_irq);
-assign irq[10] = (sb_irq_10_en & sb_irq);
+assign irq[10] = (sb_irq_10_en & sb_irq) | ne2000_irq_10;
 
 uart uart1
 (
@@ -848,8 +1006,10 @@ uart uart2
 	.dtr_n             (uart2_dtr_n),
 	.ri_n              (1),
 
-	.irq               (irq[3])
+	.irq               (uart2_irq)
 );
+
+assign irq[3] = uart2_irq | ne2000_irq_3;
 
 mpu mpu
 (
