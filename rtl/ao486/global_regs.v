@@ -31,86 +31,113 @@ module global_regs(
     input               rst_n,
     
     input               glob_param_1_set,
-    input       [31:0]  glob_param_1_value,
-    
     input               glob_param_2_set,
-    input       [31:0]  glob_param_2_value,
-    
     input               glob_param_3_set,
-    input       [31:0]  glob_param_3_value,
-    
     input               glob_param_4_set,
-    input       [31:0]  glob_param_4_value,
-    
     input               glob_param_5_set,
-    input       [31:0]  glob_param_5_value,
-    
     input               glob_descriptor_set,
-    input       [63:0]  glob_descriptor_value,
-    
     input               glob_descriptor_2_set,
+
+`ifdef __i386__
+    input       [31:0]  glob_param_1_value,
+    input       [31:0]  glob_param_2_value,
+    input       [31:0]  glob_param_3_value,
+    input       [31:0]  glob_param_4_value,
+    input       [31:0]  glob_param_5_value,
+    input       [63:0]  glob_descriptor_value,
     input       [63:0]  glob_descriptor_2_value,
     
-    //output
     output reg  [31:0]  glob_param_1,
     output reg  [31:0]  glob_param_2,
     output reg  [31:0]  glob_param_3,
     output reg  [31:0]  glob_param_4,
     output reg  [31:0]  glob_param_5,
-
     output reg  [63:0]  glob_descriptor,
     output reg  [63:0]  glob_descriptor_2,
     
     output      [31:0]  glob_desc_base,
     output      [31:0]  glob_desc_limit,
     output      [31:0]  glob_desc_2_limit
+`endif
+
+`ifdef __x86_64__
+    input       [63:0]  glob_param_1_value,
+    input       [63:0]  glob_param_2_value,
+    input       [63:0]  glob_param_3_value,
+    input       [63:0]  glob_param_4_value,
+    input       [63:0]  glob_param_5_value,
+    
+    // For x86_64, system descriptors that load expanded bases are 128 bits wide.
+    input       [127:0] glob_descriptor_value,
+    input       [127:0] glob_descriptor_2_value,
+    
+    output reg  [63:0]  glob_param_1,
+    output reg  [63:0]  glob_param_2,
+    output reg  [63:0]  glob_param_3,
+    output reg  [63:0]  glob_param_4,
+    output reg  [63:0]  glob_param_5,
+    output reg  [127:0] glob_descriptor,
+    output reg  [127:0] glob_descriptor_2,
+    
+    output      [63:0]  glob_desc_base,
+    output      [63:0]  glob_desc_limit,
+    output      [63:0]  glob_desc_2_limit
+`endif
 );
 
 //------------------------------------------------------------------------------
-
-assign glob_desc_limit = glob_descriptor[`DESC_BIT_G]? { glob_descriptor[51:48], glob_descriptor[15:0], 12'hFFF } : { 12'd0, glob_descriptor[51:48], glob_descriptor[15:0] };
-assign glob_desc_base  = { glob_descriptor[63:56], glob_descriptor[39:16] };
-
+// Conditional assignment logic (Assigns)
+//------------------------------------------------------------------------------
+`ifdef __i386__
+assign glob_desc_limit   = glob_descriptor[`DESC_BIT_G]? { glob_descriptor[51:48], glob_descriptor[15:0], 12'hFFF } : { 12'd0, glob_descriptor[51:48], glob_descriptor[15:0] };
+assign glob_desc_base    = { glob_descriptor[63:56], glob_descriptor[39:16] };
 assign glob_desc_2_limit = glob_descriptor_2[`DESC_BIT_G]? { glob_descriptor_2[51:48], glob_descriptor_2[15:0], 12'hFFF } : { 12'd0, glob_descriptor_2[51:48], glob_descriptor_2[15:0] };
+`endif
 
+`ifdef __x86_64__
+// On x86_64, most limits are ignored, but if the expanded base is needed (e.g., 64-bit TSS):
+// The base combines the classic parts plus the upper 32 bits from the 128-bit offset.
+assign glob_desc_base    = { glob_descriptor[95:64], glob_descriptor[63:56], glob_descriptor[39:16] };
+assign glob_desc_limit   = 64'hFFFFFFFFFFFFFFFF; // Força limite máximo (Segmentação plana)
+assign glob_desc_2_limit = 64'hFFFFFFFFFFFFFFFF;
+`endif
 
 //------------------------------------------------------------------------------
-
+// Sequential blocks padded with zeros ('0)
+//------------------------------------------------------------------------------
 always @(posedge clk) begin
-    if(rst_n == 1'b0)           glob_param_1 <= 32'd0;
+    if(rst_n == 1'b0)           glob_param_1 <= '0; // '0 zera dinamicamente independente se é 32 ou 64 bits
     else if(glob_param_1_set)   glob_param_1 <= glob_param_1_value;
 end
 
 always @(posedge clk) begin
-    if(rst_n == 1'b0)           glob_param_2 <= 32'd0;
+    if(rst_n == 1'b0)           glob_param_2 <= '0;
     else if(glob_param_2_set)   glob_param_2 <= glob_param_2_value;
 end
 
 always @(posedge clk) begin
-    if(rst_n == 1'b0)           glob_param_3 <= 32'd0;
+    if(rst_n == 1'b0)           glob_param_3 <= '0;
     else if(glob_param_3_set)   glob_param_3 <= glob_param_3_value;
 end
 
 always @(posedge clk) begin
-    if(rst_n == 1'b0)           glob_param_4 <= 32'd0;
+    if(rst_n == 1'b0)           glob_param_4 <= '0;
     else if(glob_param_4_set)   glob_param_4 <= glob_param_4_value;
 end
 
 always @(posedge clk) begin
-    if(rst_n == 1'b0)           glob_param_5 <= 32'd0;
+    if(rst_n == 1'b0)           glob_param_5 <= '0;
     else if(glob_param_5_set)   glob_param_5 <= glob_param_5_value;
 end
 
 always @(posedge clk) begin
-    if(rst_n == 1'b0)               glob_descriptor <= 64'd0;
+    if(rst_n == 1'b0)               glob_descriptor <= '0;
     else if(glob_descriptor_set)    glob_descriptor <= glob_descriptor_value;
 end
 
 always @(posedge clk) begin
-    if(rst_n == 1'b0)               glob_descriptor_2 <= 64'd0;
+    if(rst_n == 1'b0)               glob_descriptor_2 <= '0;
     else if(glob_descriptor_2_set)  glob_descriptor_2 <= glob_descriptor_2_value;
 end
-
-//------------------------------------------------------------------------------
 
 endmodule
