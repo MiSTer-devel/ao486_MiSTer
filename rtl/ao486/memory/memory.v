@@ -434,6 +434,7 @@ icache icache_inst(
     //END
     
     .snoop_linear_addr          (write_address),              //input [31:0] (linear address)
+    .snoop_linear_length        (write_length),               //input  [2:0]
     .snoop_linear_we            (write_do && !write_done),    //input
     
     .snoop_addr                 (snoop_addr),                 //input [27:2] (word aligned physical address)
