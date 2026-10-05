@@ -65,6 +65,7 @@ module icache(
     //END
     
     input   [31:0]      snoop_linear_addr, // linear address
+    input    [2:0]      snoop_linear_length,
     input               snoop_linear_we,
     
     input   [27:2]      snoop_addr, // word aligned physical address
@@ -95,6 +96,7 @@ wire [31:0]  readcode_cache_data;
 
 reg          prefetch_checknext;
 reg  [31:0]  prefetch_checkaddr;
+reg   [2:0]  prefetch_checklength;
 reg  [31:0]  min_check;
 reg  [31:0]  max_check;
 reg   [1:0]  reset_prefetch_count = 2'd0;
@@ -104,10 +106,11 @@ reg   [1:0]  reset_prefetch_count = 2'd0;
 wire reset_combined = reset_prefetch | pr_reset;
 
 always @(posedge clk) begin
-    prefetch_checknext <= 1'b0;
-    prefetch_checkaddr <= snoop_linear_addr;
-    min_check          <= delivered_eip;
-    max_check          <= prefetch_address + 5'd20; // cache read burst is 16 bytes, so we need to look a bit further, additional + 4 because of 1 cycle delay.
+    prefetch_checknext   <= 1'b0;
+    prefetch_checkaddr   <= snoop_linear_addr;
+    prefetch_checklength <= snoop_linear_length;
+    min_check            <= delivered_eip;
+    max_check            <= prefetch_address + 5'd20; // cache read burst is 16 bytes, so we need to look a bit further, additional + 4 because of 1 cycle delay.
     
     if (snoop_linear_we) prefetch_checknext <= 1'b1;
     
@@ -117,7 +120,7 @@ always @(posedge clk) begin
     end
     
     // Reset the prefetch fifo when a write hits it (checks are done in linear address space)
-    if (prefetch_checknext && prefetch_checkaddr >= min_check && prefetch_checkaddr <= max_check) begin
+    if (prefetch_checknext && (prefetch_checkaddr + prefetch_checklength) >= min_check && prefetch_checkaddr <= max_check) begin
         reset_prefetch       <= 1'b1;
         reset_prefetch_count <= 2'd2;
     end
