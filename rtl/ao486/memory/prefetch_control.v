@@ -80,7 +80,6 @@ localparam [1:0] STATE_ICACHE      = 2'd1;
 wire [12:0] left_in_page;
 wire [4:0]  length;
 
-wire        offset_update;
 wire        page_cross;
 
 //------------------------------------------------------------------------------
@@ -91,7 +90,6 @@ assign tlbcoderequest_su      = prefetch_su;
 assign left_in_page = 13'd4096 - { 1'b0, prefetch_address[11:0] };
 assign length       = (left_in_page < { 8'd0, prefetch_length })?  left_in_page[4:0] : prefetch_length;
 
-assign offset_update = prefetch_address[31:12] == linear[31:12] && prefetch_address[11:0] != linear[11:0];
 assign page_cross    = prefetch_address[31:12] != linear[31:12];
 
 //------------------------------------------------------------------------------
@@ -117,7 +115,7 @@ IF(state == STATE_TLB_REQUEST);
             SAVE(cache_disable, tlbcode_cache_disable);
         
             SET(icacheread_do);
-            SET(icacheread_address,       tlbcode_physical);
+            SET(icacheread_address,       (prefetch_address[31:12] == tlbcode_linear[31:12])? { tlbcode_physical[31:12], prefetch_address[11:0] } : tlbcode_physical);
             SET(icacheread_length,        length);
             SET(icacheread_cache_disable, tlbcode_cache_disable);
         
@@ -138,14 +136,10 @@ IF(state == STATE_ICACHE);
         SET(icacheread_do);
     ENDIF();
 
-    SET(icacheread_address,       (offset_update)? { physical[31:12], prefetch_address[11:0] } : physical);
+    SET(icacheread_address,       (prefetch_address[31:12] == linear[31:12])? { physical[31:12], prefetch_address[11:0] } : physical);
     SET(icacheread_length,        length);
     SET(icacheread_cache_disable, cache_disable);
-    
-    IF(offset_update);
-        SAVE(linear,   { linear[31:12],   prefetch_address[11:0] });
-        SAVE(physical, { physical[31:12], prefetch_address[11:0] });
-    ENDIF();
+
 ENDIF();
 */
 
