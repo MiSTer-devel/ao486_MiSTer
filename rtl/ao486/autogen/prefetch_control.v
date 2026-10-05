@@ -4,15 +4,12 @@ wire cond_1 = ~(pr_reset) && prefetch_length > 5'd0 && prefetchfifo_used < 5'd3;
 wire cond_2 = tlbcode_do;
 wire cond_3 = state == STATE_ICACHE;
 wire cond_4 = page_cross || pr_reset || prefetchfifo_used >= 5'd8;
-wire cond_5 = offset_update;
 //======================================================== saves
 wire [31:0] physical_to_reg =
     (cond_0 && cond_1 && cond_2)? (      tlbcode_physical) :
-    (cond_3 && cond_5)? ( { physical[31:12], prefetch_address[11:0] }) :
     physical;
 wire [31:0] linear_to_reg =
     (cond_0 && cond_1 && cond_2)? (        tlbcode_linear) :
-    (cond_3 && cond_5)? (   { linear[31:12],   prefetch_address[11:0] }) :
     linear;
 wire [1:0] state_to_reg =
     (cond_0 && cond_1 && cond_2)? ( STATE_ICACHE) :
@@ -55,6 +52,6 @@ assign icacheread_cache_disable =
     (cond_3)? ( cache_disable) :
     1'd0;
 assign icacheread_address =
-    (cond_0 && cond_1 && cond_2)? (       tlbcode_physical) :
-    (cond_3)? (       (offset_update)? { physical[31:12], prefetch_address[11:0] } : physical) :
+    (cond_0 && cond_1 && cond_2)? ( (prefetch_address[31:12] == tlbcode_linear[31:12])? { tlbcode_physical[31:12], prefetch_address[11:0] } : tlbcode_physical) :
+    (cond_3)?                     ( (prefetch_address[31:12] ==         linear[31:12])? {         physical[31:12], prefetch_address[11:0] } :         physical) :
     32'd0;
