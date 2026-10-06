@@ -5676,6 +5676,12 @@ int13_harddisk(DS, ES, DI, SI, BP, ELDX, BX, DX, CX, AX, IP, CS, FLAGS)
       if (( GET_AH() == 0x44 ) || ( GET_AH() == 0x47 ))
         goto int13_success;
 
+      if ((count > 127) || (count == 0)) {
+        BX_INFO("int13_harddisk: function %02x, parameter out of range!\n",GET_AH());
+        write_word(DS, SI+(Bit16u)&Int13Ext->count, 0);
+        goto int13_fail;
+      }
+
       // Execute the command
       if (GET_AH() == 0x42)
         status=ata_cmd_data_io(0, device, ATA_CMD_READ_SECTORS, count, 0, 0, 0, lba_low, lba_high, segment, offset);
