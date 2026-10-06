@@ -1,0 +1,8 @@
+set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) ne2000_core.v]
+set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) ne2000_packet_ram.v]
+set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) ne2000_isa.v]
+set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) ne2000_shm_probe.v]
+set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) ne2000_ddr_mailbox.v]
+set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) ne2000_dma_addr_map.v]
+set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) ne2000_ddram_arbiter.v]
+set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) ne2000_dma_mux.v]
