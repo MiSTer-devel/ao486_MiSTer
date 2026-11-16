@@ -39,23 +39,29 @@ module gus    // ULTRASND IO = 240, IRQ = 7, DMA = 7
 	output        SDRAM_nWE
 );
 
-reg  [16:0] gf1_clk;
-
-wire gf1_clk2 = gf1_clk[16];
-
-always @(posedge clk)
-	begin
-		if (clock_rate == 100_000_000)
-					gf1_clk <= gf1_clk + 17'd12948;   // = (9_878_400 * 2 *65536) / 100_000_000
-		else if (clock_rate == 56_250_000)
-					gf1_clk <= gf1_clk + 17'd23018;   // = (9_878_400 * 2 *65536) / 56_250_000
-		else if (clock_rate == 30_000_000)
-					gf1_clk <= gf1_clk + 17'd43159;   // = (9_878_400 * 2 *65536) / 30_000_000
-		else if (clock_rate == 15_000_000)
-					gf1_clk <= gf1_clk + 17'd86319;   // = (9_878_400 * 2 *65536) / 15_000_000  !!! Not correct !!
-		else
-					gf1_clk <= gf1_clk + 17'd14386;   // = (9_878_400 * 2 *65536) / 90_000_000
+// GF1 clock 448 x 44.100 kHz = 19.756800 MHz divided by 2 = 9.878400 MHz
+localparam [24:0] GF1_CLOCK_RATE = 25'd9_878_400;
+reg  clk_gf1;
+reg  [27:0] sum_gf1;
+wire [27:0] sum_gf1_inc = sum_gf1 + {GF1_CLOCK_RATE, 1'b0};
+always @(posedge clk) begin
+	if (reset) begin
+		sum_gf1 <= 28'd0;
+		clk_gf1 <= 1'b0;
+	end else if (clock_rate <= {GF1_CLOCK_RATE, 1'b0}) begin
+		// When clock_rate <= (GF1_CLOCK_RATE * 2) the output frequency will be clock_rate / 2
+		// e.g. 15 MHz -> 7.5 MHz
+		sum_gf1 <= 28'd0;
+		clk_gf1 <= ~clk_gf1;
+	end else begin
+		if (sum_gf1_inc >= clock_rate) begin
+			sum_gf1 <= sum_gf1_inc - clock_rate;
+			clk_gf1 <= ~clk_gf1;
+		end else begin
+			sum_gf1 <= sum_gf1_inc;
+		end
 	end
+end
 
 wire [19:0] dram_addr;
 wire [15:0] DRAM_o;
@@ -136,7 +142,7 @@ assign irq = dmairq_enable & (irq1 | irq2);
 
 gf1 gf1 (
 	.MCLK          (clk),
-	.CLK           (gf1_clk2),
+	.CLK           (clk_gf1),
 	.IOW           (write_cont),
 	.IOR           (read_cont),
 	.CS1           (isgf1addr),
