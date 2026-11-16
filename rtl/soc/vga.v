@@ -1659,9 +1659,9 @@ always @(posedge clk_vga) if (ce_video) vgareg_vert_sync <= (vgaprep_vert_sync &
 always @(posedge clk_vga) if (ce_video) vga_vert_sync <= vgareg_vert_sync;
 
 always @(posedge clk_vga) if (ce_video) begin
-	vga_r <= (seq_screen_disable || vgareg_blank) ? 8'd0 : { dac_color[17:12], dac_color[17:16] };
-	vga_g <= (seq_screen_disable || vgareg_blank) ? 8'd0 : { dac_color[11:6],  dac_color[11:10] };
-	vga_b <= (seq_screen_disable || vgareg_blank) ? 8'd0 : { dac_color[5:0],   dac_color[5:4]   };
+	vga_r <= (~seq_async_reset_n || ~seq_sync_reset_n || seq_screen_disable || vgareg_blank) ? 8'd0 : { dac_color[17:12], dac_color[17:16] };
+	vga_g <= (~seq_async_reset_n || ~seq_sync_reset_n || seq_screen_disable || vgareg_blank) ? 8'd0 : { dac_color[11:6],  dac_color[11:10] };
+	vga_b <= (~seq_async_reset_n || ~seq_sync_reset_n || seq_screen_disable || vgareg_blank) ? 8'd0 : { dac_color[5:0],   dac_color[5:4]   };
 end
 
 //------------------------------------------------------------------------------
