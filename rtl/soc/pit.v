@@ -55,30 +55,24 @@ module pit(
 localparam INCREMENT = 32'd26250000; // = 11 * (2 * PIT_frequency)
 reg [31:0] clk_rate;                 // = 11 * (clock_rate)
 always @(posedge clk) begin
-    clk_rate <= ({4'b0, clock_rate} << 3) + ({4'b0, clock_rate} << 1) + {4'b0, clock_rate};
+    clk_rate <= {1'b0, clock_rate, 3'b0} + {3'b0, clock_rate, 1'b0} + {4'b0, clock_rate};
 end
 
-reg [31:0] sum;
-reg ce_system_counter;
+reg  system_clock;
+reg  [31:0] sum;
+wire [31:0] sum_inc = sum + INCREMENT;
 always @(posedge clk) begin
     if (!rst_n) begin
         sum <= 32'd0;
-        ce_system_counter <= 1'b0;
+        system_clock <= 1'b0;
     end else begin
-        if ((sum + INCREMENT) >= clk_rate) begin
-            sum <= (sum + INCREMENT) - clk_rate;
-            ce_system_counter <= 1'b1;
+        if (sum_inc >= clk_rate) begin
+            sum <= sum_inc - clk_rate;
+            system_clock <= ~system_clock;
         end else begin
-            sum <= (sum + INCREMENT);
-            ce_system_counter <= 1'b0;
+            sum <= sum_inc;
         end
     end
-end
-
-reg system_clock;
-always @(posedge clk) begin
-    if(rst_n == 1'b0)           system_clock <= 1'b0;
-    else if(ce_system_counter)  system_clock <= ~system_clock;
 end
 
 //------------------------------------------------------------------------------ read io
@@ -87,23 +81,8 @@ always @(posedge clk) if(io_read) io_readdata <=
     (io_read && io_address == 0) ? counter_0_readdata :
     (io_read && io_address == 1) ? counter_1_readdata :
     (io_read && io_address == 2) ? counter_2_readdata :
-    (io_read && io_address[2])   ? { 2'b0, spk_out, counter_1_toggle, 2'b0, speaker_enable, speaker_gate } :
+    (io_read && io_address[2])   ? { 2'b0, spk_out, counter_1_out, 2'b0, speaker_enable, speaker_gate } :
                                      8'd0; //control address
-
-//------------------------------------------------------------------------------ refresh counter
-
-reg [5:0] counter_1_cnt;
-always @(posedge clk) begin
-    if(rst_n == 1'b0)                                       counter_1_cnt <= 6'd0;
-    else if(ce_system_counter && counter_1_cnt == 6'd35)    counter_1_cnt <= 6'd0;
-    else if(ce_system_counter)                              counter_1_cnt <= counter_1_cnt + 6'd1;
-end
-
-reg counter_1_toggle;
-always @(posedge clk) begin
-    if(rst_n == 1'b0)                                       counter_1_toggle <= 1'b0;
-    else if(ce_system_counter && counter_1_cnt == 6'd35)    counter_1_toggle <= ~(counter_1_toggle);
-end
 
 //------------------------------------------------------------------------------ speaker
 
@@ -145,15 +124,14 @@ pit_counter pit_counter_0(
     .data_out           (counter_0_readdata)    //output [7:0]
 );
 
+wire counter_1_out;
 pit_counter pit_counter_1(
     .clk                (clk),
     .rst_n              (rst_n),
     
     .clock              (system_clock),     //input
     .gate               (1'b1),             //input
-    /* verilator lint_off PINNOCONNECT */
-    .out                (),                 //output
-    /* verilator lint_on PINNOCONNECT */
+    .out                (counter_1_out),    //output
     
     .data_in            (io_writedata),                                                                                                                                      //input [7:0]
     .set_control_mode   (io_write && io_address == 3 && io_writedata[7:6] == 2'b01 && io_writedata[5:4] != 2'b00),                                                           //input

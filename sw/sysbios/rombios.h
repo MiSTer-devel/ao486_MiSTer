@@ -149,6 +149,8 @@
 #define PORT_PIC1_CMD          0x0020
 #define PORT_PIC1_DATA         0x0021
 #define PORT_PIT_COUNTER0      0x0040
+#define PORT_PIT_COUNTER1      0x0041
+#define PORT_PIT_COUNTER2      0x0042
 #define PORT_PIT_MODE          0x0043
 #define PORT_PS2_DATA          0x0060
 #define PORT_PS2_CTRLB         0x0061

@@ -10785,11 +10785,27 @@ normal_post:
   ;; PIT setup
   SET_INT_VECTOR(0x08, #0xF000, #int08_handler)
   ;; int 1C already points at dummy_iret_handler (above)
-  mov al, #0x34 ; timer0: binary count, 16bit count, mode 2
+  ;; --- PIT Channel 0: Timer 0 (IRQ 0)
+  mov al, #0x36 ; Channel 0: Binary Counter 16-bit, Mode 3: Square wave mode, Access: LSB/MSB
   out PORT_PIT_MODE, al
-  mov al, #0x00 ; maximum count of 0000H = 18.2Hz
-  out PORT_PIT_COUNTER0, al
-  out PORT_PIT_COUNTER0, al
+  ;; Count 0000H (meaning 65536) = 18.2 Hz
+  mov al, #0x00
+  out PORT_PIT_COUNTER0, al ; LSB: 00H
+  out PORT_PIT_COUNTER0, al ; MSB: 00H
+  ;; --- PIT Channel 1: DRAM-refresh (legacy hardware function)
+  mov al, #0x54 ; Channel 1: Binary Counter 16-bit, Mode 2: Rate generator, Access: LSB only
+  out PORT_PIT_MODE, al
+  ;; Count 12H = 18 = pulse every 15 usec
+  mov al, #0x12 ; LSB only: 12H
+  out PORT_PIT_COUNTER1, al
+  ;; --- PIT Channel 2: PC Speaker
+  mov al, #0xB6 ; Channel 2: Binary Counter 16-bit, Mode 3: Square wave mode, Access: LSB/MSB
+  out PORT_PIT_MODE, al
+  ;; Count 0533H = 1331 = 896 Hz
+  mov al, #0x33 ; LSB: 33H
+  out PORT_PIT_COUNTER2, al
+  mov al, #0x05 ; MSB: 05H
+  out PORT_PIT_COUNTER2, al
 
   ;; Keyboard
   SET_INT_VECTOR(0x09, #0xF000, #int09_handler)
