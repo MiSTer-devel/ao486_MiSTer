@@ -101,7 +101,7 @@ localparam CONF_STR =
 	"P2-;",
 	"P2OA,USER I/O,MIDI,COM2;",
 	"P2-;",
-	"P2OCE,Joystick Type,2 Buttons,4 Buttons,Gravis Pro,None,CH Flightst., Thrustmaster;",
+	"P2OCE,Joystick Type,2 Buttons,4 Buttons,Gravis Pro,None,CH Flightst.,Thrustmaster;",
 	"P2oFG,Joystick Mode,2 Joysticks,2 Sticks,2 Wheels,4-axes Wheel;",
 	"P2oQR,Joystick Axes,Timed,Count 8+141,Count 0+256,Count 6+256;",
 	"P2oH,Joystick 1,Enabled,Disabled;",
