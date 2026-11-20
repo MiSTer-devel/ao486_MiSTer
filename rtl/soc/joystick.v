@@ -25,52 +25,129 @@ module joystick
   output reg [7:0] readdata
 );
 
+localparam [2:0] JOY_MODE_2_BUTTONS          = 3'd0;
+localparam [2:0] JOY_MODE_4_BUTTONS          = 3'd1;
+localparam [2:0] JOY_MODE_GRAVIS_PRO         = 3'd2;
+localparam [2:0] JOY_MODE_NONE               = 3'd3;
+localparam [2:0] JOY_MODE_CH_FLIGHTSTICK_PRO = 3'd4;
+localparam [2:0] JOY_MODE_THRUSTMASTER_FCS   = 3'd5;
+
 localparam signed [7:0] ANALOG_ACTIVITY_THRESHOLD = 8'd60; // threshold used to detect analog input activity
-wire ana_1_activity = $signed(ana_1[ 7:0]) < -ANALOG_ACTIVITY_THRESHOLD || ANALOG_ACTIVITY_THRESHOLD < $signed(ana_1[ 7:0]) ||
-                      $signed(ana_1[15:8]) < -ANALOG_ACTIVITY_THRESHOLD || ANALOG_ACTIVITY_THRESHOLD < $signed(ana_1[15:8]);
-wire ana_2_activity = $signed(ana_2[ 7:0]) < -ANALOG_ACTIVITY_THRESHOLD || ANALOG_ACTIVITY_THRESHOLD < $signed(ana_2[ 7:0]) ||
-                      $signed(ana_2[15:8]) < -ANALOG_ACTIVITY_THRESHOLD || ANALOG_ACTIVITY_THRESHOLD < $signed(ana_2[15:8]);
+function analog_activity (input [7:0] analog_input);
+  analog_activity = $signed(analog_input) < -ANALOG_ACTIVITY_THRESHOLD || ANALOG_ACTIVITY_THRESHOLD < $signed(analog_input);
+endfunction
+wire ana_1_activity = analog_activity(ana_1[15:8]) || analog_activity(ana_1[7:0]);
+wire ana_2_activity = analog_activity(ana_2[15:8]) || analog_activity(ana_2[7:0]);
 
 // 20 kHz clock for Gravis Interface Protocol (GrIP)
-reg clk_grav;
+reg  clk_grav;
+reg  [27:0] sum_grav;
+wire [27:0] sum_grav_inc = sum_grav + 16'd40000; // 20 kHz
 always @(posedge clk) begin
-  reg [27:0] sum_grav = 28'd0;
-
-  sum_grav = sum_grav + 16'd40000;
-  if(sum_grav >= clock_rate) begin
-    sum_grav = sum_grav - clock_rate;
-    clk_grav = ~clk_grav;
+  if (!rst_n) begin
+    sum_grav <= 28'd0;
+    clk_grav <= 1'b0;
+  end else begin
+    if (sum_grav_inc >= clock_rate) begin
+      sum_grav <= sum_grav_inc - clock_rate;
+      clk_grav <= ~clk_grav;
+    end else begin
+      sum_grav <= sum_grav_inc;
+    end
   end
 end
 
-// 1.1 us tick used for the IBM joystick time formula
-// (see the relevant code below for more information)
-reg tick_1100ns;
+// 1.1 us tick used for the IBM joystick time formula, restarted by a write
+reg  tick_1100ns;
+reg  [27:0] sum_timed;
+wire [27:0] sum_timed_inc = sum_timed + 20'd909091; // tick every 1.1 us
 always @(posedge clk) begin
-  reg [27:0] sum_timed = 28'd0;
-
-  sum_timed = write ? 28'd0 : sum_timed + 20'd909091; // tick every 1.1 us
-  tick_1100ns = 1'b0;
-  if(sum_timed >= clock_rate) begin
-    sum_timed = sum_timed - clock_rate;
-    tick_1100ns = 1'b1;
+  if (!rst_n || write) begin
+    sum_timed   <= 28'd0;
+    tick_1100ns <= 1'b0;
+  end else begin
+    if (sum_timed_inc >= clock_rate) begin
+      sum_timed   <= sum_timed_inc - clock_rate;
+      tick_1100ns <= 1'b1;
+    end else begin
+      sum_timed   <= sum_timed_inc;
+      tick_1100ns <= 1'b0;
+    end
   end
 end
 
-reg [10:0] j1x, j1y, j2x, j2y; // axis measurement countdown value
-reg        jb1, jb2, jb3, jb4; // button (active low)
+function [9:0] joy_1100ns_tick_count (input [7:0] j_pos);
+  // Timed mode simulates the time needed, described by the IBM joystick time formula,
+  // to charge a capacitor through the potentiometer of the joytick to determine an axis position.
+  // 
+  // IBM joystick time in us = 24.2 us + 0.011 * (r_pot) us        is in range [24.2, 1124.2] us for r_pot in range [0, 100] kOhm
+  //                         = 0.011 * (2200 + r_pot)
+  //                         = 1.1 * (22 + r_pot/100)
+  //                         = 1.1 * (22 + (1000 * j_pos/255))     is in range [24.2, 1124.2] us for j_pos in range [0, 255]
+  // Note: The 24.2 us accommodates a 2.2 kOhm resistor in series with the potentiometer
+  // Note: The typical potentiometer used in joysticks seems to be around 100 kOhm
+  // Note: r_pot/100 -> 1000 represents a potentiometer resistance of 100 kOhm
+  // Note: Map joystick axis position range [0, 255] to range [0,1000]
+  // Note: The timed countdown is clocked by tick_1100ns (1.1 us)
+  // Note: The 1.1 us tick count = 22 + (1000 * j_pos/255) = 22 + 1000/255 * j_pos = 22 + (j_pos << 2) - (j_pos >> 4) - (j_pos >> 6)
+  // Note: The 1.1 us tick count in range [22, 1022] will generate the timed range of [24.2, 1124.2] us
+  joy_1100ns_tick_count = 10'd22 + (j_pos == 8'd255 ? 10'd1000 : {j_pos, 2'd0} - {6'd0, j_pos[7:4]} - {8'd0, j_pos[7:6]});
+endfunction
 
-// Allow jb3 and jb4 when:
-// - Joystick Type: 4 Buttons or CH Flightstick pro or Thrustmaster FCS
-// - Joystick 1:    Enabled
-// - Joystick 2:    Disabled
-wire dis_jb3_jb4 = dis[1] && ~(  (mode==3'd1 || mode==3'd4 || mode==3'd5) && dis==2'b10);
+function [9:0] joy_count_8_140 (input [7:0] j_pos);
+  // DOS game Paratrooper compatible mappings:
+  // Map [0,255] ->  5 + [0,146]
+  // Map [0,255] ->  6 + [0,144]
+  // Map [0,255] ->  7 + [0,142]
+  // Map [0,255] ->  8 + [0,140]
+  // Map [0,255] ->  9 + [0,138]
+  // Map [0,255] -> 10 + [0,136]
+  // Map [0,255] -> 11 + [0,134]
+  // 
+  // Map [0,255] -> 8 + [0,140]
+  // Note: 8 + 140/255 * j_pos = 8 + (j_pos >> 1) + (j_pos >> 4) - (j_pos >> 7) - (j_pos >> 7)
+  joy_count_8_140 = 10'd8 + {3'd0, j_pos[7:1]} + {6'd0, j_pos[7:4]} - {9'd0, j_pos[7]} - {9'd0, j_pos[7]};
+endfunction
+
+function [9:0] joy_count_0_255 (input [7:0] j_pos);
+  // Map: [0,255] -> 0 + [0,255]
+  joy_count_0_255 = {2'd0, j_pos};
+endfunction
+
+function [9:0] joy_count_6_255 (input [7:0] j_pos);
+  // Map: [0,255] -> 6 + [0,255]
+  joy_count_6_255 = 10'd6 + {2'd0, j_pos};
+endfunction
+
+reg [9:0] j1x, j1y, j2x, j2y; // axis measurement countdown value
+reg       jb1, jb2, jb3, jb4; // button (active low)
+
+// Allow jb3/jb4 when joystick 1 is enabled and joystick 2 is disabled for:
+// - Joystick Type: 4 Buttons or CH Flightstick Pro or Thrustmaster FCS
+wire dis_jb3_jb4 = dis[1] && !(
+  (mode == JOY_MODE_4_BUTTONS || mode == JOY_MODE_CH_FLIGHTSTICK_PRO || mode == JOY_MODE_THRUSTMASTER_FCS) && (dis==2'b10)
+);
+
+// Disabled buttons are forced high (active low)
+wire [3:0] joy_state_buttons = {
+  jb4 | dis_jb3_jb4,
+  jb3 | dis_jb3_jb4,
+  jb2 | dis[0],
+  jb1 | dis[0]
+};
+
+// Disabled axes are forced low (high during measurements)
+wire [3:0] joy_state_axes = {
+  |j2y & ~dis[1],
+  |j2x & ~dis[1],
+  |j1y & ~dis[0],
+  |j1x & ~dis[0]
+};
 
 // Read data
 always @(posedge clk) begin
-  readdata <= (mode==3'd3) ? 8'hff : // None
-                            {      jb4,    jb3,    jb2,    jb1,   |j2y,   |j2x,   |j1y,   |j1x } |
-                            { {2{dis_jb3_jb4}}, dis[0], dis[0], dis[1], dis[1], dis[0], dis[0] }; // disable mask
+  readdata <= (mode == JOY_MODE_NONE) ? 8'hff // None (floating bus)
+                                      : { joy_state_buttons, joy_state_axes }; // State
 end
 
 wire JOY1_RIGHT = dig_1[0];
@@ -116,15 +193,15 @@ reg [4:0] gravis_pos;
 // Thrustmaster FCS
 reg [7:0] y_fcs_hat;
 
-// Current joystick position value in the range [0,255]
+// Current MiSTer joystick position value in the range [0,255]
 reg [7:0] j1x_pos, j1y_pos, j2x_pos, j2y_pos;
 
 always @(posedge clk) begin : joy_block
   if (!rst_n) begin
-    j1x <= 11'd128; // center
-    j1y <= 11'd128; // center
-    j2x <= 11'd128; // center
-    j2y <= 11'd128; // center
+    j1x <= 10'd0; // no measurement active
+    j1y <= 10'd0; // no measurement active
+    j2x <= 10'd0; // no measurement active
+    j2y <= 10'd0; // no measurement active
     {jb1, jb2, jb3, jb4} <= 4'b1111; // buttons not pressed (active low)
 
     use_dpad1 <= 1'b1; // d-pad
@@ -135,23 +212,24 @@ always @(posedge clk) begin : joy_block
     gravis_pos <= 5'd0;
   end else begin
     // Button assignment
-    if (mode==3'd2) begin
+    if (mode == JOY_MODE_GRAVIS_PRO) begin
       // Gravis Pro
       jb1 <= gravis_clk;
       jb2 <= gravis_out[0];
       jb3 <= gravis_clk;
       jb4 <= gravis_out[1];
-    end else if (mode==3'd4) begin
+    end else if (mode == JOY_MODE_CH_FLIGHTSTICK_PRO) begin
       // CH Flightstick Pro
       //
       // The CH Flightstick Pro adds hat switch functionality to the very limited 15-pin gameport,
       // by mapping the hat switch buttons to combinations of trigger buttons.
       // As explained in the 16 bit edition of "Randall Hyde - The Art of Assembly Language", chapter 24:
       // The Hat Switch buttons Up,Right,Down,Left are mapped to the trigger Buttons 1,2,3,4 as:
-      // Up    = 1,2,3,4 ON
-      // Right = 1,2  ,4 ON
-      // Down  = 1,2,3   ON
-      // Left  = 1,2     ON
+      // Up    = 1,2,3,4 ACTIVE
+      // Right = 1,2  ,4 ACTIVE
+      // Down  = 1,2,3   ACTIVE
+      // Left  = 1,2     ACTIVE
+      // Note: Buttons are active low.
       //
       // To prevent misinterpretation, the four buttons are encoded in the following priority order (high to low):
       // Up, Right, Down, Left, Button 1, Button 2, Button 3, Button 4.
@@ -178,8 +256,8 @@ always @(posedge clk) begin : joy_block
     end else begin
       jb1 <= !JOY1_BUT1;
       jb2 <= !JOY1_BUT2;
-      jb3 <= (mode==3'd1 || mode==3'd5) ? !JOY1_BUT3 : !JOY2_BUT1;
-      jb4 <= (mode==3'd1 || mode==3'd5) ? !JOY1_BUT4 : !JOY2_BUT2;
+      jb3 <= (mode == JOY_MODE_4_BUTTONS || mode == JOY_MODE_THRUSTMASTER_FCS) ? !JOY1_BUT3 : !JOY2_BUT1;
+      jb4 <= (mode == JOY_MODE_4_BUTTONS || mode == JOY_MODE_THRUSTMASTER_FCS) ? !JOY1_BUT4 : !JOY2_BUT2;
     end
 
     // Gravis Interface Protocol (GrIP)
@@ -236,10 +314,10 @@ always @(posedge clk) begin : joy_block
       endcase
     end
 
-    // Auto switch between analog or dpad input when not in CH Flightstick Pro or Thrustmaster mode
+    // Auto switch between analog or dpad input when not in CH Flightstick Pro or Thrustmaster FCS mode
     // - Analog: when analog activity threshold crossing is detected
     // - D-pad: when digital input is detected and there was no analog activity detected
-    if (mode == 3'd4 || mode == 3'd5) begin
+    if (mode == JOY_MODE_CH_FLIGHTSTICK_PRO || mode == JOY_MODE_THRUSTMASTER_FCS) begin
       use_dpad1 <= 1'b0;
       use_dpad2 <= 1'b0;
     end else begin
@@ -259,10 +337,14 @@ always @(posedge clk) begin : joy_block
       // With a maximum resistor value of 100 kOhm being equal to a maximum value of 255 in the [0,255] range,
       // the following value mapping is obtained: Up: 1, Right: 51, Down: 102, Left: 153, Center: 209.
       //
-      y_fcs_hat = JOY1_UP ? 8'd1 : JOY1_RIGHT ? 8'd51 : JOY1_DOWN ? 8'd102 : JOY1_LEFT ? 8'd153 : 8'd209;
+      y_fcs_hat = JOY1_UP    ? 8'd1   :
+                  JOY1_RIGHT ? 8'd51  :
+                  JOY1_DOWN  ? 8'd102 :
+                  JOY1_LEFT  ? 8'd153 :
+                               8'd209; // Center
 
-      // Get the current joystick position values in the range [0,255] at the start of a measurement.
-      
+      // Get the current MiSTer joystick position values in the range [0,255] at the start of a measurement.
+
       j1x_pos = ~use_dpad1  ? { ~ana_1[7],  ana_1[6:0] }  : // convert signed [-128,127] => unsigned [0,255]
                  JOY1_LEFT  ? 8'd0   : // d-pad 1 left
                  JOY1_RIGHT ? 8'd255 : // d-pad 1 right
@@ -278,7 +360,7 @@ always @(posedge clk) begin : joy_block
                  JOY2_RIGHT ? 8'd255 : // d-pad 2 right
                               8'd128;  // d-pad 2 center
 
-      j2y_pos = (mode == 3'd5) ? y_fcs_hat :
+      j2y_pos = (mode == JOY_MODE_THRUSTMASTER_FCS) ? y_fcs_hat :
                 ~use_dpad2  ? { ~ana_2[15], ana_2[14:8] } : // convert signed [-128,127] => unsigned [0,255]
                  JOY2_UP    ? 8'd0   : // d-pad 2 up
                  JOY2_DOWN  ? 8'd255 : // d-pad 2 down
@@ -290,7 +372,7 @@ always @(posedge clk) begin : joy_block
       // -----
       // Simulates the charging of a capacitor, as used to measure
       // the resistance value (position) of the potentiometer inside the joystick
-      // Note: Uses the IBM joystick time formula (see below)
+      // Note: Uses the IBM joystick time formula: joy bit goes low after time in range [24.2, 1124.2] us
       // 
       // Count
       // -----
@@ -301,57 +383,39 @@ always @(posedge clk) begin : joy_block
       //       (for Jazz Jackrabbit the max count value seems to be 1000)
       // Note: For flight simulators with analog joystick support the Count 256 mode
       //       offers the full analog resolution currently provided
-      // Note: This mode might resolve joystick drift issues
+      // Note: Count mode might resolve joystick drift issues
       // Note: Count 8+141 mode is compatible with the DOS game Paratrooper,
       //       but can also be used for other games (e.g. platformers)
       case(timed)
         2'd0: begin // Timed
-          // IBM Joystick Time = 24.2 us + 0.011 (r) us = 0.011 * (2200 + r) us
-          // The typical potentiometer resistor value r seems to be around 100 kOhm
-          // Note: The 24.2 us accommodates a 2.2 kOhm resistor in series with the potentiometer
-          // 
-          // In timed mode this value simulates the time needed to charge a capacitor
-          // through the potentiometer of the joytick to determine the position
-          // 
-          // Map joystick axis position range [0,255] to potentiometer resistance range [0,1000]
-          // Note: Potentiometer resistance is divided by 100, so the value 1000 represents a 100 kOhm pot
-          // Note: The timed countdown is clocked by tick_1100ns (1.1 us)
-          // Note: joy = 22 + (1000 * pos/255) = 22 + 1000/255 * pos
-          j1x <= 5'd22 + (j1x_pos == 8'd255 ? 11'd1000 : (j1x_pos << 2) - (j1x_pos >> 4) - (j1x_pos >> 6) - (j1x_pos >> 8));
-          j1y <= 5'd22 + (j1y_pos == 8'd255 ? 11'd1000 : (j1y_pos << 2) - (j1y_pos >> 4) - (j1y_pos >> 6) - (j1y_pos >> 8));
-          j2x <= 5'd22 + (j2x_pos == 8'd255 ? 11'd1000 : (j2x_pos << 2) - (j2x_pos >> 4) - (j2x_pos >> 6) - (j2x_pos >> 8));
-          j2y <= 5'd22 + (j2y_pos == 8'd255 ? 11'd1000 : (j2y_pos << 2) - (j2y_pos >> 4) - (j2y_pos >> 6) - (j2y_pos >> 8));
+          // Use the IBM joystick time formula: joy bit goes low after time in range [24.2, 1124.2] us
+          j1x <= joy_1100ns_tick_count(j1x_pos);
+          j1y <= joy_1100ns_tick_count(j1y_pos);
+          j2x <= joy_1100ns_tick_count(j2x_pos);
+          j2y <= joy_1100ns_tick_count(j2y_pos);
         end
         2'd1: begin // Count 8+141
-          // DOS game Paratrooper compatible mappings:
-          // Map [0,255] ->  5 + [0,146]
-          // Map [0,255] ->  6 + [0,144]
-          // Map [0,255] ->  7 + [0,142]
-          // Map [0,255] ->  8 + [0,140]
-          // Map [0,255] ->  9 + [0,138]
-          // Map [0,255] -> 10 + [0,136]
-          // Map [0,255] -> 11 + [0,134]
-          // 
+          // DOS game Paratrooper compatible mapping:
           // Map [0,255] -> 8 + [0,140]
-          j1x <= 4'd8 + (j1x_pos >> 1) + (j1x_pos >> 4) - (j1x_pos >> 7) - (j1x_pos >> 7);
-          j1y <= 4'd8 + (j1y_pos >> 1) + (j1y_pos >> 4) - (j1y_pos >> 7) - (j1y_pos >> 7);
-          j2x <= 4'd8 + (j2x_pos >> 1) + (j2x_pos >> 4) - (j2x_pos >> 7) - (j2x_pos >> 7);
-          j2y <= 4'd8 + (j2y_pos >> 1) + (j2y_pos >> 4) - (j2y_pos >> 7) - (j2y_pos >> 7);
+          j1x <= joy_count_8_140(j1x_pos);
+          j1y <= joy_count_8_140(j1y_pos);
+          j2x <= joy_count_8_140(j2x_pos);
+          j2y <= joy_count_8_140(j2y_pos);
         end
         2'd2: begin // Count 0+256
-          // Map: [0,255] -> [0,255]
-          j1x <= j1x_pos;
-          j1y <= j1y_pos;
-          j2x <= j2x_pos;
-          j2y <= j2y_pos;
+          // TODO: Change this to something more useful for certain games?
+          // Map: [0,255] -> 0 + [0,255]
+          j1x <= joy_count_0_255(j1x_pos);
+          j1y <= joy_count_0_255(j1y_pos);
+          j2x <= joy_count_0_255(j2x_pos);
+          j2y <= joy_count_0_255(j2y_pos);
         end
         2'd3: begin // Count 6+256
           // Map: [0,255] -> 6 + [0,255]
-          // TODO: Change this to something more useful for certain games?
-          j1x <= 3'd6 + j1x_pos;
-          j1y <= 3'd6 + j1y_pos;
-          j2x <= 3'd6 + j2x_pos;
-          j2y <= 3'd6 + j2y_pos;
+          j1x <= joy_count_6_255(j1x_pos);
+          j1y <= joy_count_6_255(j1y_pos);
+          j2x <= joy_count_6_255(j2x_pos);
+          j2y <= joy_count_6_255(j2y_pos);
         end
         default: ;
       endcase
@@ -359,6 +423,7 @@ always @(posedge clk) begin : joy_block
 
     read_last <= read;
     if (timed==2'd0 ? tick_1100ns : read_last && ~read) begin
+      // decrement count
       if (j1x) j1x <= j1x - 1'b1;
       if (j1y) j1y <= j1y - 1'b1;
       if (j2x) j2x <= j2x - 1'b1;
