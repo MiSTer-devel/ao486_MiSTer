@@ -1606,11 +1606,41 @@ always @(posedge clk_vga) if (ce_video) begin
 	end
 end
 
+// Prevent an extra vsync pulse within a frame to work around an observed
+// Earthworm Jim 2 issue.
+//
+// Earthworm Jim 2 configures the VGA for 60 Hz, then measures the time between
+// vsync pulses (about 16.66 ms per frame). If the VGA setup occurs during
+// vsync and the new crtc_vertical_retrace_start value is higher than the
+// current value, an extra vsync pulse can occur during that frame.
+//
+// The extra pulse can make the first measured frame time fall outside the
+// game's accepted range: 14.25 ms (70.175 Hz) to 22.222 ms (45 Hz). If any
+// measurement is out of range, the game falls back to PIT channel 2 instead
+// of using the default PIT channel 0 for tasks such as joystick handling.
+//
+// Suppressing the possible extra pulse makes the first measured frame time
+// longer than the target of about 16.66 ms, but keeps it within the accepted
+// range and prevents the game from switching to PIT channel 2.
+//
+// Workaround:
+// Starting the game with the -f command-line option bypasses the frame-time
+// measurements and uses predefined minimum and maximum PIT-count values. This
+// option also forces the game to use PIT channel 0.
+//
+reg frame_vsync_occurred;
+always @(posedge clk_vga) if (ce_video) begin
+	if (vgaprep_dot_timing) if (hss) begin
+		if      (vss)                          frame_vsync_occurred <= 1'b1;
+		else if (vert_last_cnt)                frame_vsync_occurred <= 1'b0;
+	end
+end
+
 // Vertical Sync
 reg vgaprep_vert_sync;
 always @(posedge clk_vga) if (ce_video) begin
 	if (vgaprep_dot_timing) if (hss) begin
-		if      (vss)                          vgaprep_vert_sync <= 1'b1;
+		if      (vss && ~frame_vsync_occurred) vgaprep_vert_sync <= 1'b1;   // allow only one vsync pulse per frame
 		else if (vse && vgaprep_vert_sync)     vgaprep_vert_sync <= 1'b0;
 		//else if (vbe && vgaprep_vert_sync)     vgaprep_vert_sync <= 1'b0; // also end vertical sync at vertical blanking end?
 	end
