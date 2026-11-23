@@ -227,7 +227,7 @@ hps_ext hps_ext
 	.cdda_dout(cdda_dout),
 
 	.ext_req(mgmt_req),
-	.ext_hotswap({status[39],~status[38]})
+	.ext_hotswap(status[39:38])
 );
 
 /////////////////////////////  PLL  ////////////////////////////////////
