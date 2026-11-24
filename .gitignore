@@ -38,3 +38,10 @@ c5_pin_model_dump.txt
 *.xml
 *_netlist
 *.cdf
+
+# NE2000 port: simulation scratch
+sim/iverilog/ne2000/build/
+*.vvp
+
+# local build outputs (rbf/floppy images pulled from the build host)
+build/
